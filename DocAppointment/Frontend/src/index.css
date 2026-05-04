@@ -1,0 +1,615 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  --bg-color: #0f172a;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.3);
+  --success: #10b981;
+  --danger: #ef4444;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th {
+  text-align: left;
+  padding: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+input, select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  border-radius: 8px;
+  color: white;
+  width: 100%;
+}
+
+/* Custom DatePicker Styling */
+.custom-datepicker {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100px;
+  outline: none;
+  text-align: center;
+}
+
+.react-datepicker {
+  background: rgba(30, 41, 59, 0.95) !important;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 15px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+}
+
+.react-datepicker__header {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 15px 15px 0 0 !important;
+}
+
+.react-datepicker__current-month, 
+.react-datepicker__day-name, 
+.react-datepicker__day {
+  color: white !important;
+}
+
+.react-datepicker__day:hover {
+  background: var(--accent-color) !important;
+  color: black !important;
+  border-radius: 8px !important;
+}
+
+.react-datepicker__day--selected {
+  background: var(--accent-color) !important;
+  color: black !important;
+  border-radius: 8px !important;
+}
+
+.flatpickr-custom-input {
+  background: transparent !important;
+  border: none !important;
+  color: white !important;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 250px;
+  outline: none;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.flatpickr-calendar {
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+  border-radius: 20px !important;
+  padding: 10px !important;
+  font-family: inherit !important;
+}
+
+.flatpickr-months {
+  padding: 10px 0 !important;
+}
+
+.flatpickr-month {
+  background: transparent !important;
+  color: white !important;
+}
+
+.flatpickr-current-month {
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+  font-weight: 800 !important;
+  color: white !important;
+}
+
+.flatpickr-current-month input.cur-year {
+  font-weight: 800 !important;
+  color: var(--accent-color) !important;
+}
+
+.flatpickr-weekday {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+}
+
+.flatpickr-day {
+  color: white !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+  height: 35px !important;
+  line-height: 35px !important;
+  margin-top: 2px !important;
+}
+
+.flatpickr-day:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.flatpickr-day.selected, 
+.flatpickr-day.startRange, 
+.flatpickr-day.endRange {
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: black !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 15px var(--accent-glow) !important;
+}
+
+.flatpickr-day.inRange {
+  background: rgba(56, 189, 248, 0.15) !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  color: var(--accent-color) !important;
+}
+
+.flatpickr-day.today {
+  border-bottom: 2px solid var(--accent-color) !important;
+  border-radius: 0 !important;
+}
+
+.flatpickr-prev-month, .flatpickr-next-month {
+  color: white !important;
+  fill: white !important;
+  padding: 15px !important;
+}
+
+.flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+  color: var(--accent-color) !important;
+}
+
+.flatpickr-innerContainer {
+  margin-top: 10px !important;
+}
+
+.flatpickr-calendar.arrowTop:before, 
+.flatpickr-calendar.arrowTop:after {
+  border-bottom-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+/* Animations & Utilities */
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 10px var(--success);
+  animation: pulse 1.5s infinite;
+}
+
+.table-row-hover:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.breadcrumb-item:hover {
+  opacity: 1 !important;
+  color: white !important;
+}
+
+
+.doctor-status-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.manage-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.start-btn:hover {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: rgba(255,255,255,0.3) !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes tokenNumberAnimate {
+  0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
+  50% { transform: scale(1.1); opacity: 1; filter: blur(0px); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.token-number-animate {
+  animation: tokenNumberAnimate 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Responsive Utilities */
+@media (max-width: 1024px) {
+  .glass-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 1.8rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  
+  .glass-card {
+    padding: 15px;
+    border-radius: 12px;
+  }
+
+  .btn-primary {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  /* Force tables to be scrollable on mobile */
+  .table-container {
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 800px; /* Ensure table doesn't squash too much */
+  }
+
+  .table-container th, .table-container td {
+    padding: 12px 15px !important;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  .desktop-only {
+    display: none;
+  }
+}
+
+/* Mobile Overlay for Sidebar */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Sidebar Responsive Fixes */
+@media (min-width: 769px) {
+  .main-sidebar {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-sidebar {
+    width: 280px !important;
+  }
+  
+  .main-content-layout {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .breadcrumb-capsule {
+    display: none !important; /* Hide breadcrumbs on very small screens to save space */
+  }
+}
+
+/* Responsive Grid Utilities */
+.grid-doctors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+}
+
+.grid-sessions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
+  .grid-doctors {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .grid-sessions {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.grid-manage-queue {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 1024px) {
+  .grid-manage-queue {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .now-serving-card h1 {
+    font-size: 6rem !important;
+  }
+  
+  .now-serving-card {
+    padding: 40px 20px !important;
+  }
+}
+
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .grid-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Aggressive Responsive Resets */
+@media (max-width: 768px) {
+  .main-content-layout {
+    padding: 15px !important;
+  }
+
+  header {
+    padding: 0 15px !important;
+  }
+
+  /* Compact Stat Cards */
+  .stat-card-responsive {
+    padding: 15px !important;
+    gap: 12px !important;
+  }
+  
+  .stat-card-responsive h3 {
+    font-size: 1.4rem !important;
+  }
+
+  .stat-card-responsive p {
+    font-size: 0.75rem !important;
+  }
+
+  /* Responsive Flex Sections */
+  .flex-mobile-column {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 15px !important;
+  }
+
+  .full-width-mobile {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  /* Doctor Card Mobile */
+  .doctor-card-header {
+    padding: 15px !important;
+    gap: 12px !important;
+  }
+
+  .doctor-card-header h3 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Fix for huge token display */
+  .now-serving-card {
+    padding: 30px 15px !important;
+  }
+
+  .now-serving-card h1 {
+    font-size: 5rem !important;
+    text-shadow: 0 0 30px var(--accent-glow) !important;
+  }
+  
+  .now-serving-card .currentTokenLabel {
+    font-size: 0.7rem !important;
+    letter-spacing: 2px !important;
+  }
+
+  .logo-text {
+    font-size: 1.1rem !important;
+  }
+
+  .logo-text span {
+    display: inline-block;
+  }
+
+  .patient-name-box {
+    padding: 10px 20px !important;
+    width: 100% !important;
+    justify-content: center;
+  }
+
+  .patient-name-box span {
+    font-size: 1.2rem !important;
+  }
+
+  .full-width-mobile button {
+    flex: 1 !important;
+    padding: 10px 5px !important;
+    font-size: 0.75rem !important;
+    justify-content: center !important;
+  }
+
+  .call-next-btn {
+    padding: 20px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .responsive-modal {
+    padding: 20px !important;
+    margin: 0 10px !important;
+    width: calc(100% - 20px) !important;
+  }
+}
+
+
+
+
+
+
+

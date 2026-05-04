@@ -1,0 +1,122 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Entities;
+using CodeX.Domain.Enums;
+
+namespace CodeX.Application.Features.Tokens.Commands.CreateToken
+{
+    public record CreateTokenCommand : IRequest<Guid>
+    {
+        public Guid QueueId { get; init; }
+        public string PatientName { get; init; } = string.Empty;
+        public string PatientPhone { get; init; } = string.Empty;
+        public BookingSource Source { get; init; } = BookingSource.WhatsApp;
+    }
+
+    public class CreateTokenCommandHandler : IRequestHandler<CreateTokenCommand, Guid>
+    {
+        private readonly IApplicationDbContext _context;
+        private readonly IWhatsAppService _whatsappService;
+        private readonly IQueueNotificationService _notificationService;
+
+        public CreateTokenCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, IQueueNotificationService notificationService)
+        {
+            _context = context;
+            _whatsappService = whatsappService;
+            _notificationService = notificationService;
+        }
+
+        public async Task<Guid> Handle(CreateTokenCommand request, CancellationToken cancellationToken)
+        {
+            var queue = await _context.DailyQueues
+                .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
+
+            if (queue == null) 
+            {
+                var allQueues = await _context.DailyQueues.Select(q => q.Id).ToListAsync(cancellationToken);
+                var allQueuesStr = string.Join(", ", allQueues);
+                throw new Exception($"Queue not found. Requested: {request.QueueId}. Available: {allQueuesStr}");
+            }
+
+            // 1. Find Patient
+            var patient = await _context.Patients
+                .FirstOrDefaultAsync(p => p.Phone == request.PatientPhone, cancellationToken);
+
+            // 2. Duplicate Check (If patient exists)
+            if (patient != null)
+            {
+                var hasActiveToken = await _context.Tokens
+                    .AnyAsync(t => t.QueueId == request.QueueId && 
+                                   t.PatientId == patient.Id && 
+                                   (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called), 
+                                   cancellationToken);
+
+                if (hasActiveToken)
+                {
+                    throw new Exception("This patient already has an active token in this session.");
+                }
+            }
+            else
+            {
+                // Create new patient
+                patient = new Patient
+                {
+                    Name = request.PatientName,
+                    Phone = request.PatientPhone
+                };
+                _context.Patients.Add(patient);
+            }
+
+            Token? token = null;
+            var saved = false;
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                var nextTokenNumber = ((await _context.Tokens
+                    .Where(t => t.QueueId == queue.Id)
+                    .MaxAsync(t => (int?)t.TokenNumber, cancellationToken)) ?? 0) + 1;
+
+                token = new Token
+                {
+                    QueueId = queue.Id,
+                    Patient = patient,
+                    TokenNumber = nextTokenNumber,
+                    Status = TokenStatus.Pending,
+                    Source = request.Source,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Tokens.Add(token);
+
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                    saved = true;
+                    break;
+                }
+                catch (DbUpdateException ex) when (IsUniqueTokenConflict(ex) && attempt < 2)
+                {
+                    _context.Tokens.Remove(token);
+                }
+            }
+
+            if (!saved || token == null)
+            {
+                throw new Exception("Failed to allocate a unique token number. Please retry.");
+            }
+
+            // 4. Notifications
+            await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber);
+            await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+
+            return token.Id;
+        }
+
+        private static bool IsUniqueTokenConflict(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("QueueId", StringComparison.OrdinalIgnoreCase) &&
+                   message.Contains("TokenNumber", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}

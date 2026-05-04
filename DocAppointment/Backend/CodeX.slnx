@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CodeX.Api/CodeX.Api.csproj" />
+  <Project Path="CodeX.Application/CodeX.Application.csproj" />
+  <Project Path="CodeX.Domain/CodeX.Domain.csproj" />
+  <Project Path="CodeX.Infrastructure/CodeX.Infrastructure.csproj" />
+</Solution>
