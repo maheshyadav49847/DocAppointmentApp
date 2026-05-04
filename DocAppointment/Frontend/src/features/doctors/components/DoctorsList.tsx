@@ -34,9 +34,9 @@ const cancelButtonStyle: React.CSSProperties = {
   transition: 'all 0.2s'
 };
 
-const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onChange: (v: string) => void; required?: boolean }> = ({ label, icon, value, onChange, required }) => (
+const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onChange: (v: string) => void; tooltip?: string; required?: boolean }> = ({ label, icon, value, onChange, tooltip, required }) => (
   <div style={{ marginBottom: '15px' }}>
-    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+    <label data-tooltip={tooltip} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
       {icon}
       {label}
     </label>
@@ -194,6 +194,7 @@ const DoctorsList: React.FC = () => {
                <Building2 size={14} /> Hospital Branch
              </label>
              <select 
+               data-tooltip="Switch hospital location to manage doctors"
                value={selectedBranchId} 
                onChange={(e) => setSelectedBranchId(e.target.value)}
                style={{ 
@@ -224,6 +225,7 @@ const DoctorsList: React.FC = () => {
           <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }} className="full-width-mobile">
             <Search size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-secondary)' }} />
             <input 
+              data-tooltip="Find doctor by name, specialty or registration ID"
               type="text" 
               placeholder="Search professionals..." 
               value={searchQuery}
@@ -237,6 +239,7 @@ const DoctorsList: React.FC = () => {
           </div>
 
           <button 
+            data-tooltip="Register a new healthcare professional"
             onClick={() => setIsModalOpen(true)} 
             className="btn-primary full-width-mobile" 
             style={{ 
@@ -297,16 +300,16 @@ const DoctorsList: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '8px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px', width: '100%' }}>
-                    <button onClick={() => setViewRatingsDoctorId(doc)} style={actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15')}>
+                    <button data-tooltip="View patient reviews and scores" onClick={() => setViewRatingsDoctorId(doc)} style={actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15')}>
                       <Star size={16} fill="#FACC15" color="#FACC15" /> Feedback
                     </button>
-                    <button onClick={() => setViewDoctor(doc)} style={actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)')}>
+                    <button data-tooltip="See full professional profile" onClick={() => setViewDoctor(doc)} style={actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)')}>
                       <Eye size={16} /> View
                     </button>
-                    <button onClick={() => setEditingDoctor(doc)} style={actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white')}>
+                    <button data-tooltip="Update doctor information" onClick={() => setEditingDoctor(doc)} style={actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white')}>
                       <Edit size={16} /> Edit
                     </button>
-                    <button onClick={() => setDeletingDoctorId(doc.id)} style={actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)')}>
+                    <button data-tooltip="Permanently remove this professional" onClick={() => setDeletingDoctorId(doc.id)} style={actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)')}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -326,12 +329,12 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} />
+            <Field label="Full Name" icon={<User size={16}/>} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} tooltip="Enter the doctor's full name" required />
+            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} tooltip="Medical specialty (e.g. Cardiologist)" required />
+            <Field label="Registration No." icon={<Hash size={16}/>} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} tooltip="Official medical council registration number" />
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button data-tooltip="Register this new professional" type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {createDoctorMutation.isPending ? 'Adding...' : 'Add Doctor'}
               </button>
             </div>
@@ -348,12 +351,12 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} />
+            <Field label="Full Name" icon={<User size={16}/>} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} tooltip="Update doctor name" required />
+            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} tooltip="Update medical specialty" required />
+            <Field label="Registration No." icon={<Hash size={16}/>} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} tooltip="Update registration number" />
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button type="button" onClick={() => setEditingDoctor(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingDoctor(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button data-tooltip="Commit updates to this profile" type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {updateDoctorMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -370,8 +373,9 @@ const DoctorsList: React.FC = () => {
             </div>
             <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this professional? This action cannot be undone.</p>
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setDeletingDoctorId(null)} style={cancelButtonStyle}><X size={16}/> No, Keep</button>
+              <button data-tooltip="Keep this profile" onClick={() => setDeletingDoctorId(null)} style={cancelButtonStyle}><X size={16}/> No, Keep</button>
               <button 
+                data-tooltip="Permanently delete this professional"
                 onClick={confirmDelete}
                 className="btn-primary" 
                 style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)' }}

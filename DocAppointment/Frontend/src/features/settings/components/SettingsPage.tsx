@@ -4,7 +4,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { whatsappConfigService } from '../../../services/whatsappConfigService';
 import { notify } from '../../../stores/notificationStore';
-import { Settings, Smartphone, MessageSquare, Shield, Info, CheckCircle2, Key, Link } from 'lucide-react';
+import { Settings, Smartphone, MessageSquare, Shield, Info, CheckCircle2, Key, Link, Building2, MapPin } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
   const { branchId } = useAuthStore();
@@ -141,7 +141,9 @@ const SettingsPage: React.FC = () => {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Branch Name</label>
+              <label data-tooltip="The official name of this hospital branch" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Hospital Branch Name
+              </label>
               <input 
                 type="text" 
                 value={settings.name} 
@@ -149,7 +151,9 @@ const SettingsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Physical Address</label>
+              <label data-tooltip="Modify the physical location details for patients" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <MapPin size={16} /> Physical Address
+              </label>
               <textarea 
                 rows={3} 
                 value={settings.address} 
@@ -177,7 +181,9 @@ const SettingsPage: React.FC = () => {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Account SID</label>
+              <label data-tooltip="Your unique Twilio Account SID" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Key size={16} /> Account SID
+              </label>
               <div style={{ position: 'relative' }}>
                 <Key size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)' }} />
                 <input 
@@ -191,7 +197,9 @@ const SettingsPage: React.FC = () => {
             </div>
             
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Auth Token</label>
+              <label data-tooltip="Secure Twilio Authentication Token" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Shield size={16} /> Auth Token
+              </label>
               <div style={{ position: 'relative' }}>
                 <Shield size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)' }} />
                 <input 
@@ -205,7 +213,9 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>Twilio WhatsApp Number</label>
+              <label data-tooltip="Twilio sandbox or verified outbound number" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Smartphone size={16} /> Twilio WhatsApp Number
+              </label>
               <div style={{ position: 'relative' }}>
                 <Smartphone size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-secondary)' }} />
                 <input 
@@ -220,6 +230,7 @@ const SettingsPage: React.FC = () => {
 
             <div style={{ marginTop: '10px' }}>
               <button 
+                data-tooltip="Verify Twilio credentials with a live test"
                 className="btn-secondary" 
                 onClick={handleTestTwilio} 
                 disabled={isTestingTwilio || !twilioConfig.accountSid || !twilioConfig.authToken}
@@ -244,6 +255,7 @@ const SettingsPage: React.FC = () => {
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Disable this branch temporarily</p>
             </div>
             <input 
+              data-tooltip="Toggle branch visibility and operations"
               type="checkbox" 
               checked={settings.isActive}
               onChange={(e) => setSettings({...settings, isActive: e.target.checked})}
@@ -254,6 +266,7 @@ const SettingsPage: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
           <button 
+            data-tooltip="Commit all changes to the system"
             onClick={() => updateMutation.mutate({ branchSettings: settings, twilioConfig })} 
             className="btn-primary" 
             disabled={updateMutation.isPending}

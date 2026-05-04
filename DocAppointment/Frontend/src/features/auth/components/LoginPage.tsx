@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
 import { authService } from '../../../services/authService';
-import { LogIn, ShieldCheck } from 'lucide-react';
+import { LogIn, ShieldCheck, Mail, Lock } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -76,7 +76,9 @@ const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Email Address</label>
+            <label data-tooltip="Enter your registered hospital email" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              <Mail size={16} /> Email Address
+            </label>
             <input 
               type="email" 
               value={email}
@@ -87,7 +89,9 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div style={{ marginBottom: '30px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Password</label>
+            <label data-tooltip="Your secure account password" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+              <Lock size={16} /> Password
+            </label>
             <input 
               type="password" 
               value={password}
@@ -98,6 +102,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           <button 
+            data-tooltip="Access your hospital administrative portal"
             type="submit" 
             disabled={loading}
             className="btn-primary" 

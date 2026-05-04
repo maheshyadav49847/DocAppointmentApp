@@ -259,6 +259,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
              <Building2 size={14} /> Hospital Branch
           </label>
           <select 
+             data-tooltip="Switch hospital branch dashboard"
              value={selectedBranchId} 
              onChange={(e) => setSelectedBranchId(e.target.value)}
              style={{ 
@@ -285,10 +286,10 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
         <>
           {/* Header Stats */}
           <div className="grid-stats">
-            <StatCard icon={<Users />} label="Total Patients" value={stats?.totalPatientsToday || 0} color="var(--accent-color)" />
-            <StatCard icon={<CheckCircle2 />} label="Completed" value={stats?.completedPatients || 0} color="var(--success)" />
-            <StatCard icon={<AlertCircle />} label="Skipped" value={stats?.skippedPatients || 0} color="var(--danger)" />
-            <StatCard icon={<Clock />} label="Avg Wait Time" value={`${stats?.avgWaitTimeMinutes || 0}m`} color="#FACC15" />
+            <StatCard data-tooltip="Total patients registered across all sessions today" icon={<Users />} label="Total Patients" value={stats?.totalPatientsToday || 0} color="var(--accent-color)" />
+            <StatCard data-tooltip="Total patients successfully served today" icon={<CheckCircle2 />} label="Completed" value={stats?.completedPatients || 0} color="var(--success)" />
+            <StatCard data-tooltip="Total patients marked as absent today" icon={<AlertCircle />} label="Skipped" value={stats?.skippedPatients || 0} color="var(--danger)" />
+            <StatCard data-tooltip="Average wait time for patients across all sessions" icon={<Clock />} label="Avg Wait Time" value={`${stats?.avgWaitTimeMinutes || 0}m`} color="#FACC15" />
           </div>
 
           <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -306,6 +307,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
                 <div style={{ position: 'relative', width: '100%' }}>
                   <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                   <input
+                    data-tooltip="Find doctor by name or specialty"
                     type="text"
                     placeholder="Search doctor or specialty..."
                     value={searchQuery}
@@ -338,8 +340,8 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
   );
 };
 
-const StatCard = ({ icon, label, value, color, subText }: any) => (
-  <div className="glass-card stat-card-responsive" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }}>
+const StatCard = ({ icon, label, value, color, subText, ...props }: any) => (
+  <div className="glass-card stat-card-responsive" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }} {...props}>
     <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '80px', height: '80px', background: color, filter: 'blur(50px)', opacity: 0.1 }}></div>
     <div style={{ background: `${color}15`, padding: '15px', borderRadius: '15px', color: color, display: 'flex', zIndex: 1 }}>
       {React.cloneElement(icon, { size: 24 })}
@@ -362,6 +364,7 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
       <p style={{ color: 'var(--text-secondary)', marginBottom: '35px', lineHeight: '1.6' }}>{message}</p>
       <div style={{ display: 'flex', gap: '15px' }}>
         <button 
+          data-tooltip="Return to management console"
           onClick={onCancel} 
           style={{ 
             flex: 1, padding: '12px 20px', borderRadius: '10px', 
@@ -376,6 +379,7 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
           <X size={18} /> Cancel
         </button>
         <button 
+          data-tooltip="Terminate session and close queue"
           onClick={onConfirm} 
           style={{ 
             flex: 1, padding: '12px 20px', borderRadius: '10px', 
@@ -498,17 +502,17 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
         gap: '15px'
       }} className="flex-mobile-column">
         <div style={{ display: 'flex', gap: '20px', width: '100%', justifyContent: 'space-between' }} className="stat-row-mobile">
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div data-tooltip="Total patients currently waiting" style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Wait</span>
             <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-color)' }}>{activeQueue?.waitingCount || 0}</span>
           </div>
           <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div data-tooltip="Patients successfully treated today" style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Done</span>
             <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--success)' }}>{activeQueue?.completedCount || 0}</span>
           </div>
           <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div data-tooltip="Patients who were skipped" style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Skip</span>
             <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--danger)' }}>{activeQueue?.skippedCount || 0}</span>
           </div>
@@ -516,6 +520,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
 
         {isLive ? (
           <button 
+            data-tooltip="Open queue management console"
             className="btn-primary full-width-mobile" 
             onClick={() => onManage(doctor, session, activeQueue.id)}
             style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '10px', minHeight: '44px' }}
@@ -524,6 +529,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
           </button>
         ) : (
           <button 
+            data-tooltip="Initialize queue for this shift"
             className="start-btn full-width-mobile" 
             onClick={() => onStart(doctor, session)}
             style={{ 
@@ -705,6 +711,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             <ArrowLeft size={24} />
           </button>
           <button 
+            data-tooltip="Refresh live queue data"
             onClick={() => { refetchQueue(); refetchTokens(); }} 
             style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--accent-color)', display: 'flex' }}
             title="Refresh Data"
@@ -726,10 +733,13 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
         </div>
         
         <div style={{ display: 'flex', gap: '12px', width: '100%' }} className="full-width-mobile flex-mobile-column">
-          <button type="button" onClick={onManualBooking} className="full-width-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+          <button 
+            data-tooltip="Manually book a patient in the queue"
+            type="button" onClick={onManualBooking} className="full-width-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
             <PlusCircle size={18} /> Booking
           </button>
           <button 
+            data-tooltip="Permanently close this doctor's session"
             type="button"
             onClick={handleEndSession}
             disabled={isEnding}
@@ -836,6 +846,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'center' }}>
             <button
+              data-tooltip="Call the next patient in line"
               onClick={() => callNextMutation.mutate()}
               disabled={!isDoctorArrived || callNextMutation.isPending}
               className="btn-primary call-next-btn"
@@ -850,6 +861,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               <button
+                data-tooltip="Skip current patient's turn"
                 style={{ ...secondaryControlStyle, opacity: (!isDoctorArrived || !queue.currentTokenNumber) ? 0.5 : 1 }}
                 onClick={() => skipMutation.mutate()}
                 disabled={!isDoctorArrived || skipMutation.isPending || !queue.currentTokenNumber}
@@ -858,6 +870,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 {skipMutation.isPending ? 'Skipping...' : 'Skip'}
               </button>
               <button
+                data-tooltip="Send WhatsApp alert to current patient"
                 style={{ ...secondaryControlStyle, opacity: (!isDoctorArrived || !queue.currentTokenNumber) ? 0.5 : 1 }}
                 onClick={() => alertMutation.mutate()}
                 disabled={!isDoctorArrived || alertMutation.isPending || !queue.currentTokenNumber}
@@ -870,6 +883,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
 
             <button
+              data-tooltip="Activate queue by marking doctor's presence"
               onClick={() => markArrivedMutation.mutate()}
               disabled={isDoctorArrived || markArrivedMutation.isPending}
               style={{
@@ -1052,6 +1066,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                           {t.status === 3 && (
                             <button 
+                              data-tooltip="Move patient back to waiting list"
                               onClick={() => requeueMutation.mutate(t.id)}
                               style={{ background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-color)', padding: '10px 15px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
                             >
@@ -1061,12 +1076,14 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                           {t.status !== 2 && (
                             <>
                               <button 
+                                data-tooltip="Modify patient details"
                                 onClick={() => setEditingToken(t)}
                                 style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer' }}
                               >
                                 <Edit size={18} />
                               </button>
                               <button 
+                                data-tooltip="Permanently remove from queue"
                                 onClick={() => { if(window.confirm("Are you sure you want to delete this token?")) deleteTokenMutation.mutate(t.id); }}
                                 style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px 15px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
                               >
@@ -1133,7 +1150,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
     <Modal title="Edit Patient Details" onClose={onClose} icon={<Edit color="var(--accent-color)" />}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <label data-tooltip="Update patient's official name" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             <User size={14} /> Patient Name
           </label>
           <input 
@@ -1145,7 +1162,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
           {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '5px' }}>{errors.name}</p>}
         </div>
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <label data-tooltip="Update WhatsApp contact for notifications" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             <Smartphone size={14} /> Phone Number (WhatsApp)
           </label>
           <input 
@@ -1162,6 +1179,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
         </div>
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
           <button 
+            data-tooltip="Discard changes and return"
             onClick={onClose} 
             style={{ 
               flex: 1, padding: '10px 20px', borderRadius: '8px', 
@@ -1173,6 +1191,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
             <X size={18} /> Cancel
           </button>
           <button 
+            data-tooltip="Update patient record in queue"
             onClick={handleSave} 
             disabled={!isValid}
             style={{ 

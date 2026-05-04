@@ -6,7 +6,7 @@ import { whatsappConfigService } from '../../../services/whatsappConfigService';
 import { notify } from '../../../stores/notificationStore';
 import {
   Building2, MapPin, Smartphone, Plus, Settings,
-  Activity, Info, Shield, Link, Download, ArrowRight, Save, X, CheckCircle2
+  Activity, Info, Shield, Link, Download, ArrowRight, Save, X, CheckCircle2, Lock
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
 
@@ -143,6 +143,22 @@ const BranchesPage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.05)' }} className="flex-mobile-column full-width-mobile">
           <button
+            data-tooltip="Configure Twilio WhatsApp for all branches"
+            onClick={() => setIsGlobalModalOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          >
+            <Smartphone size={18} color="#25D366" /> Global WhatsApp
+          </button>
+
+          <button
+            data-tooltip="Manage organization settings"
             onClick={() => setIsGlobalModalOpen(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
@@ -157,6 +173,7 @@ const BranchesPage: React.FC = () => {
           </button>
 
           <button
+            data-tooltip="Export branch data"
             style={{
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
               background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
@@ -172,6 +189,7 @@ const BranchesPage: React.FC = () => {
           <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 5px' }} className="hide-mobile"></div>
 
           <button
+            data-tooltip="Register a new hospital location"
             onClick={() => setIsModalOpen(true)}
             className="btn-primary"
             style={{
@@ -284,7 +302,9 @@ const BranchesPage: React.FC = () => {
         <Modal title="Register New Branch" onClose={() => setIsModalOpen(false)} icon={<Building2 color="var(--accent-color)" />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="input-group">
-              <label>Branch Name</label>
+              <label data-tooltip="Enter the official name of the hospital branch" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Branch Name
+              </label>
               <input
                 type="text"
                 placeholder="e.g. South Extension Hospital"
@@ -293,7 +313,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>Address</label>
+              <label data-tooltip="Full physical address for patient navigation" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <MapPin size={16} /> Address
+              </label>
               <textarea
                 rows={3}
                 placeholder="Enter complete physical address"
@@ -303,7 +325,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>WhatsApp Number</label>
+              <label data-tooltip="Number used for automated WhatsApp notifications (with country code)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Smartphone size={16} /> WhatsApp Number
+              </label>
               <input
                 type="tel"
                 placeholder="919876543210"
@@ -313,19 +337,21 @@ const BranchesPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+                <button
+                  data-tooltip="Discard changes and return"
+                  style={{
+                    flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  <X size={18} /> Cancel
+                </button>
               <button
-                style={{
-                  flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                onClick={() => setIsModalOpen(false)}
-              >
-                <X size={18} /> Cancel
-              </button>
-              <button
+                data-tooltip="Launch this new hospital branch"
                 className="btn-primary"
                 style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 disabled={!newBranch.name || createMutation.isPending}
@@ -348,7 +374,9 @@ const BranchesPage: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="input-group">
-              <label>Branch Name</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Branch Name
+              </label>
               <input
                 type="text"
                 value={selectedBranch.name}
@@ -356,7 +384,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>Address</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <MapPin size={16} /> Address
+              </label>
               <textarea
                 rows={4}
                 value={selectedBranch.address}
@@ -365,7 +395,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>Localized WhatsApp Number</label>
+              <label data-tooltip="Specific WhatsApp number for this branch alerts" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Smartphone size={16} /> Localized WhatsApp Number
+              </label>
               <input
                 type="tel"
                 value={selectedBranch.whatsAppNumber}
@@ -387,6 +419,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
               <button
+                data-tooltip="Discard changes and return"
                 style={{
                   flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
@@ -399,6 +432,7 @@ const BranchesPage: React.FC = () => {
                 <X size={18} /> Cancel
               </button>
               <button
+                data-tooltip="Save changes for this location"
                 className="btn-primary"
                 style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 onClick={() => updateBranchMutation.mutate(selectedBranch)}
@@ -430,7 +464,9 @@ const BranchesPage: React.FC = () => {
             </div>
 
             <div className="input-group">
-              <label>Account SID</label>
+              <label data-tooltip="Twilio Unique Identifier from your Console" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Shield size={16} /> Account SID
+              </label>
               <input
                 type="text"
                 value={twilioConfig.accountSid}
@@ -439,7 +475,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>Auth Token</label>
+              <label data-tooltip="Twilio Private Authentication Token" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Lock size={16} /> Auth Token
+              </label>
               <input
                 type="password"
                 value={twilioConfig.authToken}
@@ -448,7 +486,9 @@ const BranchesPage: React.FC = () => {
               />
             </div>
             <div className="input-group">
-              <label>Master Outbound Number</label>
+              <label data-tooltip="Twilio sandbox or verified number (e.g. whatsapp:+123...)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Link size={16} /> Master Outbound Number
+              </label>
               <input
                 type="text"
                 value={twilioConfig.fromNumber}
@@ -459,6 +499,7 @@ const BranchesPage: React.FC = () => {
 
             <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
               <button
+                data-tooltip="Verify global Twilio credentials"
                 style={{
                   flex: 1,
                   background: 'rgba(56, 189, 248, 0.05)',

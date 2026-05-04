@@ -16,13 +16,13 @@ const SessionFormFields: React.FC<{ data: any; onChange: (v: any) => void }> = (
   return (
     <>
       <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Identify this shift (e.g. Evening Clinic, Emergency)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <ListOrdered size={16} /> Session Name
         </label>
         <input type="text" value={data.sessionName} onChange={(e) => onChange({...data, sessionName: e.target.value})} placeholder="e.g. Morning OPD" required />
       </div>
       <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Day of the week this professional is available" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <Calendar size={16} /> Day of Week
         </label>
         <select value={data.dayOfWeek} onChange={(e) => onChange({...data, dayOfWeek: parseInt(e.target.value)})} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'white', padding: '12px' }}>
@@ -31,20 +31,20 @@ const SessionFormFields: React.FC<{ data: any; onChange: (v: any) => void }> = (
       </div>
       <div style={{ display: 'grid', gap: '15px', marginBottom: '15px' }} className="grid-stats">
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <label data-tooltip="Start time of the session" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             <Clock size={16} /> Start Time
           </label>
           <input type="time" value={data.startTime.substring(0, 5)} onChange={(e) => onChange({...data, startTime: e.target.value})} required />
         </div>
         <div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <label data-tooltip="End time of the session" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
             <Clock size={16} /> End Time
           </label>
           <input type="time" value={data.endTime.substring(0, 5)} onChange={(e) => onChange({...data, endTime: e.target.value})} required />
         </div>
       </div>
       <div style={{ marginBottom: '25px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Maximum number of tokens allowed per session" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <Hash size={16} /> Token Capacity
         </label>
         <input type="number" value={data.defaultCapacity} onChange={(e) => onChange({...data, defaultCapacity: parseInt(e.target.value)})} required />
@@ -198,6 +198,7 @@ const SessionsList: React.FC = () => {
                <Building2 size={14} /> Hospital Branch
              </label>
              <select 
+               data-tooltip="Select hospital location to manage professional shifts"
                value={selectedBranchId} 
                onChange={(e) => handleBranchChange(e.target.value)}
                style={{ 
@@ -222,6 +223,7 @@ const SessionsList: React.FC = () => {
           {/* Doctor Selector */}
           <div style={{ flex: 1, width: '100%', maxWidth: '300px' }} className="full-width-mobile">
             <select 
+              data-tooltip="Choose a professional to manage their working hours"
               value={selectedDoctorId} 
               onChange={(e) => setSelectedDoctorId(e.target.value)}
               disabled={!selectedBranchId}
@@ -240,6 +242,7 @@ const SessionsList: React.FC = () => {
 
           {selectedDoctorId && (
             <button 
+              data-tooltip="Define a new time slot or shift for this doctor"
               onClick={() => setIsModalOpen(true)} 
               className="btn-primary full-width-mobile" 
               style={{ 
@@ -276,29 +279,37 @@ const SessionsList: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{session.sessionName}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontSize: '0.9rem', marginTop: '5px', fontWeight: 500 }}>
+                    <div 
+                      data-tooltip="Scheduled Day"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontSize: '0.9rem', marginTop: '5px', fontWeight: 500 }}>
                       <Calendar size={14} />
                       <span>{days[session.dayOfWeek]}s</span>
                     </div>
                   </div>
-                  <div style={{ background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-color)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div 
+                    data-tooltip="Maximum Token Capacity"
+                    style={{ background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-color)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Users size={14} /> {session.defaultCapacity}
                   </div>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                <div 
+                  data-tooltip="Operational Hours"
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                   <Clock size={18} />
                   <span>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</span>
                 </div>
 
                 <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '10px' }}>
                   <button 
+                    data-tooltip="Modify Shift Details"
                     onClick={() => setEditingSession(session)}
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', fontSize: '0.85rem', fontWeight: 600, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
                   >
                     <Edit size={14} /> Edit
                   </button>
                   <button 
+                    data-tooltip="Delete this Shift"
                     onClick={() => setDeletingSessionId(session.id)}
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', fontSize: '0.85rem', fontWeight: 600, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: 'var(--danger)', cursor: 'pointer' }}
                   >
@@ -323,8 +334,8 @@ const SessionsList: React.FC = () => {
           <form onSubmit={handleAddSession}>
             <SessionFormFields data={newSession} onChange={setNewSession} />
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button data-tooltip="Save and create new shift" type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {createSessionMutation.isPending ? 'Saving...' : 'Add Session'}
               </button>
             </div>
@@ -338,8 +349,8 @@ const SessionsList: React.FC = () => {
           <form onSubmit={handleUpdateSession}>
             <SessionFormFields data={editingSession} onChange={setEditingSession} />
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button type="button" onClick={() => setEditingSession(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingSession(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button data-tooltip="Commit updates to this shift" type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {updateSessionMutation.isPending ? 'Updating...' : 'Update Session'}
               </button>
             </div>
@@ -356,8 +367,9 @@ const SessionsList: React.FC = () => {
             </div>
             <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to delete this shift? This will prevent new bookings for this slot.</p>
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setDeletingSessionId(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button data-tooltip="Keep this session" onClick={() => setDeletingSessionId(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
               <button 
+                data-tooltip="Permanently delete this shift"
                 onClick={confirmDelete}
                 className="btn-primary" 
                 style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)' }}

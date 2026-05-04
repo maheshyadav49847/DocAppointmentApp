@@ -54,7 +54,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <label data-tooltip="Full name of the patient for token identification" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
               <User size={16} /> Patient Name
             </label>
             <input 
@@ -67,7 +67,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
             {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px', fontWeight: 600 }}>{errors.name}</p>}
           </div>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <label data-tooltip="WhatsApp number to send token and queue updates" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
               <Smartphone size={16} /> WhatsApp Number
             </label>
             <input 
@@ -84,6 +84,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
             {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px', fontWeight: 600 }}>{errors.phone}</p>}
           </div>
           <button 
+            data-tooltip="Submit and generate patient token"
             onClick={handleSubmit}
             disabled={!isValid}
             className="btn-primary" 

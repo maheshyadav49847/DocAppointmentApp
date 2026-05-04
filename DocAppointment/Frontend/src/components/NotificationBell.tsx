@@ -106,6 +106,7 @@ const NotificationBell: React.FC = () => {
     <div ref={panelRef} style={{ position: 'relative' }}>
       {/* Bell Button */}
       <button
+        data-tooltip="View system notifications"
         onClick={handleOpen}
         title="Notifications"
         style={{
@@ -163,6 +164,7 @@ const NotificationBell: React.FC = () => {
             <div style={{ display: 'flex', gap: '8px' }}>
               {count > 0 && (
                 <button
+                  data-tooltip="Acknowledge all notifications"
                   onClick={markAllRead}
                   title="Mark all as read"
                   style={{
@@ -179,6 +181,7 @@ const NotificationBell: React.FC = () => {
               )}
               {notifications.length > 0 && (
                 <button
+                  data-tooltip="Delete notification history"
                   onClick={clearAll}
                   title="Clear all notifications"
                   style={{
