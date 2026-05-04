@@ -256,7 +256,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
 
         <div style={{ minWidth: '250px' }} className="full-width-mobile">
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-             <Building2 size={14} /> Clinical Branch
+             <Building2 size={14} /> Hospital Branch
           </label>
           <select 
              value={selectedBranchId} 
@@ -279,7 +279,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
         <div style={{ textAlign: 'center', padding: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '30px', border: '1px dashed rgba(255,255,255,0.1)' }}>
           <Building2 size={80} style={{ marginBottom: '30px', opacity: 0.1, color: 'var(--accent-color)' }} />
           <h2 style={{ color: 'white', fontSize: '2rem' }}>Operational Oversight</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '500px', margin: '15px auto' }}>Please select a clinical branch from the header to monitor live patient queues and manage professional sessions.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '500px', margin: '15px auto' }}>Please select a hospital branch from the header to monitor live patient queues and manage professional sessions.</p>
         </div>
       ) : (
         <>

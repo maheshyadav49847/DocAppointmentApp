@@ -613,3 +613,59 @@ input, select {
 
 
 
+
+/* Tooltip System */
+[data-tooltip] {
+  position: relative;
+  display: inline-flex; /* Ensure it only wraps the icon/content */
+}
+
+[data-tooltip]:before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  padding: 5px 10px;
+  background: #1e293b;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.15s ease-out;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+[data-tooltip]:hover:before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+[data-tooltip].tooltip-bottom:before {
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform: translateX(-50%) translateY(-5px);
+}
+
+[data-tooltip].tooltip-bottom:hover:before {
+  transform: translateX(-50%) translateY(0);
+}
+
+[data-tooltip].tooltip-right:before {
+  left: calc(100% + 8px);
+  bottom: 50%;
+  transform: translateY(50%) translateX(-5px);
+}
+
+[data-tooltip].tooltip-right:hover:before {
+  transform: translateY(50%) translateX(0);
+}

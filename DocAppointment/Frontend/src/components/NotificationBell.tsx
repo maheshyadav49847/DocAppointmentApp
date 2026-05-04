@@ -143,34 +143,38 @@ const NotificationBell: React.FC = () => {
         }}>
           {/* Header */}
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Bell size={16} color="var(--accent-color)" />
-              <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Notifications</span>
-              {count > 0 && (
-                <span style={{
-                  padding: '2px 8px', borderRadius: '10px', fontSize: '0.7rem',
-                  fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)',
-                }}>
-                  {count} unread
-                </span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Bell size={16} color="var(--accent-color)" />
+                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Notifications</span>
+                {count > 0 && (
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '10px', fontSize: '0.7rem',
+                    fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)',
+                  }}>
+                    {count} unread
+                  </span>
+                )}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
+            
+            <div style={{ display: 'flex', gap: '8px' }}>
               {count > 0 && (
                 <button
                   onClick={markAllRead}
                   title="Mark all as read"
                   style={{
                     background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)',
-                    color: 'var(--accent-color)', borderRadius: '8px', padding: '5px 10px',
+                    color: 'var(--accent-color)', borderRadius: '8px', padding: '6px 12px',
                     cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '4px',
+                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
                   }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(56,189,248,0.15)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(56,189,248,0.1)'}
                 >
-                  <CheckCheck size={12} /> Read all
+                  <CheckCheck size={13} /> Mark all as read
                 </button>
               )}
               {notifications.length > 0 && (
@@ -178,13 +182,15 @@ const NotificationBell: React.FC = () => {
                   onClick={clearAll}
                   title="Clear all notifications"
                   style={{
-                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                    color: 'var(--danger)', borderRadius: '8px', padding: '5px 10px',
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'var(--text-secondary)', borderRadius: '8px', padding: '6px 12px',
                     cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '4px',
+                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
                 >
-                  <Trash2 size={12} /> Clear
+                  <Trash2 size={13} /> Clear all
                 </button>
               )}
             </div>

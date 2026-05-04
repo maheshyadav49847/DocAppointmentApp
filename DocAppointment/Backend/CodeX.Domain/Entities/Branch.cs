@@ -14,8 +14,8 @@ namespace CodeX.Domain.Entities
         public string Timezone { get; set; } = "India Standard Time";
 
         // Navigation Properties
-        public virtual Organization Organization { get; set; } = null!;
-        public virtual ICollection<Doctor> Doctors { get; set; } = new List<Doctor>();
-        public virtual ICollection<DailyQueue> DailyQueues { get; set; } = new List<DailyQueue>();
+        public virtual Organization? Organization { get; set; }
+        public virtual ICollection<Doctor>? Doctors { get; set; } = new List<Doctor>();
+        public virtual ICollection<DailyQueue>? DailyQueues { get; set; } = new List<DailyQueue>();
     }
 }

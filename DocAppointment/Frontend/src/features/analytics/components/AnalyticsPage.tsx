@@ -126,7 +126,7 @@ const AnalyticsPage: React.FC = () => {
         <div style={{ textAlign: 'center', padding: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '30px', border: '1px dashed rgba(255,255,255,0.1)' }}>
           <Building2 size={80} style={{ marginBottom: '30px', opacity: 0.1, color: 'var(--accent-color)' }} />
           <h2 style={{ color: 'white', fontSize: '2rem' }}>Ready for Analysis</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '500px', margin: '15px auto' }}>Please select a clinical location from the dropdown above to generate site-specific performance reports and trends.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '500px', margin: '15px auto' }}>Please select a hospital location from the dropdown above to generate site-specific performance reports and trends.</p>
         </div>
       </div>
     );
@@ -135,7 +135,7 @@ const AnalyticsPage: React.FC = () => {
   if (isLoading) return (
     <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
       <Activity size={60} color="var(--accent-color)" className="animate-pulse" />
-      <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>ANALYZING CLINIC DATA...</p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>ANALYZING HOSPITAL DATA...</p>
     </div>
   );
 
@@ -167,7 +167,7 @@ const AnalyticsPage: React.FC = () => {
           {/* Branch Selector Parallel to Title */}
           <div style={{ minWidth: '220px' }} className="full-width-mobile">
              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-               <Building2 size={12} /> Clinical Branch
+               <Building2 size={12} /> Hospital Branch
              </label>
              <select 
                value={selectedBranchId} 

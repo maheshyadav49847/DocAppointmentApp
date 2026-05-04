@@ -195,7 +195,7 @@ const SessionsList: React.FC = () => {
           {/* Branch Selector (Parallel to Title) */}
           <div style={{ minWidth: '220px' }} className="full-width-mobile">
              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-               <Building2 size={14} /> Clinical Branch
+               <Building2 size={14} /> Hospital Branch
              </label>
              <select 
                value={selectedBranchId} 
@@ -259,7 +259,7 @@ const SessionsList: React.FC = () => {
           <div style={{ textAlign: 'center', padding: '80px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
             <Building2 size={48} style={{ marginBottom: '20px', opacity: 0.2, color: 'var(--accent-color)' }} />
             <h3 style={{ margin: 0, color: 'white' }}>No Branch Selected</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Select a clinical branch first to view and manage professional shifts.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Select a hospital branch first to view and manage professional shifts.</p>
           </div>
         ) : !selectedDoctorId ? (
           <div style={{ textAlign: 'center', padding: '80px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>

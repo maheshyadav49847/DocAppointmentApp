@@ -83,7 +83,7 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <h2 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '25px' }}>
-            Digitize your clinic in <span style={{ color: 'var(--accent-color)' }}>minutes.</span>
+            Digitize your hospital in <span style={{ color: 'var(--accent-color)' }}>minutes.</span>
           </h2>
           <p style={{ fontSize: '1.2rem', color: 'var(--text-secondary)', maxWidth: '500px', lineHeight: 1.6, marginBottom: '40px' }}>
             The most advanced queue management and analytics platform for modern healthcare providers.
@@ -134,7 +134,7 @@ const RegisterPage: React.FC = () => {
                 <input 
                   name="orgSlug"
                   type="text" 
-                  placeholder="e.g. lifecare-clinic" 
+                  placeholder="e.g. lifecare-hospital" 
                   required 
                   value={formData.orgSlug}
                   onChange={handleChange}
@@ -144,7 +144,7 @@ const RegisterPage: React.FC = () => {
                   .docapp.live
                 </span>
               </div>
-              <p style={{ margin: '5px 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Used for your clinic's public booking page.</p>
+              <p style={{ margin: '5px 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Used for your hospital's public booking page.</p>
             </div>
 
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
@@ -154,7 +154,7 @@ const RegisterPage: React.FC = () => {
               <input 
                 name="adminEmail"
                 type="email" 
-                placeholder="admin@yourclinic.com" 
+                placeholder="admin@yourhospital.com" 
                 required 
                 value={formData.adminEmail}
                 onChange={handleChange}

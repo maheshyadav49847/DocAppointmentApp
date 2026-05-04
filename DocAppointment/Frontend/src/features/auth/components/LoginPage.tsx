@@ -108,7 +108,7 @@ const LoginPage: React.FC = () => {
         </form>
 
         <p style={{ marginTop: '25px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Don't have an account? <Link to="/register" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontWeight: 700 }}>Sign up your clinic</Link>
+          Don't have an account? <Link to="/register" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontWeight: 700 }}>Sign up your hospital</Link>
         </p>
       </div>
     </div>
