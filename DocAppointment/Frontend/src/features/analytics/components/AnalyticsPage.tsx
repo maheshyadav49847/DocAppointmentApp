@@ -170,6 +170,7 @@ const AnalyticsPage: React.FC = () => {
                <Building2 size={12} /> Hospital Branch
              </label>
              <select 
+               data-tooltip="Select hospital location for analysis"
                value={selectedBranchId} 
                onChange={(e) => setSelectedBranchId(e.target.value)}
                style={{ 
@@ -194,7 +195,9 @@ const AnalyticsPage: React.FC = () => {
         }} className="flex-mobile-column">
           
           {/* Modernized Date Picker (Keeping requested change) */}
-          <div style={{ 
+          <div 
+            data-tooltip="Select report duration"
+            style={{ 
             display: 'flex', alignItems: 'center', gap: '12px', 
             background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)',
             padding: '0 20px', borderRadius: '12px', height: '44px', boxSizing: 'border-box'
@@ -218,6 +221,7 @@ const AnalyticsPage: React.FC = () => {
           </div>
 
           <button 
+            data-tooltip="Download full performance report"
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', 
               background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 

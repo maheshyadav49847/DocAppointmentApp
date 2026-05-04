@@ -46,7 +46,7 @@ const StaffFormFields: React.FC<{
   return (
     <>
       <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Login email for the staff member" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <Mail size={15} /> Email Address
         </label>
         <input
@@ -59,7 +59,7 @@ const StaffFormFields: React.FC<{
       </div>
 
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Secure password for portal access" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <Lock size={15} /> {isEdit ? 'New Password (leave blank to keep current)' : 'Password'}
         </label>
         <div style={{ position: 'relative' }}>
@@ -82,7 +82,7 @@ const StaffFormFields: React.FC<{
       </div>
 
       <div style={{ marginBottom: '10px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <label data-tooltip="Define access level and permissions" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <Shield size={15} /> Assign Role
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -244,6 +244,7 @@ const StaffList: React.FC = () => {
                <Building2 size={14} /> Hospital Branch
              </label>
              <select 
+               data-tooltip="Select hospital location to manage staff permissions"
                value={selectedBranchId} 
                onChange={(e) => setSelectedBranchId(e.target.value)}
                style={{ 
@@ -287,6 +288,7 @@ const StaffList: React.FC = () => {
             <div style={{ position: 'relative', width: '100%', minWidth: '250px' }} className="full-width-mobile">
               <Search size={16} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-secondary)' }} />
               <input 
+                data-tooltip="Search staff by email or assigned role"
                 type="text" 
                 placeholder="Search staff..." 
                 value={searchQuery}
@@ -300,6 +302,7 @@ const StaffList: React.FC = () => {
             </div>
 
             <button 
+              data-tooltip="Add a new member to the administrative team"
               onClick={() => { setIsAddOpen(true); setErrorMsg(null); setNewStaff({ email: '', password: '', role: 3 }); }} 
               className="btn-primary full-width-mobile" 
               style={{ 
@@ -367,12 +370,14 @@ const StaffList: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <button 
+                    data-tooltip="Modify staff account details"
                     onClick={() => openEdit(member)} 
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
                   >
                     <Edit size={14} /> Edit
                   </button>
                   <button 
+                    data-tooltip="Revoke staff administrative access"
                     onClick={() => setDeletingId(member.id)} 
                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '8px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
                   >
@@ -397,6 +402,7 @@ const StaffList: React.FC = () => {
             <StaffFormFields data={newStaff} onChange={setNewStaff} />
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button 
+                data-tooltip="Cancel and return to staff list"
                 type="button" 
                 onClick={() => setIsAddOpen(false)} 
                 style={{ 
@@ -410,7 +416,7 @@ const StaffList: React.FC = () => {
               >
                 <X size={16} /> Cancel
               </button>
-              <button type="submit" className="btn-primary" style={{ flex: 1.5 }} disabled={createMutation.isPending}>
+              <button data-tooltip="Grant administrative permissions" type="submit" className="btn-primary" style={{ flex: 1.5 }} disabled={createMutation.isPending}>
                 <CheckCircle2 size={18} /> {createMutation.isPending ? 'Creating...' : 'Create Account'}
               </button>
             </div>
@@ -430,6 +436,7 @@ const StaffList: React.FC = () => {
             <StaffFormFields data={editForm} onChange={setEditForm} isEdit />
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button 
+                data-tooltip="Discard changes and return"
                 type="button" 
                 onClick={() => setEditingStaff(null)} 
                 style={{ 
@@ -443,7 +450,7 @@ const StaffList: React.FC = () => {
               >
                 <X size={16} /> Cancel
               </button>
-              <button type="submit" className="btn-primary" style={{ flex: 1.5 }} disabled={updateMutation.isPending}>
+              <button data-tooltip="Update staff access and role" type="submit" className="btn-primary" style={{ flex: 1.5 }} disabled={updateMutation.isPending}>
                 <CheckCircle2 size={18} /> {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -463,6 +470,7 @@ const StaffList: React.FC = () => {
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
+                data-tooltip="Keep this staff member"
                 onClick={() => setDeletingId(null)} 
                 style={{ 
                   flex: 1, padding: '12px', borderRadius: '10px', 
@@ -475,7 +483,7 @@ const StaffList: React.FC = () => {
               >
                 <X size={16} /> Cancel
               </button>
-              <button onClick={() => deleteMutation.mutate(deletingId!)} className="btn-primary" style={{ flex: 1.5, background: 'var(--danger)', border: '1px solid var(--danger)' }} disabled={deleteMutation.isPending}>
+              <button data-tooltip="Permanently revoke all access" onClick={() => deleteMutation.mutate(deletingId!)} className="btn-primary" style={{ flex: 1.5, background: 'var(--danger)', border: '1px solid var(--danger)' }} disabled={deleteMutation.isPending}>
                 <Trash2 size={18} /> {deleteMutation.isPending ? 'Removing...' : 'Yes, Remove'}
               </button>
             </div>

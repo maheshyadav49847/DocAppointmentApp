@@ -150,6 +150,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               color: 'var(--text-secondary)',
             }} className="breadcrumb-capsule">
               <div 
+                data-tooltip="Return to Dashboard"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', cursor: 'pointer', transition: 'all 0.2s', opacity: 0.8 }} 
                 onClick={() => navigate('/dashboard')}
                 className="breadcrumb-item"
@@ -197,6 +198,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <NotificationBell />
               
               <div 
+                data-tooltip="Account Settings"
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px', borderRadius: '15px', transition: 'all 0.2s', background: isProfileOpen ? 'rgba(255,255,255,0.05)' : 'transparent' }}
               >
@@ -268,22 +270,23 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 };
 
 const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
-  <div 
-    onClick={onClick}
-    style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '12px', 
-      padding: '12px 16px', 
-      borderRadius: '10px', 
-      cursor: 'pointer',
-      background: active ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
-      color: active ? 'var(--accent-color)' : 'var(--text-secondary)',
-      transition: 'all 0.2s'
-    }}>
-    {icon}
-    <span style={{ fontWeight: 500 }}>{label}</span>
-  </div>
+    <div 
+      data-tooltip={label}
+      onClick={onClick}
+      style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '12px', 
+        padding: '12px 16px', 
+        borderRadius: '10px', 
+        cursor: 'pointer',
+        background: active ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+        color: active ? 'var(--accent-color)' : 'var(--text-secondary)',
+        transition: 'all 0.2s'
+      }}>
+      {icon}
+      <span style={{ fontWeight: 500 }}>{label}</span>
+    </div>
 );
 
 export default DashboardLayout;

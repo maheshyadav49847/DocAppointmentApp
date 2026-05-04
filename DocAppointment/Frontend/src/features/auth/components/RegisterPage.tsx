@@ -117,7 +117,9 @@ const RegisterPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="input-group">
-              <label><Building2 size={16} /> Organization Name</label>
+              <label data-tooltip="The legal name of your healthcare facility" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Organization Name
+              </label>
               <input 
                 name="orgName"
                 type="text" 
@@ -129,7 +131,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="input-group">
-              <label><Globe size={16} /> Unique URL Slug</label>
+              <label data-tooltip="A unique identifier for your hospital's portal (e.g. city-hospital)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Globe size={16} /> Unique URL Slug
+              </label>
               <div style={{ position: 'relative' }}>
                 <input 
                   name="orgSlug"
@@ -150,7 +154,9 @@ const RegisterPage: React.FC = () => {
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
 
             <div className="input-group">
-              <label><Mail size={16} /> Admin Email</label>
+              <label data-tooltip="Primary administrative email address" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Mail size={16} /> Admin Email
+              </label>
               <input 
                 name="adminEmail"
                 type="email" 
@@ -163,7 +169,9 @@ const RegisterPage: React.FC = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               <div className="input-group">
-                <label><Lock size={16} /> Password</label>
+                <label data-tooltip="Create a strong password (min 6 characters)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  <Lock size={16} /> Password
+                </label>
                 <input 
                   name="adminPassword"
                   type="password" 
@@ -174,7 +182,9 @@ const RegisterPage: React.FC = () => {
                 />
               </div>
               <div className="input-group">
-                <label><CheckCircle2 size={16} /> Confirm</label>
+                <label data-tooltip="Re-type password for verification" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  <CheckCircle2 size={16} /> Confirm
+                </label>
                 <input 
                   name="confirmPassword"
                   type="password" 
@@ -187,6 +197,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <button 
+              data-tooltip="Launch your digital hospital portal"
               type="submit" 
               className="btn-primary" 
               disabled={loading}
