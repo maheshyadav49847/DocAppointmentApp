@@ -52,7 +52,7 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
                         chatSession.CurrentState = "AWAITING_RATING_SCORE";
                         chatSession.SelectedSessionId = token.Id; // Reusing field to store TokenId for rating
 
-                        await _whatsAppService.SendFeedbackRequest(token.Patient.Phone, queue.Doctor.Name, token.Id); 
+                        await _whatsAppService.SendFeedbackRequest(token.Patient.Phone, queue.Doctor.Name, token.Id, queue.BranchId); 
                     }
                     catch { /* Log and ignore */ }
                 }

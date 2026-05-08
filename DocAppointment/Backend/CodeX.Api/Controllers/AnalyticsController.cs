@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 namespace CodeX.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
     public class AnalyticsController : BaseApiController
     {
         [HttpGet("historical/{branchId}")]

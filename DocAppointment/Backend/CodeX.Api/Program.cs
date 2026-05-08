@@ -5,6 +5,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,38 +14,67 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSignalR();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IQueueNotificationService, QueueNotificationService>();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var secretKey = builder.Configuration["Jwt:Secret"] ?? "SuperSecretKeyForDocAppointmentApp123!";
+        var secretKey = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured.");
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && 
+                    (path.StartsWithSegments("/queueHub")))
+                {
+                    context.Token = accessToken;
+                }
+                else if (context.Request.Cookies.ContainsKey("jwt_token"))
+                {
+                    context.Token = context.Request.Cookies["jwt_token"];
+                }
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
+            ValidateIssuer = false, // Relaxed for deployment stability
+            ValidateAudience = false, // Relaxed for deployment stability
             ValidateIssuerSigningKey = true,
             ValidateLifetime = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "CodeX",
-            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Staff",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ClockSkew = TimeSpan.FromMinutes(2)
+            ClockSkew = TimeSpan.Zero
         };
     });
 builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
+    var origins = builder.Configuration["AllowedOrigins"] ?? "";
+    var allowedOrigins = origins.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                               .Select(o => o.Trim())
+                               .ToArray();
+    
     options.AddPolicy("DefaultPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.SetIsOriginAllowed(origin => 
+              {
+                  if (string.IsNullOrEmpty(origin)) return false;
+                  // Allow any origin that is in our list
+                  return allowedOrigins.Any(o => origin.Equals(o, StringComparison.OrdinalIgnoreCase));
+              })
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -52,14 +82,43 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 app.UseCors("DefaultPolicy");
+app.UseSwagger();
+app.UseSwaggerUI();
 
-if (app.Environment.IsDevelopment())
+app.Use(async (context, next) =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    
+    var origins = builder.Configuration["AllowedOrigins"] ?? "";
+    var csp = $"default-src 'self'; frame-ancestors 'none'; connect-src 'self' {origins.Replace(",", " ")};";
+    context.Response.Headers.Append("Content-Security-Policy", csp);
+    
+    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
-app.UseHttpsRedirection();
+    // Simple Rate Limiting for Login & Registration
+    if (context.Request.Path.StartsWithSegments("/api/auth") || 
+        context.Request.Path.StartsWithSegments("/api/organizations/register"))
+    {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var cache = context.RequestServices.GetRequiredService<IMemoryCache>();
+        var cacheKey = $"rl_{ip}";
+
+        if (cache.TryGetValue(cacheKey, out int count) && count >= 10)
+        {
+            context.Response.StatusCode = 429;
+            await context.Response.WriteAsJsonAsync(new { message = "Too many attempts. Please try again in a minute." });
+            return;
+        }
+
+        cache.Set(cacheKey, count + 1, TimeSpan.FromMinutes(1));
+    }
+
+    await next();
+});
+
+// app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../../services/authService';
 import { notify } from '../../../stores/notificationStore';
 import { 
-  Building2, Mail, Lock, Globe, ArrowRight, CheckCircle2, 
-  Stethoscope, ShieldCheck, Zap
+  Building2, Mail, Lock as LockIcon, Globe, ArrowRight, CheckCircle2, 
+  Stethoscope, ShieldCheck, Zap, Phone
 } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
@@ -15,7 +15,8 @@ const RegisterPage: React.FC = () => {
     orgSlug: '',
     adminEmail: '',
     adminPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    adminPhoneNumber: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +48,8 @@ const RegisterPage: React.FC = () => {
         orgName: formData.orgName,
         orgSlug: formData.orgSlug,
         adminEmail: formData.adminEmail,
-        adminPassword: formData.adminPassword
+        adminPassword: formData.adminPassword,
+        adminPhoneNumber: formData.adminPhoneNumber
       });
       
       notify.success('Registration Successful', 'Your organization has been registered. Please login.');
@@ -167,10 +169,24 @@ const RegisterPage: React.FC = () => {
               />
             </div>
 
+            <div className="input-group">
+              <label data-tooltip="WhatsApp number for administrative alerts and resets" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Phone size={16} /> Admin WhatsApp Number
+              </label>
+              <input 
+                name="adminPhoneNumber"
+                type="tel" 
+                placeholder="+91 98765 43210" 
+                required 
+                value={formData.adminPhoneNumber}
+                onChange={handleChange}
+              />
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               <div className="input-group">
                 <label data-tooltip="Create a strong password (min 6 characters)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  <Lock size={16} /> Password
+                  <LockIcon size={16} /> Password
                 </label>
                 <input 
                   name="adminPassword"

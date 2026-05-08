@@ -12,7 +12,11 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
         public Guid OrganizationId { get; init; }
         public string Email { get; init; } = string.Empty;
         public string Password { get; init; } = string.Empty;
+        public string FirstName { get; init; } = string.Empty;
+        public string LastName { get; init; } = string.Empty;
+        public string EmployeeId { get; init; } = string.Empty;
         public StaffRole Role { get; init; } = StaffRole.Receptionist;
+        public string PhoneNumber { get; init; } = string.Empty;
     }
 
     public class CreateStaffCommandHandler : IRequestHandler<CreateStaffCommand, Guid>
@@ -26,11 +30,13 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
 
         public async Task<Guid> Handle(CreateStaffCommand request, CancellationToken cancellationToken)
         {
+            var email = request.Email.Trim().ToLower();
+            // Global check: Ensure email is unique across the entire application
             var emailExists = await _context.Staffs
-                .AnyAsync(s => s.Email.ToLower() == request.Email.ToLower(), cancellationToken);
+                .AnyAsync(s => s.Email.ToLower() == email && !s.IsDeleted, cancellationToken);
 
             if (emailExists)
-                throw new Exception("A staff member with this email already exists.");
+                throw new Exception($"The email '{email}' is already registered in the system.");
 
             var staff = new CodeX.Domain.Entities.Staff
             {
@@ -38,7 +44,11 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
                 BranchId = request.BranchId,
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                Role = request.Role
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                EmployeeId = request.EmployeeId,
+                Role = request.Role,
+                PhoneNumber = request.PhoneNumber
             };
 
             _context.Staffs.Add(staff);

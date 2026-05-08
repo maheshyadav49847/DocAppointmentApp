@@ -36,8 +36,16 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
             if (currentToken.Patient == null || string.IsNullOrEmpty(currentToken.Patient.Phone))
                 throw new Exception("Patient contact information (phone) is missing.");
 
-            await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber);
-            return true;
+            try 
+            {
+                await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                throw new Exception("The patient booking is valid, but the WhatsApp notification could not be sent because the notification service is currently down.");
+            }
         }
     }
 }

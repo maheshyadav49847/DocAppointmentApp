@@ -11,12 +11,16 @@ namespace CodeX.Infrastructure.Persistence.Configurations
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).IsRequired().HasMaxLength(255);
             builder.Property(x => x.RegistrationNumber).HasMaxLength(50);
-            builder.HasIndex(x => x.RegistrationNumber).IsUnique().HasFilter("\"RegistrationNumber\" IS NOT NULL");
+            builder.HasIndex(x => x.RegistrationNumber).HasFilter("\"RegistrationNumber\" IS NOT NULL");
 
-            builder.HasOne(x => x.Branch)
-                   .WithMany(x => x.Doctors)
-                   .HasForeignKey(x => x.BranchId)
+            builder.HasOne(x => x.Organization)
+                   .WithMany()
+                   .HasForeignKey(x => x.OrganizationId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasMany(x => x.Branches)
+                   .WithMany(x => x.Doctors)
+                   .UsingEntity(j => j.ToTable("DoctorBranches"));
         }
     }
 }

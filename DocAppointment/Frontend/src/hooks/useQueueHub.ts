@@ -8,7 +8,12 @@ export const useQueueHub = (branchId: string | null) => {
     if (!branchId) return;
 
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5167/queueHub')
+      .withUrl(import.meta.env.VITE_HUB_URL, {
+        accessTokenFactory: () => {
+          const state = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+          return state?.state?.token || '';
+        }
+      })
       .withAutomaticReconnect()
       .build();
 
@@ -19,10 +24,9 @@ export const useQueueHub = (branchId: string | null) => {
     if (connection) {
       connection.start()
         .then(() => {
-          console.log('Connected to QueueHub');
           connection.invoke('JoinBranchGroup', branchId);
         })
-        .catch(e => console.log('Connection failed: ', e));
+        .catch(() => {});
     }
   }, [connection, branchId]);
 

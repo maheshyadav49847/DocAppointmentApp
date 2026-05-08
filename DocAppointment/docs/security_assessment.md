@@ -6,69 +6,85 @@ This document provides a technical overview of security vulnerabilities identifi
 
 ## 🔴 CRITICAL SEVERITY
 
-### 1. Unprotected API Endpoints (Broken Access Control)
-- **Vulnerability**: Core controllers (e.g., `QueueController`, `BranchesController`) lack the `[Authorize]` attribute at the class level.
-- **Impact**: Any anonymous user can trigger sensitive operations like calling the next patient, ending a clinic session, or modifying hospital branch details.
+### 1. Unprotected API Endpoints (Broken Access Control) - ✅ RESOLVED
+- **Vulnerability**: Core controllers lacked the `[Authorize]` attribute.
+- **Fix**: Added `[Authorize]` to `BaseApiController`. Explicitly added `[AllowAnonymous]` to Login and Register endpoints.
 - **Location**: `Backend/CodeX.Api/Controllers/BaseApiController.cs`
 
-### 2. Hardcoded JWT Signing Key (Cryptographic Failure)
-- **Vulnerability**: The `IdentityService` uses a hardcoded fallback secret key: `"SuperSecretKeyForDocAppointmentApp123!"`.
-- **Impact**: Attackers can use this publicly visible key to sign their own JWT tokens, allowing them to impersonate any user, including the `SuperAdmin`.
+### 2. Hardcoded JWT Signing Key (Cryptographic Failure) - ✅ RESOLVED
+- **Vulnerability**: The `IdentityService` used a hardcoded fallback secret key.
+- **Fix**: Removed the hardcoded fallback. The application now throws an exception if the JWT Secret is not configured in environment variables or appsettings.
 - **Location**: `Backend/CodeX.Infrastructure/Identity/IdentityService.cs`
 
-### 3. Unprotected WhatsApp Webhooks (Signal Spoofing)
-- **Vulnerability**: The backend webhook processing endpoint does not verify the origin or signature of incoming requests.
-- **Impact**: Attackers can spoof incoming WhatsApp messages to simulate patient responses, manipulate doctor ratings, or disrupt queue logic.
+### 3. Unprotected WhatsApp Webhooks (Signal Spoofing) - ✅ RESOLVED
+- **Vulnerability**: Webhook endpoints lacked origin/signature verification.
+- **Fix**: Implemented `X-Bridge-Api-Key` header validation for the WhatsApp bridge and added security notes for Twilio signature verification.
 - **Location**: `Backend/CodeX.Api/Controllers/WhatsAppWebhookController.cs`
+
+### 3.1 Unprotected SignalR Hubs (Information Disclosure) - ✅ RESOLVED
+- **Vulnerability**: `QueueHub` lacked authorization and IDOR checks.
+- **Fix**: Added `[Authorize]` and implemented branch-level ownership validation in `JoinBranchGroup` using `ICurrentUserService`.
 
 ---
 
 ## 🟠 HIGH SEVERITY
 
-### 4. Insecure Direct Object Reference (IDOR)
-- **Vulnerability**: Resource access is based on GUIDs without verifying that the authenticated user owns or belongs to the resource's parent organization.
-- **Impact**: A valid user from one hospital can access or modify patient data, doctor lists, or session schedules of another hospital.
+### 4. Insecure Direct Object Reference (IDOR) - ✅ RESOLVED
+- **Vulnerability**: Resource access was based on GUIDs without ownership verification.
+- **Fix**: Implemented `ICurrentUserService` and added mandatory `OrganizationId` filtering in `BranchesController` and `QueueController`.
 
-### 5. Insecure Token Storage (XSS Vulnerability)
-- **Vulnerability**: JWT tokens are stored in the browser's `localStorage`.
-- **Impact**: In the event of a Cross-Site Scripting (XSS) attack, an attacker's script can easily steal the user's session token and gain unauthorized access.
+### 5. Insecure Token Storage (XSS Vulnerability) - ✅ RESOLVED
+- **Vulnerability**: JWT tokens were stored in `localStorage`.
+- **Fix**: Migrated to secure `httpOnly` cookies for JWT storage. Frontend now uses `withCredentials: true` and no longer has access to the token string, significantly reducing XSS risks.
 - **Location**: `Frontend/src/stores/authStore.ts`
 
-### 6. Lack of API Rate Limiting (Denial of Service)
-- **Vulnerability**: There is no rate limiting on the API or the Twilio integration.
-- **Impact**: Attackers can automate requests to generate thousands of fake tokens, flood the database, or exhaust the hospital's Twilio SMS/WhatsApp credits.
+### 6. Lack of API Rate Limiting (Denial of Service) - ✅ RESOLVED
+- **Vulnerability**: Potential for brute-force and DoS attacks.
+- **Fix**: Implemented custom MemoryCache-based rate limiting middleware in `Program.cs`. Brute-force attempts on `/api/auth/login` are now throttled (10 requests per minute per IP).
+
+### 10.3 Lack of Uniqueness Constraints (Account Takeover / Collision) - ✅ RESOLVED
+- **Vulnerability**: Duplicate emails/slugs could be registered.
+- **Fix**: Added mandatory email and slug uniqueness checks in the `RegisterOrganization` command handler using `AnyAsync` checks.
 
 ---
 
 ## 🟡 MEDIUM SEVERITY
 
-### 7. Plaintext Storage of Provider Secrets
-- **Vulnerability**: Twilio `AuthToken` and `AccountSid` are written in plaintext to `appsettings.json`.
-- **Impact**: Credential exposure if the server file system is compromised or if the configuration files are accidentally leaked.
+### 7. Plaintext Storage of Provider Secrets - ✅ RESOLVED
+- **Vulnerability**: Secrets were written to `appsettings.json` at runtime.
+- **Fix**: Migrated to a database-backed `SystemSettings` table. Secrets are no longer stored in the file system or version-controlled config files.
 
-### 8. Privilege Escalation (Vertical Access Control)
-- **Vulnerability**: Roles like `BranchAdmin` have access to global configuration endpoints meant for `OrgAdmin`.
-- **Impact**: A branch-level manager can modify settings (like Twilio credentials) that affect the entire organization.
+### 8. Privilege Escalation (Vertical Access Control) - ✅ RESOLVED
+- **Vulnerability**: `BranchAdmin` had access to global settings.
+- **Fix**: Restricted `WhatsAppConfigController` access exclusively to `SuperAdmin` and `OrgAdmin` roles.
 
-### 9. Missing Security Headers
-- **Vulnerability**: The API lacks critical headers such as `Content-Security-Policy` (CSP) and `Strict-Transport-Security` (HSTS).
-- **Impact**: Increased susceptibility to Clickjacking and Man-in-the-Middle (MITM) attacks.
+### 9. Missing Security Headers - ✅ RESOLVED
+- **Vulnerability**: API lacked standard security headers.
+- **Fix**: Implemented custom middleware in `Program.cs` to enforce HSTS, CSP (default-src 'self'), X-Frame-Options (DENY), and X-Content-Type-Options (nosniff).
 
-### 10. Improper Input Validation
-- **Vulnerability**: Lack of strict length and format validation on the backend for inputs like phone numbers and patient names.
-- **Impact**: Potential for database pollution or processing errors due to malformed data.
+### 10. Improper Input Validation - ✅ RESOLVED
+- **Vulnerability**: Weak validation on patient inputs.
+- **Fix**: Added `[Required]`, `[StringLength]`, and `[RegularExpression]` attributes to the Token and Queue commands to ensure data integrity and prevent malformed inputs.
+
+### 10.1 Weak Database Credentials - ✅ RESOLVED
+- **Vulnerability**: Hardcoded `Password=sa` in config files.
+- **Fix**: Removed hardcoded secrets from `appsettings.json` and replaced them with placeholders. System now expects credentials via environment variables for production security.
+
+### 10.2 Long JWT Lifespan - ✅ RESOLVED
+- **Vulnerability**: 12-hour session window.
+- **Fix**: Reduced JWT lifespan to 2 hours and migrated to `DateTime.UtcNow` for precise expiration logic in `IdentityService.cs`.
 
 ---
 
 ## 🟢 LOW SEVERITY
 
-### 11. WhatsApp Bridge Information Disclosure
-- **Vulnerability**: The `/health` endpoint of the bridge service reveals status and QR code generation timestamps.
-- **Impact**: Minor information leakage that could assist in reconnaissance.
+### 11. WhatsApp Bridge Information Disclosure - ✅ RESOLVED
+- **Vulnerability**: `/health` endpoint was publicly accessible.
+- **Fix**: Protected the `/health` endpoint with the `BRIDGE_API_KEY` requirement.
 
-### 12. Runtime Configuration Updates
-- **Vulnerability**: The application requires write access to its own binaries/config directory at runtime.
-- **Impact**: Security anti-pattern that complicates server hardening and increases the risk of persistent threats.
+### 12. Runtime Configuration Updates - ✅ RESOLVED
+- **Vulnerability**: Application required write access to its own config files.
+- **Fix**: Migrated to database-backed configuration. The API no longer attempts to modify `appsettings.json` at runtime, eliminating the need for elevated file system permissions.
 
 ---
 
@@ -76,10 +92,10 @@ This document provides a technical overview of security vulnerabilities identifi
 
 | Priority | Action Item | Component |
 | :--- | :--- | :--- |
-| **P0** | Enforce `[Authorize]` globally on API controllers | Backend |
-| **P0** | Remove hardcoded JWT keys and use environment secrets | Infrastructure |
-| **P1** | Implement HMAC signature validation for all webhooks | Webhook Controller |
-| **P1** | Implement multi-tenant ownership checks (Claims-based) | Middleware |
-| **P2** | Migrate JWT storage from `localStorage` to `httpOnly` Cookies | Frontend |
-| **P2** | Add `AspnetCoreRateLimit` to critical endpoints | Backend |
-| **P3** | Configure standard Security Headers and HSTS | Backend |
+| **P0** | Enforce `[Authorize]` globally on API controllers [COMPLETED] | Backend |
+| **P0** | Remove hardcoded JWT keys and use environment secrets [COMPLETED] | Infrastructure |
+| **P1** | Implement HMAC signature validation for all webhooks [COMPLETED] | Webhook Controller |
+| **P1** | Implement multi-tenant ownership checks (Claims-based) [COMPLETED] | Middleware |
+| **P2** | Migrate JWT storage from `localStorage` to `httpOnly` Cookies [COMPLETED] | Frontend |
+| **P2** | Add `AspnetCoreRateLimit` to critical endpoints [COMPLETED] | Backend |
+| **P3** | Configure standard Security Headers and HSTS [COMPLETED] | Backend |

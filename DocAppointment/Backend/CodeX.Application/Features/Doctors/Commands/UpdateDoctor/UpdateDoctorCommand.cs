@@ -10,6 +10,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
         public string? RegistrationNumber { get; init; }
+        public List<Guid> BranchIds { get; init; } = new List<Guid>();
     }
 
     public class UpdateDoctorCommandHandler : IRequestHandler<UpdateDoctorCommand, Unit>
@@ -23,30 +24,41 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
 
         public async Task<Unit> Handle(UpdateDoctorCommand request, CancellationToken cancellationToken)
         {
-            var doctor = await _context.Doctors.FindAsync(new object[] { request.Id }, cancellationToken);
+            var doctor = await _context.Doctors
+                .Include(d => d.Branches)
+                .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
+            
             if (doctor == null) throw new Exception("Doctor not found");
 
-            if (!string.IsNullOrEmpty(request.RegistrationNumber) && doctor.RegistrationNumber != request.RegistrationNumber)
-            {
-                var exists = await _context.Doctors.AnyAsync(d => d.Id != request.Id && d.RegistrationNumber == request.RegistrationNumber && !d.IsDeleted, cancellationToken);
-                if (exists) throw new Exception("Another doctor with this registration number already exists.");
-            }
-
-            var duplicateExists = await _context.Doctors.AnyAsync(
-                d => d.Id != request.Id && 
-                     d.Name.ToLower() == request.Name.ToLower() && 
-                     d.Specialization.ToLower() == request.Specialization.ToLower() && 
-                     !d.IsDeleted, 
-                cancellationToken);
+            var duplicateExists = await _context.Doctors
+                .AnyAsync(d => d.Id != request.Id && 
+                               d.OrganizationId == doctor.OrganizationId &&
+                               d.Name.ToLower() == request.Name.ToLower() && 
+                               !d.IsDeleted, 
+                          cancellationToken);
 
             if (duplicateExists)
             {
-                throw new Exception("Another doctor with the same name and specialization already exists in the system.");
+                throw new Exception($"Another doctor with the name '{request.Name}' already exists in this organization.");
             }
 
             doctor.Name = request.Name;
             doctor.Specialization = request.Specialization;
             doctor.RegistrationNumber = request.RegistrationNumber;
+
+            // Update Branch Assignments
+            doctor.Branches.Clear();
+            if (request.BranchIds.Any())
+            {
+                var branches = await _context.Branches
+                    .Where(b => request.BranchIds.Contains(b.Id))
+                    .ToListAsync(cancellationToken);
+                
+                foreach (var branch in branches)
+                {
+                    doctor.Branches.Add(branch);
+                }
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
             return Unit.Value;

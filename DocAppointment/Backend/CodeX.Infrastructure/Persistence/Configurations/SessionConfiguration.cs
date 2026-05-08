@@ -15,6 +15,11 @@ namespace CodeX.Infrastructure.Persistence.Configurations
                    .WithMany(x => x.Sessions)
                    .HasForeignKey(x => x.DoctorId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(x => x.Branch)
+                   .WithMany()
+                   .HasForeignKey(x => x.BranchId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

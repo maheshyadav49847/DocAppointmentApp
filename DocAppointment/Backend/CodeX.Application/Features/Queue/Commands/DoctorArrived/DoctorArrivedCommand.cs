@@ -36,13 +36,27 @@ namespace CodeX.Application.Features.Queue.Commands.DoctorArrived
             await _context.SaveChangesAsync(cancellationToken);
 
             // Notify via SignalR
-            await _notificationService.NotifyDoctorArrived(queue.BranchId, queue.Id, queue.Doctor.Name);
+            try 
+            {
+                await _notificationService.NotifyDoctorArrived(queue.BranchId, queue.Id, queue.Doctor.Name);
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+            }
 
             // Notify all waiting patients via WhatsApp
             var waitingPatients = queue.Tokens.Where(t => t.Status == TokenStatus.Pending && t.Patient != null);
             foreach (var token in waitingPatients)
             {
-                await _whatsappService.SendDoctorArrivalAlert(token.Patient!.Phone, queue.Doctor.Name);
+                try 
+                {
+                    await _whatsappService.SendDoctorArrivalAlert(token.Patient!.Phone, queue.Doctor.Name, queue.BranchId);
+                }
+                catch (System.Exception ex)
+                {
+                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                }
             }
 
             return true;

@@ -19,10 +19,15 @@ import { notify } from '../../../stores/notificationStore';
 import { Building2 } from 'lucide-react';
 
 const QueueDashboard: React.FC = () => {
-  const { branchId: globalBranchId, orgId } = useAuthStore();
+  const { branchId: globalBranchId, orgId, setBranch } = useAuthStore();
   const queryClient = useQueryClient();
   
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '');
+  const [selectedBranchId, _setSelectedBranchId] = useState<string>(globalBranchId || '');
+
+  const setSelectedBranchId = (id: string) => {
+    _setSelectedBranchId(id);
+    setBranch(id); // Persistent global update
+  };
   const [viewMode, setViewMode] = useState<'overview' | 'manage'>('overview');
   const [activeSession, setActiveSession] = useState<any>(null); // { doctor, session, queueId }
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,7 +141,7 @@ const QueueDashboard: React.FC = () => {
     // Strict Client-side duplicate check
     // We search across ALL tokens in the current session (Pending and Now Serving)
     const queueData = queryClient.getQueryData(['upcomingTokens', activeSession.queueId]) as any[];
-    const isDuplicate = queueData?.some((t: any) => 
+    const isDuplicate = queueData && queueData.some((t: any) => 
       t.patientPhone === data.phone && (t.status === 0 || t.status === 1)
     );
 
@@ -322,7 +327,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
 
             <div className="grid-sessions">
               {doctors?.map((doc: any) => (
-                <DoctorCard key={doc.id} doctor={doc} onStart={onStart} onManage={onManage} />
+                <DoctorCard key={doc.id} doctor={doc} onStart={onStart} onManage={onManage} selectedBranchId={selectedBranchId} />
               ))}
             </div>
 
@@ -395,10 +400,10 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
   </div>
 );
 
-const DoctorCard = ({ doctor, onStart, onManage }: any) => {
+const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId }: any) => {
   const { data: sessions } = useQuery({
-    queryKey: ['sessions', doctor.id],
-    queryFn: () => sessionService.getSessions(doctor.id)
+    queryKey: ['sessions', doctor.id, selectedBranchId],
+    queryFn: () => sessionService.getSessions(doctor.id, selectedBranchId)
   });
 
   return (
@@ -426,14 +431,22 @@ const DoctorCard = ({ doctor, onStart, onManage }: any) => {
       </div>
 
       <div style={{ padding: '20px 25px 25px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {sessions?.map((sess: any) => (
-          <SessionItem key={sess.id} doctor={doctor} session={sess} onStart={onStart} onManage={onManage} />
-        ))}
-        {(!sessions || sessions.length === 0) && (
-          <div style={{ padding: '15px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No scheduled shifts today.</p>
-          </div>
-        )}
+        {(() => {
+          const today = new Date().getDay();
+          const todaysSessions = sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || [];
+          
+          if (todaysSessions.length === 0) {
+            return (
+              <div style={{ padding: '15px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No scheduled shifts today.</p>
+              </div>
+            );
+          }
+
+          return todaysSessions.map((sess: any) => (
+            <SessionItem key={sess.id} doctor={doctor} session={sess} onStart={onStart} onManage={onManage} />
+          ));
+        })()}
       </div>
     </div>
   );
@@ -473,6 +486,9 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
           </div>
           <div>
             <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>{session.sessionName}</h4>
+            <span style={{ fontSize: '0.8rem', color: 'var(--accent-color)', fontWeight: 600 }}>
+              {session.isDaily ? 'EVERY DAY (DAILY)' : 'SPECIFIC DAY'}
+            </span>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
               {session.startTime.substring(0, 5)} <ChevronRight size={10} /> {session.endTime.substring(0, 5)}
             </div>

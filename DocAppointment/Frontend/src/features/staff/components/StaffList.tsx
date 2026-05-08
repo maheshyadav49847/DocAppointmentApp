@@ -6,7 +6,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import Modal from '../../../components/Modal';
 import {
   Users, Plus, Shield, Trash2, Edit, X, AlertTriangle,
-  CheckCircle2, Mail, Lock, Eye, EyeOff, ShieldCheck, UserCog, Building2, Calendar, Search
+  CheckCircle2, Mail, Lock, Eye, EyeOff, ShieldCheck, UserCog, Building2, Calendar, Search, Phone, Hash
 } from 'lucide-react';
 
 // ─── Role Config ───────────────────────────────────────────────────────────
@@ -14,7 +14,6 @@ const ROLES = [
   { value: 3, label: 'Receptionist',  color: '#38bdf8', bg: 'rgba(56,189,248,0.1)',  desc: 'Can manage queue and book tokens' },
   { value: 2, label: 'Branch Admin',  color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', desc: 'Full access to this branch' },
   { value: 1, label: 'Org Admin',     color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  desc: 'Manages all branches' },
-  { value: 4, label: 'Doctor',        color: '#34d399', bg: 'rgba(52,211,153,0.1)',  desc: 'Doctor-level portal access' },
 ];
 
 const getRoleConfig = (roleStr: string) =>
@@ -35,7 +34,15 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
 };
 
 // ─── Staff Form Fields ───────────────────────────────────────────────────────
-interface StaffFormData { email: string; password: string; role: number; }
+interface StaffFormData { 
+  email: string; 
+  password: string; 
+  role: number; 
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+}
 
 const StaffFormFields: React.FC<{
   data: StaffFormData;
@@ -45,15 +52,69 @@ const StaffFormFields: React.FC<{
   const [showPass, setShowPass] = useState(false);
   return (
     <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <UserCog size={15} /> First Name
+          </label>
+          <input
+            type="text"
+            value={data.firstName}
+            onChange={e => onChange({ ...data, firstName: e.target.value })}
+            placeholder="John"
+            required
+          />
+        </div>
+        <div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            Last Name
+          </label>
+          <input
+            type="text"
+            value={data.lastName}
+            onChange={e => onChange({ ...data, lastName: e.target.value })}
+            placeholder="Doe"
+            required
+          />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+        <div>
+          <label data-tooltip="Login email for the staff member" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <Mail size={15} /> Email Address
+          </label>
+          <input
+            type="email"
+            value={data.email}
+            onChange={e => onChange({ ...data, email: e.target.value })}
+            placeholder="staff@hospital.com"
+            required
+          />
+        </div>
+        <div>
+          <label data-tooltip="Unique identifier for internal tracking" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <Hash size={15} /> Employee ID
+          </label>
+          <input
+            type="text"
+            value={data.employeeId}
+            onChange={e => onChange({ ...data, employeeId: e.target.value })}
+            placeholder="EMP-001"
+            required
+          />
+        </div>
+      </div>
+
       <div style={{ marginBottom: '15px' }}>
-        <label data-tooltip="Login email for the staff member" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          <Mail size={15} /> Email Address
+        <label data-tooltip="WhatsApp number for password resets" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <Phone size={15} /> Phone Number (WhatsApp)
         </label>
         <input
-          type="email"
-          value={data.email}
-          onChange={e => onChange({ ...data, email: e.target.value })}
-          placeholder="staff@hospital.com"
+          type="tel"
+          value={data.phoneNumber}
+          onChange={e => onChange({ ...data, phoneNumber: e.target.value })}
+          placeholder="+91 98765 43210"
           required
         />
       </div>
@@ -129,8 +190,8 @@ const StaffList: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [newStaff, setNewStaff] = useState<StaffFormData>({ email: '', password: '', role: 3 });
-  const [editForm, setEditForm] = useState<StaffFormData>({ email: '', password: '', role: 3 });
+  const [newStaff, setNewStaff] = useState<StaffFormData>({ email: '', password: '', role: 3, phoneNumber: '', firstName: '', lastName: '', employeeId: '' });
+  const [editForm, setEditForm] = useState<StaffFormData>({ email: '', password: '', role: 3, phoneNumber: '', firstName: '', lastName: '', employeeId: '' });
 
   // Fetch all branches for selection
   const { data: branches } = useQuery({
@@ -151,12 +212,16 @@ const StaffList: React.FC = () => {
       organizationId: orgId!,
       email: data.email,
       password: data.password,
-      role: data.role
+      role: data.role,
+      phoneNumber: data.phoneNumber,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      employeeId: data.employeeId
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       setIsAddOpen(false);
-      setNewStaff({ email: '', password: '', role: 3 });
+      setNewStaff({ email: '', password: '', role: 3, phoneNumber: '', firstName: '', lastName: '', employeeId: '' });
       setErrorMsg(null);
     },
     onError: (err: any) => {
@@ -169,6 +234,10 @@ const StaffList: React.FC = () => {
       id: editingStaff.id,
       email: data.email,
       role: data.role,
+      phoneNumber: data.phoneNumber,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      employeeId: data.employeeId,
       newPassword: data.password || undefined
     }),
     onSuccess: () => {
@@ -191,7 +260,15 @@ const StaffList: React.FC = () => {
 
   const openEdit = (member: any) => {
     setEditingStaff(member);
-    setEditForm({ email: member.email, password: '', role: ROLES.find(r => r.label === member.role)?.value ?? 3 });
+    setEditForm({ 
+      email: member.email, 
+      password: '', 
+      role: ROLES.find(r => r.label === member.role)?.value ?? 3,
+      phoneNumber: member.phoneNumber || '',
+      firstName: member.firstName || '',
+      lastName: member.lastName || '',
+      employeeId: member.employeeId || ''
+    });
     setErrorMsg(null);
   };
 
@@ -210,7 +287,9 @@ const StaffList: React.FC = () => {
     if (!staff) return [];
     return staff.filter((s: any) => 
       s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.role.toLowerCase().includes(searchQuery.toLowerCase())
+      s.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.firstName + ' ' + s.lastName).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.employeeId.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [staff, searchQuery]);
 
@@ -288,7 +367,7 @@ const StaffList: React.FC = () => {
             <div style={{ position: 'relative', width: '100%', minWidth: '250px' }} className="full-width-mobile">
               <Search size={16} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-secondary)' }} />
               <input 
-                data-tooltip="Search staff by email or assigned role"
+                data-tooltip="Search staff by name, email, role or employee ID"
                 type="text" 
                 placeholder="Search staff..." 
                 value={searchQuery}
@@ -303,7 +382,7 @@ const StaffList: React.FC = () => {
 
             <button 
               data-tooltip="Add a new member to the administrative team"
-              onClick={() => { setIsAddOpen(true); setErrorMsg(null); setNewStaff({ email: '', password: '', role: 3 }); }} 
+              onClick={() => { setIsAddOpen(true); setErrorMsg(null); setNewStaff({ email: '', password: '', role: 3, phoneNumber: '', firstName: '', lastName: '', employeeId: '' }); }} 
               className="btn-primary full-width-mobile" 
               style={{ 
                 display: 'flex', alignItems: 'center', gap: '10px', 
@@ -351,17 +430,28 @@ const StaffList: React.FC = () => {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: getRoleConfig(member.role).color, fontWeight: 900, fontSize: '1.2rem'
                   }}>
-                    {member.email[0].toUpperCase()}
+                    {member.firstName ? member.firstName[0].toUpperCase() : member.email[0].toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.email}</h3>
-                    <div style={{ marginTop: '5px' }}>
-                      <RoleBadge role={member.role} />
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {member.firstName} {member.lastName}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                       <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>{member.employeeId || 'NO-ID'}</span>
+                       <RoleBadge role={member.role} />
                     </div>
                   </div>
                 </div>
 
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <Mail size={14} />
+                    <span>{member.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <Phone size={14} />
+                    <span>{member.phoneNumber || 'No phone added'}</span>
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     <Calendar size={14} />
                     <span>Joined {new Date(member.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

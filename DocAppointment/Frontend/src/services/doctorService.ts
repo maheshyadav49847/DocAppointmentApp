@@ -2,7 +2,12 @@ import api from './api';
 
 export const doctorService = {
   getDoctors: async (branchId: string) => {
+    if (!branchId || branchId === 'undefined') return [];
     const response = await api.get(`/doctors/${branchId}`);
+    return response.data;
+  },
+  getOrganizationDoctors: async () => {
+    const response = await api.get('/doctors');
     return response.data;
   },
   createDoctor: async (data: any) => {

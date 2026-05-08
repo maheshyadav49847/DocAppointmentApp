@@ -16,6 +16,8 @@ namespace CodeX.Api.Controllers
             }
             catch (System.Exception ex)
             {
+                Console.WriteLine($"[TOKENS_ERROR] {ex.Message}");
+                if (ex.InnerException != null) Console.WriteLine($"[INNER] {ex.InnerException.Message}");
                 return BadRequest(new { message = ex.Message });
             }
         }

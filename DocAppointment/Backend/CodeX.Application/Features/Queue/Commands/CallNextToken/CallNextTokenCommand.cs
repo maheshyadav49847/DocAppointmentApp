@@ -58,7 +58,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         chatSession.CurrentState = "AWAITING_RATING_SCORE";
                         chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
 
-                        await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id);
+                        await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id, queue.BranchId);
                     }
                     catch { /* Log and ignore */ }
                 }
@@ -98,7 +98,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
             {
                 if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
                 {
-                    await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber);
+                    await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
                 }
 
                 // ─── Automated Upcoming Alerts ──────────────────────────────────
@@ -114,7 +114,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                     if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
                     {
-                        await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos);
+                        await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
                     }
                 }
             }

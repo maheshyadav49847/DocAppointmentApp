@@ -99,6 +99,9 @@ const LoginPage: React.FC = () => {
               placeholder="••••••••"
               required 
             />
+            <div style={{ textAlign: 'right', marginTop: '8px' }}>
+              <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--accent-color)', textDecoration: 'none' }}>Forgot password?</Link>
+            </div>
           </div>
 
           <button 

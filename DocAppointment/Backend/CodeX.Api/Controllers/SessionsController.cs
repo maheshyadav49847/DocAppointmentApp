@@ -11,13 +11,20 @@ namespace CodeX.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Guid>> Create(CreateSessionCommand command)
         {
-            return await Mediator.Send(command);
+            try 
+            {
+                return await Mediator.Send(command);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, inner = ex.InnerException?.Message });
+            }
         }
 
         [HttpGet("doctor/{doctorId}")]
-        public async Task<ActionResult<List<SessionDto>>> GetByDoctor(Guid doctorId)
+        public async Task<ActionResult<List<SessionDto>>> GetByDoctor(Guid doctorId, [FromQuery] Guid? branchId)
         {
-            return await Mediator.Send(new GetSessionsListQuery(doctorId));
+            return await Mediator.Send(new GetSessionsListQuery(doctorId, branchId));
         }
 
         [HttpPut("{id}")]

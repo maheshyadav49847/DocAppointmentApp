@@ -19,7 +19,7 @@ namespace CodeX.Application.Features.Doctors.Commands.DeleteDoctor
             var doctor = await _context.Doctors.FindAsync(new object[] { request.Id }, cancellationToken);
             if (doctor == null) throw new Exception("Doctor not found");
 
-            _context.Doctors.Remove(doctor);
+            doctor.IsDeleted = true;
             await _context.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }

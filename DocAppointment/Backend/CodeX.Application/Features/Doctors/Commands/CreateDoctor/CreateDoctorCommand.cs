@@ -1,12 +1,14 @@
 using MediatR;
 using CodeX.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using CodeX.Domain.Entities;
 
 namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
 {
     public record CreateDoctorCommand : IRequest<Guid>
     {
-        public Guid BranchId { get; init; }
+        public Guid OrganizationId { get; init; }
+        public List<Guid> BranchIds { get; init; } = new List<Guid>();
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
         public string? RegistrationNumber { get; init; }
@@ -23,33 +25,41 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
 
         public async Task<Guid> Handle(CreateDoctorCommand request, CancellationToken cancellationToken)
         {
-            if (!string.IsNullOrEmpty(request.RegistrationNumber))
-            {
-                var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_context.Doctors, d => d.RegistrationNumber == request.RegistrationNumber && !d.IsDeleted, cancellationToken);
-                if (exists)
-                {
-                    throw new System.Exception("A doctor with this registration number already exists.");
-                }
-            }
+            var name = request.Name.Trim();
+            var specialization = request.Specialization.Trim();
+            var regNum = request.RegistrationNumber?.Trim();
 
-            var duplicateExists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_context.Doctors, 
-                d => d.Name.ToLower() == request.Name.ToLower() && 
-                     d.Specialization.ToLower() == request.Specialization.ToLower() && 
-                     !d.IsDeleted, 
-                cancellationToken);
+            // Code-level check: Prevent duplicate doctor name in the same Organization
+            var duplicateExists = await _context.Doctors
+                .AnyAsync(d => d.OrganizationId == request.OrganizationId && 
+                               d.Name.ToLower() == name.ToLower() && 
+                               !d.IsDeleted, 
+                          cancellationToken);
 
             if (duplicateExists)
             {
-                throw new System.Exception("A doctor with the same name and specialization already exists in the system.");
+                throw new Exception($"A doctor with the name '{name}' already exists in this organization.");
             }
 
             var doctor = new Doctor
             {
-                BranchId = request.BranchId,
-                Name = request.Name,
-                Specialization = request.Specialization,
-                RegistrationNumber = request.RegistrationNumber
+                OrganizationId = request.OrganizationId,
+                Name = name,
+                Specialization = specialization,
+                RegistrationNumber = regNum
             };
+
+            if (request.BranchIds.Any())
+            {
+                var branches = await _context.Branches
+                    .Where(b => request.BranchIds.Contains(b.Id))
+                    .ToListAsync(cancellationToken);
+                
+                foreach (var branch in branches)
+                {
+                    doctor.Branches.Add(branch);
+                }
+            }
 
             _context.Doctors.Add(doctor);
             await _context.SaveChangesAsync(cancellationToken);

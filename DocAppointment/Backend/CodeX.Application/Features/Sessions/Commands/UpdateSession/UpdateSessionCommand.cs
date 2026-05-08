@@ -5,12 +5,14 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
 {
     public record UpdateSessionCommand : IRequest<Unit>
     {
-        public Guid Id { get; init; }
-        public string SessionName { get; init; } = string.Empty;
-        public int DayOfWeek { get; init; }
-        public TimeSpan StartTime { get; init; }
-        public TimeSpan EndTime { get; init; }
-        public int DefaultCapacity { get; init; }
+        public Guid Id { get; set; }
+        public Guid BranchId { get; set; }
+        public string SessionName { get; set; } = string.Empty;
+        public int DayOfWeek { get; set; }
+        public bool IsDaily { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public int DefaultCapacity { get; set; }
     }
 
     public class UpdateSessionCommandHandler : IRequestHandler<UpdateSessionCommand, Unit>
@@ -27,8 +29,10 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
             var session = await _context.Sessions.FindAsync(new object[] { request.Id }, cancellationToken);
             if (session == null) throw new Exception("Session not found");
 
+            session.BranchId = request.BranchId;
             session.SessionName = request.SessionName;
             session.DayOfWeek = request.DayOfWeek;
+            session.IsDaily = request.IsDaily;
             session.StartTime = request.StartTime;
             session.EndTime = request.EndTime;
             session.DefaultCapacity = request.DefaultCapacity;

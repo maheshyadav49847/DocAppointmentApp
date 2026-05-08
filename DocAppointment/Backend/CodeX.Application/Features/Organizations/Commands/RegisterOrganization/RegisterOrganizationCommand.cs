@@ -2,6 +2,7 @@ using MediatR;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
 
 namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
@@ -12,6 +13,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
         public string OrgSlug { get; init; } = string.Empty;
         public string AdminEmail { get; init; } = string.Empty;
         public string AdminPassword { get; init; } = string.Empty;
+        public string AdminPhoneNumber { get; init; } = string.Empty;
     }
 
     public class RegisterOrganizationCommandHandler : IRequestHandler<RegisterOrganizationCommand, Guid>
@@ -25,6 +27,12 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
         public async Task<Guid> Handle(RegisterOrganizationCommand request, CancellationToken cancellationToken)
         {
+            // 0. Uniqueness Checks
+            var emailExists = await _context.Staff.AnyAsync(s => s.Email == request.AdminEmail, cancellationToken);
+            if (emailExists) throw new Exception("Admin email is already registered.");
+
+            var slugExists = await _context.Organizations.AnyAsync(o => o.Slug == request.OrgSlug, cancellationToken);
+            if (slugExists) throw new Exception("Organization slug is already in use.");
             // 1. Create Organization
             var org = new Organization
             {
@@ -40,7 +48,8 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 OrganizationId = org.Id,
                 Email = request.AdminEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
-                Role = StaffRole.OrgAdmin
+                Role = StaffRole.OrgAdmin,
+                PhoneNumber = request.AdminPhoneNumber
             };
 
             _context.Staff.Add(admin);

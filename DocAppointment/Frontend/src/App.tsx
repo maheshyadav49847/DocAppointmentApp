@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from './layouts/DashboardLayout';
 import QueueDashboard from './features/queue/components/QueueDashboard';
@@ -9,19 +10,51 @@ import AnalyticsPage from './features/analytics/components/AnalyticsPage';
 import BranchesPage from './features/settings/components/BranchesPage';
 import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
+import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
+import WhatsAppSettings from './features/whatsapp/components/WhatsAppSettings';
 import { useAuthStore } from './stores/authStore';
 
 function App() {
-  const token = useAuthStore((state) => state.token);
+  const email = useAuthStore((state) => state.email);
+  const logout = useAuthStore((state) => state.logout);
+
+  // Inactivity Logout (15 minutes)
+  useEffect(() => {
+    if (!email) return;
+
+    let timeout: any;
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        logout();
+        alert('You have been logged out due to inactivity.');
+      }, 15 * 60 * 1000); // 15 mins
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('click', resetTimer);
+
+    resetTimer();
+
+    return () => {
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      clearTimeout(timeout);
+    };
+  }, [email, logout]);
 
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={!token ? <LoginPage /> : <Navigate to="/dashboard" />} />
-        <Route path="/register" element={!token ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+        <Route path="/login" element={!email ? <LoginPage /> : <Navigate to="/dashboard" />} />
+        <Route path="/register" element={!email ? <RegisterPage /> : <Navigate to="/dashboard" />} />
+        <Route path="/forgot-password" element={!email ? <ForgotPasswordPage /> : <Navigate to="/dashboard" />} />
         
         <Route path="/dashboard" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <QueueDashboard />
             </DashboardLayout>
@@ -31,7 +64,7 @@ function App() {
         } />
 
         <Route path="/analytics" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <AnalyticsPage />
             </DashboardLayout>
@@ -41,7 +74,7 @@ function App() {
         } />
 
         <Route path="/branches" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <BranchesPage />
             </DashboardLayout>
@@ -51,7 +84,7 @@ function App() {
         } />
 
         <Route path="/doctors" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <DoctorsList />
             </DashboardLayout>
@@ -61,7 +94,7 @@ function App() {
         } />
 
         <Route path="/sessions" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <SessionsList />
             </DashboardLayout>
@@ -71,7 +104,7 @@ function App() {
         } />
 
         <Route path="/profile" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <ProfilePage />
             </DashboardLayout>
@@ -81,7 +114,7 @@ function App() {
         } />
         
         <Route path="/staff" element={
-          token ? (
+          email ? (
             <DashboardLayout>
               <StaffList />
             </DashboardLayout>
@@ -90,7 +123,17 @@ function App() {
           )
         } />
 
-        <Route path="/" element={<Navigate to={token ? "/dashboard" : "/login"} />} />
+        <Route path="/whatsapp-settings" element={
+          email ? (
+            <DashboardLayout>
+              <WhatsAppSettings />
+            </DashboardLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
+
+        <Route path="/" element={<Navigate to={email ? "/dashboard" : "/login"} />} />
       </Routes>
     </Router>
   );

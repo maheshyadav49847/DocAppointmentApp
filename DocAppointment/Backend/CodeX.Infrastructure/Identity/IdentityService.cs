@@ -18,7 +18,7 @@ namespace CodeX.Infrastructure.Identity
 
         public string GenerateJwtToken(Guid userId, string email, string role, Guid? branchId, Guid orgId)
         {
-            var secretKey = _configuration["Jwt:Secret"] ?? "SuperSecretKeyForDocAppointmentApp123!";
+            var secretKey = _configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured.");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -36,10 +36,10 @@ namespace CodeX.Infrastructure.Identity
             }
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"] ?? "CodeX",
-                audience: _configuration["Jwt:Audience"] ?? "Staff",
+                issuer: _configuration["Jwt:Issuer"] ?? throw new Exception("Jwt:Issuer is not configured"),
+                audience: _configuration["Jwt:Audience"] ?? throw new Exception("Jwt:Audience is not configured"),
                 claims: claims,
-                expires: DateTime.Now.AddHours(12),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds
             );
 

@@ -14,8 +14,8 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
 
   const validate = () => {
     const newErrors: {name?: string, phone?: string} = {};
-    if (name.trim().length < 3) newErrors.name = "Name must be at least 3 characters";
-    if (!/^\d{10}$/.test(phone)) newErrors.phone = "Enter a valid 10-digit phone number";
+    if (name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
+    if (!/^\d{10,15}$/.test(phone)) newErrors.phone = "Enter a valid 10-15 digit phone number";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -31,7 +31,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
 
   if (!isOpen) return null;
 
-  const isValid = name.trim().length >= 3 && /^\d{10}$/.test(phone);
+  const isValid = name.trim().length >= 2 && phone.length >= 10;
 
   return (
     <div style={{
@@ -74,7 +74,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
               type="tel" 
               value={phone}
               onChange={(e) => { 
-                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                const val = e.target.value.replace(/\D/g, '').slice(0, 15);
                 setPhone(val);
                 if(errors.phone) validate();
               }}
