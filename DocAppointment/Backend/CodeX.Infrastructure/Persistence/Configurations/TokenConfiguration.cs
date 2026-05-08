@@ -9,7 +9,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<Token> builder)
         {
             builder.HasKey(x => x.Id);
-            builder.HasIndex(x => new { x.QueueId, x.TokenNumber }).IsUnique();
+            builder.HasIndex(x => new { x.QueueId, x.TokenNumber });
 
             builder.HasOne(x => x.Queue)
                    .WithMany(x => x.Tokens)

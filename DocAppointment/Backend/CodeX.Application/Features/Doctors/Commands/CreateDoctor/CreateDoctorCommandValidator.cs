@@ -10,7 +10,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
                 .MaximumLength(255)
                 .NotEmpty();
 
-            RuleFor(v => v.BranchId)
+            RuleFor(v => v.OrganizationId)
                 .NotEmpty();
 
             RuleFor(v => v.Specialization)

@@ -1,8 +1,9 @@
 import api from './api';
 
 export const sessionService = {
-  getSessions: async (doctorId: string) => {
-    const response = await api.get(`/sessions/doctor/${doctorId}`);
+  getSessions: async (doctorId: string, branchId?: string) => {
+    const url = branchId ? `/sessions/doctor/${doctorId}?branchId=${branchId}` : `/sessions/doctor/${doctorId}`;
+    const response = await api.get(url);
     return response.data;
   },
   createSession: async (data: any) => {

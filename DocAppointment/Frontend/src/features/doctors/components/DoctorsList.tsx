@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doctorService } from '../../../services/doctorService';
 import { branchService } from '../../../services/branchService';
@@ -45,30 +46,31 @@ const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onC
 );
 
 const DoctorsList: React.FC = () => {
-  const { branchId: globalBranchId, orgId } = useAuthStore();
+  const { orgId } = useAuthStore();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewDoctor, setViewDoctor] = useState<any>(null);
   const [editingDoctor, setEditingDoctor] = useState<any>(null);
   const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', registrationNumber: '' });
+  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', registrationNumber: '', branchIds: [] as string[] });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewRatingsDoctorId, setViewRatingsDoctorId] = useState<any>(null);
 
-  // Fetch branches
+  // Fetch all branches for the organization
   const { data: branches } = useQuery({
     queryKey: ['branches', orgId],
     queryFn: () => branchService.getBranches(orgId || ''),
     enabled: !!orgId
   });
 
+  // Fetch all doctors for the organization
   const { data: doctors, isLoading } = useQuery({
-    queryKey: ['doctors', selectedBranchId],
-    queryFn: () => doctorService.getDoctors(selectedBranchId),
-    enabled: !!selectedBranchId
+    queryKey: ['doctors', 'organization', orgId],
+    queryFn: () => doctorService.getOrganizationDoctors(),
+    enabled: !!orgId
   });
 
   const { data: ratingsData, isLoading: isLoadingRatings } = useQuery({
@@ -78,12 +80,15 @@ const DoctorsList: React.FC = () => {
   });
 
   const createDoctorMutation = useMutation({
-    mutationFn: (data: any) => doctorService.createDoctor({ ...data, branchId: selectedBranchId }),
+    mutationFn: (data: any) => {
+      if (!orgId) throw new Error("Organization ID is missing. Please re-login.");
+      return doctorService.createDoctor({ ...data, OrganizationId: orgId });
+    },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
-      notify.success('Doctor Added', `Dr. ${variables.name} (${variables.specialization}) was added successfully.`);
+      notify.success('Doctor Added', `Dr. ${variables.name} was added to the organization.`);
       setIsModalOpen(false);
-      setNewDoctor({ name: '', specialization: '', registrationNumber: '' });
+      setNewDoctor({ name: '', specialization: '', registrationNumber: '', branchIds: [] });
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || error.message || "Failed to add doctor.";
@@ -92,7 +97,10 @@ const DoctorsList: React.FC = () => {
   });
 
   const updateDoctorMutation = useMutation({
-    mutationFn: (data: any) => doctorService.updateDoctor(data.id, data),
+    mutationFn: (data: any) => {
+      if (!orgId) throw new Error("Organization ID is missing. Please re-login.");
+      return doctorService.updateDoctor(data.id, { ...data, OrganizationId: orgId });
+    },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
       notify.info('Doctor Updated', `Dr. ${variables.name}'s details have been updated.`);
@@ -132,13 +140,8 @@ const DoctorsList: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const isDuplicate = doctors?.some((doc: any) => 
-      doc.name.toLowerCase().trim() === newDoctor.name.toLowerCase().trim() &&
-      doc.specialization.toLowerCase().trim() === newDoctor.specialization.toLowerCase().trim()
-    );
-
-    if (isDuplicate) {
-      setErrorMessage("A doctor with the same name and specialization already exists!");
+    if (newDoctor.branchIds.length === 0) {
+      setErrorMessage("Please assign at least one branch to this doctor.");
       return;
     }
 
@@ -149,25 +152,34 @@ const DoctorsList: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const isDuplicate = doctors?.some((doc: any) => 
-      doc.id !== editingDoctor.id &&
-      doc.name.toLowerCase().trim() === editingDoctor.name.toLowerCase().trim() &&
-      doc.specialization.toLowerCase().trim() === editingDoctor.specialization.toLowerCase().trim()
-    );
-
-    if (isDuplicate) {
-      setErrorMessage("Another doctor with this name and specialization already exists!");
+    if (editingDoctor.branchIds.length === 0) {
+      setErrorMessage("Please assign at least one branch to this doctor.");
       return;
     }
 
     updateDoctorMutation.mutate(editingDoctor);
   };
 
+  const toggleBranchSelection = (branchId: string, isEditing: boolean) => {
+    if (isEditing) {
+      const current = editingDoctor.branchIds || [];
+      const updated = current.includes(branchId)
+        ? current.filter((id: string) => id !== branchId)
+        : [...current, branchId];
+      setEditingDoctor({ ...editingDoctor, branchIds: updated });
+    } else {
+      const current = newDoctor.branchIds;
+      const updated = current.includes(branchId)
+        ? current.filter((id: string) => id !== branchId)
+        : [...current, branchId];
+      setNewDoctor({ ...newDoctor, branchIds: updated });
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      {/* Page Header (Outside Card) */}
+      {/* Page Header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-        {/* Top Row: Title & Branch */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }} className="flex-mobile-column">
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
@@ -182,42 +194,19 @@ const DoctorsList: React.FC = () => {
                 WebkitBackgroundClip: 'text', 
                 WebkitTextFillColor: 'transparent' 
               }}>
-                Doctors
+                Organization Doctors
               </h1>
-              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Manage healthcare professionals and specialties.</p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Manage medical professionals across all organization branches.</p>
             </div>
-          </div>
-
-          {/* Branch Selector (Parallel to Title) */}
-          <div style={{ minWidth: '220px' }} className="full-width-mobile">
-             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-               <Building2 size={14} /> Hospital Branch
-             </label>
-             <select 
-               data-tooltip="Switch hospital location to manage doctors"
-               value={selectedBranchId} 
-               onChange={(e) => setSelectedBranchId(e.target.value)}
-               style={{ 
-                 width: '100%', padding: '10px 15px', borderRadius: '12px', 
-                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
-                 color: 'white', fontWeight: 600, fontSize: '0.85rem'
-               }}
-             >
-               <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
-               {branches?.map((b: any) => (
-                 <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
-               ))}
-             </select>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="doctors-content glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
-        {/* Action Row (Now inside Card) */}
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'flex-end', 
+          justifyContent: 'space-between', 
           alignItems: 'center', 
           gap: '15px'
         }} className="flex-mobile-column">
@@ -225,9 +214,8 @@ const DoctorsList: React.FC = () => {
           <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }} className="full-width-mobile">
             <Search size={18} style={{ position: 'absolute', left: '15px', top: '15px', color: 'var(--text-secondary)' }} />
             <input 
-              data-tooltip="Find doctor by name, specialty or registration ID"
               type="text" 
-              placeholder="Search professionals..." 
+              placeholder="Search all professionals..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ 
@@ -239,7 +227,6 @@ const DoctorsList: React.FC = () => {
           </div>
 
           <button 
-            data-tooltip="Register a new healthcare professional"
             onClick={() => setIsModalOpen(true)} 
             className="btn-primary full-width-mobile" 
             style={{ 
@@ -247,7 +234,6 @@ const DoctorsList: React.FC = () => {
               height: '48px', padding: '0 25px', borderRadius: '12px',
               fontWeight: 700, boxShadow: '0 4px 15px var(--accent-glow)'
             }}
-            disabled={!selectedBranchId}
           >
             <Plus size={20} strokeWidth={3} /> Add New Doctor
           </button>
@@ -255,25 +241,19 @@ const DoctorsList: React.FC = () => {
 
         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
 
-        {!selectedBranchId ? (
-          <div style={{ textAlign: 'center', padding: '80px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
-            <Building2 size={48} style={{ marginBottom: '20px', opacity: 0.2, color: 'var(--accent-color)' }} />
-            <h3 style={{ margin: 0, color: 'white' }}>No Branch Selected</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Select a hospital branch above to view and manage its professional healthcare staff.</p>
-          </div>
-        ) : isLoading ? (
+        {isLoading ? (
           <p style={{ color: 'var(--text-secondary)' }}>Loading professionals...</p>
         ) : filteredDoctors.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.1)' }}>
             <User size={48} style={{ opacity: 0.2, marginBottom: '15px', color: 'var(--accent-color)' }} />
             <h3 style={{ margin: 0 }}>No Professionals Found</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>{searchQuery ? 'Try adjusting your search query.' : 'Add your first professional for this branch to get started.'}</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{searchQuery ? 'Try adjusting your search query.' : 'Add your first professional to the organization to get started.'}</p>
           </div>
         ) : (
           <div className="grid-doctors">
             {filteredDoctors.map((doc: any) => (
               <div key={doc.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '220px', background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                   <div style={{ 
                     width: '55px', height: '55px', borderRadius: '15px', 
                     background: 'var(--accent-glow)', display: 'flex', 
@@ -291,25 +271,29 @@ const DoctorsList: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ flex: 1, marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                    <ShieldCheck size={16} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <ShieldCheck size={14} />
                     <span>Reg: {doc.registrationNumber || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                    <Building2 size={14} style={{ marginTop: '2px' }} />
+                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>{doc.branchName || 'Not Assigned'}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px', width: '100%' }}>
-                    <button data-tooltip="View patient reviews and scores" onClick={() => setViewRatingsDoctorId(doc)} style={actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15')}>
+                    <button onClick={() => setViewRatingsDoctorId(doc)} style={actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15')}>
                       <Star size={16} fill="#FACC15" color="#FACC15" /> Feedback
                     </button>
-                    <button data-tooltip="See full professional profile" onClick={() => setViewDoctor(doc)} style={actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)')}>
+                    <button onClick={() => setViewDoctor(doc)} style={actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)')}>
                       <Eye size={16} /> View
                     </button>
-                    <button data-tooltip="Update doctor information" onClick={() => setEditingDoctor(doc)} style={actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white')}>
+                    <button onClick={() => setEditingDoctor({ ...doc, branchIds: doc.branchIds || [] })} style={actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white')}>
                       <Edit size={16} /> Edit
                     </button>
-                    <button data-tooltip="Permanently remove this professional" onClick={() => setDeletingDoctorId(doc.id)} style={actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)')}>
+                    <button onClick={() => setDeletingDoctorId(doc.id)} style={actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)')}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -329,12 +313,44 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} tooltip="Enter the doctor's full name" required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} tooltip="Medical specialty (e.g. Cardiologist)" required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} tooltip="Official medical council registration number" />
+            <Field label="Full Name" icon={<User size={16}/>} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} required />
+            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} required />
+            <Field label="Registration No." icon={<Hash size={16}/>} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} />
+            
+            <div style={{ marginTop: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Assign to Branches
+              </label>
+              {!branches ? (
+                <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                   Loading available branches...
+                </div>
+              ) : branches.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {branches.map((branch: any) => (
+                    <label key={branch.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={newDoctor.branchIds.includes(branch.id)}
+                        onChange={() => toggleBranchSelection(branch.id, false)}
+                        style={{ width: '18px', height: '18px' }}
+                      />
+                      <span style={{ fontSize: '0.85rem' }}>{branch.name}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed var(--danger)', borderRadius: '12px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)' }}>
+                    No branches found. <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/branches')}>Create a branch</span> first.
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button data-tooltip="Register this new professional" type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button type="button" onClick={() => setIsModalOpen(false)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {createDoctorMutation.isPending ? 'Adding...' : 'Add Doctor'}
               </button>
             </div>
@@ -351,12 +367,44 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} tooltip="Update doctor name" required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} tooltip="Update medical specialty" required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} tooltip="Update registration number" />
+            <Field label="Full Name" icon={<User size={16}/>} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} required />
+            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} required />
+            <Field label="Registration No." icon={<Hash size={16}/>} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} />
+            
+            <div style={{ marginTop: '20px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <Building2 size={16} /> Assign to Branches
+              </label>
+              {!branches ? (
+                <div style={{ padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  Loading available branches...
+                </div>
+              ) : branches.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {branches.map((branch: any) => (
+                    <label key={branch.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={(editingDoctor.branchIds || []).includes(branch.id)}
+                        onChange={() => toggleBranchSelection(branch.id, true)}
+                        style={{ width: '18px', height: '18px' }}
+                      />
+                      <span style={{ fontSize: '0.85rem' }}>{branch.name}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '15px', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed var(--danger)', borderRadius: '12px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--danger)' }}>
+                    No branches found. <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/branches')}>Create a branch</span> first to assign this doctor.
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
-              <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingDoctor(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
-              <button data-tooltip="Commit updates to this profile" type="submit" className="btn-primary" style={{ flex: 1 }}>
+              <button type="button" onClick={() => setEditingDoctor(null)} style={cancelButtonStyle}><X size={16} /> Cancel</button>
+              <button type="submit" className="btn-primary" style={{ flex: 1 }}>
                 <CheckCircle2 size={18} /> {updateDoctorMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

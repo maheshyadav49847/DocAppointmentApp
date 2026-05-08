@@ -8,6 +8,10 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
     {
         public Guid Id { get; init; }
         public string Email { get; init; } = string.Empty;
+        public string FirstName { get; init; } = string.Empty;
+        public string LastName { get; init; } = string.Empty;
+        public string EmployeeId { get; init; } = string.Empty;
+        public string PhoneNumber { get; init; } = string.Empty;
         public string Role { get; init; } = string.Empty;
         public Guid OrganizationId { get; init; }
         public Guid? BranchId { get; init; }
@@ -35,6 +39,10 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
                 {
                     Id = s.Id,
                     Email = s.Email,
+                    FirstName = s.FirstName,
+                    LastName = s.LastName,
+                    EmployeeId = s.EmployeeId,
+                    PhoneNumber = s.PhoneNumber,
                     Role = s.Role.ToString(),
                     OrganizationId = s.OrganizationId,
                     BranchId = s.BranchId,

@@ -22,10 +22,12 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Token> Tokens => Set<Token>();
         public DbSet<Rating> Ratings => Set<Rating>();
         public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+        public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
         public DbSet<Staff> Staffs => Set<Staff>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<SystemSetting>().HasKey(x => x.Key);
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(modelBuilder);

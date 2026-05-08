@@ -20,8 +20,19 @@ namespace CodeX.Infrastructure
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<IIdentityService, CodeX.Infrastructure.Identity.IdentityService>();
 
-            // ── WhatsApp: Twilio Integration ──────────────────────────────────
-            services.AddScoped<IWhatsAppService, TwilioWhatsAppService>();
+            // ─── Messaging Providers ──────────────────────────────────────────
+            var whatsAppProvider = configuration["WhatsApp:Provider"] ?? "Twilio";
+            if (whatsAppProvider == "Bridge")
+            {
+                services.AddHttpClient<IWhatsAppService, BridgeWhatsAppService>();
+            }
+            else
+            {
+                services.AddScoped<IWhatsAppService, TwilioWhatsAppService>();
+            }
+
+            services.AddScoped<ISmsService, TwilioSmsService>();
+            services.AddScoped<IEmailService, ConsoleEmailService>();
 
             return services;
         }

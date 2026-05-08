@@ -22,6 +22,21 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BranchDoctor", b =>
+                {
+                    b.Property<Guid>("BranchesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DoctorsId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("BranchesId", "DoctorsId");
+
+                    b.HasIndex("DoctorsId");
+
+                    b.ToTable("DoctorBranches", (string)null);
+                });
+
             modelBuilder.Entity("CodeX.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -162,8 +177,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.HasIndex("DoctorId", "QueueDate", "SessionId")
-                        .IsUnique();
+                    b.HasIndex("DoctorId", "QueueDate", "SessionId");
 
                     b.ToTable("DailyQueues");
                 });
@@ -172,9 +186,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -191,6 +202,9 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RegistrationNumber")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -204,10 +218,9 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BranchId");
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("RegistrationNumber")
-                        .IsUnique()
                         .HasFilter("\"RegistrationNumber\" IS NOT NULL");
 
                     b.ToTable("Doctors");
@@ -246,8 +259,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Slug")
-                        .IsUnique();
+                    b.HasIndex("Slug");
 
                     b.ToTable("Organizations");
                 });
@@ -331,6 +343,9 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -349,6 +364,9 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsDaily")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -364,6 +382,8 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("DoctorId");
 
@@ -387,11 +407,23 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("EmployeeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
@@ -399,6 +431,16 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResetTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
@@ -410,12 +452,35 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("Email");
 
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("Staff");
+                });
+
+            modelBuilder.Entity("CodeX.Domain.Entities.SystemSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsSensitive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Token", b =>
@@ -464,10 +529,24 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PatientId");
 
-                    b.HasIndex("QueueId", "TokenNumber")
-                        .IsUnique();
+                    b.HasIndex("QueueId", "TokenNumber");
 
                     b.ToTable("Tokens");
+                });
+
+            modelBuilder.Entity("BranchDoctor", b =>
+                {
+                    b.HasOne("CodeX.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CodeX.Domain.Entities.Doctor", null)
+                        .WithMany()
+                        .HasForeignKey("DoctorsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Branch", b =>
@@ -510,13 +589,13 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CodeX.Domain.Entities.Doctor", b =>
                 {
-                    b.HasOne("CodeX.Domain.Entities.Branch", "Branch")
-                        .WithMany("Doctors")
-                        .HasForeignKey("BranchId")
+                    b.HasOne("CodeX.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Branch");
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Rating", b =>
@@ -532,11 +611,19 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CodeX.Domain.Entities.Session", b =>
                 {
+                    b.HasOne("CodeX.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CodeX.Domain.Entities.Doctor", "Doctor")
                         .WithMany("Sessions")
                         .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Doctor");
                 });
@@ -581,8 +668,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CodeX.Domain.Entities.Branch", b =>
                 {
                     b.Navigation("DailyQueues");
-
-                    b.Navigation("Doctors");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.DailyQueue", b =>

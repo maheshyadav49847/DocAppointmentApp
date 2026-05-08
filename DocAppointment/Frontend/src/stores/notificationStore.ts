@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export type NotificationType = 'success' | 'info' | 'warning' | 'danger';
 
@@ -33,63 +32,55 @@ interface NotificationState {
   removeToast: (id: string) => void;
 }
 
-export const useNotificationStore = create<NotificationState>()(
-  persist(
-    (set, get) => ({
-      notifications: [],
-      toasts: [],
+export const useNotificationStore = create<NotificationState>()((set, get) => ({
+  notifications: [],
+  toasts: [],
 
-      push: (n) =>
-        set((state) => ({
-          notifications: [
-            {
-              ...n,
-              id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-              timestamp: Date.now(),
-              read: false,
-            },
-            ...state.notifications,
-          ].slice(0, 50), // keep max 50 notifications
-        })),
+  push: (n) =>
+    set((state) => ({
+      notifications: [
+        {
+          ...n,
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...state.notifications,
+      ].slice(0, 50), // keep max 50 notifications
+    })),
 
-      markRead: (id) =>
-        set((state) => ({
-          notifications: state.notifications.map((n) =>
-            n.id === id ? { ...n, read: true } : n
-          ),
-        })),
+  markRead: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      ),
+    })),
 
-      markAllRead: () =>
-        set((state) => ({
-          notifications: state.notifications.map((n) => ({ ...n, read: true })),
-        })),
+  markAllRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, read: true })),
+    })),
 
-      remove: (id) =>
-        set((state) => ({
-          notifications: state.notifications.filter((n) => n.id !== id),
-        })),
+  remove: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id),
+    })),
 
-      clearAll: () => set({ notifications: [] }),
+  clearAll: () => set({ notifications: [] }),
 
-      unreadCount: () => get().notifications.filter((n) => !n.read).length,
+  unreadCount: () => get().notifications.filter((n) => !n.read).length,
 
-      addToast: (t) => {
-        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-        set((state) => ({ toasts: [...state.toasts, { ...t, id }] }));
-        setTimeout(() => get().removeToast(id), 4000); // Auto remove after 4s
-      },
+  addToast: (t) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    set((state) => ({ toasts: [...state.toasts, { ...t, id }] }));
+    setTimeout(() => get().removeToast(id), 4000); // Auto remove after 4s
+  },
 
-      removeToast: (id) =>
-        set((state) => ({
-          toasts: state.toasts.filter((t) => t.id !== id),
-        })),
-    }),
-    { 
-      name: 'notifications-storage',
-      partialize: (state) => ({ notifications: state.notifications }), // Only persist notifications, not ephemeral toasts
-    }
-  )
-);
+  removeToast: (id) =>
+    set((state) => ({
+      toasts: state.toasts.filter((t) => t.id !== id),
+    })),
+}));
 
 // ─── Convenience helper used by other components ────────────────────────────
 export const notify = {

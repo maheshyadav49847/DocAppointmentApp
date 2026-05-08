@@ -46,7 +46,7 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                 Id = Guid.NewGuid(),
                 DoctorId = request.DoctorId,
                 SessionId = request.SessionId,
-                BranchId = session.Doctor.BranchId,
+                BranchId = session.BranchId,
                 QueueDate = today,
                 CurrentTokenNumber = 0,
                 Status = 0 // Pending/Closed

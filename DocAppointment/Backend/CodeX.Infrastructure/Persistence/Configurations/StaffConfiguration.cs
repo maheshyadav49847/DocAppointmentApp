@@ -10,7 +10,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Email).IsRequired().HasMaxLength(255);
-            builder.HasIndex(x => x.Email).IsUnique();
+            builder.HasIndex(x => x.Email);
 
             builder.HasOne(x => x.Organization)
                    .WithMany()

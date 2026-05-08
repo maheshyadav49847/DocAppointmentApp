@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Calendar, Settings, LogOut, ChevronRight, Home, User, ChevronDown, Stethoscope, Menu, X, UserCog, BarChart3, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, Settings, LogOut, ChevronRight, Home, User, ChevronDown, Stethoscope, Menu, X, UserCog, BarChart3, Building2, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { branchService } from '../services/branchService';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { icon: <Users size={20} />, label: "Doctors", path: "/doctors" },
     { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions" },
     { icon: <UserCog size={20} />, label: "Staff", path: "/staff" },
+    { icon: <MessageSquare size={20} />, label: "WhatsApp", path: "/whatsapp-settings" },
   ];
 
   return (

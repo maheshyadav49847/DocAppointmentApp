@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
@@ -8,9 +9,18 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 {
     public record CreateTokenCommand : IRequest<Guid>
     {
+        [Required]
         public Guid QueueId { get; init; }
+
+        [Required]
+        [StringLength(100, MinimumLength = 2)]
         public string PatientName { get; init; } = string.Empty;
+
+        [Required]
+        [RegularExpression(@"^\d{10,15}$", ErrorMessage = "Invalid phone number format. Use 10-15 digits.")]
         public string PatientPhone { get; init; } = string.Empty;
+
+        [Required]
         public BookingSource Source { get; init; } = BookingSource.WhatsApp;
     }
 
@@ -106,8 +116,24 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             }
 
             // 4. Notifications
-            await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber);
-            await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+            try 
+            {
+                await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId);
+            }
+            catch (System.Exception ex)
+            {
+                // Log and continue - don't fail the booking if WhatsApp is down
+                Console.WriteLine($"[WHATSAPP_ERROR] Failed to send welcome message: {ex.Message}");
+            }
+
+            try 
+            {
+                await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_ERROR] Failed to notify hub: {ex.Message}");
+            }
 
             return token.Id;
         }

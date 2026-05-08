@@ -15,19 +15,64 @@ const SessionFormFields: React.FC<{ data: any; onChange: (v: any) => void }> = (
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   return (
     <>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Daily Card */}
+          <div 
+            onClick={() => onChange({...data, isDaily: true})}
+            style={{ 
+              padding: '16px', borderRadius: '14px', cursor: 'pointer',
+              background: data.isDaily ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.02)',
+              border: `2px solid ${data.isDaily ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)'}`,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+              boxShadow: data.isDaily ? '0 8px 20px rgba(56, 189, 248, 0.15)' : 'none'
+            }}
+          >
+            <div style={{ color: data.isDaily ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
+              <Clock size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: data.isDaily ? 'white' : 'var(--text-secondary)' }}>Daily</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Available every day</span>
+          </div>
+
+          {/* Specific Day Card */}
+          <div 
+            onClick={() => onChange({...data, isDaily: false})}
+            style={{ 
+              padding: '16px', borderRadius: '14px', cursor: 'pointer',
+              background: !data.isDaily ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.02)',
+              border: `2px solid ${!data.isDaily ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)'}`,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+              boxShadow: !data.isDaily ? '0 8px 20px rgba(56, 189, 248, 0.15)' : 'none'
+            }}
+          >
+            <div style={{ color: !data.isDaily ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
+              <Calendar size={20} />
+            </div>
+            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: !data.isDaily ? 'white' : 'var(--text-secondary)' }}>Specific Day</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Once per week</span>
+          </div>
+        </div>
+      </div>
+
+      {!data.isDaily && (
+        <div style={{ marginBottom: '15px' }}>
+          <label data-tooltip="Day of the week this professional is available" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <Calendar size={16} /> Day of Week
+          </label>
+          <select value={data.dayOfWeek} onChange={(e) => onChange({...data, dayOfWeek: parseInt(e.target.value)})} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'white', padding: '12px' }}>
+            {days.map((day, index) => <option key={index} value={index} style={{ background: '#0f172a', color: 'white' }}>{day}</option>)}
+          </select>
+        </div>
+      )}
+
       <div style={{ marginBottom: '15px' }}>
         <label data-tooltip="Identify this shift (e.g. Evening Clinic, Emergency)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           <ListOrdered size={16} /> Session Name
         </label>
         <input type="text" value={data.sessionName} onChange={(e) => onChange({...data, sessionName: e.target.value})} placeholder="e.g. Morning OPD" required />
-      </div>
-      <div style={{ marginBottom: '15px' }}>
-        <label data-tooltip="Day of the week this professional is available" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          <Calendar size={16} /> Day of Week
-        </label>
-        <select value={data.dayOfWeek} onChange={(e) => onChange({...data, dayOfWeek: parseInt(e.target.value)})} style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'white', padding: '12px' }}>
-          {days.map((day, index) => <option key={index} value={index} style={{ background: '#0f172a', color: 'white' }}>{day}</option>)}
-        </select>
       </div>
       <div style={{ display: 'grid', gap: '15px', marginBottom: '15px' }} className="grid-stats">
         <div>
@@ -102,6 +147,7 @@ const SessionsList: React.FC = () => {
   const [newSession, setNewSession] = useState({
     sessionName: '',
     dayOfWeek: 1,
+    isDaily: true,
     startTime: '09:00',
     endTime: '13:00',
     defaultCapacity: 30
@@ -117,6 +163,7 @@ const SessionsList: React.FC = () => {
     mutationFn: (data: any) => sessionService.createSession({ 
       ...data, 
       doctorId: selectedDoctorId,
+      branchId: selectedBranchId,
       startTime: data.startTime.length === 5 ? data.startTime + ":00" : data.startTime,
       endTime: data.endTime.length === 5 ? data.endTime + ":00" : data.endTime
     }),
@@ -124,7 +171,7 @@ const SessionsList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       notify.success('Shift Created', `"${variables.sessionName}" shift has been added.`);
       setIsModalOpen(false);
-      setNewSession({ sessionName: '', dayOfWeek: 1, startTime: '09:00', endTime: '13:00', defaultCapacity: 30 });
+      setNewSession({ sessionName: '', dayOfWeek: 1, isDaily: true, startTime: '09:00', endTime: '13:00', defaultCapacity: 30 });
     }
   });
 
@@ -283,7 +330,7 @@ const SessionsList: React.FC = () => {
                       data-tooltip="Scheduled Day"
                       style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontSize: '0.9rem', marginTop: '5px', fontWeight: 500 }}>
                       <Calendar size={14} />
-                      <span>{days[session.dayOfWeek]}s</span>
+                      <span>{session.isDaily ? 'Every Day (Daily)' : `${days[session.dayOfWeek]}s`}</span>
                     </div>
                   </div>
                   <div 

@@ -6,12 +6,14 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
 {
     public record CreateSessionCommand : IRequest<Guid>
     {
-        public Guid DoctorId { get; init; }
-        public string SessionName { get; init; } = string.Empty;
-        public int DayOfWeek { get; init; }
-        public TimeSpan StartTime { get; init; }
-        public TimeSpan EndTime { get; init; }
-        public int DefaultCapacity { get; init; }
+        public Guid DoctorId { get; set; }
+        public Guid BranchId { get; set; }
+        public string SessionName { get; set; } = string.Empty;
+        public int DayOfWeek { get; set; }
+        public bool IsDaily { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+        public int DefaultCapacity { get; set; }
     }
 
     public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand, Guid>
@@ -28,8 +30,10 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
             var session = new Session
             {
                 DoctorId = request.DoctorId,
+                BranchId = request.BranchId,
                 SessionName = request.SessionName,
                 DayOfWeek = request.DayOfWeek,
+                IsDaily = request.IsDaily,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
                 DefaultCapacity = request.DefaultCapacity

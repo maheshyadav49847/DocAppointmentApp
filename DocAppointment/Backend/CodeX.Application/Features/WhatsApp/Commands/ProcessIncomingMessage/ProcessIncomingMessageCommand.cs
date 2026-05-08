@@ -100,7 +100,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
 
-            await _mediator.Send(new CreateTokenCommand
+            var tokenId = await _mediator.Send(new CreateTokenCommand
             {
                 QueueId = queue.Id,
                 PatientName = patient?.Name ?? "WhatsApp User",
@@ -108,11 +108,15 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 Source = BookingSource.WhatsApp
             }, ct);
 
+            // Fetch the newly created token to get the TokenNumber
+            var createdToken = await _context.Tokens.FindAsync([tokenId], ct);
+            var tokenNum = createdToken?.TokenNumber ?? 0;
+
             session.CurrentState = "START";
             session.SelectedDoctorId = null;
             session.SelectedSessionId = null;
 
-            return "Successfully booked. You will receive your token number shortly on WhatsApp. Type 'STATUS' anytime to check your position.";
+            return $"✅ Successfully booked!\n\nDoctor: Dr. {queue.Doctor?.Name}\nToken Number: #{tokenNum}\n\nType 'STATUS' anytime to check your position or 'CANCEL' to cancel.";
         }
 
         private async Task<string> HandleStart(ChatSession session, CancellationToken ct)
@@ -331,32 +335,22 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private static string NormalisePhone(string phoneNumber)
         {
-            if (string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                return string.Empty;
-            }
+            if (string.IsNullOrWhiteSpace(phoneNumber)) return string.Empty;
 
             var trimmed = phoneNumber.Trim();
             if (trimmed.StartsWith("whatsapp:", StringComparison.OrdinalIgnoreCase))
-            {
                 trimmed = trimmed["whatsapp:".Length..];
-            }
 
             if (trimmed.EndsWith("@c.us", StringComparison.OrdinalIgnoreCase))
-            {
                 trimmed = trimmed[..^"@c.us".Length];
-            }
 
-            var digits = new StringBuilder();
-            foreach (var ch in trimmed)
-            {
-                if (char.IsDigit(ch))
-                {
-                    digits.Append(ch);
-                }
-            }
-
-            return digits.Length == 0 ? trimmed : $"+{digits}";
+            // Extract only digits
+            var digits = new string(trimmed.Where(char.IsDigit).ToArray());
+            
+            // Ensure it starts with a '+' for global consistency
+            if (digits.Length == 10) digits = "91" + digits; // Auto-prefix India if missing
+            
+            return "+" + digits;
         }
     }
 }

@@ -15,10 +15,12 @@ namespace CodeX.Api.Controllers
     public class QueueController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public QueueController(IApplicationDbContext context)
+        public QueueController(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         [HttpPost("initialize")]
@@ -42,7 +44,7 @@ namespace CodeX.Api.Controllers
                 {
                     return BadRequest(new { message = ex.Message });
                 }
-                return StatusCode(500, new { message = ex.Message, detail = ex.InnerException?.Message });
+                return StatusCode(500, new { message = "An error occurred while processing the queue.", detail = "Please contact support if the issue persists." });
             }
         }
 
@@ -79,6 +81,10 @@ namespace CodeX.Api.Controllers
         [HttpGet("stats/{branchId}")]
         public async Task<ActionResult<QueueStatsDto>> GetStats(Guid branchId)
         {
+            // IDOR Protection
+            var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
+            if (!branchExists && !_currentUserService.IsInRole("SuperAdmin")) return Forbid();
+
             return await Mediator.Send(new GetQueueStatsQuery(branchId));
         }
 
@@ -89,8 +95,9 @@ namespace CodeX.Api.Controllers
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
                 .Include(q => q.Doctor)
+                .Include(q => q.Branch)
                 .Include(q => q.Session)
-                .FirstOrDefaultAsync(q => q.Id == queueId);
+                .FirstOrDefaultAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
 
             if (queue == null) return NotFound();
 
@@ -123,7 +130,9 @@ namespace CodeX.Api.Controllers
             var queue = await _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
-                .FirstOrDefaultAsync(q => q.Id == queueId);
+                .Include(q => q.Doctor)
+                .Include(q => q.Branch)
+                .FirstOrDefaultAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
 
             if (queue == null) return NotFound();
 
