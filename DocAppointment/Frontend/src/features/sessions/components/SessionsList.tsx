@@ -116,7 +116,7 @@ const cancelButtonStyle: React.CSSProperties = {
 };
 
 const SessionsList: React.FC = () => {
-  const { branchId: globalBranchId, orgId } = useAuthStore();
+  const { branchId: globalBranchId, orgId, role } = useAuthStore();
   const queryClient = useQueryClient();
   
   const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '');
@@ -322,46 +322,64 @@ const SessionsList: React.FC = () => {
         ) : (
           <div className="grid-doctors">
             {sessions?.map((session: any) => (
-              <div key={session.id} className="glass-card" style={{ borderLeft: '4px solid var(--accent-color)', display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+              <div key={session.id} className="glass-card" style={{ 
+                borderLeft: '4px solid var(--accent-color)', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '20px',
+                background: 'rgba(255,255,255,0.02)', 
+                padding: '25px',
+                transition: 'all 0.3s ease'
+              }}>
+                {/* Header: Name + Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{session.sessionName}</h3>
-                    <div 
-                      data-tooltip="Scheduled Day"
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontSize: '0.9rem', marginTop: '5px', fontWeight: 500 }}>
+                    <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: 'white' }}>{session.sessionName}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)', fontSize: '0.85rem', marginTop: '6px', fontWeight: 600 }}>
                       <Calendar size={14} />
-                      <span>{session.isDaily ? 'Every Day (Daily)' : `${days[session.dayOfWeek]}s`}</span>
+                      <span>{session.isDaily ? 'EVERY DAY' : `${days[session.dayOfWeek].toUpperCase()}S`}</span>
                     </div>
                   </div>
-                  <div 
-                    data-tooltip="Maximum Token Capacity"
-                    style={{ background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-color)', padding: '5px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Users size={14} /> {session.defaultCapacity}
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      data-tooltip="Edit Shift"
+                      onClick={() => setEditingSession(session)}
+                      style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'; e.currentTarget.style.color = 'var(--accent-color)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                    >
+                      <Edit size={16} />
+                    </button>
+                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                      <button 
+                        data-tooltip="Delete Shift"
+                        onClick={() => setDeletingSessionId(session.id)}
+                        style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', color: 'rgba(239, 68, 68, 0.5)', cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.03)'; e.currentTarget.style.color = 'rgba(239, 68, 68, 0.5)'; }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div 
-                  data-tooltip="Operational Hours"
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                  <Clock size={18} />
-                  <span>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</span>
-                </div>
+                {/* Body: Operational Data */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                      <Clock size={12} /> Hours
+                    </div>
+                    <span style={{ fontSize: '1rem', fontWeight: 700 }}>{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</span>
+                  </div>
 
-                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: '10px' }}>
-                  <button 
-                    data-tooltip="Modify Shift Details"
-                    onClick={() => setEditingSession(session)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', fontSize: '0.85rem', fontWeight: 600, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
-                  >
-                    <Edit size={14} /> Edit
-                  </button>
-                  <button 
-                    data-tooltip="Delete this Shift"
-                    onClick={() => setDeletingSessionId(session.id)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', fontSize: '0.85rem', fontWeight: 600, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: '8px', color: 'var(--danger)', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={16} /> Delete
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a78bfa', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                      <Users size={12} /> Capacity
+                    </div>
+                    <span style={{ fontSize: '1rem', fontWeight: 700 }}>{session.defaultCapacity} <small style={{ fontWeight: 400, opacity: 0.6 }}>Patients</small></span>
+                  </div>
                 </div>
               </div>
             ))}

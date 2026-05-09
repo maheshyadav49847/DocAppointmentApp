@@ -19,7 +19,7 @@ namespace CodeX.Application.Features.Sessions.Queries.GetSessionsList
 
         public async Task<List<SessionDto>> Handle(GetSessionsListQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.Sessions.Where(s => s.DoctorId == request.DoctorId);
+            var query = _context.Sessions.Where(s => s.DoctorId == request.DoctorId && !s.IsDeleted);
 
             if (request.BranchId.HasValue && request.BranchId != Guid.Empty)
             {

@@ -82,46 +82,50 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Notify via SignalR (Don't let notification failure crash the whole request)
-            try
+            // Notify via SignalR (Background)
+            _ = Task.Run(async () => 
             {
-                await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
-            }
-            catch (Exception ex)
-            {
-                // Log and continue
-                // _logger.LogWarning(ex, "Failed to send SignalR notification");
-            }
-
-            // Notify via WhatsApp
-            try
-            {
-                if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
+                try
                 {
-                    await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                    await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
                 }
-
-                // ─── Automated Upcoming Alerts ──────────────────────────────────
-                // Notify patients who are 3 and 5 positions away so they start moving towards the clinic
-                var upcomingPositions = new[] { 3, 5 };
-                foreach (var pos in upcomingPositions)
+                catch (Exception ex)
                 {
-                    var upcomingPatient = queue.Tokens
-                        .Where(t => t.Status == TokenStatus.Pending)
-                        .OrderBy(t => t.TokenNumber)
-                        .Skip(pos - 1) // pos=3 means index 2 (since index 0 is the one about to be called next time)
-                        .FirstOrDefault();
+                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+                }
+            });
 
-                    if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
+            // Notify via WhatsApp (Background)
+            _ = Task.Run(async () => 
+            {
+                try
+                {
+                    if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
                     {
-                        await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
+                        await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                    }
+
+                    // Automated Upcoming Alerts
+                    var upcomingPositions = new[] { 3, 5 };
+                    foreach (var pos in upcomingPositions)
+                    {
+                        var upcomingPatient = queue.Tokens
+                            .Where(t => t.Status == TokenStatus.Pending)
+                            .OrderBy(t => t.TokenNumber)
+                            .Skip(pos - 1)
+                            .FirstOrDefault();
+
+                        if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
+                        {
+                            await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
+                        }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                // Log and continue
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                }
+            });
 
             return queue.CurrentTokenNumber;
         }

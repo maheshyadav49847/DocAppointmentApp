@@ -18,18 +18,20 @@ namespace CodeX.Application.Features.Doctors.Queries.GetOrganizationDoctors
 
         public async Task<List<DoctorDto>> Handle(GetOrganizationDoctorsQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Doctors
+            var doctors = await _context.Doctors
                 .Include(d => d.Branches)
                 .Where(x => x.OrganizationId == request.OrganizationId && !x.IsDeleted)
-                .Select(d => new DoctorDto
-                {
-                    Id = d.Id,
-                    Name = d.Name,
-                    Specialization = d.Specialization,
-                    RegistrationNumber = d.RegistrationNumber,
-                    BranchName = string.Join(", ", d.Branches.Select(b => b.Name))
-                })
                 .ToListAsync(cancellationToken);
+
+            return doctors.Select(d => new DoctorDto
+            {
+                Id = d.Id,
+                Name = d.Name,
+                Specialization = d.Specialization,
+                RegistrationNumber = d.RegistrationNumber,
+                BranchName = string.Join(", ", d.Branches.Select(b => b.Name)),
+                BranchIds = d.Branches.Select(b => b.Id).ToList()
+            }).ToList();
         }
     }
 }

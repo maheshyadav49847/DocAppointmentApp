@@ -205,6 +205,7 @@ const QueueDashboard: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleManualBookingSubmit}
+        isLoading={createTokenMutation.isPending}
       />
 
       {confirmEndSession.isOpen && (
@@ -569,7 +570,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
 const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, setEditingToken, deleteTokenMutation }: any) => {
   const queryClient = useQueryClient();
   const { doctor, session, queueId } = sessionData;
-  const { branchId } = useAuthStore();
+  const { branchId, role: userRole } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting');
   const [waitingSearch, setWaitingSearch] = useState('');
   const [servedSearch, setServedSearch] = useState('');
@@ -1082,11 +1083,11 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                           {t.status === 3 && (
                             <button 
-                              data-tooltip="Move patient back to waiting list"
+                              data-tooltip="Requeue: Move patient back to waiting list"
                               onClick={() => requeueMutation.mutate(t.id)}
-                              style={{ background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-color)', padding: '10px 15px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+                              style={{ background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              <Play size={16} fill="var(--accent-color)" /> Requeue
+                              <Play size={16} fill="var(--accent-color)" />
                             </button>
                           )}
                           {t.status !== 2 && (
@@ -1098,13 +1099,15 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                               >
                                 <Edit size={18} />
                               </button>
-                              <button 
-                                data-tooltip="Permanently remove from queue"
-                                onClick={() => { if(window.confirm("Are you sure you want to delete this token?")) deleteTokenMutation.mutate(t.id); }}
-                                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px 15px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
-                              >
-                                <Trash2 size={16} /> Delete
-                              </button>
+                              {(userRole === 'OrgAdmin' || userRole === 'BranchAdmin' || userRole === 'SuperAdmin') && (
+                                <button 
+                                  data-tooltip="Delete: Permanently remove from queue"
+                                  onClick={() => { if(window.confirm("Are you sure you want to delete this token?")) deleteTokenMutation.mutate(t.id); }}
+                                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>

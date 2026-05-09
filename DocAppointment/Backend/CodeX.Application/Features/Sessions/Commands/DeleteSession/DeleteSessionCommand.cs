@@ -19,7 +19,7 @@ namespace CodeX.Application.Features.Sessions.Commands.DeleteSession
             var session = await _context.Sessions.FindAsync(new object[] { request.Id }, cancellationToken);
             if (session == null) throw new Exception("Session not found");
 
-            _context.Sessions.Remove(session);
+            session.IsDeleted = true;
             await _context.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }

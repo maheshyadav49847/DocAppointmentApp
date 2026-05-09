@@ -5,9 +5,10 @@ interface ManualBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { name: string; phone: string }) => void;
+  isLoading?: boolean;
 }
 
-const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
@@ -86,16 +87,26 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
           <button 
             data-tooltip="Submit and generate patient token"
             onClick={handleSubmit}
-            disabled={!isValid}
+            disabled={!isValid || isLoading}
             className="btn-primary" 
             style={{ 
               width: '100%', marginTop: '10px', 
-              opacity: isValid ? 1 : 0.5, 
-              cursor: isValid ? 'pointer' : 'not-allowed',
-              background: isValid ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)'
+              opacity: (isValid && !isLoading) ? 1 : 0.5, 
+              cursor: (isValid && !isLoading) ? 'pointer' : 'not-allowed',
+              background: (isValid && !isLoading) ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
             }}
           >
-            <PlusCircle size={18} /> Generate Token
+            {isLoading ? (
+              <>
+                <div className="animate-spin" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%' }}></div>
+                Processing...
+              </>
+            ) : (
+              <>
+                <PlusCircle size={18} /> Generate Token
+              </>
+            )}
           </button>
         </div>
       </div>

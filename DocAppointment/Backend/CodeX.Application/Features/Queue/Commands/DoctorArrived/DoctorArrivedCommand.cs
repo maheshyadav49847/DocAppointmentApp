@@ -35,29 +35,35 @@ namespace CodeX.Application.Features.Queue.Commands.DoctorArrived
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Notify via SignalR
-            try 
-            {
-                await _notificationService.NotifyDoctorArrived(queue.BranchId, queue.Id, queue.Doctor.Name);
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
-            }
-
-            // Notify all waiting patients via WhatsApp
-            var waitingPatients = queue.Tokens.Where(t => t.Status == TokenStatus.Pending && t.Patient != null);
-            foreach (var token in waitingPatients)
+            // Notify via SignalR (Background)
+            _ = Task.Run(async () => 
             {
                 try 
                 {
-                    await _whatsappService.SendDoctorArrivalAlert(token.Patient!.Phone, queue.Doctor.Name, queue.BranchId);
+                    await _notificationService.NotifyDoctorArrived(queue.BranchId, queue.Id, queue.Doctor.Name);
                 }
                 catch (System.Exception ex)
                 {
-                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
                 }
-            }
+            });
+
+            // Notify all waiting patients via WhatsApp (Background)
+            var waitingPatients = queue.Tokens.Where(t => t.Status == TokenStatus.Pending && t.Patient != null).ToList();
+            _ = Task.Run(async () => 
+            {
+                foreach (var token in waitingPatients)
+                {
+                    try 
+                    {
+                        await _whatsappService.SendDoctorArrivalAlert(token.Patient!.Phone, queue.Doctor.Name, queue.BranchId);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                    }
+                }
+            });
 
             return true;
         }

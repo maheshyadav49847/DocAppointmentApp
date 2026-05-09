@@ -9,5 +9,6 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
         public string Specialization { get; set; } = string.Empty;
         public string? RegistrationNumber { get; set; }
         public string BranchName { get; set; } = string.Empty;
+        public List<Guid> BranchIds { get; set; } = new();
     }
 }

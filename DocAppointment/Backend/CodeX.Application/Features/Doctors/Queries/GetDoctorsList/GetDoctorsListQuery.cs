@@ -17,18 +17,20 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
 
         public async Task<List<DoctorDto>> Handle(GetDoctorsListQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Doctors
-                .Where(x => x.Branches.Any(b => b.Id == request.BranchId))
-                .Select(d => new DoctorDto
-                {
-                    Id = d.Id,
-                    Name = d.Name,
-                    Specialization = d.Specialization,
-                    RegistrationNumber = d.RegistrationNumber,
-                    // Note: Doctor can have multiple branches now, so returning the requested branch's name
-                    BranchName = d.Branches.FirstOrDefault(b => b.Id == request.BranchId)!.Name
-                })
+            var doctors = await _context.Doctors
+                .Include(d => d.Branches)
+                .Where(x => x.Branches.Any(b => b.Id == request.BranchId) && !x.IsDeleted)
                 .ToListAsync(cancellationToken);
+
+            return doctors.Select(d => new DoctorDto
+            {
+                Id = d.Id,
+                Name = d.Name,
+                Specialization = d.Specialization,
+                RegistrationNumber = d.RegistrationNumber,
+                BranchName = d.Branches.FirstOrDefault(b => b.Id == request.BranchId)?.Name ?? "N/A",
+                BranchIds = d.Branches.Select(b => b.Id).ToList()
+            }).ToList();
         }
     }
 }
