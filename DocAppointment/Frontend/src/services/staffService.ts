@@ -10,7 +10,7 @@ export const staffService = {
     return response.data;
   },
   createStaff: async (data: {
-    branchId: string;
+    branchId: string | null;
     organizationId: string;
     email: string;
     password: string;

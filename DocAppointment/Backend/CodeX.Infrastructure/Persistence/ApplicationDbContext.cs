@@ -40,6 +40,9 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<Session>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Patient>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Token>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<ChatSession>()
+                .HasIndex(x => new { x.PhoneNumber, x.BranchId })
+                .IsUnique();
         }
     }
 }

@@ -11,6 +11,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 {
     public record ProcessIncomingMessageCommand : IRequest<string>
     {
+        public Guid? BranchId { get; init; }
         public string From { get; init; } = string.Empty;
         public string MessageBody { get; init; } = string.Empty;
     }
@@ -30,21 +31,29 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         {
             var fromPhone = NormalisePhone(request.From);
             var session = await _context.ChatSessions
-                .FirstOrDefaultAsync(x => x.PhoneNumber == fromPhone, cancellationToken);
+                .FirstOrDefaultAsync(x => x.PhoneNumber == fromPhone && x.BranchId == request.BranchId, cancellationToken);
 
             if (session == null)
             {
-                session = new ChatSession { PhoneNumber = fromPhone, CurrentState = "START" };
+                session = new ChatSession
+                {
+                    PhoneNumber = fromPhone,
+                    BranchId = request.BranchId,
+                    CurrentState = "START"
+                };
+
                 _context.ChatSessions.Add(session);
             }
 
-            string response;
+            session.BranchId = request.BranchId;
+            session.LastMessage = request.MessageBody.Trim();
+
             var body = request.MessageBody.Trim();
             var bodyLower = body.ToLowerInvariant();
 
             if (bodyLower is "hi" or "reset" or "start" or "menu")
             {
-                session.CurrentState = "START";
+                ResetSession(session);
             }
             else if (bodyLower is "status" or "check")
             {
@@ -55,7 +64,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return await HandleCancel(session, cancellationToken);
             }
 
-            response = session.CurrentState switch
+            var response = session.CurrentState switch
             {
                 "START" => await HandleStart(session, cancellationToken),
                 "AWAITING_NAME" => await HandleRegistration(session, body, cancellationToken),
@@ -71,10 +80,17 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             return response;
         }
 
-        private static string HandleUnknown(ChatSession session)
+        private static void ResetSession(ChatSession session)
         {
             session.CurrentState = "START";
-            return "I didn't understand that. Type 'Hi' to see the main menu.";
+            session.SelectedDoctorId = null;
+            session.SelectedSessionId = null;
+        }
+
+        private static string HandleUnknown(ChatSession session)
+        {
+            ResetSession(session);
+            return "I did not understand that. Type 'HI' to see the main menu.";
         }
 
         private async Task<string> HandleConfirm(ChatSession session, string body, CancellationToken ct)
@@ -84,18 +100,30 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return "Please type 'CONFIRM' to book or 'HI' to restart.";
             }
 
+            if (!session.SelectedDoctorId.HasValue || !session.SelectedSessionId.HasValue || !session.BranchId.HasValue)
+            {
+                ResetSession(session);
+                return "Your selection expired. Type 'HI' to start again.";
+            }
+
             var today = DateTime.UtcNow.Date;
+            var tomorrow = today.AddDays(1);
             var queue = await _context.DailyQueues
+                .Include(q => q.Doctor)
+                .Include(q => q.Session)
                 .FirstOrDefaultAsync(q =>
+                    q.BranchId == session.BranchId.Value &&
                     q.DoctorId == session.SelectedDoctorId &&
                     q.SessionId == session.SelectedSessionId &&
-                    q.QueueDate.Date == today &&
+                    q.QueueDate >= today &&
+                    q.QueueDate < tomorrow &&
                     q.Status != QueueStatus.Completed &&
                     q.Status != QueueStatus.Cancelled, ct);
 
             if (queue == null)
             {
-                return "Sorry, the selected session is not active right now. Please type 'HI' and try again.";
+                ResetSession(session);
+                return "Sorry, the selected session is not active right now. Type 'HI' and try again.";
             }
 
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
@@ -107,16 +135,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 PatientPhone = session.PhoneNumber,
                 Source = BookingSource.WhatsApp
             }, ct);
-
-            // Fetch the newly created token to get the TokenNumber
-            var createdToken = await _context.Tokens.FindAsync([tokenId], ct);
+            var createdToken = await _context.Tokens.FirstOrDefaultAsync(t => t.Id == tokenId, ct);
             var tokenNum = createdToken?.TokenNumber ?? 0;
 
-            session.CurrentState = "START";
-            session.SelectedDoctorId = null;
-            session.SelectedSessionId = null;
+            ResetSession(session);
 
-            return $"✅ Successfully booked!\n\nDoctor: Dr. {queue.Doctor?.Name}\nToken Number: #{tokenNum}\n\nType 'STATUS' anytime to check your position or 'CANCEL' to cancel.";
+            return $"Successfully booked.\n\nDoctor: Dr. {queue.Doctor?.Name}\nSession: {queue.Session?.SessionName}\nToken Number: #{tokenNum}\n\nType 'STATUS' anytime to check your position or 'CANCEL' to cancel.";
         }
 
         private async Task<string> HandleStart(ChatSession session, CancellationToken ct)
@@ -128,10 +152,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return "Welcome to DocAppointment.\n\nIt looks like this is your first time. What is your full name?";
             }
 
-            var doctors = await GetAvailableDoctors(ct);
+            var doctors = await GetAvailableDoctors(session.BranchId, ct);
             if (!doctors.Any())
             {
-                return "No doctors available at the moment.";
+                return "No doctors are available in this branch right now.";
             }
 
             var builder = new StringBuilder();
@@ -155,12 +179,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
             if (patient == null)
             {
-                patient = new Patient { Phone = session.PhoneNumber, Name = name };
+                patient = new Patient { Phone = session.PhoneNumber, Name = name.Trim() };
                 _context.Patients.Add(patient);
             }
             else
             {
-                patient.Name = name;
+                patient.Name = name.Trim();
             }
 
             await _context.SaveChangesAsync(ct);
@@ -169,12 +193,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleSelectDoctor(ChatSession session, string body, CancellationToken ct)
         {
-            if (!int.TryParse(body, out int index))
+            if (!int.TryParse(body, out var index))
             {
                 return "Invalid selection. Please reply with a number from the list.";
             }
 
-            var doctors = await GetAvailableDoctors(ct);
+            var doctors = await GetAvailableDoctors(session.BranchId, ct);
             if (index <= 0 || index > doctors.Count)
             {
                 return "Invalid selection. Please reply with a number from the list.";
@@ -183,9 +207,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var selectedDoctor = doctors[index - 1];
             session.SelectedDoctorId = selectedDoctor.Id;
 
-            var sessions = await GetAvailableSessions(selectedDoctor.Id, ct);
+            var sessions = await GetAvailableSessions(selectedDoctor.Id, session.BranchId, ct);
             if (!sessions.Any())
             {
+                ResetSession(session);
                 return $"Sorry, Dr. {selectedDoctor.Name} has no active sessions today. Type 'HI' to select another doctor.";
             }
 
@@ -204,12 +229,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleSelectSession(ChatSession session, string body, CancellationToken ct)
         {
-            if (!int.TryParse(body, out int index) || !session.SelectedDoctorId.HasValue)
+            if (!int.TryParse(body, out var index) || !session.SelectedDoctorId.HasValue)
             {
                 return "Invalid selection. Please reply with a number from the list.";
             }
 
-            var sessions = await GetAvailableSessions(session.SelectedDoctorId.Value, ct);
+            var sessions = await GetAvailableSessions(session.SelectedDoctorId.Value, session.BranchId, ct);
             if (index <= 0 || index > sessions.Count)
             {
                 return "Invalid selection. Please reply with a number from the list.";
@@ -218,7 +243,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var selectedSession = sessions[index - 1];
             session.SelectedSessionId = selectedSession.Id;
 
-            var doctor = await _context.Doctors.FindAsync([session.SelectedDoctorId.Value], ct);
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == session.SelectedDoctorId.Value, ct);
             session.CurrentState = "CONFIRM";
 
             return $"Doctor: {doctor?.Name}\nSession: {selectedSession.SessionName}\n\nType 'CONFIRM' to book your appointment.";
@@ -226,7 +251,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleRatingScore(ChatSession session, string body, CancellationToken ct)
         {
-            if (!int.TryParse(body, out int score) || score < 1 || score > 5 || !session.SelectedSessionId.HasValue)
+            if (!int.TryParse(body, out var score) || score < 1 || score > 5 || !session.SelectedSessionId.HasValue)
             {
                 return "Please reply with a valid number between 1 and 5.";
             }
@@ -240,11 +265,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 }, ct);
 
                 session.CurrentState = "AWAITING_RATING_COMMENT";
-                return $"You rated us {score} out of 5 stars.\n\nWould you like to leave a short text comment about your experience? (Or reply 'Skip' to finish)";
+                return $"You rated us {score} out of 5.\n\nWould you like to leave a short comment? Reply 'Skip' to finish.";
             }
             catch (Exception ex)
             {
-                session.CurrentState = "START";
+                ResetSession(session);
                 return "Failed to save rating. " + ex.Message;
             }
         }
@@ -260,71 +285,107 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 }
             }
 
-            session.CurrentState = "START";
-            session.SelectedSessionId = null;
-            return "Thank you for your valuable feedback! Have a great day.";
+            ResetSession(session);
+            return "Thank you for your feedback.";
         }
 
         private async Task<string> HandleStatus(ChatSession session, CancellationToken ct)
         {
+            if (!session.BranchId.HasValue)
+            {
+                return "This chat is not linked to a branch yet. Type 'HI' to start again.";
+            }
+
             var activeToken = await _context.Tokens
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
-                .Where(t => t.Patient.Phone == session.PhoneNumber && (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
+                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                            t.Queue.BranchId == session.BranchId.Value &&
+                            (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                 .OrderByDescending(t => t.BookedAt)
                 .FirstOrDefaultAsync(ct);
 
             if (activeToken == null)
             {
-                return "You don't have any active bookings. Type 'HI' to book one.";
+                return "You do not have any active bookings in this branch. Type 'HI' to book one.";
             }
 
             if (activeToken.Status == TokenStatus.Called)
             {
-                return $"YOUR TURN IS HERE.\n\nDr. {activeToken.Queue.Doctor.Name} is calling for Token #{activeToken.TokenNumber}. Please proceed to the cabin.";
+                return $"Your turn is here.\n\nDr. {activeToken.Queue.Doctor.Name} is calling token #{activeToken.TokenNumber}. Please proceed to the cabin.";
             }
 
             var peopleAhead = await _context.Tokens
-                .CountAsync(t => t.QueueId == activeToken.QueueId && t.Status == TokenStatus.Pending && t.TokenNumber < activeToken.TokenNumber, ct);
+                .CountAsync(t => t.QueueId == activeToken.QueueId &&
+                                 t.Status == TokenStatus.Pending &&
+                                 t.TokenNumber < activeToken.TokenNumber, ct);
 
-            return $"Booking Status:\n\nDoctor: Dr. {activeToken.Queue.Doctor.Name}\nToken: #{activeToken.TokenNumber}\nPatients ahead of you: {peopleAhead}\n\nEstimated wait: {peopleAhead * 10} minutes.\n\nType 'CANCEL' if you can't make it.";
+            return $"Booking Status:\n\nDoctor: Dr. {activeToken.Queue.Doctor.Name}\nToken: #{activeToken.TokenNumber}\nPatients ahead of you: {peopleAhead}\n\nEstimated wait: {peopleAhead * 10} minutes.\n\nType 'CANCEL' if you cannot make it.";
         }
 
         private async Task<string> HandleCancel(ChatSession session, CancellationToken ct)
         {
+            if (!session.BranchId.HasValue)
+            {
+                return "This chat is not linked to a branch yet. Type 'HI' to start again.";
+            }
+
             var activeToken = await _context.Tokens
-                .Where(t => t.Patient.Phone == session.PhoneNumber && t.Status == TokenStatus.Pending)
+                .Include(t => t.Queue)
+                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                            t.Queue.BranchId == session.BranchId.Value &&
+                            t.Status == TokenStatus.Pending)
                 .OrderByDescending(t => t.BookedAt)
                 .FirstOrDefaultAsync(ct);
 
             if (activeToken == null)
             {
-                return "No active pending booking found to cancel.";
+                return "No active pending booking found to cancel in this branch.";
             }
 
             activeToken.Status = TokenStatus.Cancelled;
             await _context.SaveChangesAsync(ct);
 
-            return "Your booking has been cancelled. We hope to see you again soon.";
+            return "Your booking has been cancelled.";
         }
 
-        private async Task<List<Doctor>> GetAvailableDoctors(CancellationToken ct)
+        private async Task<List<Doctor>> GetAvailableDoctors(Guid? branchId, CancellationToken ct)
         {
+            if (!branchId.HasValue)
+            {
+                return new List<Doctor>();
+            }
+
             var today = DateTime.UtcNow.Date;
+            var tomorrow = today.AddDays(1);
+
             return await _context.DailyQueues
-                .Where(q => q.QueueDate.Date == today && q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled)
+                .Where(q => q.BranchId == branchId.Value &&
+                            q.QueueDate >= today &&
+                            q.QueueDate < tomorrow &&
+                            q.Status != QueueStatus.Completed &&
+                            q.Status != QueueStatus.Cancelled)
                 .Select(q => q.Doctor)
                 .Distinct()
                 .OrderBy(d => d.Name)
                 .ToListAsync(ct);
         }
 
-        private async Task<List<Session>> GetAvailableSessions(Guid doctorId, CancellationToken ct)
+        private async Task<List<Session>> GetAvailableSessions(Guid doctorId, Guid? branchId, CancellationToken ct)
         {
+            if (!branchId.HasValue)
+            {
+                return new List<Session>();
+            }
+
             var today = DateTime.UtcNow.Date;
+            var tomorrow = today.AddDays(1);
+
             return await _context.DailyQueues
-                .Where(q => q.QueueDate.Date == today &&
+                .Where(q => q.BranchId == branchId.Value &&
                             q.DoctorId == doctorId &&
+                            q.QueueDate >= today &&
+                            q.QueueDate < tomorrow &&
                             q.Status != QueueStatus.Completed &&
                             q.Status != QueueStatus.Cancelled)
                 .Select(q => q.Session)
@@ -335,21 +396,28 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private static string NormalisePhone(string phoneNumber)
         {
-            if (string.IsNullOrWhiteSpace(phoneNumber)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                return string.Empty;
+            }
 
             var trimmed = phoneNumber.Trim();
             if (trimmed.StartsWith("whatsapp:", StringComparison.OrdinalIgnoreCase))
+            {
                 trimmed = trimmed["whatsapp:".Length..];
+            }
 
             if (trimmed.EndsWith("@c.us", StringComparison.OrdinalIgnoreCase))
+            {
                 trimmed = trimmed[..^"@c.us".Length];
+            }
 
-            // Extract only digits
             var digits = new string(trimmed.Where(char.IsDigit).ToArray());
-            
-            // Ensure it starts with a '+' for global consistency
-            if (digits.Length == 10) digits = "91" + digits; // Auto-prefix India if missing
-            
+            if (digits.Length == 10)
+            {
+                digits = "91" + digits;
+            }
+
             return "+" + digits;
         }
     }

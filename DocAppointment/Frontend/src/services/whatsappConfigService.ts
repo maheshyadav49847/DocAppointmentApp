@@ -10,7 +10,7 @@ export const whatsappConfigService = {
     return response.data;
   },
   testConnection: async (data: { accountSid: string; authToken: string; fromNumber: string }) => {
-    const response = await api.post('/whatsapp/webhook/test', data);
+    const response = await api.post('/whatsapp/config/test', data);
     return response.data;
   }
 };

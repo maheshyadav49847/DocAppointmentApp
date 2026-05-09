@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Features.Staff;
 using CodeX.Domain.Enums;
 
 namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
@@ -20,10 +21,12 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
     public class UpdateStaffCommandHandler : IRequestHandler<UpdateStaffCommand, Unit>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public UpdateStaffCommandHandler(IApplicationDbContext context)
+        public UpdateStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Unit> Handle(UpdateStaffCommand request, CancellationToken cancellationToken)
@@ -32,7 +35,10 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
                 ?? throw new Exception("Staff member not found.");
 
-            // Global check: Ensure email uniqueness across the entire application if changed
+            StaffAccessRules.EnsureCanManageTarget(_currentUserService, staff);
+            StaffAccessRules.EnsureCanAssignRole(_currentUserService, request.Role);
+            StaffAccessRules.EnsureRoleMatchesBranchScope(staff.BranchId, request.Role);
+
             var email = request.Email.Trim().ToLower();
             var emailTaken = await _context.Staffs
                 .AnyAsync(s => s.Email.ToLower() == email && s.Id != request.Id && !s.IsDeleted, cancellationToken);
@@ -40,12 +46,12 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             if (emailTaken)
                 throw new Exception($"The email '{email}' is already taken by another user in the system.");
 
-            staff.Email = request.Email;
-            staff.FirstName = request.FirstName;
-            staff.LastName = request.LastName;
-            staff.EmployeeId = request.EmployeeId;
+            staff.Email = email;
+            staff.FirstName = request.FirstName.Trim();
+            staff.LastName = request.LastName.Trim();
+            staff.EmployeeId = request.EmployeeId.Trim();
             staff.Role = request.Role;
-            staff.PhoneNumber = request.PhoneNumber;
+            staff.PhoneNumber = request.PhoneNumber.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.NewPassword))
                 staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);

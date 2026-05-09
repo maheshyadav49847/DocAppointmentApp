@@ -26,6 +26,19 @@ namespace CodeX.Api.Controllers
         [HttpPost("initialize")]
         public async Task<ActionResult<Guid>> Create(CreateDailyQueueCommand command)
         {
+            if (!_currentUserService.IsInRole("SuperAdmin"))
+            {
+                var canAccess = await _context.Sessions
+                    .AnyAsync(s => s.Id == command.SessionId &&
+                                   s.DoctorId == command.DoctorId &&
+                                   s.Branch.OrganizationId == _currentUserService.OrgId);
+
+                if (!canAccess)
+                {
+                    return Forbid();
+                }
+            }
+
             return await Mediator.Send(command);
         }
 
@@ -34,6 +47,11 @@ namespace CodeX.Api.Controllers
         {
             try
             {
+                if (!await CanAccessQueue(queueId))
+                {
+                    return Forbid();
+                }
+
                 var result = await Mediator.Send(new CallNextTokenCommand(queueId));
                 return Ok(result);
             }
@@ -51,30 +69,55 @@ namespace CodeX.Api.Controllers
         [HttpPost("{queueId}/arrived")]
         public async Task<ActionResult<bool>> Arrived(Guid queueId)
         {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
             return await Mediator.Send(new DoctorArrivedCommand(queueId));
         }
 
         [HttpPost("{queueId}/skip")]
         public async Task<ActionResult<bool>> Skip(Guid queueId)
         {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
             return await Mediator.Send(new SkipTokenCommand(queueId));
         }
 
         [HttpPost("{queueId}/complete")]
         public async Task<ActionResult<bool>> Complete(Guid queueId)
         {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
             return await Mediator.Send(new CodeX.Application.Features.Queue.Commands.CompleteToken.CompleteTokenCommand(queueId));
         }
 
         [HttpPost("{queueId}/end")]
         public async Task<ActionResult<bool>> End(Guid queueId)
         {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
             return await Mediator.Send(new EndQueueCommand(queueId));
         }
 
         [HttpPost("{queueId}/alert")]
         public async Task<ActionResult<bool>> Alert(Guid queueId)
         {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
             return await Mediator.Send(new AlertPatientCommand(queueId));
         }
 
@@ -160,10 +203,22 @@ namespace CodeX.Api.Controllers
         {
             var today = DateTime.UtcNow.Date;
             var tomorrow = today.AddDays(1);
-            var queue = await _context.DailyQueues
+            var query = _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
-                .Where(q => q.DoctorId == doctorId && q.SessionId == sessionId && q.QueueDate >= today && q.QueueDate < tomorrow && q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled)
+                .Where(q => q.DoctorId == doctorId &&
+                            q.SessionId == sessionId &&
+                            q.QueueDate >= today &&
+                            q.QueueDate < tomorrow &&
+                            q.Status != QueueStatus.Completed &&
+                            q.Status != QueueStatus.Cancelled);
+
+            if (!_currentUserService.IsInRole("SuperAdmin"))
+            {
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
+            }
+
+            var queue = await query
                 .OrderByDescending(q => q.CreatedAt)
                 .FirstOrDefaultAsync();
                 
@@ -191,12 +246,32 @@ namespace CodeX.Api.Controllers
         {
             var today = DateTime.UtcNow.Date;
             var tomorrow = today.AddDays(1);
-            var queue = await _context.DailyQueues
-                .Where(q => q.DoctorId == doctorId && q.QueueDate >= today && q.QueueDate < tomorrow)
+            var query = _context.DailyQueues
+                .Where(q => q.DoctorId == doctorId &&
+                            q.QueueDate >= today &&
+                            q.QueueDate < tomorrow);
+
+            if (!_currentUserService.IsInRole("SuperAdmin"))
+            {
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
+            }
+
+            var queue = await query
                 .OrderByDescending(q => q.CreatedAt)
                 .FirstOrDefaultAsync();
  
             return queue?.Id ?? Guid.Empty;
+        }
+
+        private async Task<bool> CanAccessQueue(Guid queueId)
+        {
+            if (_currentUserService.IsInRole("SuperAdmin"))
+            {
+                return true;
+            }
+
+            return await _context.DailyQueues
+                .AnyAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
         }
     }
 }

@@ -16,7 +16,8 @@ import { useAuthStore } from '../../../stores/authStore';
 
 interface BridgeStatus {
   ready: boolean;
-  hasQr: boolean;
+  hasQr?: boolean;
+  lastQr?: string | null;
   lastQrAt?: string;
   error?: string;
   step?: string;
@@ -98,6 +99,8 @@ const WhatsAppSettings: React.FC = () => {
       </div>
     );
   }
+
+  const showQr = true;
 
   return (
     <div style={{ 
@@ -275,7 +278,7 @@ const WhatsAppSettings: React.FC = () => {
                   Node <strong>{branches.find(b => b.id === selectedBranchId)?.name}</strong> is online and processing automated queue alerts.
                 </p>
               </div>
-            ) : status?.hasQr ? (
+            ) : showQr ? (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', justifyContent: 'center', marginBottom: '2.5rem' }}>
                   <AlertCircle size={20} color="#f59e0b" />
@@ -291,7 +294,7 @@ const WhatsAppSettings: React.FC = () => {
                   border: '4px solid var(--accent-color)'
                 }}>
                   <iframe 
-                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL}/qr/${selectedBranchId}`} 
+                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${selectedBranchId}`} 
                     style={{ width: '300px', height: '300px', border: 'none' }}
                     scrolling="no"
                   />
