@@ -5,18 +5,36 @@ import { branchService } from '../../../services/branchService';
 import { whatsappConfigService } from '../../../services/whatsappConfigService';
 import { notify } from '../../../stores/notificationStore';
 import {
-  Building2, MapPin, Smartphone, Plus, Settings,
-  Activity, Info, Shield, Link, Download, ArrowRight, Save, X, CheckCircle2, Lock
+  Building2, MapPin, Smartphone, Plus, Settings, Trash2,
+  Activity, Info, Shield, Link, Download, ArrowRight, Save, X, CheckCircle2, Lock, AlertTriangle
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
 
+const cancelButtonStyle: React.CSSProperties = {
+  flex: 1, 
+  background: 'rgba(255,255,255,0.05)', 
+  border: '1px solid rgba(255,255,255,0.1)', 
+  color: 'white', 
+  padding: '10px 20px', 
+  borderRadius: '10px', 
+  cursor: 'pointer', 
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'center', 
+  gap: '8px', 
+  fontSize: '0.9rem', 
+  fontWeight: 600,
+  transition: 'all 0.2s'
+};
+
 const BranchesPage: React.FC = () => {
-  const { orgId, branchId, setBranch } = useAuthStore();
+  const { orgId, branchId, setBranch, role } = useAuthStore();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isGlobalModalOpen, setIsGlobalModalOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
+  const [deletingBranchId, setDeletingBranchId] = useState<string | null>(null);
 
   const [newBranch, setNewBranch] = useState({
     name: '',
@@ -39,7 +57,8 @@ const BranchesPage: React.FC = () => {
 
   const { data: twilioData } = useQuery({
     queryKey: ['twilioConfig'],
-    queryFn: whatsappConfigService.getConfig
+    queryFn: whatsappConfigService.getConfig,
+    enabled: !!orgId && (['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || ''))
   });
 
   useEffect(() => {
@@ -73,6 +92,21 @@ const BranchesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
     }
   });
+
+  const deleteBranchMutation = useMutation({
+    mutationFn: (id: string) => branchService.deleteBranch(id),
+    onSuccess: () => {
+      notify.warning('Branch Deleted', 'The hospital location has been removed.');
+      setDeletingBranchId(null);
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    }
+  });
+
+  const confirmDeleteBranch = () => {
+    if (deletingBranchId) {
+      deleteBranchMutation.mutate(deletingBranchId);
+    }
+  };
 
   const saveTwilioMutation = useMutation({
     mutationFn: (data: any) => {
@@ -142,35 +176,40 @@ const BranchesPage: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.05)' }} className="flex-mobile-column full-width-mobile">
-          <button
-            data-tooltip="Configure Twilio WhatsApp for all branches"
-            onClick={() => setIsGlobalModalOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-          >
-            <Smartphone size={18} color="#25D366" /> Global WhatsApp
-          </button>
+          {/* Global Buttons - Only for Org Admins */}
+          {(['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
+            <>
+              <button
+                data-tooltip="Configure Twilio WhatsApp for all branches"
+                onClick={() => setIsGlobalModalOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+              >
+                <Smartphone size={18} color="#25D366" /> Global WhatsApp
+              </button>
 
-          <button
-            data-tooltip="Manage organization settings"
-            onClick={() => setIsGlobalModalOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          >
-            <Settings size={18} color="var(--accent-color)" /> Global Settings
-          </button>
+              <button
+                data-tooltip="Manage organization settings"
+                onClick={() => setIsGlobalModalOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+              >
+                <Settings size={18} color="var(--accent-color)" /> Global Settings
+              </button>
+            </>
+          )}
 
           <button
             data-tooltip="Export branch data"
@@ -291,6 +330,21 @@ const BranchesPage: React.FC = () => {
                 >
                   <Settings size={20} />
                 </button>
+                {(['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
+                  <button
+                    data-tooltip="Delete Branch"
+                    style={{
+                      width: '50px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)',
+                      borderRadius: '10px', color: 'rgba(239, 68, 68, 0.6)', cursor: 'pointer', transition: 'all 0.2s', height: '40px'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'; e.currentTarget.style.color = 'rgba(239, 68, 68, 0.6)'; }}
+                    onClick={() => setDeletingBranchId(branch.id)}
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -533,6 +587,28 @@ const BranchesPage: React.FC = () => {
                 onClick={() => saveTwilioMutation.mutate(twilioConfig)}
               >
                 <Save size={18} /> Update Credentials
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingBranchId && (
+        <Modal title="Confirm Deletion" onClose={() => setDeletingBranchId(null)} icon={<AlertTriangle size={24} color="var(--danger)" />}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)' }}>
+              <AlertTriangle size={30} />
+            </div>
+            <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this branch? All associated sessions and staff access will be affected. This is a soft delete.</p>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button onClick={() => setDeletingBranchId(null)} style={cancelButtonStyle}><X size={16}/> No, Keep</button>
+              <button 
+                onClick={confirmDeleteBranch}
+                className="btn-primary" 
+                style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)' }}
+              >
+                <Trash2 size={18} /> {deleteBranchMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>

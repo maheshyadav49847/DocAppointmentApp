@@ -43,10 +43,16 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             _context.Organizations.Add(org);
 
             // 2. Create OrgAdmin Staff
+            var emailParts = request.AdminEmail.Split('@')[0].Split('.');
+            var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
+            var lastName = emailParts.Length > 1 ? char.ToUpper(emailParts[1][0]) + emailParts[1].Substring(1) : "User";
+
             var admin = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = org.Id,
                 Email = request.AdminEmail,
+                FirstName = firstName,
+                LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
                 Role = StaffRole.OrgAdmin,
                 PhoneNumber = request.AdminPhoneNumber

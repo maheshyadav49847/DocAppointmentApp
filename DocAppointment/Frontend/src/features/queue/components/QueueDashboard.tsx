@@ -4,7 +4,7 @@ import {
   Stethoscope, Clock, Users, CheckCircle2,
   SkipForward, UserCircle, Activity, Info, Power,
   ArrowLeft, ChevronRight, RotateCcw,
-  AlertCircle, Search, Edit, Trash2, X, Settings, User, Smartphone, Hash, Zap
+  AlertCircle, AlertTriangle, Search, Edit, Trash2, X, Settings, User, Smartphone, Hash, Zap
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { queueService } from '../../../services/queueService';
@@ -34,6 +34,7 @@ const QueueDashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmEndSession, setConfirmEndSession] = useState<{ isOpen: boolean; queueId: string | null }>({ isOpen: false, queueId: null });
   const [editingToken, setEditingToken] = useState<any>(null);
+  const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
 
   // 0. Fetch Branches
   const { data: branches } = useQuery({
@@ -112,6 +113,7 @@ const QueueDashboard: React.FC = () => {
     mutationFn: (tokenId: string) => queueService.deleteToken(tokenId),
     onSuccess: () => {
       notify.warning('Token Removed', 'A patient token was deleted from the queue.');
+      setDeletingTokenId(null);
       queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
       queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
     },
@@ -197,6 +199,7 @@ const QueueDashboard: React.FC = () => {
           isEnding={endQueueMutation.isPending}
           onEndSession={() => setConfirmEndSession({ isOpen: true, queueId: activeSession.queueId })}
           setEditingToken={setEditingToken}
+          setDeletingTokenId={setDeletingTokenId}
           deleteTokenMutation={deleteTokenMutation}
         />
       )}
@@ -231,6 +234,27 @@ const QueueDashboard: React.FC = () => {
             updateTokenMutation.mutate({ tokenId: editingToken.id, ...data });
           }}
         />
+      )}
+
+      {deletingTokenId && (
+        <Modal title="Confirm Deletion" onClose={() => setDeletingTokenId(null)} icon={<AlertTriangle size={24} color="var(--danger)" />}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)' }}>
+              <AlertTriangle size={30} />
+            </div>
+            <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this patient from the queue? This will mark the token as cancelled.</p>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button onClick={() => setDeletingTokenId(null)} style={{ flex: 1, padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 600 }}><X size={16}/> No, Keep</button>
+              <button 
+                onClick={() => deleteTokenMutation.mutate(deletingTokenId)}
+                className="btn-primary" 
+                style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)', padding: '10px 20px', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <Trash2 size={18} /> {deleteTokenMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -567,7 +591,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
 };
 
 // --- SUB-COMPONENT: MANAGE QUEUE ---
-const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, setEditingToken, deleteTokenMutation }: any) => {
+const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, setEditingToken, setDeletingTokenId }: any) => {
   const queryClient = useQueryClient();
   const { doctor, session, queueId } = sessionData;
   const { branchId, role: userRole } = useAuthStore();
@@ -655,8 +679,6 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       notify.danger('Requeue Failed', message);
     }
   });
-
-  // mutations moved to parent
 
   const handleEndSession = () => {
     try {
@@ -1099,10 +1121,10 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                               >
                                 <Edit size={18} />
                               </button>
-                              {(userRole === 'OrgAdmin' || userRole === 'BranchAdmin' || userRole === 'SuperAdmin') && (
+                              {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(userRole?.toLowerCase().replace(/\s/g, '') || '')) && (
                                 <button 
                                   data-tooltip="Delete: Permanently remove from queue"
-                                  onClick={() => { if(window.confirm("Are you sure you want to delete this token?")) deleteTokenMutation.mutate(t.id); }}
+                                  onClick={() => setDeletingTokenId(t.id)}
                                   style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                 >
                                   <Trash2 size={16} />

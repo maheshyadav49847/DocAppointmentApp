@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CodeX.Api.Controllers
 {
-    [Authorize(Roles = $"{nameof(StaffRole.SuperAdmin)},{nameof(StaffRole.OrgAdmin)},{nameof(StaffRole.BranchAdmin)}")]
+    [Authorize(Roles = $"{nameof(StaffRole.SuperAdmin)},{nameof(StaffRole.OrgAdmin)},{nameof(StaffRole.BranchAdmin)},{nameof(StaffRole.Receptionist)}")]
     public class StaffController : BaseApiController
     {
         private readonly ICurrentUserService _currentUserService;
@@ -43,6 +43,7 @@ namespace CodeX.Api.Controllers
 
                 if (branchId.HasValue && branchId != _currentUserService.BranchId)
                 {
+                    Console.WriteLine($"[AUTH_DEBUG] 403 Forbidden: User BranchId={_currentUserService.BranchId}, Requested BranchId={branchId}");
                     return Forbid();
                 }
 

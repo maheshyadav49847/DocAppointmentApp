@@ -1,0 +1,35 @@
+# Common .gitignore patterns for .NET and Node.js
+# See https://github.com/github/gitignore for more templates
+
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# WhatsApp Bridge Auth Info (VERY IMPORTANT: Sensitive Tokens)
+baileys_auth_info_*/
+whatsapp-bridge/baileys_auth_info_*/
+
+# OS related
+.DS_Store
+Thumbs.db
+
+# IIS Deployment folders (if any)
+publish_out/
+publish_tmp/
+logs/
