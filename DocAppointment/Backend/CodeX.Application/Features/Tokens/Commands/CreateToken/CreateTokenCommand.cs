@@ -44,9 +44,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
             if (queue == null) 
             {
-                var allQueues = await _context.DailyQueues.Select(q => q.Id).ToListAsync(cancellationToken);
-                var allQueuesStr = string.Join(", ", allQueues);
-                throw new Exception($"Queue not found. Requested: {request.QueueId}. Available: {allQueuesStr}");
+                throw new Exception($"Queue not found. Requested ID: {request.QueueId}");
             }
 
             // 1. Find Patient
@@ -115,25 +113,30 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception("Failed to allocate a unique token number. Please retry.");
             }
 
-            // 4. Notifications
-            try 
+            // 4. Notifications (Fire and forget to keep UI fast)
+            _ = Task.Run(async () => 
             {
-                await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId);
-            }
-            catch (System.Exception ex)
-            {
-                // Log and continue - don't fail the booking if WhatsApp is down
-                Console.WriteLine($"[WHATSAPP_ERROR] Failed to send welcome message: {ex.Message}");
-            }
+                try 
+                {
+                    await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId);
+                }
+                catch (System.Exception ex)
+                {
+                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                }
+            });
 
-            try 
+            _ = Task.Run(async () => 
             {
-                await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"[SIGNALR_ERROR] Failed to notify hub: {ex.Message}");
-            }
+                try 
+                {
+                    await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+                }
+                catch (System.Exception ex)
+                {
+                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+                }
+            });
 
             return token.Id;
         }

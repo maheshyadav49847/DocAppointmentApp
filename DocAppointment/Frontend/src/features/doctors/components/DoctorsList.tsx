@@ -46,7 +46,7 @@ const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onC
 );
 
 const DoctorsList: React.FC = () => {
-  const { orgId } = useAuthStore();
+  const { orgId, role } = useAuthStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -160,18 +160,25 @@ const DoctorsList: React.FC = () => {
     updateDoctorMutation.mutate(editingDoctor);
   };
 
+  const isBranchSelected = (branchId: string, currentBranchIds: any[]) => {
+    if (!branchId || !currentBranchIds || !Array.isArray(currentBranchIds)) return false;
+    const bid = branchId.toLowerCase();
+    return currentBranchIds.some(id => id && id.toString().toLowerCase() === bid);
+  };
+
   const toggleBranchSelection = (branchId: string, isEditing: boolean) => {
+    const bId = branchId.toLowerCase();
     if (isEditing) {
-      const current = editingDoctor.branchIds || [];
-      const updated = current.includes(branchId)
-        ? current.filter((id: string) => id !== branchId)
-        : [...current, branchId];
-      setEditingDoctor({ ...editingDoctor, branchIds: updated });
+      const current = (editingDoctor.branchIds || editingDoctor.BranchIds || []).map((id: any) => id.toString().toLowerCase());
+      const updated = current.includes(bId)
+        ? current.filter((id: string) => id !== bId)
+        : [...current, bId];
+      setEditingDoctor({ ...editingDoctor, branchIds: updated, BranchIds: updated });
     } else {
-      const current = newDoctor.branchIds;
-      const updated = current.includes(branchId)
-        ? current.filter((id: string) => id !== branchId)
-        : [...current, branchId];
+      const current = (newDoctor.branchIds || []).map((id: any) => id.toString().toLowerCase());
+      const updated = current.includes(bId)
+        ? current.filter((id: string) => id !== bId)
+        : [...current, bId];
       setNewDoctor({ ...newDoctor, branchIds: updated });
     }
   };
@@ -284,18 +291,43 @@ const DoctorsList: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '8px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ display: 'flex', gap: '10px', marginTop: '10px', width: '100%' }}>
-                    <button onClick={() => setViewRatingsDoctorId(doc)} style={actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15')}>
-                      <Star size={16} fill="#FACC15" color="#FACC15" /> Feedback
+                    <button 
+                      data-tooltip="Feedback: View patient ratings and comments"
+                      onClick={() => setViewRatingsDoctorId(doc)} 
+                      style={{ ...actionButtonStyle('rgba(250, 204, 21, 0.1)', '#FACC15'), padding: '10px' }}
+                    >
+                      <Star size={16} fill="#FACC15" color="#FACC15" />
                     </button>
-                    <button onClick={() => setViewDoctor(doc)} style={actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)')}>
-                      <Eye size={16} /> View
+                    <button 
+                      data-tooltip="View: See full professional profile"
+                      onClick={() => setViewDoctor(doc)} 
+                      style={{ ...actionButtonStyle('rgba(56, 189, 248, 0.1)', 'var(--accent-color)'), padding: '10px' }}
+                    >
+                      <Eye size={16} />
                     </button>
-                    <button onClick={() => setEditingDoctor({ ...doc, branchIds: doc.branchIds || [] })} style={actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white')}>
-                      <Edit size={16} /> Edit
+                    <button 
+                      data-tooltip="Edit: Modify professional details"
+                      onClick={() => {
+                        const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
+                        setEditingDoctor({ 
+                          ...doc, 
+                          branchIds: normalizedIds,
+                          BranchIds: normalizedIds 
+                        });
+                      }} 
+                      style={{ ...actionButtonStyle('rgba(255, 255, 255, 0.1)', 'white'), padding: '10px' }}
+                    >
+                      <Edit size={16} />
                     </button>
-                    <button onClick={() => setDeletingDoctorId(doc.id)} style={actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)')}>
-                      <Trash2 size={16} />
-                    </button>
+                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                      <button 
+                        data-tooltip="Delete: Remove professional profile"
+                        onClick={() => setDeletingDoctorId(doc.id)} 
+                        style={{ ...actionButtonStyle('rgba(239, 68, 68, 0.1)', 'var(--danger)'), padding: '10px' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -331,7 +363,7 @@ const DoctorsList: React.FC = () => {
                     <label key={branch.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px' }}>
                       <input 
                         type="checkbox" 
-                        checked={newDoctor.branchIds.includes(branch.id)}
+                        checked={isBranchSelected(branch.id, newDoctor.branchIds)}
                         onChange={() => toggleBranchSelection(branch.id, false)}
                         style={{ width: '18px', height: '18px' }}
                       />
@@ -385,7 +417,7 @@ const DoctorsList: React.FC = () => {
                     <label key={branch.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '5px' }}>
                       <input 
                         type="checkbox" 
-                        checked={(editingDoctor.branchIds || []).includes(branch.id)}
+                        checked={isBranchSelected(branch.id, editingDoctor.branchIds || [])}
                         onChange={() => toggleBranchSelection(branch.id, true)}
                         style={{ width: '18px', height: '18px' }}
                       />

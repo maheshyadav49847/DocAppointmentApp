@@ -8,10 +8,10 @@ namespace CodeX.Api.Controllers
 {
     public class StaffController : BaseApiController
     {
-        [HttpGet("{branchId}")]
-        public async Task<ActionResult<List<StaffDto>>> GetByBranch(Guid branchId)
+        [HttpGet]
+        public async Task<ActionResult<List<StaffDto>>> Get([FromQuery] Guid orgId, [FromQuery] Guid? branchId)
         {
-            return await Mediator.Send(new GetStaffListQuery(branchId));
+            return await Mediator.Send(new GetStaffListQuery(orgId, branchId));
         }
 
         [HttpPost]

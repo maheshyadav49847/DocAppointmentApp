@@ -28,7 +28,8 @@ namespace CodeX.Application.Features.Tokens.Commands.DeleteToken
 
             // We mark as Cancelled instead of hard delete to preserve history, 
             // or we could hard delete if preferred. Let's hard delete for a clean "Delete" experience.
-            _context.Tokens.Remove(token);
+            token.IsDeleted = true;
+            token.Status = TokenStatus.Cancelled; // Also set status to cancelled for clarity
             
             await _context.SaveChangesAsync(cancellationToken);
 

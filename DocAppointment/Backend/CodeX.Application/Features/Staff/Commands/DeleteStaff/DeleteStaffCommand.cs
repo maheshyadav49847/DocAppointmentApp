@@ -21,7 +21,7 @@ namespace CodeX.Application.Features.Staff.Commands.DeleteStaff
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
                 ?? throw new Exception("Staff member not found.");
 
-            _context.Staffs.Remove(staff);
+            staff.IsDeleted = true;
             await _context.SaveChangesAsync(cancellationToken);
 
             return Unit.Value;

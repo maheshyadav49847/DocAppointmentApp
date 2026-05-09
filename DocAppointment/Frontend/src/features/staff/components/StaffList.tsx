@@ -47,8 +47,9 @@ interface StaffFormData {
 const StaffFormFields: React.FC<{
   data: StaffFormData;
   onChange: (v: StaffFormData) => void;
+  selectedBranchId: string;
   isEdit?: boolean;
-}> = ({ data, onChange, isEdit }) => {
+}> = ({ data, onChange, selectedBranchId, isEdit }) => {
   const [showPass, setShowPass] = useState(false);
   return (
     <>
@@ -147,7 +148,10 @@ const StaffFormFields: React.FC<{
           <Shield size={15} /> Assign Role
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {ROLES.map(role => (
+          {ROLES.filter(role => {
+            if (selectedBranchId === 'org') return role.label === 'Org Admin';
+            return role.label !== 'Org Admin';
+          }).map(role => (
             <label
               key={role.value}
               onClick={() => onChange({ ...data, role: role.value })}
@@ -181,7 +185,7 @@ const StaffFormFields: React.FC<{
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 const StaffList: React.FC = () => {
-  const { branchId: globalBranchId, orgId } = useAuthStore();
+  const { branchId: globalBranchId, orgId, role } = useAuthStore();
   const queryClient = useQueryClient();
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '');
@@ -201,14 +205,14 @@ const StaffList: React.FC = () => {
   });
 
   const { data: staff, isLoading } = useQuery({
-    queryKey: ['staff', selectedBranchId],
-    queryFn: () => staffService.getStaff(selectedBranchId),
-    enabled: !!selectedBranchId
+    queryKey: ['staff', orgId, selectedBranchId],
+    queryFn: () => staffService.getStaff(orgId!, selectedBranchId === 'org' ? null : selectedBranchId),
+    enabled: !!orgId && !!selectedBranchId
   });
 
   const createMutation = useMutation({
     mutationFn: (data: StaffFormData) => staffService.createStaff({
-      branchId: selectedBranchId,
+      branchId: selectedBranchId === 'org' ? '' : selectedBranchId,
       organizationId: orgId!,
       email: data.email,
       password: data.password,
@@ -277,8 +281,11 @@ const StaffList: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Stats
-  const roleCounts = ROLES.reduce((acc, r) => {
+  const currentRoles = selectedBranchId === 'org' 
+    ? ROLES.filter(r => r.label === 'Org Admin') 
+    : ROLES.filter(r => r.label !== 'Org Admin');
+
+  const roleCounts = currentRoles.reduce((acc, r) => {
     acc[r.label] = staff?.filter((s: any) => s.role === r.label).length ?? 0;
     return acc;
   }, {} as Record<string, number>);
@@ -320,12 +327,20 @@ const StaffList: React.FC = () => {
           {/* Branch Selector (Parallel to Title) */}
           <div style={{ minWidth: '220px' }} className="full-width-mobile">
              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-               <Building2 size={14} /> Hospital Branch
+               <Building2 size={14} /> Hospital Branch / Level
              </label>
              <select 
-               data-tooltip="Select hospital location to manage staff permissions"
+               data-tooltip="Select level or branch to manage staff"
                value={selectedBranchId} 
-               onChange={(e) => setSelectedBranchId(e.target.value)}
+               onChange={(e) => {
+                 setSelectedBranchId(e.target.value);
+                 // Reset role based on new selection
+                 if (e.target.value === 'org') {
+                   setNewStaff(prev => ({ ...prev, role: 1 }));
+                 } else {
+                   setNewStaff(prev => ({ ...prev, role: 3 }));
+                 }
+               }}
                style={{ 
                  width: '100%', padding: '10px 15px', borderRadius: '12px', 
                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
@@ -333,9 +348,12 @@ const StaffList: React.FC = () => {
                }}
              >
                <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
-               {branches?.map((b: any) => (
-                 <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
-               ))}
+               <option value="org" style={{ background: '#0f172a', color: 'var(--accent-color)', fontWeight: 700 }}>🏢 Organization Level (Main Admins)</option>
+               <optgroup label="Branches" style={{ background: '#0f172a' }}>
+                 {branches?.map((b: any) => (
+                   <option key={b.id} value={b.id}>{b.name}</option>
+                 ))}
+               </optgroup>
              </select>
           </div>
         </div>
@@ -344,7 +362,7 @@ const StaffList: React.FC = () => {
       {/* Role Stats Card (Separate) */}
       <div className="glass-card" style={{ padding: '20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '15px' }}>
-          {ROLES.map(role => (
+          {currentRoles.map(role => (
             <div key={role.value} style={{ background: role.bg, border: `1px solid ${role.color}30`, borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: role.color }}>{role.label}</span>
               <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{roleCounts[role.label] ?? 0}</span>
@@ -421,58 +439,75 @@ const StaffList: React.FC = () => {
             {filteredStaff.map((member: any) => (
               <div key={member.id} className="glass-card" style={{ 
                 background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
-                display: 'flex', flexDirection: 'column', height: '100%', minHeight: '220px'
+                display: 'flex', flexDirection: 'column', gap: '20px', padding: '25px',
+                transition: 'all 0.3s ease'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-                  <div style={{ 
-                    width: '50px', height: '50px', borderRadius: '12px', 
-                    background: getRoleConfig(member.role).bg, border: `1px solid ${getRoleConfig(member.role).color}40`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: getRoleConfig(member.role).color, fontWeight: 900, fontSize: '1.2rem'
-                  }}>
-                    {member.firstName ? member.firstName[0].toUpperCase() : member.email[0].toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {member.firstName} {member.lastName}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                       <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>{member.employeeId || 'NO-ID'}</span>
-                       <RoleBadge role={member.role} />
+                {/* Header: Avatar + Info + Actions */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
+                  <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <div style={{ 
+                      width: '56px', height: '56px', borderRadius: '15px', 
+                      background: getRoleConfig(member.role).bg, border: `1px solid ${getRoleConfig(member.role).color}40`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: getRoleConfig(member.role).color, fontWeight: 900, fontSize: '1.4rem'
+                    }}>
+                      {member.firstName ? member.firstName[0].toUpperCase() : member.email[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'white' }}>
+                        {member.firstName} {member.lastName}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                         <RoleBadge role={member.role} />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Top Actions Group */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      data-tooltip="Edit Member"
+                      onClick={() => openEdit(member)} 
+                      style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'; e.currentTarget.style.color = 'var(--accent-color)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                    >
+                      <Edit size={16} />
+                    </button>
+                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                      <button 
+                        data-tooltip="Remove Access"
+                        onClick={() => setDeletingId(member.id)} 
+                        style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.1)', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.03)'; e.currentTarget.style.color = 'rgba(239,68,68,0.5)'; }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    <Mail size={14} />
-                    <span>{member.email}</span>
+                {/* Body: Contact Details */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '15px', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                    <Mail size={16} color="var(--accent-color)" style={{ opacity: 0.7 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{member.email}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    <Phone size={14} />
-                    <span>{member.phoneNumber || 'No phone added'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    <Calendar size={14} />
-                    <span>Joined {new Date(member.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                    <Phone size={16} color="var(--success)" style={{ opacity: 0.7 }} />
+                    <span>{member.phoneNumber || 'N/A'}</span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  <button 
-                    data-tooltip="Modify staff account details"
-                    onClick={() => openEdit(member)} 
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
-                  >
-                    <Edit size={14} /> Edit
-                  </button>
-                  <button 
-                    data-tooltip="Revoke staff administrative access"
-                    onClick={() => setDeletingId(member.id)} 
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '8px', background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}
-                  >
-                    <Trash2 size={14} /> Remove
-                  </button>
+                {/* Footer: Meta Info */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.5, fontSize: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Hash size={12} /> ID: {member.employeeId || '---'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Calendar size={12} /> Since {new Date(member.createdAt).getFullYear()}
+                  </div>
                 </div>
               </div>
             ))}
@@ -489,7 +524,7 @@ const StaffList: React.FC = () => {
                 <AlertTriangle size={15} /> {errorMsg}
               </div>
             )}
-            <StaffFormFields data={newStaff} onChange={setNewStaff} />
+            <StaffFormFields data={newStaff} onChange={setNewStaff} selectedBranchId={selectedBranchId} />
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button 
                 data-tooltip="Cancel and return to staff list"
@@ -523,7 +558,7 @@ const StaffList: React.FC = () => {
                 <AlertTriangle size={15} /> {errorMsg}
               </div>
             )}
-            <StaffFormFields data={editForm} onChange={setEditForm} isEdit />
+            <StaffFormFields data={editForm} onChange={setEditForm} selectedBranchId={selectedBranchId} isEdit />
             <div style={{ display: 'flex', gap: '12px', marginTop: '25px' }}>
               <button 
                 data-tooltip="Discard changes and return"

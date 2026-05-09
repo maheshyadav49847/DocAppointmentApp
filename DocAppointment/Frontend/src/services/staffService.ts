@@ -1,8 +1,12 @@
 import api from './api';
 
 export const staffService = {
-  getStaff: async (branchId: string) => {
-    const response = await api.get(`/staff/${branchId}`);
+  getStaff: async (orgId: string, branchId: string | null) => {
+    const params = new URLSearchParams();
+    params.append('orgId', orgId);
+    if (branchId) params.append('branchId', branchId);
+    
+    const response = await api.get(`/staff?${params.toString()}`);
     return response.data;
   },
   createStaff: async (data: {

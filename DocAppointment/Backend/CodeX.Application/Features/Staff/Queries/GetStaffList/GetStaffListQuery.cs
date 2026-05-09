@@ -19,7 +19,7 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
         public DateTime CreatedAt { get; init; }
     }
 
-    public record GetStaffListQuery(Guid BranchId) : IRequest<List<StaffDto>>;
+    public record GetStaffListQuery(Guid OrganizationId, Guid? BranchId) : IRequest<List<StaffDto>>;
 
     public class GetStaffListQueryHandler : IRequestHandler<GetStaffListQuery, List<StaffDto>>
     {
@@ -32,9 +32,20 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
 
         public async Task<List<StaffDto>> Handle(GetStaffListQuery request, CancellationToken cancellationToken)
         {
-            return await _context.Staffs
+            var query = _context.Staffs
                 .Include(s => s.Branch)
-                .Where(s => s.BranchId == request.BranchId)
+                .Where(s => s.OrganizationId == request.OrganizationId && !s.IsDeleted);
+
+            if (request.BranchId.HasValue)
+            {
+                query = query.Where(s => s.BranchId == request.BranchId.Value);
+            }
+            else
+            {
+                query = query.Where(s => s.BranchId == null);
+            }
+
+            return await query
                 .Select(s => new StaffDto
                 {
                     Id = s.Id,

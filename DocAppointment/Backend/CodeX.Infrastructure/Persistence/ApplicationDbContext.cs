@@ -36,6 +36,8 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<Organization>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Branch>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Doctor>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<Staff>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<Session>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Patient>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Token>().HasQueryFilter(x => !x.IsDeleted);
         }
