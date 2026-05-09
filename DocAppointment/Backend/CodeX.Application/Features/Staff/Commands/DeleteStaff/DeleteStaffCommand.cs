@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Features.Staff;
 
 namespace CodeX.Application.Features.Staff.Commands.DeleteStaff
 {
@@ -9,10 +10,12 @@ namespace CodeX.Application.Features.Staff.Commands.DeleteStaff
     public class DeleteStaffCommandHandler : IRequestHandler<DeleteStaffCommand, Unit>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public DeleteStaffCommandHandler(IApplicationDbContext context)
+        public DeleteStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Unit> Handle(DeleteStaffCommand request, CancellationToken cancellationToken)
@@ -21,6 +24,7 @@ namespace CodeX.Application.Features.Staff.Commands.DeleteStaff
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken)
                 ?? throw new Exception("Staff member not found.");
 
+            StaffAccessRules.EnsureCanManageTarget(_currentUserService, staff);
             staff.IsDeleted = true;
             await _context.SaveChangesAsync(cancellationToken);
 

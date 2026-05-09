@@ -23,48 +23,48 @@ namespace CodeX.Infrastructure.ExternalServices
 
         public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId)
         {
-            string msg =
+            var message =
                 $"Booking confirmed.\n\n" +
                 $"Hello {patientName},\n" +
                 $"Your token number is #{tokenNumber}.\n\n" +
                 $"Please arrive on time. We will notify you when your turn approaches.";
-            return SendTextMessage(phoneNumber, msg, branchId);
+            return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
         {
-            string msg =
+            var message =
                 $"Doctor arrived.\n\n" +
                 $"Dr. {doctorName} is now present at the clinic.\n" +
                 $"The queue is active. Please be ready.";
-            return SendTextMessage(phoneNumber, msg, branchId);
+            return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
         {
-            string msg =
+            var message =
                 $"Your turn is now.\n\n" +
                 $"Token #{tokenNumber}: please proceed to the consultation room immediately.";
-            return SendTextMessage(phoneNumber, msg, branchId);
+            return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
         {
-            string msg =
+            var message =
                 $"Almost your turn.\n\n" +
                 $"Only {tokensLeft} patient(s) are ahead of you.\n" +
                 $"Please be ready.";
-            return SendTextMessage(phoneNumber, msg, branchId);
+            return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
         {
-            string msg =
+            var message =
                 $"How was your visit?\n\n" +
                 $"Thank you for consulting Dr. {doctorName}.\n" +
                 $"Reply with a number from 1 to 5.\n\n" +
                 $"Reference: {tokenId}";
-            return SendTextMessage(phoneNumber, msg, branchId);
+            return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)
@@ -79,7 +79,7 @@ namespace CodeX.Infrastructure.ExternalServices
             {
                 Content = JsonContent.Create(new SendMessageRequest
                 {
-                    SessionId = branchId.ToString(),
+                    BranchId = branchId,
                     To = toPhoneNumber,
                     Message = message
                 })
@@ -94,7 +94,7 @@ namespace CodeX.Infrastructure.ExternalServices
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Bridge send failed for session {SessionId}. Status={Status}, Body={Body}", branchId, response.StatusCode, body);
+                _logger.LogError("Bridge send failed for branch {BranchId}. Status={Status}, Body={Body}", branchId, response.StatusCode, body);
             }
         }
 
@@ -102,7 +102,7 @@ namespace CodeX.Infrastructure.ExternalServices
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, $"{BridgeBaseUrl}/status/test");
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{BridgeBaseUrl}/health");
                 if (!string.IsNullOrWhiteSpace(ApiKey))
                 {
                     request.Headers.Add("X-Bridge-Api-Key", ApiKey);
@@ -120,7 +120,7 @@ namespace CodeX.Infrastructure.ExternalServices
 
         private sealed class SendMessageRequest
         {
-            public string SessionId { get; init; } = string.Empty;
+            public Guid BranchId { get; init; }
             public string To { get; init; } = string.Empty;
             public string Message { get; init; } = string.Empty;
         }

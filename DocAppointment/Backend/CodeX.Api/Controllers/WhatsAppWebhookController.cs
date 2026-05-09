@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CodeX.Api.Controllers
 {
@@ -20,8 +20,8 @@ namespace CodeX.Api.Controllers
             MediatR.ISender mediator,
             IWhatsAppService whatsApp)
         {
-            _config   = config;
-            _logger   = logger;
+            _config = config;
+            _logger = logger;
             _mediator = mediator;
             _whatsApp = whatsApp;
         }
@@ -38,18 +38,30 @@ namespace CodeX.Api.Controllers
                 return Unauthorized(new { message = "Invalid API Key" });
             }
 
-            _logger.LogInformation("Generic Webhook: Session={Session}, From={From}, Body={Body}", request.SessionId, request.From, request.Body);
+            if (!request.SessionId.HasValue || request.SessionId == Guid.Empty)
+            {
+                return BadRequest(new { message = "A valid branch ID is required." });
+            }
+
+            _logger.LogInformation("Generic Webhook: SessionId={SessionId}, From={From}, Body={Body}", request.SessionId, request.From, request.Body);
 
             var response = await _mediator.Send(new ProcessIncomingMessageCommand
             {
-                From        = request.From,
+                BranchId = request.SessionId.Value,
+                From = request.From,
                 MessageBody = request.Body
             });
 
-            if (!string.IsNullOrWhiteSpace(response) && Guid.TryParse(request.SessionId, out var branchId))
+            if (!string.IsNullOrWhiteSpace(response))
             {
-                try { await _whatsApp.SendTextMessage(request.From, response, branchId); }
-                catch (Exception ex) { _logger.LogError(ex, "Failed to send webhook reply for session {SessionId}.", request.SessionId); }
+                try
+                {
+                    await _whatsApp.SendTextMessage(request.From, response, request.SessionId.Value);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send webhook reply for branch {SessionId}.", request.SessionId);
+                }
             }
 
             return Ok(new { reply = response });
@@ -57,7 +69,7 @@ namespace CodeX.Api.Controllers
 
         public class GenericWebhookPayload
         {
-            public string SessionId { get; set; } = string.Empty;
+            public Guid? SessionId { get; set; }
             public string From { get; set; } = string.Empty;
             public string Body { get; set; } = string.Empty;
         }

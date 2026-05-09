@@ -212,7 +212,7 @@ const StaffList: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: StaffFormData) => staffService.createStaff({
-      branchId: selectedBranchId === 'org' ? '' : selectedBranchId,
+      branchId: selectedBranchId === 'org' ? null : selectedBranchId,
       organizationId: orgId!,
       email: data.email,
       password: data.password,
