@@ -319,7 +319,7 @@ const DoctorsList: React.FC = () => {
                     >
                       <Edit size={16} />
                     </button>
-                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                    {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Delete: Remove professional profile"
                         onClick={() => setDeletingDoctorId(doc.id)} 

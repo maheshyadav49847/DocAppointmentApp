@@ -99,5 +99,19 @@ namespace CodeX.Api.Controllers
             await _context.SaveChangesAsync(default);
             return NoContent();
         }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var branch = await _context.Branches
+                .FirstOrDefaultAsync(b => b.Id == id && b.OrganizationId == _currentUserService.OrgId);
+
+            if (branch == null) return NotFound();
+
+            // Soft delete
+            branch.IsDeleted = true;
+            await _context.SaveChangesAsync(default);
+            
+            return NoContent();
+        }
     }
 }

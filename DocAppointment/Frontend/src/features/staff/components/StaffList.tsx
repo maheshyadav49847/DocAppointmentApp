@@ -11,13 +11,16 @@ import {
 
 // ─── Role Config ───────────────────────────────────────────────────────────
 const ROLES = [
-  { value: 3, label: 'Receptionist',  color: '#38bdf8', bg: 'rgba(56,189,248,0.1)',  desc: 'Can manage queue and book tokens' },
-  { value: 2, label: 'Branch Admin',  color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', desc: 'Full access to this branch' },
-  { value: 1, label: 'Org Admin',     color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  desc: 'Manages all branches' },
+  { value: 3, label: 'Receptionist',  display: 'Receptionist', color: '#38bdf8', bg: 'rgba(56,189,248,0.1)',  desc: 'Can manage queue and book tokens' },
+  { value: 2, label: 'BranchAdmin',   display: 'Branch Admin', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', desc: 'Full access to this branch' },
+  { value: 1, label: 'OrgAdmin',      display: 'Org Admin',    color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  desc: 'Manages all branches' },
 ];
 
-const getRoleConfig = (roleStr: string) =>
-  ROLES.find(r => r.label === roleStr) ?? { value: 3, label: roleStr, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', desc: '' };
+const getRoleConfig = (roleStr: string) => {
+  const normalized = roleStr?.toLowerCase().replace(/\s/g, '') || '';
+  return ROLES.find(r => r.label.toLowerCase().replace(/\s/g, '') === normalized) 
+    ?? { value: 3, label: roleStr, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)', desc: '' };
+};
 
 // ─── Role Badge ─────────────────────────────────────────────────────────────
 const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
@@ -28,7 +31,7 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
       padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
       color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}30`
     }}>
-      <ShieldCheck size={12} /> {cfg.label}
+      <ShieldCheck size={12} /> {(cfg as any).display || cfg.label}
     </span>
   );
 };
@@ -149,8 +152,8 @@ const StaffFormFields: React.FC<{
         </label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {ROLES.filter(role => {
-            if (selectedBranchId === 'org') return role.label === 'Org Admin';
-            return role.label !== 'Org Admin';
+            if (selectedBranchId === 'org') return role.label === 'OrgAdmin';
+            return role.label !== 'OrgAdmin';
           }).map(role => (
             <label
               key={role.value}
@@ -172,7 +175,7 @@ const StaffFormFields: React.FC<{
                 {data.role === role.value && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'black' }} />}
               </div>
               <div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: data.role === role.value ? role.color : 'white' }}>{role.label}</p>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem', color: data.role === role.value ? role.color : 'white' }}>{(role as any).display || role.label}</p>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{role.desc}</p>
               </div>
             </label>
@@ -188,7 +191,7 @@ const StaffList: React.FC = () => {
   const { branchId: globalBranchId, orgId, role } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || 'org');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<any>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -282,13 +285,28 @@ const StaffList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentRoles = selectedBranchId === 'org' 
-    ? ROLES.filter(r => r.label === 'Org Admin') 
-    : ROLES.filter(r => r.label !== 'Org Admin');
+    ? ROLES.filter(r => r.label === 'OrgAdmin') 
+    : ROLES.filter(r => r.label !== 'OrgAdmin');
 
-  const roleCounts = currentRoles.reduce((acc, r) => {
-    acc[r.label] = staff?.filter((s: any) => s.role === r.label).length ?? 0;
-    return acc;
-  }, {} as Record<string, number>);
+  const roleCounts = useMemo(() => {
+    const counts: Record<string, number> = { total: staff?.length || 0 };
+    staff?.forEach((s: any) => {
+      // SMART COUNT for Org View: Anyone with no branch at org level is an admin
+      if (selectedBranchId === 'org' && (s.branchId === null || s.branchId === undefined)) {
+        counts['OrgAdmin'] = (counts['OrgAdmin'] || 0) + 1;
+        return;
+      }
+
+      const normalizedRole = s.role?.toLowerCase().replace(/\s/g, '') || '';
+      ROLES.forEach(r => {
+        const target = r.label.toLowerCase().replace(/\s/g, '');
+        if (normalizedRole === target) {
+          counts[r.label] = (counts[r.label] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }, [staff, selectedBranchId]);
 
   const filteredStaff = useMemo(() => {
     if (!staff) return [];
@@ -332,6 +350,7 @@ const StaffList: React.FC = () => {
              <select 
                data-tooltip="Select level or branch to manage staff"
                value={selectedBranchId} 
+               disabled={role === 'BranchAdmin'}
                onChange={(e) => {
                  setSelectedBranchId(e.target.value);
                  // Reset role based on new selection
@@ -361,10 +380,15 @@ const StaffList: React.FC = () => {
 
       {/* Role Stats Card (Separate) */}
       <div className="glass-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: '15px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Total Staff</span>
+            <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{roleCounts.total}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>members</span>
+          </div>
           {currentRoles.map(role => (
-            <div key={role.value} style={{ background: role.bg, border: `1px solid ${role.color}30`, borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: role.color }}>{role.label}</span>
+            <div key={role.label} style={{ background: role.bg, border: `1px solid ${role.color}30`, borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', color: role.color }}>{(role as any).display || role.label}</span>
               <span style={{ fontSize: '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{roleCounts[role.label] ?? 0}</span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>members</span>
             </div>
@@ -427,9 +451,9 @@ const StaffList: React.FC = () => {
         ) : filteredStaff.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px dashed rgba(255,255,255,0.1)' }}>
             <Search size={48} style={{ opacity: 0.2, marginBottom: '15px', color: 'var(--accent-color)' }} />
-            <h3 style={{ margin: 0 }}>{staff.length === 0 ? 'No Staff Added Yet' : 'No Members Found'}</h3>
+            <h3 style={{ margin: 0 }}>{(staff?.length ?? 0) === 0 ? 'No Staff Added Yet' : 'No Members Found'}</h3>
             <p style={{ color: 'var(--text-secondary)' }}>
-              {staff.length === 0 
+              {(staff?.length ?? 0) === 0 
                 ? 'Add your first receptionist or admin for this branch to get started.' 
                 : 'Try adjusting your search query to find the team member.'}
             </p>
@@ -474,7 +498,7 @@ const StaffList: React.FC = () => {
                     >
                       <Edit size={16} />
                     </button>
-                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                    {(['orgadmin', 'branchadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Remove Access"
                         onClick={() => setDeletingId(member.id)} 

@@ -351,7 +351,7 @@ const SessionsList: React.FC = () => {
                     >
                       <Edit size={16} />
                     </button>
-                    {(role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin') && (
+                    {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Delete Shift"
                         onClick={() => setDeletingSessionId(session.id)}

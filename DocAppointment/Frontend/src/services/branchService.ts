@@ -16,5 +16,9 @@ export const branchService = {
   getBranch: async (id: string) => {
     const response = await api.get(`/branches/${id}`);
     return response.data;
+  },
+  deleteBranch: async (id: string) => {
+    const response = await api.delete(`/branches/${id}`);
+    return response.data;
   }
 };
