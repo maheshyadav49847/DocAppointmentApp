@@ -22,6 +22,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Token> Tokens => Set<Token>();
         public DbSet<Rating> Ratings => Set<Rating>();
         public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
+        public DbSet<MessageLog> MessageLogs => Set<MessageLog>();
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
         public DbSet<Staff> Staffs => Set<Staff>();
 
@@ -40,6 +41,7 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<Session>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Patient>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Token>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<MessageLog>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<ChatSession>()
                 .HasIndex(x => new { x.PhoneNumber, x.BranchId })
                 .IsUnique();
