@@ -14,6 +14,9 @@ namespace CodeX.Domain.Entities
         public DateTime BookedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CalledAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public decimal FeePaid { get; set; } = 0;
+        public PaymentMode PaymentMode { get; set; } = PaymentMode.Pending;
+        public Guid? CreatedByStaffId { get; set; }
 
         // Navigation Properties
         public virtual DailyQueue Queue { get; set; } = null!;

@@ -1,0 +1,209 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Enums;
+
+namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
+{
+    public record BranchAnalyticsDto
+    {
+        public int TotalTokens { get; set; }
+        public int CompletedTokens { get; set; }
+        public int CancelledTokens { get; set; }
+        public int PendingTokens { get; set; }
+        public double AverageWaitTimeMinutes { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public double AverageRating { get; set; }
+        
+        // New Sections
+        public FinancialSummaryDto Financials { get; set; } = new();
+        public PatientCompositionDto PatientComposition { get; set; } = new();
+        public OperationalMetricsDto Operations { get; set; } = new();
+        public List<StaffEfficiencyDto> StaffPerformance { get; set; } = new();
+        public WhatsAppStatsDto WhatsAppStats { get; set; } = new();
+        
+        public List<HourlyTrendDto> HourlyTrends { get; set; } = new();
+        public List<DoctorPerformanceDto> DoctorPerformance { get; set; } = new();
+        public List<DailyTrendDto> DailyWaitTimeTrends { get; set; } = new();
+        public List<FeedbackDto> RecentFeedback { get; set; } = new();
+    }
+
+    public record FinancialSummaryDto(decimal Cash = 0, decimal UPI = 0, decimal Card = 0, decimal Online = 0);
+    public record PatientCompositionDto(int NewPatients = 0, int ReturningPatients = 0);
+    public record OperationalMetricsDto(double AvgDoctorPunctualityMinutes = 0, double SlotUtilizationPercent = 0);
+    public record StaffEfficiencyDto(string StaffName, int TokensGenerated);
+    public record WhatsAppStatsDto(int TotalSent = 0, int Delivered = 0, int Failed = 0);
+
+    public record HourlyTrendDto(int Hour, int Count);
+    public record DailyTrendDto(string Date, double AvgWaitTime);
+    public record FeedbackDto(string PatientName, int Score, string? Comment, string Date);
+    public record DoctorPerformanceDto(string DoctorName, int TokenCount, double AvgWaitTime, decimal Revenue);
+
+    public record GetBranchAnalyticsQuery(Guid OrgId, Guid? BranchId, DateTime StartDate, DateTime EndDate, bool IsSuperAdmin = false) : IRequest<BranchAnalyticsDto>;
+
+    public class GetBranchAnalyticsQueryHandler : IRequestHandler<GetBranchAnalyticsQuery, BranchAnalyticsDto>
+    {
+        private readonly IApplicationDbContext _context;
+
+        public GetBranchAnalyticsQueryHandler(IApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<BranchAnalyticsDto> Handle(GetBranchAnalyticsQuery request, CancellationToken cancellationToken)
+        {
+            var tokensQuery = _context.Tokens
+                .Include(t => t.Queue)
+                .ThenInclude(q => q.Doctor)
+                .Include(t => t.Queue.Session)
+                .Include(t => t.Queue.Branch)
+                .Include(t => t.Rating)
+                .Include(t => t.Patient)
+                .Where(t => !t.IsDeleted);
+
+            // If not SuperAdmin, restrict to OrgId
+            if (!request.IsSuperAdmin)
+            {
+                tokensQuery = tokensQuery.Where(t => t.Queue.Branch.OrganizationId == request.OrgId);
+            }
+
+            if (request.BranchId.HasValue)
+            {
+                tokensQuery = tokensQuery.Where(t => t.Queue.BranchId == request.BranchId.Value);
+            }
+
+            tokensQuery = tokensQuery.Where(t => t.BookedAt >= request.StartDate && t.BookedAt <= request.EndDate);
+
+            var tokens = await tokensQuery.ToListAsync(cancellationToken);
+
+            var dto = new BranchAnalyticsDto
+            {
+                TotalTokens = tokens.Count,
+                CompletedTokens = tokens.Count(t => t.Status == TokenStatus.Completed),
+                CancelledTokens = tokens.Count(t => t.Status == TokenStatus.Cancelled),
+                PendingTokens = tokens.Count(t => t.Status == TokenStatus.Pending),
+                TotalRevenue = tokens.Sum(t => t.FeePaid),
+                AverageRating = tokens.Where(t => t.Rating != null).Any() 
+                    ? Math.Round(tokens.Where(t => t.Rating != null).Average(t => t.Rating!.Score), 1) 
+                    : 0,
+                
+                // Financial Summary
+                Financials = new FinancialSummaryDto(
+                    Cash: tokens.Where(t => t.PaymentMode == PaymentMode.Cash).Sum(t => t.FeePaid),
+                    UPI: tokens.Where(t => t.PaymentMode == PaymentMode.UPI).Sum(t => t.FeePaid),
+                    Card: tokens.Where(t => t.PaymentMode == PaymentMode.Card).Sum(t => t.FeePaid),
+                    Online: tokens.Where(t => t.PaymentMode == PaymentMode.Online).Sum(t => t.FeePaid)
+                ),
+
+                // Patient Composition (New vs Returning)
+                PatientComposition = new PatientCompositionDto(
+                    NewPatients: tokens.GroupBy(t => t.PatientId).Count(g => g.Count() == 1),
+                    ReturningPatients: tokens.GroupBy(t => t.PatientId).Count(g => g.Count() > 1)
+                )
+            };
+
+            // Operational Metrics
+            var queuesWithStart = tokens
+                .Select(t => t.Queue)
+                .DistinctBy(q => q.Id)
+                .Where(q => q.ActualStartAt.HasValue)
+                .ToList();
+
+            double avgPunctuality = 0;
+            if (queuesWithStart.Any())
+            {
+                avgPunctuality = queuesWithStart.Average(q => {
+                    var scheduled = q.QueueDate.Date.Add(q.Session.StartTime);
+                    return (q.ActualStartAt!.Value - scheduled).TotalMinutes;
+                });
+            }
+
+            dto.Operations = new OperationalMetricsDto(
+                AvgDoctorPunctualityMinutes: Math.Round(avgPunctuality, 1),
+                SlotUtilizationPercent: tokens.Count > 0 ? Math.Round((double)tokens.Count / (queuesWithStart.Sum(q => q.Session.DefaultCapacity) + 1) * 100, 1) : 0
+            );
+
+            // Staff Performance
+            var staffIds = tokens.Where(t => t.CreatedByStaffId.HasValue).Select(t => t.CreatedByStaffId!.Value).Distinct().ToList();
+            var staffNames = await _context.Staffs
+                .Where(s => staffIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id, s => $"{s.FirstName} {s.LastName}", cancellationToken);
+
+            dto.StaffPerformance = tokens
+                .Where(t => t.CreatedByStaffId.HasValue)
+                .GroupBy(t => t.CreatedByStaffId!.Value)
+                .Select(g => new StaffEfficiencyDto(
+                    staffNames.ContainsKey(g.Key) ? staffNames[g.Key] : "System",
+                    g.Count()
+                ))
+                .OrderByDescending(s => s.TokensGenerated)
+                .ToList();
+
+            // WhatsApp Bridge Stats
+            var msgLogs = await _context.MessageLogs
+                .Where(m => m.BranchId == request.BranchId || (!request.BranchId.HasValue && m.Branch.OrganizationId == request.OrgId))
+                .Where(m => m.CreatedAt >= request.StartDate && m.CreatedAt <= request.EndDate)
+                .ToListAsync(cancellationToken);
+
+            dto.WhatsAppStats = new WhatsAppStatsDto(
+                TotalSent: msgLogs.Count,
+                Delivered: msgLogs.Count(m => m.Status == "Delivered"),
+                Failed: msgLogs.Count(m => m.Status == "Failed")
+            );
+
+            // Calculate Avg Wait Time
+            var waitTimes = tokens
+                .Where(t => t.CalledAt.HasValue)
+                .Select(t => (t.CalledAt!.Value - t.BookedAt).TotalMinutes)
+                .ToList();
+
+            dto.AverageWaitTimeMinutes = waitTimes.Any() ? Math.Round(waitTimes.Average(), 1) : 0;
+
+            // Hourly Trends
+            dto.HourlyTrends = tokens
+                .GroupBy(t => t.BookedAt.Hour)
+                .Select(g => new HourlyTrendDto(g.Key, g.Count()))
+                .OrderBy(g => g.Hour)
+                .ToList();
+
+            // Daily Wait Time Trends
+            dto.DailyWaitTimeTrends = tokens
+                .Where(t => t.CalledAt.HasValue)
+                .GroupBy(t => t.BookedAt.Date)
+                .Select(g => new DailyTrendDto(
+                    g.Key.ToString("MMM dd"),
+                    Math.Round(g.Average(t => (t.CalledAt!.Value - t.BookedAt).TotalMinutes), 1)
+                ))
+                .OrderBy(g => DateTime.ParseExact(g.Date, "MMM dd", null))
+                .ToList();
+
+            // Doctor Performance
+            dto.DoctorPerformance = tokens
+                .GroupBy(t => t.Queue.Doctor.Name)
+                .Select(g => new DoctorPerformanceDto(
+                    g.Key, 
+                    g.Count(), 
+                    g.Where(t => t.CalledAt.HasValue).Any() 
+                        ? Math.Round(g.Where(t => t.CalledAt.HasValue).Average(t => (t.CalledAt!.Value - t.BookedAt).TotalMinutes), 1)
+                        : 0,
+                    g.Sum(t => t.FeePaid)
+                ))
+                .ToList();
+
+            // Recent Feedback
+            dto.RecentFeedback = tokens
+                .Where(t => t.Rating != null)
+                .OrderByDescending(t => t.BookedAt)
+                .Take(10)
+                .Select(t => new FeedbackDto(
+                    t.Patient?.Name ?? "Anonymous", 
+                    t.Rating!.Score, 
+                    t.Rating.Comment, 
+                    t.BookedAt.ToString("MMM dd HH:mm")
+                ))
+                .ToList();
+
+            return dto;
+        }
+    }
+}

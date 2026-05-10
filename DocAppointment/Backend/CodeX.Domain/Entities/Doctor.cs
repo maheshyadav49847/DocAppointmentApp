@@ -10,6 +10,7 @@ namespace CodeX.Domain.Entities
         public string Name { get; set; } = string.Empty;
         public string Specialization { get; set; } = string.Empty;
         public string? RegistrationNumber { get; set; }
+        public decimal ConsultationFee { get; set; } = 0;
 
         // Navigation Properties
         public virtual Organization Organization { get; set; } = null!;
