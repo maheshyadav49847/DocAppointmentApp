@@ -15,6 +15,7 @@ import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../stores/authStore';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import PageHeader from '../../../components/UI/PageHeader';
 
 const AnalyticsPage: React.FC = () => {
   const { orgId, role, branchId: globalBranchId } = useAuthStore();
@@ -101,60 +102,47 @@ const AnalyticsPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
       {/* Header Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }} className="flex-mobile-column">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-            <ShieldCheck size={28} />
-          </div>
-          <div>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: '2.5rem', 
-              fontWeight: 800, 
-              background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-              WebkitBackgroundClip: 'text', 
-              WebkitTextFillColor: 'transparent' 
-            }}>
-              {isSuperAdmin ? 'Platform Control Center' : 'Strategic Hub'}
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '5px', margin: 0 }}>Clinical, Financial & Operational Performance Benchmarks.</p>
+      <PageHeader 
+        title={isSuperAdmin ? 'Platform' : 'Strategic'}
+        accentTitle={isSuperAdmin ? 'Control Center' : 'Hub'}
+        subtitle="Clinical, Financial & Operational Performance Benchmarks."
+        icon={<ShieldCheck />}
+        rightElement={
+          <div style={{ display: 'flex', gap: '15px' }} className="flex-mobile-column full-width-mobile">
+            <div style={{ position: 'relative', minWidth: '220px' }} className="full-width-mobile">
+              <select 
+                value={selectedBranchId}
+                onChange={(e) => setSelectedBranchId(e.target.value)}
+                disabled={isRestricted}
+                style={{ 
+                  width: '100%', padding: '12px 15px', borderRadius: '12px', 
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
+                  color: 'white', fontWeight: 600, fontSize: '0.85rem',
+                  outline: 'none', cursor: isRestricted ? 'not-allowed' : 'pointer',
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                {!isRestricted && <option value="org" style={{ background: '#1e293b', color: 'white' }}>Aggregated View (Global)</option>}
+                {branches?.map((b: any) => (
+                  <option key={b.id} value={b.id} style={{ background: '#1e293b', color: 'white' }}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+            <button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="btn-primary" 
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
+                borderRadius: '12px', opacity: isExporting ? 0.7 : 1 
+              }}
+            >
+              {isExporting ? <Activity size={18} className="animate-spin" /> : <Download size={18} />}
+              {isExporting ? 'Generating...' : 'Export PDF'}
+            </button>
           </div>
         }
       />
-
-        <div style={{ display: 'flex', gap: '15px' }} className="flex-mobile-column full-width-mobile">
-          <div style={{ position: 'relative', minWidth: '220px' }} className="full-width-mobile">
-            <select 
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              disabled={isRestricted}
-              style={{ 
-                width: '100%', padding: '12px 15px', borderRadius: '12px', 
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
-                color: 'white', fontWeight: 600, fontSize: '0.85rem',
-                outline: 'none', cursor: isRestricted ? 'not-allowed' : 'pointer',
-                backdropFilter: 'blur(10px)'
-              }}
-            >
-              {!isRestricted && <option value="org" style={{ background: '#1e293b', color: 'white' }}>Aggregated View (Global)</option>}
-              {branches?.map((b: any) => (
-                <option key={b.id} value={b.id} style={{ background: '#1e293b', color: 'white' }}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-          <button 
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="btn-primary" 
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', 
-              borderRadius: '12px', opacity: isExporting ? 0.7 : 1 
-            }}
-          >
-            {isExporting ? <Activity size={18} className="animate-spin" /> : <Download size={18} />}
-            {isExporting ? 'Generating...' : 'Export PDF'}
-          </button>
-        </div>
 
       <div ref={dashboardRef} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
          {/* Tabs */}
@@ -187,7 +175,7 @@ const AnalyticsPage: React.FC = () => {
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, marginBottom: '5px' }}>{stat.label.toUpperCase()}</p>
                     <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{stat.value}</h2>
                   </div>
-                  <div style={{ padding: '12px', background: `${stat.color}15`, color: stat.color, borderRadius: '12px' }}>{stat.icon}</div>
+                  <div style={{ color: stat.color }}>{stat.icon}</div>
                 </div>
               </div>
             ))}
@@ -197,7 +185,7 @@ const AnalyticsPage: React.FC = () => {
             {/* Financial Breakdown */}
             <div className="glass-card" style={{ padding: '25px' }}>
               <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><CreditCard size={20} color="var(--accent-color)" /> Revenue Stream Mix</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', minWidth: 0 }}>
                 <div style={{ height: '250px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -264,7 +252,7 @@ const AnalyticsPage: React.FC = () => {
 
       {activeTab === 'operations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px' }} className="flex-mobile-column">
+           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px', minWidth: 0 }} className="flex-mobile-column">
              <div className="glass-card" style={{ padding: '25px' }}>
                <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Clock size={20} color="var(--accent-color)" /> Hourly Traffic Heatmap</h3>
                <div style={{ height: '300px' }}>

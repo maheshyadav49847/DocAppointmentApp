@@ -361,7 +361,7 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
 const StatCard = ({ icon, label, value, color, subText, ...props }: any) => (
   <div className="glass-card stat-card-responsive" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }} {...props}>
     <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '80px', height: '80px', background: color, filter: 'blur(50px)', opacity: 0.1 }}></div>
-    <div style={{ background: `${color}15`, padding: '15px', borderRadius: '15px', color: color, display: 'flex', zIndex: 1 }}>
+    <div style={{ color: color, display: 'flex', zIndex: 1 }}>
       {React.cloneElement(icon, { size: 24 })}
     </div>
     <div style={{ zIndex: 1 }}>
@@ -550,7 +550,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
         {isLive ? (
           <button 
             data-tooltip="Open queue management console"
-            className="btn-primary full-width-mobile" 
+            className="btn-primary doctor-card-btn full-width-mobile" 
             onClick={() => onManage(doctor, session, activeQueue.id)}
             style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '10px', minHeight: '44px' }}
           >
@@ -559,16 +559,12 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
         ) : (
           <button 
             data-tooltip="Initialize queue for this shift"
-            className="start-btn full-width-mobile" 
+            className="start-btn doctor-card-btn full-width-mobile" 
             onClick={() => onStart(doctor, session)}
             style={{ 
               padding: '10px 18px', fontSize: '0.85rem', borderRadius: '10px', 
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              color: 'white', cursor: 'pointer', fontWeight: 600, minHeight: '44px',
-              transition: 'all 0.2s'
+              minHeight: '44px'
             }}
-            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
           >
             <Play size={12} fill="white" /> Start Session
           </button>

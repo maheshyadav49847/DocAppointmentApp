@@ -81,8 +81,43 @@ h4 {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
+  background: #fff !important;
+  color: #000 !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 30px var(--accent-glow) !important;
+  border-color: #fff !important;
+}
+
+.start-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.start-btn:hover {
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 30px var(--accent-glow) !important;
+  color: #000 !important;
+}
+
+.doctor-card-btn:hover {
+  background: white !important;
+  color: black !important;
+  border-color: white !important;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-2px) !important;
 }
 
 .table-container {
