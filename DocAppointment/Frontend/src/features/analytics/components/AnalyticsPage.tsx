@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/themes/dark.css";
+import PageHeader from '../../../components/UI/PageHeader';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string; trend?: string; trendUp?: boolean }> = ({ title, value, icon, color, trend, trendUp }) => (
   <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', overflow: 'hidden' }}>
@@ -102,27 +103,24 @@ const AnalyticsPage: React.FC = () => {
   if (!selectedBranchId) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="flex-mobile-column">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-              <BarChart3 size={28} />
+        <PageHeader 
+          title="Analytics" 
+          accentTitle="Hub" 
+          subtitle="Select a branch to view performance data"
+          icon={<BarChart3 />}
+          rightElement={
+            <div style={{ minWidth: '250px' }}>
+              <select 
+                 value={selectedBranchId} 
+                 onChange={(e) => setSelectedBranchId(e.target.value)}
+                 style={{ width: '100%', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
+               >
+                 <option value="">Choose a branch...</option>
+                 {branches?.map((b: any) => <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>)}
+               </select>
             </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>Analytics</h1>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '5px', margin: 0 }}>Select a branch to view performance data</p>
-            </div>
-          </div>
-          <div style={{ minWidth: '250px' }} className="full-width-mobile">
-            <select 
-               value={selectedBranchId} 
-               onChange={(e) => setSelectedBranchId(e.target.value)}
-               style={{ width: '100%', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}
-             >
-               <option value="">Choose a branch...</option>
-               {branches?.map((b: any) => <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>)}
-             </select>
-          </div>
-        </div>
+          }
+        />
         <div style={{ textAlign: 'center', padding: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '30px', border: '1px dashed rgba(255,255,255,0.1)' }}>
           <Building2 size={80} style={{ marginBottom: '30px', opacity: 0.1, color: 'var(--accent-color)' }} />
           <h2 style={{ color: 'white', fontSize: '2rem' }}>Ready for Analysis</h2>
@@ -140,32 +138,16 @@ const AnalyticsPage: React.FC = () => {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', animation: 'fadeIn 0.5s ease-out' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fadeIn 0.5s ease-out' }}>
 
       {/* Header Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="flex-mobile-column">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-              <BarChart3 size={28} />
-            </div>
-            <div>
-              <h1 style={{ 
-                margin: 0, 
-                fontSize: '2.5rem', 
-                fontWeight: 800, 
-                background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-                WebkitBackgroundClip: 'text', 
-                WebkitTextFillColor: 'transparent' 
-              }}>
-                Analytics
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '5px', margin: 0 }}>Site-specific performance trends.</p>
-            </div>
-          </div>
-
-          {/* Branch Selector Parallel to Title */}
-          <div style={{ minWidth: '220px' }} className="full-width-mobile">
+      <PageHeader 
+        title="Analytics" 
+        accentTitle="Hub" 
+        subtitle="Site-specific performance trends."
+        icon={<BarChart3 />}
+        rightElement={
+          <div style={{ minWidth: '220px' }}>
              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                <Building2 size={12} /> Hospital Branch
              </label>
@@ -184,7 +166,8 @@ const AnalyticsPage: React.FC = () => {
                ))}
              </select>
           </div>
-        </div>
+        }
+      />
 
         {/* Filters & Actions Row */}
         <div style={{ 
@@ -234,7 +217,6 @@ const AnalyticsPage: React.FC = () => {
             <Download size={16} color="var(--accent-color)" /> Export CSV
           </button>
         </div>
-      </div>
 
       {/* Top Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>

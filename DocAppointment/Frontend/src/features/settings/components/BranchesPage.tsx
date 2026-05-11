@@ -6,23 +6,24 @@ import { whatsappConfigService } from '../../../services/whatsappConfigService';
 import { notify } from '../../../stores/notificationStore';
 import {
   Building2, MapPin, Smartphone, Plus, Settings, Trash2,
-  Activity, Info, Shield, Link, Download, ArrowRight, Save, X, CheckCircle2, Lock, AlertTriangle
+  Activity, Info, Shield, Link, ArrowRight, Save, X, CheckCircle2, Lock, AlertTriangle
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
+import PageHeader from '../../../components/UI/PageHeader';
 
 const cancelButtonStyle: React.CSSProperties = {
-  flex: 1, 
-  background: 'rgba(255,255,255,0.05)', 
-  border: '1px solid rgba(255,255,255,0.1)', 
-  color: 'white', 
-  padding: '10px 20px', 
-  borderRadius: '10px', 
-  cursor: 'pointer', 
-  display: 'flex', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  gap: '8px', 
-  fontSize: '0.9rem', 
+  flex: 1,
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  color: 'white',
+  padding: '10px 20px',
+  borderRadius: '10px',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  fontSize: '0.9rem',
   fontWeight: 600,
   transition: 'all 0.2s'
 };
@@ -155,200 +156,142 @@ const BranchesPage: React.FC = () => {
   );
 
   return (
-    <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }} className="flex-mobile-column">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-            <Building2 size={28} />
-          </div>
-          <div>
-            <h1 style={{
-              margin: 0,
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              background: 'linear-gradient(to right, #fff, var(--accent-color))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              Hospital Branches
-            </h1>
-            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Manage multiple locations and switch context to see localized analytics.</p>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px', animation: 'fadeIn 0.5s ease-out' }}>
+      <PageHeader
+        title="Hospital"
+        accentTitle="Branches"
+        subtitle="Manage multiple locations and switch context to see localized analytics."
+        icon={<Building2 />}
+      />
+
+      <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '35px' }}>
+        {/* Action Row */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }} className="flex-mobile-column full-width-mobile">
+            <button
+              data-tooltip="Register a new hospital location"
+              onClick={() => setIsModalOpen(true)}
+              className="btn-primary"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+                borderRadius: '10px', fontWeight: 700, boxShadow: '0 4px 15px var(--accent-glow)'
+              }}
+            >
+              <Plus size={20} /> Add New Branch
+            </button>
         </div>
-        <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.05)' }} className="flex-mobile-column full-width-mobile">
-          {/* Global Buttons - Only for Org Admins */}
-          {(['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
-            <>
-              <button
-                data-tooltip="Configure Twilio WhatsApp for all branches"
-                onClick={() => setIsGlobalModalOpen(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-              >
-                <Smartphone size={18} color="#25D366" /> Global WhatsApp
-              </button>
 
-              <button
-                data-tooltip="Manage organization settings"
-                onClick={() => setIsGlobalModalOpen(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-              >
-                <Settings size={18} color="var(--accent-color)" /> Global Settings
-              </button>
-            </>
-          )}
+        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
 
-          <button
-            data-tooltip="Export branch data"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600,
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          >
-            <Download size={18} /> Export Data
-          </button>
-
-          <div style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 5px' }} className="hide-mobile"></div>
-
-          <button
-            data-tooltip="Register a new hospital location"
-            onClick={() => setIsModalOpen(true)}
-            className="btn-primary"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
-              borderRadius: '10px', fontWeight: 700, boxShadow: '0 4px 15px var(--accent-glow)'
-            }}
-          >
-            <Plus size={20} /> Add New Branch
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '25px' }}>
-        {branches?.map((branch: any) => {
-          const isActiveSession = branch.id === branchId;
-          return (
-            <div key={branch.id} className="glass-card" style={{
-              padding: '30px',
-              position: 'relative',
-              border: isActiveSession ? '1px solid var(--accent-color)' : '1px solid rgba(255,255,255,0.05)',
-              background: isActiveSession ? 'rgba(56, 189, 248, 0.05)' : 'rgba(255,255,255,0.02)',
-              boxShadow: isActiveSession ? '0 0 30px rgba(56, 189, 248, 0.1)' : 'none',
-              transition: 'all 0.3s ease'
-            }}>
-              {isActiveSession && (
-                <div style={{
-                  position: 'absolute', top: '-12px', right: '25px',
-                  background: 'var(--accent-color)', color: 'black',
-                  fontSize: '0.7rem', fontWeight: 900, padding: '4px 12px',
-                  borderRadius: '20px', letterSpacing: '1px', boxShadow: '0 5px 15px rgba(56, 189, 248, 0.3)'
-                }}>
-                  ACTIVE CONTEXT
-                </div>
-              )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '25px' }}>
-                <div 
-                  data-tooltip="Hospital Branch Identity"
-                  style={{
-                    width: '50px', height: '50px',
-                    background: isActiveSession ? 'var(--accent-glow)' : 'rgba(255,255,255,0.05)',
-                    borderRadius: '15px', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', color: isActiveSession ? 'var(--accent-color)' : 'var(--text-secondary)'
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '25px' }}>
+          {branches?.map((branch: any) => {
+            const isActiveSession = branch.id === branchId;
+            return (
+              <div key={branch.id} className="glass-card" style={{
+                padding: '30px',
+                position: 'relative',
+                border: isActiveSession ? '2px solid var(--accent-color)' : '1px solid rgba(255,255,255,0.05)',
+                background: isActiveSession ? 'rgba(56, 189, 248, 0.08)' : 'rgba(255,255,255,0.02)',
+                boxShadow: isActiveSession ? '0 0 15px var(--accent-glow)' : 'none',
+                transition: 'all 0.3s ease',
+                zIndex: isActiveSession ? 2 : 1
+              }}>
+                {isActiveSession && (
+                  <div style={{
+                    position: 'absolute', top: '-12px', right: '25px',
+                    background: 'var(--accent-color)', color: 'black',
+                    fontSize: '0.7rem', fontWeight: 900, padding: '4px 12px',
+                    borderRadius: '20px', letterSpacing: '1px', boxShadow: '0 5px 15px rgba(56, 189, 248, 0.3)'
                   }}>
-                  <Building2 size={28} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{branch.name}</h3>
-                  <div 
-                    data-tooltip={branch.isActive ? "Accepting bookings" : "Bookings disabled"}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: branch.isActive ? 'var(--success)' : 'var(--danger)' }}></div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      {branch.isActive ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
-                <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                  <div data-tooltip="Hospital Address" className="tooltip-right" style={{ display: 'flex', alignItems: 'center' }}>
-                    <MapPin size={18} style={{ flexShrink: 0, color: 'var(--accent-color)' }} />
-                  </div>
-                  {branch.address || 'No address provided'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  <div data-tooltip="WhatsApp Contact" className="tooltip-right" style={{ display: 'flex', alignItems: 'center' }}>
-                    <Smartphone size={18} style={{ color: '#25D366' }} />
-                  </div>
-                  {branch.whatsAppNumber || 'Not configured'}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {!isActiveSession ? (
-                  <button
-                    className="btn-primary"
-                    style={{ flex: 1.5, background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    onClick={() => handleSwitchBranch(branch.id, branch.name)}
-                  >
-                    <ArrowRight size={18} /> Manage This Branch
-                  </button>
-                ) : (
-                  <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.9rem' }}>
-                    <Activity size={16} /> Currently Managing
+                    ACTIVE CONTEXT
                   </div>
                 )}
-                <button
-                  data-tooltip="Configure Branch"
-                  style={{
-                    width: '50px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '10px', color: 'white', cursor: 'pointer', transition: 'all 0.2s', height: '40px'
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-                  onClick={() => { setSelectedBranch(branch); setIsConfigModalOpen(true); }}
-                >
-                  <Settings size={20} />
-                </button>
-                {(['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '25px' }}>
+                  <div
+                    data-tooltip="Hospital Branch Identity"
+                    style={{
+                      width: '50px', height: '50px',
+                      background: isActiveSession ? 'var(--accent-glow)' : 'rgba(255,255,255,0.05)',
+                      borderRadius: '15px', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: isActiveSession ? 'var(--accent-color)' : 'var(--text-secondary)'
+                    }}>
+                    <Building2 size={28} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{branch.name}</h3>
+                    <div
+                      data-tooltip={branch.isActive ? "Accepting bookings" : "Bookings disabled"}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: branch.isActive ? 'var(--success)' : 'var(--danger)' }}></div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {branch.isActive ? 'Online' : 'Offline'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+                  <div style={{ display: 'flex', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                    <div data-tooltip="Hospital Address" className="tooltip-right" style={{ display: 'flex', alignItems: 'center' }}>
+                      <MapPin size={18} style={{ flexShrink: 0, color: 'var(--accent-color)' }} />
+                    </div>
+                    {branch.address || 'No address provided'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    <div data-tooltip="WhatsApp Contact" className="tooltip-right" style={{ display: 'flex', alignItems: 'center' }}>
+                      <Smartphone size={18} style={{ color: '#25D366' }} />
+                    </div>
+                    {branch.whatsAppNumber || 'Not configured'}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {!isActiveSession ? (
+                    <button
+                      className="btn-primary"
+                      style={{ flex: 1.5, background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={() => handleSwitchBranch(branch.id, branch.name)}
+                    >
+                      <ArrowRight size={18} /> Manage This Branch
+                    </button>
+                  ) : (
+                    <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.9rem' }}>
+                      <Activity size={16} /> Currently Managing
+                    </div>
+                  )}
                   <button
-                    data-tooltip="Delete Branch"
+                    data-tooltip="Configure Branch"
                     style={{
                       width: '50px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)',
-                      borderRadius: '10px', color: 'rgba(239, 68, 68, 0.6)', cursor: 'pointer', transition: 'all 0.2s', height: '40px'
+                      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '10px', color: 'white', cursor: 'pointer', transition: 'all 0.2s', height: '40px'
                     }}
-                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = 'var(--danger)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'; e.currentTarget.style.color = 'rgba(239, 68, 68, 0.6)'; }}
-                    onClick={() => setDeletingBranchId(branch.id)}
+                    onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                    onClick={() => { setSelectedBranch(branch); setIsConfigModalOpen(true); }}
                   >
-                    <Trash2 size={20} />
+                    <Settings size={20} />
                   </button>
-                )}
+                  {(['orgadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
+                    <button
+                      data-tooltip="Delete Branch"
+                      style={{
+                        width: '50px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.1)',
+                        borderRadius: '10px', color: 'rgba(239, 68, 68, 0.6)', cursor: 'pointer', transition: 'all 0.2s', height: '40px'
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; e.currentTarget.style.color = 'var(--danger)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'; e.currentTarget.style.color = 'rgba(239, 68, 68, 0.6)'; }}
+                      onClick={() => setDeletingBranchId(branch.id)}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Register New Branch Modal */}
@@ -391,19 +334,19 @@ const BranchesPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
-                <button
-                  data-tooltip="Discard changes and return"
-                  style={{
-                    flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  <X size={18} /> Cancel
-                </button>
+              <button
+                data-tooltip="Discard changes and return"
+                style={{
+                  flex: 1, padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onClick={() => setIsModalOpen(false)}
+              >
+                <X size={18} /> Cancel
+              </button>
               <button
                 data-tooltip="Launch this new hospital branch"
                 className="btn-primary"
@@ -602,10 +545,10 @@ const BranchesPage: React.FC = () => {
             </div>
             <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this branch? All associated sessions and staff access will be affected. This is a soft delete.</p>
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setDeletingBranchId(null)} style={cancelButtonStyle}><X size={16}/> No, Keep</button>
-              <button 
+              <button onClick={() => setDeletingBranchId(null)} style={cancelButtonStyle}><X size={16} /> No, Keep</button>
+              <button
                 onClick={confirmDeleteBranch}
-                className="btn-primary" 
+                className="btn-primary"
                 style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)' }}
               >
                 <Trash2 size={18} /> {deleteBranchMutation.isPending ? 'Deleting...' : 'Yes, Delete'}

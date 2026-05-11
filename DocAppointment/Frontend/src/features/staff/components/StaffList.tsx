@@ -4,6 +4,7 @@ import { staffService } from '../../../services/staffService';
 import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../stores/authStore';
 import Modal from '../../../components/Modal';
+import PageHeader from '../../../components/UI/PageHeader';
 import {
   Users, Plus, Shield, Trash2, Edit, X, AlertTriangle,
   CheckCircle2, Mail, Lock, Eye, EyeOff, ShieldCheck, UserCog, Building2, Calendar, Search, Phone, Hash
@@ -320,30 +321,13 @@ const StaffList: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', animation: 'fadeIn 0.5s ease-out' }}>
-      {/* Page Header (Outside Card) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="flex-mobile-column">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-              <UserCog size={28} />
-            </div>
-            <div>
-              <h1 style={{ 
-                margin: 0, 
-                fontSize: '2.5rem', 
-                fontWeight: 800, 
-                background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-                WebkitBackgroundClip: 'text', 
-                WebkitTextFillColor: 'transparent' 
-              }}>
-                Staff
-              </h1>
-              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Manage administrative roles and branch permissions.</p>
-            </div>
-          </div>
-
-          {/* Branch Selector (Parallel to Title) */}
-          <div style={{ minWidth: '220px' }} className="full-width-mobile">
+      <PageHeader 
+        title="Administrative" 
+        accentTitle="Staff" 
+        subtitle="Manage administrative roles and branch permissions."
+        icon={<UserCog />}
+        rightElement={
+          <div style={{ minWidth: '220px' }}>
              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                <Building2 size={14} /> Hospital Branch / Level
              </label>
@@ -375,8 +359,8 @@ const StaffList: React.FC = () => {
                </optgroup>
              </select>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Role Stats Card (Separate) */}
       <div className="glass-card" style={{ padding: '20px' }}>

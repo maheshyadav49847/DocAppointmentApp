@@ -34,18 +34,34 @@ body {
   box-sizing: border-box;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   margin: 0;
   font-weight: 600;
 }
 
 .glass-card {
-  background: var(--card-bg);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   padding: 24px;
+}
+
+/* Nested cards should be lighter to maintain visual depth */
+.glass-card .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card .glass-card:hover {
+  transform: translateY(-5px) !important;
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow) !important;
 }
 
 .btn-primary {
@@ -93,7 +109,8 @@ td {
   border-bottom: 1px solid var(--border-color);
 }
 
-input, select {
+input,
+select {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
   padding: 12px;
@@ -131,8 +148,8 @@ input, select {
   border-radius: 15px 15px 0 0 !important;
 }
 
-.react-datepicker__current-month, 
-.react-datepicker__day-name, 
+.react-datepicker__current-month,
+.react-datepicker__day-name,
 .react-datepicker__day {
   color: white !important;
 }
@@ -219,8 +236,8 @@ input, select {
   color: white !important;
 }
 
-.flatpickr-day.selected, 
-.flatpickr-day.startRange, 
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
 .flatpickr-day.endRange {
   background: var(--accent-color) !important;
   border-color: var(--accent-color) !important;
@@ -241,13 +258,15 @@ input, select {
   border-radius: 0 !important;
 }
 
-.flatpickr-prev-month, .flatpickr-next-month {
+.flatpickr-prev-month,
+.flatpickr-next-month {
   color: white !important;
   fill: white !important;
   padding: 15px !important;
 }
 
-.flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
   color: var(--accent-color) !important;
 }
 
@@ -255,26 +274,49 @@ input, select {
   margin-top: 10px !important;
 }
 
-.flatpickr-calendar.arrowTop:before, 
+.flatpickr-calendar.arrowTop:before,
 .flatpickr-calendar.arrowTop:after {
   border-bottom-color: rgba(15, 23, 42, 0.9) !important;
 }
 
 /* Animations & Utilities */
 @keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-spin {
@@ -308,7 +350,7 @@ input, select {
 .doctor-status-card:hover {
   border-color: var(--accent-color);
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .manage-btn:hover {
@@ -317,8 +359,8 @@ input, select {
 }
 
 .start-btn:hover {
-  background: rgba(255,255,255,0.1) !important;
-  border-color: rgba(255,255,255,0.3) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 ::-webkit-scrollbar {
@@ -330,19 +372,39 @@ input, select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes tokenNumberAnimate {
-  0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
-  50% { transform: scale(1.1); opacity: 1; filter: blur(0px); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+    filter: blur(10px);
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    filter: blur(0px);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .token-number-animate {
@@ -350,7 +412,7 @@ input, select {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Responsive Utilities */
@@ -361,9 +423,14 @@ input, select {
 }
 
 @media (max-width: 768px) {
-  h1 { font-size: 1.8rem !important; }
-  h2 { font-size: 1.5rem !important; }
-  
+  h1 {
+    font-size: 1.8rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
   .glass-card {
     padding: 15px;
     border-radius: 12px;
@@ -383,10 +450,12 @@ input, select {
   }
 
   table {
-    min-width: 800px; /* Ensure table doesn't squash too much */
+    min-width: 800px;
+    /* Ensure table doesn't squash too much */
   }
 
-  .table-container th, .table-container td {
+  .table-container th,
+  .table-container td {
     padding: 12px 15px !important;
   }
 }
@@ -408,6 +477,7 @@ input, select {
   .mobile-only {
     display: block;
   }
+
   .desktop-only {
     display: none;
   }
@@ -437,14 +507,15 @@ input, select {
   .main-sidebar {
     width: 280px !important;
   }
-  
+
   .main-content-layout {
     margin-left: 0 !important;
     width: 100% !important;
   }
 
   .breadcrumb-capsule {
-    display: none !important; /* Hide breadcrumbs on very small screens to save space */
+    display: none !important;
+    /* Hide breadcrumbs on very small screens to save space */
   }
 }
 
@@ -466,7 +537,7 @@ input, select {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .grid-sessions {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -490,7 +561,7 @@ input, select {
   .now-serving-card h1 {
     font-size: 6rem !important;
   }
-  
+
   .now-serving-card {
     padding: 40px 20px !important;
   }
@@ -524,7 +595,7 @@ input, select {
     padding: 15px !important;
     gap: 12px !important;
   }
-  
+
   .stat-card-responsive h3 {
     font-size: 1.4rem !important;
   }
@@ -564,7 +635,7 @@ input, select {
     font-size: 5rem !important;
     text-shadow: 0 0 30px var(--accent-glow) !important;
   }
-  
+
   .now-serving-card .currentTokenLabel {
     font-size: 0.7rem !important;
     letter-spacing: 2px !important;
@@ -617,7 +688,8 @@ input, select {
 /* Tooltip System */
 [data-tooltip] {
   position: relative;
-  display: inline-flex; /* Ensure it only wraps the icon/content */
+  display: inline-flex;
+  /* Ensure it only wraps the icon/content */
 }
 
 [data-tooltip]:before {

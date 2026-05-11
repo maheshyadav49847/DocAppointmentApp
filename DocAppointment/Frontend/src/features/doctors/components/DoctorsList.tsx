@@ -11,6 +11,7 @@ import {
 import Modal from '../../../components/Modal';
 import { notify } from '../../../stores/notificationStore';
 import { ratingService } from '../../../services/ratingService';
+import PageHeader from '../../../components/UI/PageHeader';
 
 const actionButtonStyle = (bg: string, color: string): React.CSSProperties => ({
   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -185,29 +186,13 @@ const DoctorsList: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      {/* Page Header */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }} className="flex-mobile-column">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-              <Users size={28} />
-            </div>
-            <div>
-              <h1 style={{ 
-                margin: 0, 
-                fontSize: '2.5rem', 
-                fontWeight: 800, 
-                background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-                WebkitBackgroundClip: 'text', 
-                WebkitTextFillColor: 'transparent' 
-              }}>
-                Organization Doctors
-              </h1>
-              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Manage medical professionals across all organization branches.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Page Header Section */}
+      <PageHeader 
+        title="Doctors" 
+        accentTitle="Hub" 
+        subtitle="Manage medical professionals across all organization branches."
+        icon={<Users />}
+      />
 
       {/* Main Content Area */}
       <div className="doctors-content glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '25px' }}>

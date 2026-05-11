@@ -1,6 +1,7 @@
 import React from 'react';
 import { User, Mail, Shield, Building, KeyRound, MapPin } from 'lucide-react';
 import { useAuthStore } from '../../../stores/authStore';
+import PageHeader from '../../../components/UI/PageHeader';
 
 const ProfilePage: React.FC = () => {
   const { email, role, orgId, branchId } = useAuthStore();
@@ -8,29 +9,17 @@ const ProfilePage: React.FC = () => {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
       
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
-        <div style={{ 
-          width: '80px', height: '80px', borderRadius: '20px', 
-          background: 'var(--accent-glow)', border: '2px solid var(--accent-color)', 
+      <PageHeader 
+        title="My" 
+        accentTitle="Profile" 
+        subtitle="Manage your personal account details and access level."
+        icon={<div style={{ 
+          width: '50px', height: '50px', borderRadius: '12px', 
+          background: 'var(--accent-glow)', border: '1px solid var(--accent-color)', 
           display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          color: 'var(--accent-color)', fontSize: '2.5rem', fontWeight: 900 
-        }}>
-          {email?.[0]?.toUpperCase()}
-        </div>
-        <div>
-          <h1 style={{ 
-            margin: 0, 
-            fontSize: '2.5rem', 
-            fontWeight: 800, 
-            background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-            WebkitBackgroundClip: 'text', 
-            WebkitTextFillColor: 'transparent' 
-          }}>
-            My Profile
-          </h1>
-          <p style={{ margin: '5px 0 0 0', color: 'var(--text-secondary)', fontSize: '1rem' }}>Manage your personal account details and access level.</p>
-        </div>
-      </div>
+          color: 'var(--accent-color)', fontSize: '1.5rem', fontWeight: 900 
+        }}>{email?.[0]?.toUpperCase()}</div>}
+      />
 
       <div className="glass-card">
         <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.2rem' }}>
