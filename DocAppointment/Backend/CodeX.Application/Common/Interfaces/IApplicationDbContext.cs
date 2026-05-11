@@ -16,6 +16,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<Token> Tokens { get; }
         DbSet<Rating> Ratings { get; }
         DbSet<ChatSession> ChatSessions { get; }
+        DbSet<MessageLog> MessageLogs { get; }
         DbSet<Staff> Staffs { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);

@@ -22,7 +22,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const navItems = [
     { icon: <LayoutDashboard size={20} />, label: "Dashboard", path: "/dashboard" },
-    { icon: <BarChart3 size={20} />, label: "Analytics", path: "/analytics" },
+    { icon: <BarChart3 size={20} />, label: "Reports", path: "/analytics" },
     { icon: <Building2 size={20} />, label: "Branches", path: "/branches" },
     { icon: <Users size={20} />, label: "Doctors", path: "/doctors" },
     { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions" },
@@ -160,7 +160,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               </div>
               {location.pathname.split('/').filter(p => p).map((path, index, arr) => {
                 const isLast = index === arr.length - 1;
-                const label = path.charAt(0).toUpperCase() + path.slice(1);
+                let label = path.charAt(0).toUpperCase() + path.slice(1);
+                if (path === 'analytics') label = 'Reports';
                 
                 let Icon = LayoutDashboard;
                 if (path === 'doctors') Icon = Users;
