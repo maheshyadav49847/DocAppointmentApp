@@ -4,7 +4,6 @@ import {
   RefreshCw, 
   LogOut, 
   CheckCircle2, 
-  Activity, 
   Settings2, 
   ShieldCheck, 
   Clock,
@@ -13,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuthStore } from '../../../stores/authStore';
+import PageHeader from '../../../components/UI/PageHeader';
 
 interface BridgeStatus {
   ready: boolean;
@@ -104,47 +104,35 @@ const WhatsAppSettings: React.FC = () => {
 
   return (
     <div style={{ 
-      padding: '2rem', 
-      maxWidth: '1400px', 
-      margin: '0 auto', 
       color: 'var(--text-primary)',
       minHeight: '100vh',
-      animation: 'fadeIn 0.5s ease'
+      animation: 'fadeIn 0.5s ease',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '25px'
     }}>
       
       {/* Header Section */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: '3rem',
-        flexWrap: 'wrap',
-        gap: '2rem'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
-            <Activity size={18} className="animate-pulse" />
-            <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', fontSize: '0.75rem' }}>Infrastructure Node</span>
+      <PageHeader 
+        title="WhatsApp" 
+        accentTitle="Hub" 
+        subtitle="Autonomous multi-branch messaging matrix"
+        icon={<Smartphone />}
+        rightElement={
+          <div style={{ display: 'flex', gap: '1rem' }}>
+             <div className="glass-pill">
+                <span className="live-dot" />
+                <span>{branches.length} Nodes</span>
+             </div>
+             <div className="glass-pill">
+                <span className="live-dot" style={{ backgroundColor: status?.ready ? 'var(--success)' : '#f59e0b', boxShadow: `0 0 10px ${status?.ready ? 'var(--success)' : '#f59e0b'}` }} />
+                <span>{status?.ready ? 'Channel Sync' : 'Linked Required'}</span>
+             </div>
           </div>
-          <h1 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-            WhatsApp <span style={{ color: 'var(--accent-color)' }}>Hub</span>
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginTop: '0.4rem' }}>Autonomous multi-branch messaging matrix</p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '1rem' }}>
-           <div className="glass-pill">
-              <span className="live-dot" />
-              <span>{branches.length} Nodes</span>
-           </div>
-           <div className="glass-pill">
-              <span className="live-dot" style={{ backgroundColor: status?.ready ? 'var(--success)' : '#f59e0b', boxShadow: `0 0 10px ${status?.ready ? 'var(--success)' : '#f59e0b'}` }} />
-              <span>{status?.ready ? 'Channel Sync' : 'Linked Required'}</span>
-           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         
         {/* Branch Navigation Sidebar */}
         <div className="glass-card" style={{ width: '320px', flexShrink: 0, padding: '1.5rem' }}>
@@ -187,7 +175,7 @@ const WhatsAppSettings: React.FC = () => {
         {/* Main Content Hub */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
             
             {/* Health Monitor Card */}
             <div className="glass-card" style={{ position: 'relative', overflow: 'hidden' }}>

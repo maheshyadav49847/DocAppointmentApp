@@ -17,6 +17,7 @@ import ManualBookingModal from '../../../components/ManualBookingModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notify } from '../../../stores/notificationStore';
 import { Building2 } from 'lucide-react';
+import PageHeader from '../../../components/UI/PageHeader';
 
 const QueueDashboard: React.FC = () => {
   const { branchId: globalBranchId, orgId, setBranch } = useAuthStore();
@@ -264,47 +265,34 @@ const QueueDashboard: React.FC = () => {
 const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onManage, selectedBranchId, setSelectedBranchId, branches }: any) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '35px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }} className="flex-mobile-column">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '15px', color: 'var(--accent-color)', boxShadow: '0 0 20px var(--accent-glow)' }}>
-            <LayoutDashboard size={28} />
+      <PageHeader 
+        title="Queue" 
+        accentTitle="Dashboard" 
+        subtitle="Monitor and manage doctor sessions in real-time."
+        icon={<LayoutDashboard />}
+        rightElement={
+          <div style={{ minWidth: '250px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+               <Building2 size={14} /> Hospital Branch
+            </label>
+            <select 
+               data-tooltip="Switch hospital branch dashboard"
+               value={selectedBranchId} 
+               onChange={(e) => setSelectedBranchId(e.target.value)}
+               style={{ 
+                 width: '100%', padding: '12px 15px', borderRadius: '12px', 
+                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
+                 color: 'white', fontWeight: 600, fontSize: '0.9rem'
+               }}
+             >
+               <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
+               {branches?.map((b: any) => (
+                 <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
+               ))}
+             </select>
           </div>
-          <div>
-            <h1 style={{ 
-              margin: 0, 
-              fontSize: '2.5rem', 
-              fontWeight: 800, 
-              background: 'linear-gradient(to right, #fff, var(--accent-color))', 
-              WebkitBackgroundClip: 'text', 
-              WebkitTextFillColor: 'transparent' 
-            }}>
-              Queue Dashboard
-            </h1>
-            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Monitor and manage doctor sessions in real-time.</p>
-          </div>
-        </div>
-
-        <div style={{ minWidth: '250px' }} className="full-width-mobile">
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-             <Building2 size={14} /> Hospital Branch
-          </label>
-          <select 
-             data-tooltip="Switch hospital branch dashboard"
-             value={selectedBranchId} 
-             onChange={(e) => setSelectedBranchId(e.target.value)}
-             style={{ 
-               width: '100%', padding: '12px 15px', borderRadius: '12px', 
-               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
-               color: 'white', fontWeight: 600, fontSize: '0.9rem'
-             }}
-           >
-             <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
-             {branches?.map((b: any) => (
-               <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
-             ))}
-           </select>
-        </div>
-      </div>
+        }
+      />
 
       {!selectedBranchId ? (
         <div style={{ textAlign: 'center', padding: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '30px', border: '1px dashed rgba(255,255,255,0.1)' }}>

@@ -119,7 +119,8 @@ const AnalyticsPage: React.FC = () => {
             </h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: '5px', margin: 0 }}>Clinical, Financial & Operational Performance Benchmarks.</p>
           </div>
-        </div>
+        }
+      />
 
         <div style={{ display: 'flex', gap: '15px' }} className="flex-mobile-column full-width-mobile">
           <div style={{ position: 'relative', minWidth: '220px' }} className="full-width-mobile">
@@ -154,7 +155,6 @@ const AnalyticsPage: React.FC = () => {
             {isExporting ? 'Generating...' : 'Export PDF'}
           </button>
         </div>
-      </div>
 
       <div ref={dashboardRef} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
          {/* Tabs */}
