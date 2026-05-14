@@ -45,6 +45,10 @@ export const queueService = {
     const response = await api.post(`/queue/${queueId}/end`);
     return response.data;
   },
+  cancelQueue: async (queueId: string) => {
+    const response = await api.post(`/queue/${queueId}/cancel`);
+    return response.data;
+  },
   alertPatient: async (queueId: string) => {
     const response = await api.post(`/queue/${queueId}/alert`);
     return response.data;
@@ -63,6 +67,10 @@ export const queueService = {
   },
   getStats: async (branchId: string) => {
     const response = await api.get(`/queue/stats/${branchId}`);
+    return response.data;
+  },
+  checkWhatsAppNumber: async (branchId: string, phone: string) => {
+    const response = await api.get(`/whatsapp/bridge/check-number/${branchId}/${phone}`);
     return response.data;
   }
 };

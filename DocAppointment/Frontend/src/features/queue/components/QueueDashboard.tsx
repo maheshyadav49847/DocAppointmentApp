@@ -6,6 +6,7 @@ import {
   ArrowLeft, ChevronRight, RotateCcw,
   AlertCircle, AlertTriangle, Search, Edit, Trash2, X, Settings, User, Smartphone, Hash, Zap
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import Modal from '../../../components/Modal';
 import { queueService } from '../../../services/queueService';
 import { doctorService } from '../../../services/doctorService';
@@ -29,10 +30,15 @@ const QueueDashboard: React.FC = () => {
     _setSelectedBranchId(id);
     setBranch(id); // Persistent global update
   };
-  const [viewMode, setViewMode] = useState<'overview' | 'manage'>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewMode = (searchParams.get('mode') as 'overview' | 'manage') || 'overview';
+  const urlQueueId = searchParams.get('queueId');
+
   const [activeSession, setActiveSession] = useState<any>(null); // { doctor, session, queueId }
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCheckingWhatsApp, setIsCheckingWhatsApp] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [processingSessions, setProcessingSessions] = useState<Set<string>>(new Set());
   const [confirmEndSession, setConfirmEndSession] = useState<{ isOpen: boolean; queueId: string | null }>({ isOpen: false, queueId: null });
   const [editingToken, setEditingToken] = useState<any>(null);
   const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
@@ -60,22 +66,79 @@ const QueueDashboard: React.FC = () => {
   });
 
   const handleStartSession = async (doctor: any, session: any) => {
+    const sessionKey = `${doctor.id}_${session.id}`;
+    setProcessingSessions(prev => new Set(prev).add(sessionKey));
+    
     console.log("Starting session for:", doctor.name, session.sessionName);
     try {
-      const queueId = await queueService.initializeQueue(doctor.id, session.id);
+      const response = await queueService.initializeQueue(doctor.id, session.id);
+      
+      // Ensure we have a string ID regardless of response format
+      const queueId = response?.id || response?.queueId || (typeof response === 'string' ? response : null);
+      
+      if (!queueId) {
+        throw new Error("Failed to get valid Queue ID from server");
+      }
+      
       console.log("Queue initialized with ID:", queueId);
-      notify.success('Session Started', `Queue opened for Dr. ${doctor.name} — ${session.sessionName} shift.`);
+
+      // Update cache immediately
+      queryClient.setQueryData(['activeQueue', doctor.id, session.id], { 
+        id: queueId, 
+        doctorId: doctor.id, 
+        sessionId: session.id,
+        status: 0 
+      });
+
+      // Save to sessionStorage for persistence
+      const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
+      startedSessions[sessionKey] = queueId;
+      sessionStorage.setItem('started_sessions', JSON.stringify(startedSessions));
+
+      notify.success('Session Started', `Queue opened for Dr. ${doctor.name}.`);
+      
+      // Navigate to manage view
       handleManageSession(doctor, session, queueId);
-    } catch (e) {
+      
+      // Background refetch
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['activeQueue', doctor.id, session.id] });
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      }, 500);
+    } catch (e: any) {
       console.error("Initialize Queue Error:", e);
-      notify.danger('Session Failed', 'Could not start queue. Please try again.');
-      alert("Failed to start session. Please try again.");
+      notify.danger('Session Failed', e.response?.data?.message || 'Could not start queue. Please try again.');
+    } finally {
+      setProcessingSessions(prev => {
+        const next = new Set(prev);
+        next.delete(sessionKey);
+        return next;
+      });
+    }
+  };
+
+
+
+  const handleCancelQueueById = async (queueId: string) => {
+    if (!window.confirm("Are you sure you want to cancel today's session? This will instantly broadcast SMS/WhatsApp cancellation alerts to any pre-booked patients.")) {
+      return;
+    }
+    try {
+      await queueService.cancelQueue(queueId);
+      notify.warning('Session Cancelled', 'Broadcast warnings sent to pre-booked patients.');
+      setSearchParams({});
+      setActiveSession(null);
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+      queryClient.invalidateQueries({ queryKey: ['activeQueue'] });
+    } catch (e: any) {
+      console.error("Cancel Session Error:", e);
+      notify.danger('Cancellation Failed', e.response?.data?.message || 'Could not process session cancellation.');
     }
   };
 
   const handleManageSession = (doctor: any, session: any, queueId: string) => {
     setActiveSession({ doctor, session, queueId });
-    setViewMode('manage');
+    setSearchParams({ mode: 'manage', queueId: queueId });
   };
 
   const createTokenMutation = useMutation({
@@ -94,11 +157,30 @@ const QueueDashboard: React.FC = () => {
 
   const endQueueMutation = useMutation({
     mutationFn: (queueId: string) => queueService.endQueue(queueId),
-    onSuccess: () => {
+    onSuccess: (_result, queueId) => {
       console.log("End Queue Mutation successful");
       notify.info('Session Ended', `Queue for ${activeSession?.doctor?.name || 'doctor'} has been closed.`);
+      
+      // Cleanup fallback session storage to ensure button reverts to "Start Session"
+      try {
+        const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
+        const newSessions = { ...startedSessions };
+        let changed = false;
+        Object.keys(newSessions).forEach(key => {
+          if (newSessions[key] === queueId) {
+            delete newSessions[key];
+            changed = true;
+          }
+        });
+        if (changed) {
+          sessionStorage.setItem('started_sessions', JSON.stringify(newSessions));
+        }
+      } catch (err) {
+        console.error("Error cleaning up sessionStorage:", err);
+      }
+
       setConfirmEndSession({ isOpen: false, queueId: null });
-      setViewMode('overview');
+      setSearchParams({}); // Back to overview
       setActiveSession(null);
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       queryClient.invalidateQueries({ queryKey: ['activeQueue'] });
@@ -138,7 +220,7 @@ const QueueDashboard: React.FC = () => {
     }
   });
 
-  const handleManualBookingSubmit = (data: { name: string; phone: string }) => {
+  const handleManualBookingSubmit = async (data: { name: string; phone: string }) => {
     if (!activeSession?.queueId) return;
 
     // Strict Client-side duplicate check
@@ -151,6 +233,21 @@ const QueueDashboard: React.FC = () => {
     if (isDuplicate) {
       notify.danger("Duplicate Patient", "This patient is already in the queue!");
       return;
+    }
+
+    setIsCheckingWhatsApp(true);
+    try {
+      const result = await queueService.checkWhatsAppNumber(selectedBranchId, data.phone);
+      if (result && result.ready && !result.exists) {
+        const confirmSave = window.confirm("WhatsApp is not active on this number. Do you still want to save?");
+        if (!confirmSave) {
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error checking WhatsApp availability:", err);
+    } finally {
+      setIsCheckingWhatsApp(false);
     }
 
     createTokenMutation.mutate({
@@ -191,14 +288,24 @@ const QueueDashboard: React.FC = () => {
           selectedBranchId={selectedBranchId}
           setSelectedBranchId={setSelectedBranchId}
           branches={branches}
+          processingSessions={processingSessions}
         />
       ) : (
         <ManageQueue
-          sessionData={activeSession}
-          onBack={() => { setViewMode('overview'); setActiveSession(null); }}
+          sessionData={activeSession || { queueId: urlQueueId }}
+          onBack={() => { 
+            setSearchParams({}); 
+            setActiveSession(null); 
+            queryClient.resetQueries({ queryKey: ['activeQueue'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+          }}
           onManualBooking={() => setIsModalOpen(true)}
           isEnding={endQueueMutation.isPending}
-          onEndSession={() => setConfirmEndSession({ isOpen: true, queueId: activeSession.queueId })}
+          onEndSession={() => setConfirmEndSession({ isOpen: true, queueId: urlQueueId || activeSession?.queueId })}
+          onCancelSession={() => {
+            const qId = (activeSession?.queueId || urlQueueId);
+            if (qId) handleCancelQueueById(qId);
+          }}
           setEditingToken={setEditingToken}
           setDeletingTokenId={setDeletingTokenId}
           deleteTokenMutation={deleteTokenMutation}
@@ -209,7 +316,7 @@ const QueueDashboard: React.FC = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleManualBookingSubmit}
-        isLoading={createTokenMutation.isPending}
+        isLoading={createTokenMutation.isPending || isCheckingWhatsApp}
       />
 
       {confirmEndSession.isOpen && (
@@ -217,9 +324,9 @@ const QueueDashboard: React.FC = () => {
           title="End Session?"
           message="Are you sure you want to end this doctor's session? This will mark the queue as completed."
           onConfirm={() => {
-            if (activeSession?.queueId) {
-              console.log("Proceeding with end session for:", activeSession.queueId);
-              endQueueMutation.mutate(activeSession.queueId);
+            if (confirmEndSession.queueId) {
+              console.log("Proceeding with end session for:", confirmEndSession.queueId);
+              endQueueMutation.mutate(confirmEndSession.queueId);
             }
           }}
           onCancel={() => setConfirmEndSession({ isOpen: false, queueId: null })}
@@ -262,7 +369,7 @@ const QueueDashboard: React.FC = () => {
 };
 
 // --- SUB-COMPONENT: OVERVIEW ---
-const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onManage, selectedBranchId, setSelectedBranchId, branches }: any) => {
+const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onManage, selectedBranchId, setSelectedBranchId, branches, processingSessions }: any) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '35px' }}>
       <PageHeader 
@@ -340,7 +447,14 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
 
             <div className="grid-sessions">
               {doctors?.map((doc: any) => (
-                <DoctorCard key={doc.id} doctor={doc} onStart={onStart} onManage={onManage} selectedBranchId={selectedBranchId} />
+                <DoctorCard 
+                  key={doc.id} 
+                  doctor={doc} 
+                  onStart={onStart} 
+                  onManage={onManage} 
+                  selectedBranchId={selectedBranchId}
+                  processingSessions={processingSessions}
+                />
               ))}
             </div>
 
@@ -413,11 +527,37 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
   </div>
 );
 
-const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId }: any) => {
+const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSessions }: any) => {
   const { data: sessions } = useQuery({
     queryKey: ['sessions', doctor.id, selectedBranchId],
     queryFn: () => sessionService.getSessions(doctor.id, selectedBranchId)
   });
+
+  const [selectedSessId, setSelectedSessId] = useState<string | null>(null);
+  const today = new Date().getDay();
+  const todaysSessions = useMemo(() => sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || [], [sessions, today]);
+
+  useEffect(() => {
+    if (todaysSessions.length > 0 && !selectedSessId) {
+      // Priority: Select the session that is currently live (in sessionStorage)
+      try {
+        const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
+        const liveSession = todaysSessions.find((s: any) => !!startedSessions[`${doctor.id}_${s.id}`]);
+        
+        if (liveSession) {
+          setSelectedSessId(liveSession.id);
+          return;
+        }
+      } catch (e) {
+        console.error("Error reading started_sessions for auto-select:", e);
+      }
+
+      // Fallback: Default to first session
+      setSelectedSessId(todaysSessions[0].id);
+    }
+  }, [todaysSessions, selectedSessId, doctor.id]);
+
+  const activeSess = todaysSessions.find((s: any) => s.id === selectedSessId) || todaysSessions[0];
 
   return (
     <div className="glass-card doctor-status-card" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
@@ -443,36 +583,79 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId }: any) => {
         </div>
       </div>
 
-      <div style={{ padding: '20px 25px 25px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {(() => {
-          const today = new Date().getDay();
-          const todaysSessions = sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || [];
-          
-          if (todaysSessions.length === 0) {
-            return (
-              <div style={{ padding: '15px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No scheduled shifts today.</p>
-              </div>
-            );
-          }
+      {todaysSessions.length > 1 && (
+        <div className="custom-scrollbar" style={{ 
+          padding: '0 25px 15px', 
+          display: 'flex', 
+          gap: '8px', 
+          overflowX: 'auto',
+          scrollBehavior: 'smooth'
+        }}>
+          {todaysSessions.map((sess: any) => (
+            <button 
+              key={sess.id}
+              onClick={() => setSelectedSessId(sess.id)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                background: selectedSessId === sess.id ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.03)',
+                color: selectedSessId === sess.id ? 'var(--accent-color)' : 'var(--text-secondary)',
+                border: `1px solid ${selectedSessId === sess.id ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255,255,255,0.05)'}`,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Clock size={12} />
+              {sess.sessionName}
+            </button>
+          ))}
+        </div>
+      )}
 
-          return todaysSessions.map((sess: any) => (
-            <SessionItem key={sess.id} doctor={doctor} session={sess} onStart={onStart} onManage={onManage} />
-          ));
-        })()}
-      </div>
+      {todaysSessions.length === 0 ? (
+        <div style={{ padding: '0 25px 25px' }}>
+          <div style={{ padding: '15px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No scheduled shifts today.</p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ padding: '0 25px 25px' }}>
+          <SessionItem 
+            doctor={doctor} 
+            session={activeSess} 
+            onStart={onStart} 
+            onManage={onManage}
+            isProcessing={processingSessions?.has(`${doctor.id}_${activeSess?.id}`)}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
-const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
+const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) => {
   const { data: activeQueue } = useQuery({
     queryKey: ['activeQueue', doctor.id, session.id],
     queryFn: () => queueService.getActiveQueueBySession(doctor.id, session.id),
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    staleTime: 0,
+    refetchOnMount: 'always'
   });
 
-  const isLive = !!activeQueue;
+  // Check if session was recently started in this browser session (fallback)
+  const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
+  const fallbackQueueId = startedSessions[`${doctor.id}_${session.id}`];
+  
+  // Sticky logic: Jab tak fallback ID hai ya backend active queue bol raha hai, tab tak "Manage" hi dikhega.
+  // Fallback ID sirf endQueueMutation.onSuccess pe hi delete hota hai.
+  const isLive = !!fallbackQueueId || (!!activeQueue && !!activeQueue.id);
+  const displayQueueId = activeQueue?.id || fallbackQueueId;
 
   return (
     <div style={{
@@ -522,15 +705,14 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
       {/* Stats and Action Row */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
+        flexDirection: 'column',
         background: 'rgba(255,255,255,0.02)', 
-        padding: '12px 18px', 
+        padding: '18px', 
         borderRadius: '14px',
         border: '1px solid rgba(255,255,255,0.05)',
-        gap: '15px'
-      }} className="flex-mobile-column">
-        <div style={{ display: 'flex', gap: '20px', width: '100%', justifyContent: 'space-between' }} className="stat-row-mobile">
+        gap: '18px'
+      }}>
+        <div style={{ display: 'flex', gap: '20px', width: '100%', justifyContent: 'space-between' }}>
           <div data-tooltip="Total patients currently waiting" style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Wait</span>
             <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-color)' }}>{activeQueue?.waitingCount || 0}</span>
@@ -550,23 +732,39 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
         {isLive ? (
           <button 
             data-tooltip="Open queue management console"
-            className="btn-primary doctor-card-btn full-width-mobile" 
-            onClick={() => onManage(doctor, session, activeQueue.id)}
-            style={{ padding: '10px 18px', fontSize: '0.85rem', borderRadius: '10px', minHeight: '44px' }}
+            className="btn-primary doctor-card-btn" 
+            onClick={() => onManage(doctor, session, displayQueueId)}
+            style={{ 
+              width: '100%',
+              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px', 
+              minHeight: '44px', gap: '8px', fontWeight: 700
+            }}
           >
             <Settings size={14} /> Manage Session
           </button>
         ) : (
           <button 
             data-tooltip="Initialize queue for this shift"
-            className="start-btn doctor-card-btn full-width-mobile" 
+            className="start-btn doctor-card-btn" 
             onClick={() => onStart(doctor, session)}
+            disabled={isProcessing}
             style={{ 
-              padding: '10px 18px', fontSize: '0.85rem', borderRadius: '10px', 
-              minHeight: '44px'
+              width: '100%',
+              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px', 
+              minHeight: '44px', gap: '8px', fontWeight: 700,
+              background: isProcessing ? 'rgba(56, 189, 248, 0.05)' : 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              color: 'var(--accent-color)',
+              opacity: isProcessing ? 0.7 : 1,
+              cursor: isProcessing ? 'not-allowed' : 'pointer'
             }}
           >
-            <Play size={12} fill="white" /> Start Session
+            {isProcessing ? (
+              <Clock size={12} className="animate-spin" />
+            ) : (
+              <Play size={12} fill="var(--accent-color)" />
+            )}
+            {isProcessing ? 'Starting...' : 'Start Session'}
           </button>
         )}
       </div>
@@ -575,7 +773,7 @@ const SessionItem = ({ doctor, session, onStart, onManage }: any) => {
 };
 
 // --- SUB-COMPONENT: MANAGE QUEUE ---
-const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, setEditingToken, setDeletingTokenId }: any) => {
+const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, onCancelSession, setEditingToken, setDeletingTokenId }: any) => {
   const queryClient = useQueryClient();
   const { doctor, session, queueId } = sessionData;
   const { branchId, role: userRole } = useAuthStore();
@@ -755,11 +953,11 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
           </div>
         </div>
         
-        <div style={{ display: 'flex', gap: '12px', width: '100%' }} className="full-width-mobile flex-mobile-column">
+        <div style={{ display: 'flex', gap: '10px', width: '100%' }} className="full-width-mobile flex-mobile-column">
           <button 
             data-tooltip="Manually book a patient in the queue"
-            type="button" onClick={onManualBooking} className="full-width-mobile" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-            <PlusCircle size={18} /> Booking
+            type="button" onClick={onManualBooking} className="full-width-mobile" style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px 10px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+            <PlusCircle size={16} /> Booking
           </button>
           <button 
             data-tooltip="Permanently close this doctor's session"
@@ -772,18 +970,41 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
               background: 'rgba(239, 68, 68, 0.1)', 
               border: '1px solid var(--danger)', 
               color: 'var(--danger)', 
-              padding: '12px', 
+              padding: '12px 10px', 
               borderRadius: '10px', 
               fontSize: '0.85rem',
               opacity: isEnding ? 0.5 : 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '6px',
               fontWeight: 700
             }}
           >
-            <Power size={18} /> End
+            <CheckCircle2 size={16} /> End
+          </button>
+          <button 
+            data-tooltip="Mark session as cancelled / pre-planned absent"
+            type="button"
+            onClick={onCancelSession}
+            className="full-width-mobile"
+            style={{ 
+              flex: 1,
+              background: 'rgba(239, 68, 68, 0.2)', 
+              border: '1px solid var(--danger)', 
+              color: '#fca5a5', 
+              padding: '12px 10px', 
+              borderRadius: '10px', 
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            <Power size={16} /> Absent
           </button>
         </div>
       </div>
@@ -871,12 +1092,12 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             <button
               data-tooltip="Call the next patient in line"
               onClick={() => callNextMutation.mutate()}
-              disabled={!isDoctorArrived || callNextMutation.isPending}
+              disabled={callNextMutation.isPending}
               className="btn-primary call-next-btn"
               style={{
                 padding: '30px', fontSize: '1.5rem', borderRadius: '20px',
                 opacity: (!isDoctorArrived) ? 0.5 : 1,
-                cursor: (!isDoctorArrived) ? 'not-allowed' : 'pointer'
+                cursor: 'pointer'
               }}
             >
               <UserCheck size={32} /> {callNextMutation.isPending ? 'Calling...' : 'Call Next'}
@@ -885,18 +1106,18 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               <button
                 data-tooltip="Skip current patient's turn"
-                style={{ ...secondaryControlStyle, opacity: (!isDoctorArrived || !queue.currentTokenNumber) ? 0.5 : 1 }}
+                style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
                 onClick={() => skipMutation.mutate()}
-                disabled={!isDoctorArrived || skipMutation.isPending || !queue.currentTokenNumber}
+                disabled={skipMutation.isPending || !queue.currentTokenNumber}
               >
                 {skipMutation.isPending ? <Clock size={22} className="animate-spin" /> : <SkipForward size={22} />}
                 {skipMutation.isPending ? 'Skipping...' : 'Skip'}
               </button>
               <button
                 data-tooltip="Send WhatsApp alert to current patient"
-                style={{ ...secondaryControlStyle, opacity: (!isDoctorArrived || !queue.currentTokenNumber) ? 0.5 : 1 }}
+                style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
                 onClick={() => alertMutation.mutate()}
-                disabled={!isDoctorArrived || alertMutation.isPending || !queue.currentTokenNumber}
+                disabled={alertMutation.isPending || !queue.currentTokenNumber}
               >
                 {alertMutation.isPending ? <Clock size={22} className="animate-spin" /> : <MessageSquare size={22} />}
                 {alertMutation.isPending ? 'Alerting...' : 'Alert'}
@@ -906,26 +1127,21 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
 
             <button
-              data-tooltip="Activate queue by marking doctor's presence"
+              data-tooltip="Mark doctor's presence (optional)"
               onClick={() => markArrivedMutation.mutate()}
               disabled={isDoctorArrived || markArrivedMutation.isPending}
               style={{
-                background: isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.2)',
-                color: 'var(--success)', border: `1px solid ${isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.4)'}`,
-                padding: '20px', borderRadius: '18px', cursor: isDoctorArrived ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', fontWeight: 800,
-                fontSize: '1.1rem', transition: 'all 0.3s'
+                background: isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                color: isDoctorArrived ? 'var(--success)' : 'white', 
+                border: `1px solid ${isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.1)'}`,
+                padding: '15px', borderRadius: '14px', cursor: isDoctorArrived ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600,
+                fontSize: '0.9rem', transition: 'all 0.3s'
               }}
             >
-              {isDoctorArrived ? <CheckCircle2 size={24} /> : <Play size={24} />}
-              {isDoctorArrived ? "Doctor is Present" : "Mark Doctor Arrival"}
+              {isDoctorArrived ? <CheckCircle2 size={18} /> : <Play size={18} />}
+              {isDoctorArrived ? "Doctor is Present" : "Mark Arrival"}
             </button>
-
-            {!isDoctorArrived && (
-              <p style={{ margin: 0, fontSize: '0.85rem', color: '#F87171', textAlign: 'center', display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}>
-                <Info size={14} /> You must mark arrival to call patients.
-              </p>
-            )}
           </div>
 
           <div className="glass-card" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '15px', background: 'rgba(255,255,255,0.02)' }}>

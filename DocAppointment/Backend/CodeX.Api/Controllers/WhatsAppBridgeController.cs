@@ -75,5 +75,24 @@ namespace CodeX.Api.Controllers
                 return BadRequest(new { message = "Failed to reach bridge" });
             }
         }
+
+        [HttpGet("check-number/{branchId}/{phone}")]
+        public async Task<IActionResult> CheckNumber(string branchId, string phone)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{BridgeUrl}/check-number/{branchId}/{phone}");
+                if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
+
+                var response = await _httpClient.SendAsync(request);
+                var content = await response.Content.ReadAsStringAsync();
+                return Content(content, "application/json");
+            }
+            catch
+            {
+                // Fallback to exists=true if bridge is offline so booking flow isn't blocked
+                return Ok(new { ready = false, exists = true });
+            }
+        }
     }
 }

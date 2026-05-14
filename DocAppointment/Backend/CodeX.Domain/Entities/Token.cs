@@ -18,6 +18,8 @@ namespace CodeX.Domain.Entities
         public PaymentMode PaymentMode { get; set; } = PaymentMode.Pending;
         public Guid? CreatedByStaffId { get; set; }
 
+        public string ReferenceId => $"CX-{Id.ToString().Substring(0, 6).ToUpper()}";
+
         // Navigation Properties
         public virtual DailyQueue Queue { get; set; } = null!;
         public virtual Patient Patient { get; set; } = null!;
