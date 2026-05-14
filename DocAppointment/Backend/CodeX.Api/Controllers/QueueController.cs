@@ -5,6 +5,7 @@ using CodeX.Application.Features.Queue.Commands.SkipToken;
 using CodeX.Application.Features.Queue.Commands.EndQueue;
 using CodeX.Application.Features.Queue.Queries.GetQueueStats;
 using CodeX.Application.Features.Queue.Commands.AlertPatient;
+using CodeX.Application.Features.Queue.Commands.CancelQueue;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
@@ -119,6 +120,17 @@ namespace CodeX.Api.Controllers
             }
 
             return await Mediator.Send(new AlertPatientCommand(queueId));
+        }
+
+        [HttpPost("{queueId}/cancel")]
+        public async Task<ActionResult<bool>> Cancel(Guid queueId)
+        {
+            if (!await CanAccessQueue(queueId))
+            {
+                return Forbid();
+            }
+
+            return await Mediator.Send(new CancelQueueCommand(queueId));
         }
 
         [HttpGet("stats/{branchId}")]

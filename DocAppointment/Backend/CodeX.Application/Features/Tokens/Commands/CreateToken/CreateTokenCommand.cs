@@ -17,7 +17,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
         public string PatientName { get; init; } = string.Empty;
 
         [Required]
-        [RegularExpression(@"^\d{10,15}$", ErrorMessage = "Invalid phone number format. Use 10-15 digits.")]
+        [RegularExpression(@"^\+?\d{10,15}$", ErrorMessage = "Invalid phone number format. Use 10-15 digits.")]
         public string PatientPhone { get; init; } = string.Empty;
 
         [Required]

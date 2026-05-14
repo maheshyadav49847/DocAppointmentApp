@@ -264,4 +264,22 @@ app.post("/logout/:branchId", async (req, res) => {
   res.json({ message: "Logged out." });
 });
 
+app.get("/check-number/:branchId/:phone", async (req, res) => {
+  const { branchId, phone } = req.params;
+  try {
+    const entry = await getClient(branchId);
+    if (!entry.client || !entry.state.ready) {
+      // If bridge client isn't ready/authenticated, assume exists=true so flow doesn't block
+      return res.json({ ready: false, exists: true });
+    }
+    const jid = toChatId(phone);
+    const result = await entry.client.onWhatsApp(jid);
+    const exists = result && result.length > 0 && result[0].exists;
+    return res.json({ ready: true, exists: Boolean(exists) });
+  } catch (error) {
+    console.error(`[CHECK] Failed to verify number ${phone} for branch ${branchId}: ${error.message}`);
+    return res.json({ ready: false, exists: true });
+  }
+});
+
 app.listen(port, () => console.log(`[CORE] Bridge active on port ${port} (Powered by Baileys)`));

@@ -103,30 +103,30 @@ namespace CodeX.Tests.Features.WhatsApp
 
             // New user - registration flow
             var r0 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "hi", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("first time", r0, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("pehli baar", r0, StringComparison.OrdinalIgnoreCase);
 
             var r1 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "Test User", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("select a doctor", r1, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Doctor ka Number", r1, StringComparison.OrdinalIgnoreCase);
 
             // Select doctor (1)
             var r2 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "1", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("select a session", r2, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Session ka Number", r2, StringComparison.OrdinalIgnoreCase);
 
             // Select session (1)
             var r3 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "1", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("Type 'CONFIRM'", r3, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("CONFIRM", r3, StringComparison.OrdinalIgnoreCase);
 
             // Confirm booking
             var r4 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "confirm", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("Successfully booked", r4, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("SAFALTAPOORVAK", r4, StringComparison.OrdinalIgnoreCase);
 
             // Status should show token
             var r5 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "status", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("Booking Status", r5, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Status", r5, StringComparison.OrdinalIgnoreCase);
 
             // Cancel booking
             var r6 = await handler.Handle(new ProcessIncomingMessageCommand { From = phone, MessageBody = "cancel", BranchId = branch.Id }, CancellationToken.None);
-            Assert.Contains("cancelled", r6, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("radd", r6, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

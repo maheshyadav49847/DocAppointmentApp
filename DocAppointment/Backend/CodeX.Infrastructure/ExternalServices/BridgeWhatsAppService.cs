@@ -24,46 +24,69 @@ namespace CodeX.Infrastructure.ExternalServices
         public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId)
         {
             var message =
-                $"Booking confirmed.\n\n" +
-                $"Hello {patientName},\n" +
-                $"Your token number is #{tokenNumber}.\n\n" +
-                $"Please arrive on time. We will notify you when your turn approaches.";
+                $"🏥 *APPOINTMENT CONFIRMED* 🏥\n" +
+                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                $"Hello *{patientName}* 🙏,\n\n" +
+                $"Aapka doctor appointment safaltapoorvak book ho gaya hai.\n\n" +
+                $"🔢 *Aapka Token Number:* #{tokenNumber}\n\n" +
+                $"📌 *Zaroori Baatein:*\n" +
+                $"• Kripya samay par clinic pahunchein.\n" +
+                $"• Aapko baar-baar poochna nahi padega, aapka number aane se pehle hum aapko WhatsApp par alert bhej denge.\n\n" +
+                $"✨ _Aapke acche swasthya ke liye humari shubhkaamnayein!_";
             return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
         {
             var message =
-                $"Doctor arrived.\n\n" +
-                $"Dr. {doctorName} is now present at the clinic.\n" +
-                $"The queue is active. Please be ready.";
+                $"👨‍⚕️ *DOCTOR CLINIC ME HAIN* 👨‍⚕️\n" +
+                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                $"Namaste 🙏,\n\n" +
+                $"Aapko batate hue khushi ho rahi hai ki *Dr. {doctorName}* clinic pahunch chuke hain aur check-up shuru ho gaya hai.\n\n" +
+                $"👉 Kripya clinic ke waiting area me tayyar rahein.\n\n" +
+                $"✨ _Humari team aapki sahayata ke liye hamesha tatpar hai._";
             return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
         {
             var message =
-                $"Your turn is now.\n\n" +
-                $"Token #{tokenNumber}: please proceed to the consultation room immediately.";
+                $"🔔 *AAPKA NUMBER AA GAYA HAI!* 🔔\n" +
+                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                $"👉 *Token #{tokenNumber}*\n\n" +
+                $"Kripya turant doctor ke consultation room me check-up ke liye andar aaiye. Doctor aapka intezaar kar rahe hain.\n\n" +
+                $"✨ _Swasth rahein, mast rahein!_";
             return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
         {
             var message =
-                $"Almost your turn.\n\n" +
-                $"Only {tokensLeft} patient(s) are ahead of you.\n" +
-                $"Please be ready.";
+                $"⏳ *AAPKA NUMBER AANE WALA HAI* ⏳\n" +
+                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                $"Namaste 🙏,\n\n" +
+                $"Aapke aage ab sirf *{tokensLeft} patient(s)* bache hain.\n\n" +
+                $"👉 Kripya doctor ke cabin ke paas aakar tayyar rahein. Aapka number agla ho sakta hai!\n\n" +
+                $"✨ _Aapke samay aur dhairya ke liye dhanyawad._";
             return SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
         {
+            var shortRef = $"CX-{tokenId.ToString().Substring(0, 6).ToUpper()}";
             var message =
-                $"How was your visit?\n\n" +
-                $"Thank you for consulting Dr. {doctorName}.\n" +
-                $"Reply with a number from 1 to 5.\n\n" +
-                $"Reference: {tokenId}";
+                $"🌟 *AAPKA EXPERIENCE KAISA RAHA?* 🌟\n" +
+                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                $"Namaste 🙏,\n\n" +
+                $"Aaj *Dr. {doctorName}* se consultation ke liye dhanyawad.\n\n" +
+                $"Kripya is message ke reply me *1 se 5* ke beech koi ek number bhej kar apna anubhav batayein:\n\n" +
+                $"⭐⭐⭐⭐⭐ - *5* (Bahut Accha)\n" +
+                $"⭐⭐⭐⭐ - *4* (Accha)\n" +
+                $"⭐⭐⭐ - *3* (Theek)\n" +
+                $"⭐⭐ - *2* (Sudhaar ki zaroorat)\n" +
+                $"⭐ - *1* (Khaas nahi)\n\n" +
+                $"Aapka feedback humari service ko behtar banane me madad karega. 🙌\n" +
+                $"_Ref: {shortRef}_";
             return SendTextMessage(phoneNumber, message, branchId);
         }
 
