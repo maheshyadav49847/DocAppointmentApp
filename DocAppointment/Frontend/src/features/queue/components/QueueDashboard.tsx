@@ -23,7 +23,7 @@ import PageHeader from '../../../components/UI/PageHeader';
 const QueueDashboard: React.FC = () => {
   const { branchId: globalBranchId, orgId, setBranch } = useAuthStore();
   const queryClient = useQueryClient();
-  
+
   const [selectedBranchId, _setSelectedBranchId] = useState<string>(globalBranchId || '');
 
   const setSelectedBranchId = (id: string) => {
@@ -68,26 +68,26 @@ const QueueDashboard: React.FC = () => {
   const handleStartSession = async (doctor: any, session: any) => {
     const sessionKey = `${doctor.id}_${session.id}`;
     setProcessingSessions(prev => new Set(prev).add(sessionKey));
-    
+
     console.log("Starting session for:", doctor.name, session.sessionName);
     try {
       const response = await queueService.initializeQueue(doctor.id, session.id);
-      
+
       // Ensure we have a string ID regardless of response format
       const queueId = response?.id || response?.queueId || (typeof response === 'string' ? response : null);
-      
+
       if (!queueId) {
         throw new Error("Failed to get valid Queue ID from server");
       }
-      
+
       console.log("Queue initialized with ID:", queueId);
 
       // Update cache immediately
-      queryClient.setQueryData(['activeQueue', doctor.id, session.id], { 
-        id: queueId, 
-        doctorId: doctor.id, 
+      queryClient.setQueryData(['activeQueue', doctor.id, session.id], {
+        id: queueId,
+        doctorId: doctor.id,
         sessionId: session.id,
-        status: 0 
+        status: 0
       });
 
       // Save to sessionStorage for persistence
@@ -96,10 +96,10 @@ const QueueDashboard: React.FC = () => {
       sessionStorage.setItem('started_sessions', JSON.stringify(startedSessions));
 
       notify.success('Session Started', `Queue opened for Dr. ${doctor.name}.`);
-      
+
       // Navigate to manage view
       handleManageSession(doctor, session, queueId);
-      
+
       // Background refetch
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['activeQueue', doctor.id, session.id] });
@@ -118,23 +118,6 @@ const QueueDashboard: React.FC = () => {
   };
 
 
-
-  const handleCancelQueueById = async (queueId: string) => {
-    if (!window.confirm("Are you sure you want to cancel today's session? This will instantly broadcast SMS/WhatsApp cancellation alerts to any pre-booked patients.")) {
-      return;
-    }
-    try {
-      await queueService.cancelQueue(queueId);
-      notify.warning('Session Cancelled', 'Broadcast warnings sent to pre-booked patients.');
-      setSearchParams({});
-      setActiveSession(null);
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-      queryClient.invalidateQueries({ queryKey: ['activeQueue'] });
-    } catch (e: any) {
-      console.error("Cancel Session Error:", e);
-      notify.danger('Cancellation Failed', e.response?.data?.message || 'Could not process session cancellation.');
-    }
-  };
 
   const handleManageSession = (doctor: any, session: any, queueId: string) => {
     setActiveSession({ doctor, session, queueId });
@@ -160,7 +143,7 @@ const QueueDashboard: React.FC = () => {
     onSuccess: (_result, queueId) => {
       console.log("End Queue Mutation successful");
       notify.info('Session Ended', `Queue for ${activeSession?.doctor?.name || 'doctor'} has been closed.`);
-      
+
       // Cleanup fallback session storage to ensure button reverts to "Start Session"
       try {
         const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
@@ -225,7 +208,7 @@ const QueueDashboard: React.FC = () => {
     // Strict Client-side duplicate check
     // We search across ALL tokens in the current session (Pending and Now Serving)
     const queueData = queryClient.getQueryData(['upcomingTokens', activeSession.queueId]) as any[];
-    const isDuplicate = queueData && queueData.some((t: any) => 
+    const isDuplicate = queueData && queueData.some((t: any) =>
       t.patientPhone === data.phone && (t.status === 0 || t.status === 1)
     );
 
@@ -237,7 +220,7 @@ const QueueDashboard: React.FC = () => {
     setIsCheckingWhatsApp(true);
     try {
       const result = await queueService.checkWhatsAppNumber(selectedBranchId, data.phone);
-      
+
       if (result?.isError) {
         notify.info("Verification Skipped", "WhatsApp bridge is offline. Booking will proceed without verification.");
       } else if (result && result.ready && !result.exists) {
@@ -296,19 +279,15 @@ const QueueDashboard: React.FC = () => {
       ) : (
         <ManageQueue
           sessionData={activeSession || { queueId: urlQueueId }}
-          onBack={() => { 
-            setSearchParams({}); 
-            setActiveSession(null); 
+          onBack={() => {
+            setSearchParams({});
+            setActiveSession(null);
             queryClient.resetQueries({ queryKey: ['activeQueue'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
           }}
           onManualBooking={() => setIsModalOpen(true)}
           isEnding={endQueueMutation.isPending}
           onEndSession={() => setConfirmEndSession({ isOpen: true, queueId: urlQueueId || activeSession?.queueId })}
-          onCancelSession={() => {
-            const qId = (activeSession?.queueId || urlQueueId);
-            if (qId) handleCancelQueueById(qId);
-          }}
           setEditingToken={setEditingToken}
           setDeletingTokenId={setDeletingTokenId}
           deleteTokenMutation={deleteTokenMutation}
@@ -323,7 +302,7 @@ const QueueDashboard: React.FC = () => {
       />
 
       {confirmEndSession.isOpen && (
-        <ConfirmDialog 
+        <ConfirmDialog
           title="End Session?"
           message="Are you sure you want to end this doctor's session? This will mark the queue as completed."
           onConfirm={() => {
@@ -355,10 +334,10 @@ const QueueDashboard: React.FC = () => {
             </div>
             <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this patient from the queue? This will mark the token as cancelled.</p>
             <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setDeletingTokenId(null)} style={{ flex: 1, padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 600 }}><X size={16}/> No, Keep</button>
-              <button 
+              <button onClick={() => setDeletingTokenId(null)} style={{ flex: 1, padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 600 }}><X size={16} /> No, Keep</button>
+              <button
                 onClick={() => deleteTokenMutation.mutate(deletingTokenId)}
-                className="btn-primary" 
+                className="btn-primary"
                 style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)', padding: '10px 20px', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <Trash2 size={18} /> {deleteTokenMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
@@ -375,31 +354,31 @@ const QueueDashboard: React.FC = () => {
 const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onManage, selectedBranchId, setSelectedBranchId, branches, processingSessions }: any) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '35px' }}>
-      <PageHeader 
-        title="Queue" 
-        accentTitle="Dashboard" 
+      <PageHeader
+        title="Queue"
+        accentTitle="Dashboard"
         subtitle="Monitor and manage doctor sessions in real-time."
         icon={<LayoutDashboard />}
         rightElement={
           <div style={{ minWidth: '250px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-               <Building2 size={14} /> Hospital Branch
+              <Building2 size={14} /> Hospital Branch
             </label>
-            <select 
-               data-tooltip="Switch hospital branch dashboard"
-               value={selectedBranchId} 
-               onChange={(e) => setSelectedBranchId(e.target.value)}
-               style={{ 
-                 width: '100%', padding: '12px 15px', borderRadius: '12px', 
-                 background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', 
-                 color: 'white', fontWeight: 600, fontSize: '0.9rem'
-               }}
-             >
-               <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
-               {branches?.map((b: any) => (
-                 <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
-               ))}
-             </select>
+            <select
+              data-tooltip="Switch hospital branch dashboard"
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              style={{
+                width: '100%', padding: '12px 15px', borderRadius: '12px',
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'white', fontWeight: 600, fontSize: '0.9rem'
+              }}
+            >
+              <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
+              {branches?.map((b: any) => (
+                <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
+              ))}
+            </select>
           </div>
         }
       />
@@ -450,11 +429,11 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
 
             <div className="grid-sessions">
               {doctors?.map((doc: any) => (
-                <DoctorCard 
-                  key={doc.id} 
-                  doctor={doc} 
-                  onStart={onStart} 
-                  onManage={onManage} 
+                <DoctorCard
+                  key={doc.id}
+                  doctor={doc}
+                  onStart={onStart}
+                  onManage={onManage}
                   selectedBranchId={selectedBranchId}
                   processingSessions={processingSessions}
                 />
@@ -498,13 +477,13 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
       <h2 style={{ margin: '0 0 10px', fontSize: '1.8rem' }}>{title}</h2>
       <p style={{ color: 'var(--text-secondary)', marginBottom: '35px', lineHeight: '1.6' }}>{message}</p>
       <div style={{ display: 'flex', gap: '15px' }}>
-        <button 
+        <button
           data-tooltip="Return to management console"
-          onClick={onCancel} 
-          style={{ 
-            flex: 1, padding: '12px 20px', borderRadius: '10px', 
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
-            color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', 
+          onClick={onCancel}
+          style={{
+            flex: 1, padding: '12px 20px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex',
             alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.9rem',
             transition: 'all 0.2s'
           }}
@@ -513,14 +492,14 @@ const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
         >
           <X size={18} /> Cancel
         </button>
-        <button 
+        <button
           data-tooltip="Terminate session and close queue"
-          onClick={onConfirm} 
-          style={{ 
-            flex: 1, padding: '12px 20px', borderRadius: '10px', 
-            background: 'var(--danger)', border: 'none', color: 'white', 
-            cursor: 'pointer', fontWeight: 800, display: 'flex', 
-            alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.9rem' 
+          onClick={onConfirm}
+          style={{
+            flex: 1, padding: '12px 20px', borderRadius: '10px',
+            background: 'var(--danger)', border: 'none', color: 'white',
+            cursor: 'pointer', fontWeight: 800, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.9rem'
           }}
         >
           <Power size={18} /> Confirm End
@@ -546,7 +525,7 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSes
       try {
         const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
         const liveSession = todaysSessions.find((s: any) => !!startedSessions[`${doctor.id}_${s.id}`]);
-        
+
         if (liveSession) {
           setSelectedSessId(liveSession.id);
           return;
@@ -587,15 +566,15 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSes
       </div>
 
       {todaysSessions.length > 1 && (
-        <div className="custom-scrollbar" style={{ 
-          padding: '0 25px 15px', 
-          display: 'flex', 
-          gap: '8px', 
+        <div className="custom-scrollbar" style={{
+          padding: '0 25px 15px',
+          display: 'flex',
+          gap: '8px',
           overflowX: 'auto',
           scrollBehavior: 'smooth'
         }}>
           {todaysSessions.map((sess: any) => (
-            <button 
+            <button
               key={sess.id}
               onClick={() => setSelectedSessId(sess.id)}
               style={{
@@ -629,10 +608,10 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSes
         </div>
       ) : (
         <div style={{ padding: '0 25px 25px' }}>
-          <SessionItem 
-            doctor={doctor} 
-            session={activeSess} 
-            onStart={onStart} 
+          <SessionItem
+            doctor={doctor}
+            session={activeSess}
+            onStart={onStart}
             onManage={onManage}
             isProcessing={processingSessions?.has(`${doctor.id}_${activeSess?.id}`)}
           />
@@ -654,7 +633,7 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
   // Check if session was recently started in this browser session (fallback)
   const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}');
   const fallbackQueueId = startedSessions[`${doctor.id}_${session.id}`];
-  
+
   // Sticky logic: Jab tak fallback ID hai ya backend active queue bol raha hai, tab tak "Manage" hi dikhega.
   // Fallback ID sirf endQueueMutation.onSuccess pe hi delete hota hai.
   const isLive = !!fallbackQueueId || (!!activeQueue && !!activeQueue.id);
@@ -676,10 +655,10 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
       {/* Header: Name and Time */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ 
-            width: '45px', height: '45px', borderRadius: '12px', 
-            background: 'rgba(255,255,255,0.03)', display: 'flex', 
-            alignItems: 'center', justifyContent: 'center', color: isLive ? 'var(--accent-color)' : 'var(--text-secondary)' 
+          <div style={{
+            width: '45px', height: '45px', borderRadius: '12px',
+            background: 'rgba(255,255,255,0.03)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', color: isLive ? 'var(--accent-color)' : 'var(--text-secondary)'
           }}>
             <Clock size={22} />
           </div>
@@ -706,11 +685,11 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
       </div>
 
       {/* Stats and Action Row */}
-      <div style={{ 
-        display: 'flex', 
+      <div style={{
+        display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(255,255,255,0.02)', 
-        padding: '18px', 
+        background: 'rgba(255,255,255,0.02)',
+        padding: '18px',
         borderRadius: '14px',
         border: '1px solid rgba(255,255,255,0.05)',
         gap: '18px'
@@ -733,27 +712,27 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
         </div>
 
         {isLive ? (
-          <button 
+          <button
             data-tooltip="Open queue management console"
-            className="btn-primary doctor-card-btn" 
+            className="btn-primary doctor-card-btn"
             onClick={() => onManage(doctor, session, displayQueueId)}
-            style={{ 
+            style={{
               width: '100%',
-              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px', 
+              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px',
               minHeight: '44px', gap: '8px', fontWeight: 700
             }}
           >
             <Settings size={14} /> Manage Session
           </button>
         ) : (
-          <button 
+          <button
             data-tooltip="Initialize queue for this shift"
-            className="start-btn doctor-card-btn" 
+            className="start-btn doctor-card-btn"
             onClick={() => onStart(doctor, session)}
             disabled={isProcessing}
-            style={{ 
+            style={{
               width: '100%',
-              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px', 
+              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px',
               minHeight: '44px', gap: '8px', fontWeight: 700,
               background: isProcessing ? 'rgba(56, 189, 248, 0.05)' : 'rgba(56, 189, 248, 0.1)',
               border: '1px solid rgba(56, 189, 248, 0.2)',
@@ -776,7 +755,7 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
 };
 
 // --- SUB-COMPONENT: MANAGE QUEUE ---
-const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, onCancelSession, setEditingToken, setDeletingTokenId }: any) => {
+const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSession, setEditingToken, setDeletingTokenId }: any) => {
   const queryClient = useQueryClient();
   const { doctor, session, queueId } = sessionData;
   const { branchId, role: userRole } = useAuthStore();
@@ -785,15 +764,26 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
   const [servedSearch, setServedSearch] = useState('');
   const [skippedSearch, setSkippedSearch] = useState('');
 
-  const { data: queue, refetch: refetchQueue } = useQuery({
+  const { data: queue, refetch: refetchQueue, isRefetching: isRefetchingQueue } = useQuery({
     queryKey: ['queueDetails', queueId],
     queryFn: () => queueService.getQueueDetails(queueId)
   });
 
-  const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
+  const { data: upcomingTokens, refetch: refetchTokens, isRefetching: isRefetchingTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
     queryFn: () => queueService.getUpcomingTokens(queueId)
   });
+
+  const isRefreshing = isRefetchingQueue || isRefetchingTokens;
+  const [isManualSync, setIsManualSync] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsManualSync(true);
+    await Promise.all([refetchQueue(), refetchTokens()]);
+    notify.success('Sync Complete', 'Queue data updated.');
+    // Add a slight delay so the user can see the spin even if the network is instant
+    setTimeout(() => setIsManualSync(false), 500);
+  };
 
   const callNextMutation = useMutation({
     mutationFn: () => queueService.callNext(queueId),
@@ -801,7 +791,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       if (newToken === 0) {
         notify.info('Queue Empty', 'No more patients are waiting.');
       } else {
-        notify.success('Next Patient Called', `Token #${newToken} has been called.`);
+        notify.success('Next Patient Called', `Token ${newToken} is now being called.`);
       }
       refetchQueue();
       refetchTokens();
@@ -910,8 +900,8 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       };
       connection.on('TokenUpdated', handleUpdate);
       connection.on('QueueEnded', handleEnd);
-      return () => { 
-        connection.off('TokenUpdated', handleUpdate); 
+      return () => {
+        connection.off('TokenUpdated', handleUpdate);
         connection.off('QueueEnded', handleEnd);
       };
     }
@@ -950,11 +940,23 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
           </button>
           <button 
             data-tooltip="Refresh live queue data"
-            onClick={() => { refetchQueue(); refetchTokens(); }} 
-            style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'var(--accent-color)', display: 'flex' }}
+            onClick={handleRefresh} 
+            disabled={isRefreshing || isManualSync}
+            style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              border: 'none', 
+              padding: '10px', 
+              borderRadius: '8px', 
+              cursor: (isRefreshing || isManualSync) ? 'not-allowed' : 'pointer', 
+              color: (isRefreshing || isManualSync) ? 'var(--text-secondary)' : 'var(--accent-color)', 
+              display: 'flex',
+              opacity: (isRefreshing || isManualSync) ? 0.7 : 1,
+              transition: 'all 0.3s',
+              transform: (isRefreshing || isManualSync) ? 'scale(0.95)' : 'scale(1)'
+            }}
             title="Refresh Data"
           >
-            <RotateCcw size={20} />
+            <RotateCcw size={20} className={(isRefreshing || isManualSync) ? 'animate-spin' : ''} />
           </button>
           <div>
             <h2 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -969,91 +971,63 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             </div>
           </div>
         </div>
-        
-        <div style={{ display: 'flex', gap: '10px', width: '100%' }} className="full-width-mobile flex-mobile-column">
-          <button 
-            data-tooltip="Manually book a patient in the queue"
-            type="button" onClick={onManualBooking} className="full-width-mobile" style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '12px 10px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
-            <PlusCircle size={16} /> Booking
-          </button>
-          <button 
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
             data-tooltip="Permanently close this doctor's session"
             type="button"
             onClick={handleEndSession}
             disabled={isEnding}
-            className="full-width-mobile"
-            style={{ 
-              flex: 1,
-              background: 'rgba(239, 68, 68, 0.1)', 
-              border: '1px solid var(--danger)', 
-              color: 'var(--danger)', 
-              padding: '12px 10px', 
-              borderRadius: '10px', 
-              fontSize: '0.85rem',
-              opacity: isEnding ? 0.5 : 1,
+            style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              fontWeight: 700
-            }}
-          >
-            <CheckCircle2 size={16} /> End
-          </button>
-          <button 
-            data-tooltip="Mark session as cancelled / pre-planned absent"
-            type="button"
-            onClick={onCancelSession}
-            className="full-width-mobile"
-            style={{ 
-              flex: 1,
-              background: 'rgba(239, 68, 68, 0.2)', 
-              border: '1px solid var(--danger)', 
-              color: '#fca5a5', 
-              padding: '12px 10px', 
-              borderRadius: '10px', 
-              fontSize: '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid var(--danger)',
+              color: 'var(--danger)',
               fontWeight: 800,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              opacity: isEnding ? 0.5 : 1,
+              transition: 'all 0.3s',
+              whiteSpace: 'nowrap'
             }}
           >
-            <Power size={16} /> Absent
+            <Power size={18} /> End Session
           </button>
         </div>
       </div>
 
       {/* Header Stats - Doctor Specific */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-        <StatCard 
-          icon={<Users />} 
-          label="Total Registered" 
-          value={(queue?.waitingCount || 0) + (queue?.completedCount || 0) + (queue?.skippedCount || 0) + (queue?.nowServing ? 1 : 0)} 
-          color="var(--accent-color)" 
+        <StatCard
+          icon={<Users />}
+          label="Total Registered"
+          value={(queue?.waitingCount || 0) + (queue?.completedCount || 0) + (queue?.skippedCount || 0) + (queue?.nowServing ? 1 : 0)}
+          color="var(--accent-color)"
           subText="Total patients for today"
         />
-        <StatCard 
-          icon={<CheckCircle2 />} 
-          label="Served Patients" 
-          value={(queue?.completedCount || 0) + (queue?.nowServing ? 1 : 0)} 
-          color="var(--success)" 
+        <StatCard
+          icon={<CheckCircle2 />}
+          label="Served Patients"
+          value={(queue?.completedCount || 0) + (queue?.nowServing ? 1 : 0)}
+          color="var(--success)"
           subText={`${queue?.completedCount || 0} completed, ${queue?.nowServing ? '1 currently in cabin' : 'consultation room empty'}`}
         />
-        <StatCard 
-          icon={<Clock />} 
-          label="Waiting Now" 
-          value={queue?.waitingCount || 0} 
-          color="#FACC15" 
+        <StatCard
+          icon={<Clock />}
+          label="Waiting Now"
+          value={queue?.waitingCount || 0}
+          color="#FACC15"
           subText="Patients yet to be seen"
         />
-        <StatCard 
-          icon={<AlertCircle />} 
-          label="Skipped" 
-          value={queue?.skippedCount || 0} 
-          color="var(--danger)" 
+        <StatCard
+          icon={<AlertCircle />}
+          label="Skipped"
+          value={queue?.skippedCount || 0}
+          color="var(--danger)"
           subText="Patients who missed their turn"
         />
       </div>
@@ -1134,7 +1108,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                     if (queue.waitingCount > 0) {
                       callNextMutation.mutate();
                     }
-                  } catch (e) {}
+                  } catch (e) { }
                 }}
                 disabled={completeMutation.isPending || callNextMutation.isPending}
                 className="btn-primary"
@@ -1152,8 +1126,8 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                   gap: '15px'
                 }}
               >
-                {completeMutation.isPending || callNextMutation.isPending ? 
-                  <Clock size={32} className="animate-spin" /> : 
+                {completeMutation.isPending || callNextMutation.isPending ?
+                  <Clock size={32} className="animate-spin" /> :
                   <><CheckCircle2 size={32} /> <ChevronRight size={32} /> Complete & Next</>
                 }
               </button>
@@ -1187,7 +1161,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 Skip
               </button>
             </div>
-            
+
             <button
               data-tooltip="Send WhatsApp alert to current patient"
               style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
@@ -1206,7 +1180,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
               disabled={isDoctorArrived || markArrivedMutation.isPending}
               style={{
                 background: isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                color: isDoctorArrived ? 'var(--success)' : 'white', 
+                color: isDoctorArrived ? 'var(--success)' : 'white',
                 border: `1px solid ${isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.1)'}`,
                 padding: '15px', borderRadius: '14px', cursor: isDoctorArrived ? 'default' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600,
@@ -1233,9 +1207,9 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       {/* Tabs and Search Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', marginBottom: '25px' }} className="flex-mobile-column">
         <div style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '14px', width: '100%', overflowX: 'auto' }} className="no-scrollbar">
-          <button 
+          <button
             onClick={() => setActiveTab('waiting')}
-            style={{ 
+            style={{
               padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
               background: activeTab === 'waiting' ? 'var(--accent-color)' : 'transparent',
               color: activeTab === 'waiting' ? 'black' : 'var(--text-secondary)',
@@ -1244,9 +1218,9 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
           >
             <Clock size={14} /> Waiting ({upcomingTokens?.filter((t: any) => t.status === 0).length || 0})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('completed')}
-            style={{ 
+            style={{
               padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
               background: activeTab === 'completed' ? 'var(--success)' : 'transparent',
               color: activeTab === 'completed' ? 'black' : 'var(--text-secondary)',
@@ -1255,9 +1229,9 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
           >
             <CheckCircle2 size={14} /> Served ({upcomingTokens?.filter((t: any) => t.status === 2).length || 0})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('skipped')}
-            style={{ 
+            style={{
               padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
               background: activeTab === 'skipped' ? 'var(--danger)' : 'transparent',
               color: activeTab === 'skipped' ? 'black' : 'var(--text-secondary)',
@@ -1268,23 +1242,48 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
           </button>
         </div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: '350px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
-          <input
-            type="text"
-            placeholder={`Search in ${activeTab}...`}
-            value={activeTab === 'waiting' ? waitingSearch : activeTab === 'completed' ? servedSearch : skippedSearch}
-            onChange={(e) => {
-              if (activeTab === 'waiting') setWaitingSearch(e.target.value);
-              else if (activeTab === 'completed') setServedSearch(e.target.value);
-              else setSkippedSearch(e.target.value);
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%', maxWidth: '600px', marginLeft: 'auto' }} className="flex-mobile-column">
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+            <input
+              type="text"
+              placeholder={`Search in ${activeTab}...`}
+              value={activeTab === 'waiting' ? waitingSearch : activeTab === 'completed' ? servedSearch : skippedSearch}
+              onChange={(e) => {
+                if (activeTab === 'waiting') setWaitingSearch(e.target.value);
+                else if (activeTab === 'completed') setServedSearch(e.target.value);
+                else setSkippedSearch(e.target.value);
+              }}
+              style={{
+                width: '100%', padding: '12px 15px 12px 45px', borderRadius: '12px',
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                color: 'white', fontSize: '0.9rem'
+              }}
+            />
+          </div>
+
+          <button
+            data-tooltip="Manually book a patient in the queue"
+            type="button"
+            onClick={onManualBooking}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              background: 'rgba(56, 189, 248, 0.05)',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--accent-color)',
+              fontWeight: 800,
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              transition: 'all 0.3s',
+              whiteSpace: 'nowrap'
             }}
-            style={{ 
-              width: '100%', padding: '14px 15px 14px 45px', borderRadius: '12px', 
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-              color: 'white', fontSize: '1rem'
-            }}
-          />
+          >
+            <PlusCircle size={18} /> New Booking
+          </button>
         </div>
       </div>
 
@@ -1330,8 +1329,8 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
               {(() => {
                 const filtered = upcomingTokens?.filter((t: any) => {
                   const currentSearch = activeTab === 'waiting' ? waitingSearch : activeTab === 'completed' ? servedSearch : skippedSearch;
-                  const matchesSearch = t.patientName.toLowerCase().includes(currentSearch.toLowerCase()) || 
-                                       t.tokenNumber.toString().includes(currentSearch);
+                  const matchesSearch = t.patientName.toLowerCase().includes(currentSearch.toLowerCase()) ||
+                    t.tokenNumber.toString().includes(currentSearch);
                   if (!matchesSearch) return false;
 
                   if (activeTab === 'waiting') return t.status === 0;
@@ -1344,10 +1343,10 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                   return (
                     <tr>
                       <td colSpan={7} style={{ padding: '100px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '1.2rem' }}>
-                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', opacity: 0.4 }}>
-                            <Users size={40} />
-                            <span>{waitingSearch || servedSearch || skippedSearch ? "No matching patients found" : "Nobody in the queue"}</span>
-                         </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', opacity: 0.4 }}>
+                          <Users size={40} />
+                          <span>{waitingSearch || servedSearch || skippedSearch ? "No matching patients found" : "Nobody in the queue"}</span>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1378,7 +1377,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                       <td style={{ textAlign: 'right', paddingRight: '30px' }}>
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                           {t.status === 3 && (
-                            <button 
+                            <button
                               data-tooltip="Requeue: Move patient back to waiting list"
                               onClick={() => requeueMutation.mutate(t.id)}
                               style={{ background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1388,7 +1387,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                           )}
                           {t.status !== 2 && (
                             <>
-                              <button 
+                              <button
                                 data-tooltip="Modify patient details"
                                 onClick={() => setEditingToken(t)}
                                 style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer' }}
@@ -1396,7 +1395,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                                 <Edit size={18} />
                               </button>
                               {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(userRole?.toLowerCase().replace(/\s/g, '') || '')) && (
-                                <button 
+                                <button
                                   data-tooltip="Delete: Permanently remove from queue"
                                   onClick={() => setDeletingTokenId(t.id)}
                                   style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1429,8 +1428,8 @@ const badgeStyle: React.CSSProperties = {
 const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
- 
+  const [errors, setErrors] = useState<{ name?: string, phone?: string }>({});
+
   useEffect(() => {
     if (token && isOpen) {
       setName(token.patientName || '');
@@ -1440,27 +1439,27 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
       setErrors({});
     }
   }, [token, isOpen]);
- 
+
   if (!isOpen) return null;
- 
+
   const validate = () => {
-    const newErrors: {name?: string, phone?: string} = {};
+    const newErrors: { name?: string, phone?: string } = {};
     if (name.trim().length < 2) newErrors.name = "Name is too short";
     if (phone.length > 0 && !/^\d{10}$/.test(phone)) newErrors.phone = "Enter exactly 10 digits";
     if (!phone) newErrors.phone = "Phone number is required";
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
- 
+
   const handleSave = () => {
     if (validate()) {
       onSave({ patientName: name.trim(), patientPhone: phone });
     }
   };
- 
+
   const isValid = name.trim().length >= 2 && /^\d{10}$/.test(phone);
- 
+
   return (
     <Modal title="Edit Patient Details" onClose={onClose} icon={<Edit color="var(--accent-color)" />}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1468,9 +1467,9 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
           <label data-tooltip="Update patient's official name" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             <User size={14} /> Patient Name
           </label>
-          <input 
-            value={name} 
-            onChange={(e) => { setName(e.target.value); setErrors(prev => ({...prev, name: undefined})); }} 
+          <input
+            value={name}
+            onChange={(e) => { setName(e.target.value); setErrors(prev => ({ ...prev, name: undefined })); }}
             placeholder="Enter name"
             style={{ borderColor: errors.name ? 'var(--danger)' : 'rgba(255,255,255,0.1)' }}
           />
@@ -1480,39 +1479,39 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
           <label data-tooltip="Update WhatsApp contact for notifications" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             <Smartphone size={14} /> Phone Number (WhatsApp)
           </label>
-          <input 
-            value={phone} 
-            onChange={(e) => { 
+          <input
+            value={phone}
+            onChange={(e) => {
               const val = e.target.value.replace(/\D/g, '').slice(0, 10);
               setPhone(val);
-              setErrors(prev => ({...prev, phone: undefined}));
-            }} 
+              setErrors(prev => ({ ...prev, phone: undefined }));
+            }}
             placeholder="10 digit number"
             style={{ borderColor: errors.phone ? 'var(--danger)' : 'rgba(255,255,255,0.1)' }}
           />
           {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '5px' }}>{errors.phone}</p>}
         </div>
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
-          <button 
+          <button
             data-tooltip="Discard changes and return"
-            onClick={onClose} 
-            style={{ 
-              flex: 1, padding: '10px 20px', borderRadius: '8px', 
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', 
+            onClick={onClose}
+            style={{
+              flex: 1, padding: '10px 20px', borderRadius: '8px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
               color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               fontSize: '0.9rem', fontWeight: 600
             }}
           >
             <X size={18} /> Cancel
           </button>
-          <button 
+          <button
             data-tooltip="Update patient record in queue"
-            onClick={handleSave} 
+            onClick={handleSave}
             disabled={!isValid}
-            style={{ 
-              flex: 1.5, padding: '10px 20px', borderRadius: '8px', 
-              background: isValid ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)', 
-              border: 'none', color: isValid ? 'black' : 'rgba(255,255,255,0.3)', 
+            style={{
+              flex: 1.5, padding: '10px 20px', borderRadius: '8px',
+              background: isValid ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)',
+              border: 'none', color: isValid ? 'black' : 'rgba(255,255,255,0.3)',
               fontWeight: 700, cursor: isValid ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem'
             }}

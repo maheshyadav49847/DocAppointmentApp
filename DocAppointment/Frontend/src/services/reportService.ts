@@ -6,16 +6,14 @@ export interface BranchAnalytics {
   cancelledTokens: number;
   pendingTokens: number;
   averageWaitTimeMinutes: number;
-  totalRevenue: number;
   averageRating: number;
-  financials: { cash: number; upi: number; card: number; online: number };
-  patientComposition: { newPatients: number; returningPatients: number };
+  patientComposition: { newPatients: number; returningPatients: number; repeatRate: number };
   operations: { avgDoctorPunctualityMinutes: number; slotUtilizationPercent: number };
-  staffPerformance: { staffName: string; tokensGenerated: number }[];
+  staffPerformance: { staffName: string; tokensGenerated: number; averageRating: number }[];
   whatsAppStats: { totalSent: number; delivered: number; failed: number };
   platformStats: { totalOrganizations: number; totalBranches: number; avgApiResponseTimeMs: number; databaseSizeMb: number };
   hourlyTrends: { hour: number; count: number }[];
-  doctorPerformance: { doctorName: string; tokenCount: number; avgWaitTime: number; revenue: number }[];
+  doctorPerformance: { doctorName: string; tokenCount: number; avgWaitTime: number; averageRating: number }[];
   dailyWaitTimeTrends: { date: string; avgWaitTime: number }[];
   recentFeedback: { patientName: string; score: number; comment: string | null; date: string }[];
 }
