@@ -12,11 +12,9 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
         public int CancelledTokens { get; set; }
         public int PendingTokens { get; set; }
         public double AverageWaitTimeMinutes { get; set; }
-        public decimal TotalRevenue { get; set; }
         public double AverageRating { get; set; }
         
         // New Sections
-        public FinancialSummaryDto Financials { get; set; } = new();
         public PatientCompositionDto PatientComposition { get; set; } = new();
         public OperationalMetricsDto Operations { get; set; } = new();
         public List<StaffEfficiencyDto> StaffPerformance { get; set; } = new();
@@ -29,17 +27,17 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
         public List<FeedbackDto> RecentFeedback { get; set; } = new();
     }
 
-    public record FinancialSummaryDto(decimal Cash = 0, decimal UPI = 0, decimal Card = 0, decimal Online = 0);
-    public record PatientCompositionDto(int NewPatients = 0, int ReturningPatients = 0);
+
+    public record PatientCompositionDto(int NewPatients = 0, int ReturningPatients = 0, double RepeatRate = 0);
     public record OperationalMetricsDto(double AvgDoctorPunctualityMinutes = 0, double SlotUtilizationPercent = 0);
-    public record StaffEfficiencyDto(string StaffName, int TokensGenerated);
+    public record StaffEfficiencyDto(string StaffName, int TokensGenerated, double AverageRating);
     public record WhatsAppStatsDto(int TotalSent = 0, int Delivered = 0, int Failed = 0);
     public record PlatformStatsDto(int TotalOrganizations = 0, int TotalBranches = 0, double AvgApiResponseTimeMs = 0, double DatabaseSizeMb = 0);
 
     public record HourlyTrendDto(int Hour, int Count);
     public record DailyTrendDto(string Date, double AvgWaitTime);
     public record FeedbackDto(string PatientName, int Score, string? Comment, string Date);
-    public record DoctorPerformanceDto(string DoctorName, int TokenCount, double AvgWaitTime, decimal Revenue);
+    public record DoctorPerformanceDto(string DoctorName, int TokenCount, double AvgWaitTime, double AverageRating);
 
     public record GetBranchAnalyticsQuery(Guid OrgId, Guid? BranchId, DateTime StartDate, DateTime EndDate, bool IsSuperAdmin = false) : IRequest<BranchAnalyticsDto>;
 
@@ -84,27 +82,25 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
                 CompletedTokens = tokens.Count(t => t.Status == TokenStatus.Completed),
                 CancelledTokens = tokens.Count(t => t.Status == TokenStatus.Cancelled),
                 PendingTokens = tokens.Count(t => t.Status == TokenStatus.Pending),
-                TotalRevenue = tokens.Sum(t => t.FeePaid),
                 AverageRating = tokens.Where(t => t.Rating != null).Any() 
                     ? Math.Round(tokens.Where(t => t.Rating != null).Average(t => t.Rating!.Score), 1) 
                     : 0,
-                
-                // Financial Summary
-                Financials = new FinancialSummaryDto(
-                    Cash: tokens.Where(t => t.PaymentMode == PaymentMode.Cash).Sum(t => t.FeePaid),
-                    UPI: tokens.Where(t => t.PaymentMode == PaymentMode.UPI).Sum(t => t.FeePaid),
-                    Card: tokens.Where(t => t.PaymentMode == PaymentMode.Card).Sum(t => t.FeePaid),
-                    Online: tokens.Where(t => t.PaymentMode == PaymentMode.Online).Sum(t => t.FeePaid)
-                ),
-
-                // Patient Composition (New vs Returning)
-                // Correctness: Patient is "New" if their FIRST EVER token is within this range.
-                // For MVP, we'll stick to a simpler but cleaner version:
-                PatientComposition = new PatientCompositionDto(
-                    NewPatients: tokens.GroupBy(t => t.PatientId).Count(g => g.Count() == 1),
-                    ReturningPatients: tokens.GroupBy(t => t.PatientId).Count(g => g.Count() > 1)
-                )
             };
+
+            // Accurate Patient Composition
+            var uniquePatientIds = tokens.Select(t => t.PatientId).Distinct().ToList();
+            var patients = await _context.Patients
+                .Where(p => uniquePatientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.CreatedAt })
+                .ToListAsync(cancellationToken);
+
+            var totalUnique = patients.Count;
+            dto.PatientComposition = new PatientCompositionDto(
+                NewPatients: patients.Count(p => p.CreatedAt >= request.StartDate && p.CreatedAt <= request.EndDate),
+                ReturningPatients: patients.Count(p => p.CreatedAt < request.StartDate),
+                RepeatRate: totalUnique > 0 ? Math.Round((double)patients.Count(p => p.CreatedAt < request.StartDate) / totalUnique * 100, 1) : 0
+            );
+
 
             // Operational Metrics
             var queuesWithStart = tokens
@@ -122,9 +118,10 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
                 });
             }
 
+            var totalCapacity = queuesWithStart.Sum(q => q.Session.DefaultCapacity);
             dto.Operations = new OperationalMetricsDto(
                 AvgDoctorPunctualityMinutes: Math.Round(avgPunctuality, 1),
-                SlotUtilizationPercent: tokens.Count > 0 ? Math.Round((double)tokens.Count / (queuesWithStart.Sum(q => q.Session.DefaultCapacity)) * 100, 1) : 0
+                SlotUtilizationPercent: (totalCapacity > 0) ? Math.Round((double)tokens.Count / totalCapacity * 100, 1) : 0
             );
 
             // Staff Performance
@@ -138,7 +135,10 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
                 .GroupBy(t => t.CreatedByStaffId!.Value)
                 .Select(g => new StaffEfficiencyDto(
                     staffNames.ContainsKey(g.Key) ? staffNames[g.Key] : "System",
-                    g.Count()
+                    g.Count(),
+                    g.Where(t => t.Rating != null).Any() 
+                        ? Math.Round(g.Where(t => t.Rating != null).Average(t => t.Rating!.Score), 1)
+                        : 0
                 ))
                 .OrderByDescending(s => s.TokensGenerated)
                 .ToList();
@@ -191,7 +191,9 @@ namespace CodeX.Application.Features.Reports.Queries.GetBranchAnalytics
                     g.Where(t => t.CalledAt.HasValue).Any() 
                         ? Math.Round(g.Where(t => t.CalledAt.HasValue).Average(t => (t.CalledAt!.Value - t.BookedAt).TotalMinutes), 1)
                         : 0,
-                    g.Sum(t => t.FeePaid)
+                    g.Where(t => t.Rating != null).Any()
+                        ? Math.Round(g.Where(t => t.Rating != null).Average(t => t.Rating!.Score), 1)
+                        : 0
                 ))
                 .ToList();
 

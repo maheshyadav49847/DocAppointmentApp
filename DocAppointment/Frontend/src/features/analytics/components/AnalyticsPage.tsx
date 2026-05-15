@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   XAxis, Tooltip, ResponsiveContainer, 
-  AreaChart, Area, PieChart, Pie, Cell
+  AreaChart, Area
 } from 'recharts';
 import { 
   TrendingUp, Users, Clock, Download, Activity,
-  BarChart3, Star, CreditCard, UserPlus, 
+  BarChart3, Star, UserPlus, 
   UserCheck, ShieldCheck, Timer, MessageSquare, Database, Server
 } from 'lucide-react';
 import { subDays } from 'date-fns';
@@ -86,7 +86,6 @@ const AnalyticsPage: React.FC = () => {
   });
 
   const mainStats = [
-    { label: 'Total Revenue', value: `₹${(analytics?.totalRevenue || 0).toLocaleString()}`, icon: <CreditCard size={20} />, color: '#10b981' },
     { label: 'Avg Wait Time', value: `${analytics?.averageWaitTimeMinutes || 0} min`, icon: <Clock size={20} />, color: '#fbbf24' },
     { label: 'Doctor Punctuality', value: `${analytics?.operations.avgDoctorPunctualityMinutes || 0} min`, icon: <Timer size={20} />, color: '#f87171', subtitle: 'Avg Delay' },
     { label: 'Slot Utilization', value: `${analytics?.operations.slotUtilizationPercent || 0}%`, icon: <Activity size={20} />, color: '#818cf8' },
@@ -181,70 +180,69 @@ const AnalyticsPage: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px' }} className="flex-mobile-column">
-            {/* Financial Breakdown */}
-            <div className="glass-card" style={{ padding: '25px' }}>
-              <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><CreditCard size={20} color="var(--accent-color)" /> Revenue Stream Mix</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', minWidth: 0 }}>
-                <div style={{ height: '250px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Cash', value: analytics?.financials.cash || 0 },
-                          { name: 'UPI', value: analytics?.financials.upi || 0 },
-                          { name: 'Card', value: analytics?.financials.card || 0 },
-                          { name: 'Online', value: analytics?.financials.online || 0 },
-                        ]}
-                        innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                      >
-                        <Cell fill="#10b981" /><Cell fill="#38bdf8" /><Cell fill="#fbbf24" /><Cell fill="#818cf8" />
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '25px' }}>
+            {/* Patient Composition */}
+            <div className="glass-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={20} color="var(--accent-color)" /> Patient Acquisition Breakdown</h3>
+              <div style={{ flex: 1, display: 'flex', gap: '40px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.03)', padding: '15px', borderRadius: '12px', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600 }}><UserPlus size={14} color="#38bdf8" /> NEW ENTRIES</span>
+                      <span style={{ fontWeight: 800 }}>{analytics?.patientComposition.newPatients}</span>
+                    </div>
+                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
+                      <div style={{ height: '100%', background: '#38bdf8', width: `${(analytics?.patientComposition.newPatients || 0) / (analytics?.totalTokens || 1) * 100}%` }} />
+                    </div>
+                  </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.03)', padding: '15px', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600 }}><UserCheck size={14} color="#10b981" /> RETURNING</span>
+                      <span style={{ fontWeight: 800 }}>{analytics?.patientComposition.returningPatients}</span>
+                    </div>
+                    <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
+                      <div style={{ height: '100%', background: '#10b981', width: `${(analytics?.patientComposition.returningPatients || 0) / (analytics?.totalTokens || 1) * 100}%` }} />
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px' }}>
-                  {['Cash', 'UPI', 'Card', 'Online'].map((mode, i) => {
-                    const colors = ['#10b981', '#38bdf8', '#fbbf24', '#818cf8'];
-                    const val = (analytics?.financials as any)?.[mode.toLowerCase()] || 0;
-                    return (
-                      <div key={mode} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 15px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[i] }} />
-                          <span style={{ fontSize: '0.85rem' }}>{mode}</span>
-                        </div>
-                        <span style={{ fontWeight: 700 }}>₹{val.toLocaleString()}</span>
-                      </div>
-                    );
-                  })}
+                <div style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ width: '100%', padding: '25px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 800 }}>OVERALL RETENTION RATE</p>
+                    <h3 style={{ margin: '10px 0 0 0', fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent-color)' }}>{analytics?.patientComposition.repeatRate}%</h3>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Patient Composition */}
-            <div className="glass-card" style={{ padding: '25px', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={20} color="var(--accent-color)" /> Patient Acquisition</h3>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '25px', justifyContent: 'center' }}>
-                <div style={{ background: 'rgba(56, 189, 248, 0.03)', padding: '15px', borderRadius: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600 }}><UserPlus size={14} color="#38bdf8" /> NEW ENTRIES</span>
-                    <span style={{ fontWeight: 800 }}>{analytics?.patientComposition.newPatients}</span>
-                  </div>
-                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
-                    <div style={{ height: '100%', background: '#38bdf8', width: `${(analytics?.patientComposition.newPatients || 0) / (analytics?.totalTokens || 1) * 100}%` }} />
-                  </div>
-                </div>
-                <div style={{ background: 'rgba(16, 185, 129, 0.03)', padding: '15px', borderRadius: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600 }}><UserCheck size={14} color="#10b981" /> RETURNING</span>
-                    <span style={{ fontWeight: 800 }}>{analytics?.patientComposition.returningPatients}</span>
-                  </div>
-                  <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
-                    <div style={{ height: '100%', background: '#10b981', width: `${(analytics?.patientComposition.returningPatients || 0) / (analytics?.totalTokens || 1) * 100}%` }} />
-                  </div>
-                </div>
-              </div>
+            {/* Full Width Doctor Performance Table */}
+            <div className="glass-card" style={{ padding: '25px' }}>
+               <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={20} color="var(--accent-color)" /> Clinical Performance (Doctors)</h3>
+               <div style={{ overflowX: 'auto' }}>
+                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                   <thead>
+                     <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                       <th style={{ padding: '10px' }}>DOCTOR</th>
+                       <th style={{ padding: '10px' }}>PATIENTS</th>
+                       <th style={{ padding: '10px' }}>AVG CONSULT</th>
+                       <th style={{ padding: '10px' }}>SATISFACTION</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {analytics?.doctorPerformance.map((doc, i) => (
+                       <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                         <td style={{ padding: '15px 10px', fontWeight: 600 }}>{doc.doctorName}</td>
+                         <td style={{ padding: '15px 10px' }}>{doc.tokenCount}</td>
+                         <td style={{ padding: '15px 10px' }}>{Math.round(doc.avgWaitTime * 0.8)} min</td>
+                         <td style={{ padding: '15px 10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#fbbf24', fontWeight: 700 }}>
+                               <Star size={14} fill="#fbbf24" /> {doc.averageRating}
+                            </div>
+                         </td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
             </div>
           </div>
         </>
@@ -304,13 +302,14 @@ const AnalyticsPage: React.FC = () => {
 
       {activeTab === 'staff' && (
         <div className="glass-card" style={{ padding: '25px' }}>
-          <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><BarChart3 size={20} color="var(--accent-color)" /> Receptionist Throughput</h3>
+          <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><BarChart3 size={20} color="var(--accent-color)" /> Staff Efficiency & Feedback</h3>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
                   <th style={{ padding: '0 15px' }}>NAME</th>
                   <th style={{ padding: '0 15px' }}>TOKENS GENERATED</th>
+                  <th style={{ padding: '0 15px' }}>RATING</th>
                   <th style={{ padding: '0 15px' }}>EFFICIENCY BAND</th>
                 </tr>
               </thead>
@@ -319,6 +318,11 @@ const AnalyticsPage: React.FC = () => {
                   <tr key={i} style={{ background: 'rgba(255,255,255,0.01)' }}>
                     <td style={{ padding: '15px', fontWeight: 700, borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' }}>{staff.staffName}</td>
                     <td style={{ padding: '15px' }}>{staff.tokensGenerated}</td>
+                    <td style={{ padding: '15px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#fbbf24', fontWeight: 700 }}>
+                           <Star size={14} fill="#fbbf24" /> {staff.averageRating}
+                        </div>
+                    </td>
                     <td style={{ padding: '15px', borderTopRightRadius: '12px', borderBottomRightRadius: '12px' }}>
                        <div style={{ width: '150px', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
                           <div style={{ height: '100%', background: 'var(--accent-color)', width: `${Math.min(100, (staff.tokensGenerated / 40) * 100)}%` }} />
@@ -367,50 +371,6 @@ const AnalyticsPage: React.FC = () => {
            </div>
         </div>
       )}
-
-      {/* Common View: Doctor Performance & Feedback */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '25px' }} className="flex-mobile-column">
-        <div className="glass-card" style={{ padding: '25px' }}>
-          <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={20} color="var(--accent-color)" /> Clinical Throughput (Doctors)</h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--text-secondary)', fontSize: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <th style={{ padding: '10px' }}>DOCTOR</th>
-                  <th style={{ padding: '10px' }}>PATIENTS</th>
-                  <th style={{ padding: '10px' }}>AVG CONSULT</th>
-                  <th style={{ padding: '10px' }}>REVENUE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analytics?.doctorPerformance.map((doc, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                    <td style={{ padding: '15px 10px', fontWeight: 600 }}>{doc.doctorName}</td>
-                    <td style={{ padding: '15px 10px' }}>{doc.tokenCount}</td>
-                    <td style={{ padding: '15px 10px' }}>{Math.round(doc.avgWaitTime * 0.8)} min</td>
-                    <td style={{ padding: '15px 10px', fontWeight: 700, color: '#10b981' }}>₹{doc.revenue.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="glass-card" style={{ padding: '25px' }}>
-          <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Star size={20} color="#fbbf24" /> Patient NPS</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {analytics?.recentFeedback.slice(0, 5).map((fb, i) => (
-              <div key={i} style={{ padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>{fb.patientName}</span>
-                  <span style={{ color: '#fbbf24', fontSize: '0.8rem' }}>★ {fb.score}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>"{fb.comment || 'Excellent service.'}"</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
       </div>
     </div>
   );
