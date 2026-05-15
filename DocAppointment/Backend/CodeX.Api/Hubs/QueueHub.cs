@@ -23,7 +23,9 @@ namespace CodeX.Api.Hubs
             if (Guid.TryParse(branchId, out var branchGuid))
             {
                 var belongsToOrg = await _context.Branches
-                    .AnyAsync(b => b.Id == branchGuid && b.OrganizationId == _currentUser.OrgId);
+                    .AnyAsync(b => b.Id == branchGuid && 
+                              b.OrganizationId == _currentUser.OrgId &&
+                              (_currentUser.BranchId == null || b.Id == _currentUser.BranchId));
 
                 if (belongsToOrg || _currentUser.IsInRole("SuperAdmin"))
                 {

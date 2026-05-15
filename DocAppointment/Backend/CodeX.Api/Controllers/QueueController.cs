@@ -152,7 +152,9 @@ namespace CodeX.Api.Controllers
                 .Include(q => q.Doctor)
                 .Include(q => q.Branch)
                 .Include(q => q.Session)
-                .FirstOrDefaultAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
+                .FirstOrDefaultAsync(q => q.Id == queueId && 
+                    q.Branch.OrganizationId == _currentUserService.OrgId &&
+                    (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
 
             if (queue == null) return NotFound();
 
@@ -187,7 +189,9 @@ namespace CodeX.Api.Controllers
                 .ThenInclude(t => t.Patient)
                 .Include(q => q.Doctor)
                 .Include(q => q.Branch)
-                .FirstOrDefaultAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
+                .FirstOrDefaultAsync(q => q.Id == queueId && 
+                    q.Branch.OrganizationId == _currentUserService.OrgId &&
+                    (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
 
             if (queue == null) return NotFound();
 
@@ -213,8 +217,12 @@ namespace CodeX.Api.Controllers
         [HttpGet("active/{doctorId}/{sessionId}")]
         public async Task<ActionResult<object>> GetActiveQueueBySession(Guid doctorId, Guid sessionId)
         {
-            var today = DateTime.UtcNow.Date;
+            var sessionObj = await _context.Sessions.Include(s => s.Branch).FirstOrDefaultAsync(s => s.Id == sessionId);
+            if (sessionObj == null) return Ok(null);
+            
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(sessionObj.Branch?.Timezone);
             var tomorrow = today.AddDays(1);
+            
             var query = _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
@@ -227,7 +235,8 @@ namespace CodeX.Api.Controllers
 
             if (!_currentUserService.IsInRole("SuperAdmin"))
             {
-                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
+                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
             }
 
             var queue = await query
@@ -256,23 +265,25 @@ namespace CodeX.Api.Controllers
         [HttpGet("active/{doctorId}")]
         public async Task<ActionResult<Guid>> GetActiveQueue(Guid doctorId)
         {
-            var today = DateTime.UtcNow.Date;
-            var tomorrow = today.AddDays(1);
             var query = _context.DailyQueues
-                .Where(q => q.DoctorId == doctorId &&
-                            q.QueueDate >= today &&
-                            q.QueueDate < tomorrow);
+                .Include(q => q.Branch)
+                .Where(q => q.DoctorId == doctorId);
 
             if (!_currentUserService.IsInRole("SuperAdmin"))
             {
-                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
+                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
             }
 
-            var queue = await query
-                .OrderByDescending(q => q.CreatedAt)
-                .FirstOrDefaultAsync();
+            var queues = await query.OrderByDescending(q => q.CreatedAt).Take(5).ToListAsync();
+            var activeQueue = queues.FirstOrDefault(q => 
+            {
+                var tzToday = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(q.Branch?.Timezone);
+                return q.QueueDate >= tzToday && q.QueueDate < tzToday.AddDays(1) && 
+                       q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled;
+            });
  
-            return queue?.Id ?? Guid.Empty;
+            return activeQueue?.Id ?? Guid.Empty;
         }
 
         private async Task<bool> CanAccessQueue(Guid queueId)
@@ -283,7 +294,9 @@ namespace CodeX.Api.Controllers
             }
 
             return await _context.DailyQueues
-                .AnyAsync(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
+                .AnyAsync(q => q.Id == queueId && 
+                          q.Branch.OrganizationId == _currentUserService.OrgId &&
+                          (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
         }
     }
 }

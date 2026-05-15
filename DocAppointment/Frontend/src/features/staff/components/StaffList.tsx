@@ -334,7 +334,7 @@ const StaffList: React.FC = () => {
              <select 
                data-tooltip="Select level or branch to manage staff"
                value={selectedBranchId} 
-               disabled={role === 'BranchAdmin'}
+              disabled={role === 'BranchAdmin' || role === 'Receptionist'}
                onChange={(e) => {
                  setSelectedBranchId(e.target.value);
                  // Reset role based on new selection

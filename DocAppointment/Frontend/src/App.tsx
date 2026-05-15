@@ -13,10 +13,16 @@ import RegisterPage from './features/auth/components/RegisterPage';
 import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
 import WhatsAppSettings from './features/whatsapp/components/WhatsAppSettings';
 import { useAuthStore } from './stores/authStore';
+import { notify } from './stores/notificationStore';
+
+import ToastContainer from './components/ToastContainer';
 
 function App() {
   const email = useAuthStore((state) => state.email);
+  const role = useAuthStore((state) => state.role);
   const logout = useAuthStore((state) => state.logout);
+
+  const isAdmin = role === 'OrgAdmin' || role === 'BranchAdmin';
 
   // Inactivity Logout (15 minutes)
   useEffect(() => {
@@ -28,7 +34,7 @@ function App() {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         logout();
-        alert('You have been logged out due to inactivity.');
+        notify.warning('Session Expired', 'You have been logged out due to inactivity.');
       }, 15 * 60 * 1000); // 15 mins
     };
 
@@ -48,6 +54,7 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={!email ? <LoginPage /> : <Navigate to="/dashboard" />} />
         <Route path="/register" element={!email ? <RegisterPage /> : <Navigate to="/dashboard" />} />
@@ -64,42 +71,42 @@ function App() {
         } />
 
         <Route path="/analytics" element={
-          email ? (
+          email && isAdmin ? (
             <DashboardLayout>
               <AnalyticsPage />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 
         <Route path="/branches" element={
-          email ? (
+          email && role === 'OrgAdmin' ? (
             <DashboardLayout>
               <BranchesPage />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 
         <Route path="/doctors" element={
-          email ? (
+          email && isAdmin ? (
             <DashboardLayout>
               <DoctorsList />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 
         <Route path="/sessions" element={
-          email ? (
+          email && isAdmin ? (
             <DashboardLayout>
               <SessionsList />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 
@@ -114,22 +121,22 @@ function App() {
         } />
         
         <Route path="/staff" element={
-          email ? (
+          email && isAdmin ? (
             <DashboardLayout>
               <StaffList />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 
         <Route path="/whatsapp-settings" element={
-          email ? (
+          email && (role === 'OrgAdmin' || role === 'SuperAdmin') ? (
             <DashboardLayout>
               <WhatsAppSettings />
             </DashboardLayout>
           ) : (
-            <Navigate to="/login" />
+            <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
 

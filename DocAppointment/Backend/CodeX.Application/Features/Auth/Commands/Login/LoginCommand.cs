@@ -26,8 +26,10 @@ namespace CodeX.Application.Features.Auth.Commands.Login
 
         public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
+            var normalizedEmail = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.Email);
+
             var staff = await _context.Staffs
-                .FirstOrDefaultAsync(x => x.Email == request.Email, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Email == normalizedEmail, cancellationToken);
 
             if (staff == null || !BCrypt.Net.BCrypt.Verify(request.Password, staff.PasswordHash))
             {

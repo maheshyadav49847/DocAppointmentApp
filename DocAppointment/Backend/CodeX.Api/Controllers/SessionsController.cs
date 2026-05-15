@@ -3,12 +3,14 @@ using CodeX.Application.Features.Sessions.Commands.DeleteSession;
 using CodeX.Application.Features.Sessions.Commands.UpdateSession;
 using CodeX.Application.Features.Sessions.Queries.GetSessionsList;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CodeX.Api.Controllers
 {
     public class SessionsController : BaseApiController
     {
         [HttpPost]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<ActionResult<Guid>> Create(CreateSessionCommand command)
         {
             try 
@@ -28,6 +30,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Update(Guid id, UpdateSessionCommand command)
         {
             if (id != command.Id) return BadRequest();
@@ -36,6 +39,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             await Mediator.Send(new DeleteSessionCommand(id));

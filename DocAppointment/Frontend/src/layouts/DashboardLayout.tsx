@@ -20,15 +20,18 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     enabled: !!branchId
   });
 
+  const role = useAuthStore((state) => state.role);
+  const isAdmin = role === 'OrgAdmin' || role === 'BranchAdmin' || role === 'SuperAdmin';
+
   const navItems = [
-    { icon: <LayoutDashboard size={20} />, label: "Dashboard", path: "/dashboard" },
-    { icon: <BarChart3 size={20} />, label: "Reports", path: "/analytics" },
-    { icon: <Building2 size={20} />, label: "Branches", path: "/branches" },
-    { icon: <Users size={20} />, label: "Doctors", path: "/doctors" },
-    { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions" },
-    { icon: <UserCog size={20} />, label: "Staff", path: "/staff" },
-    { icon: <MessageSquare size={20} />, label: "WhatsApp", path: "/whatsapp-settings" },
-  ];
+    { icon: <LayoutDashboard size={20} />, label: "Dashboard", path: "/dashboard", visible: true },
+    { icon: <BarChart3 size={20} />, label: "Reports", path: "/analytics", visible: isAdmin },
+    { icon: <Building2 size={20} />, label: "Branches", path: "/branches", visible: role === 'OrgAdmin' || role === 'SuperAdmin' },
+    { icon: <Users size={20} />, label: "Doctors", path: "/doctors", visible: isAdmin },
+    { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions", visible: isAdmin },
+    { icon: <UserCog size={20} />, label: "Staff", path: "/staff", visible: isAdmin },
+    { icon: <MessageSquare size={20} />, label: "WhatsApp", path: "/whatsapp-settings", visible: role === 'OrgAdmin' || role === 'SuperAdmin' },
+  ].filter(item => item.visible);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#020617', color: 'white', position: 'relative', overflowX: 'hidden' }}>

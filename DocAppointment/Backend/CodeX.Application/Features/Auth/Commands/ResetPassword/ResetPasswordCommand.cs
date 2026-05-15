@@ -23,8 +23,13 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
 
         public async Task<bool> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
         {
+            var isEmail = request.Identifier.Contains("@");
+            var normalizedIdentifier = isEmail ? 
+                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.Identifier) : 
+                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.Identifier);
+
             var staff = await _context.Staffs
-                .FirstOrDefaultAsync(x => x.Email == request.Identifier || x.PhoneNumber == request.Identifier, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Email == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
 
             if (staff == null || staff.PasswordResetToken != request.Token || staff.ResetTokenExpiry < DateTime.UtcNow)
             {
@@ -32,6 +37,7 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
             }
 
             // Update password
+            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.NewPassword);
             staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             
             // Clear token

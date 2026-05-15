@@ -32,29 +32,37 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
             queue.Status = QueueStatus.Completed;
             queue.ActualEndAt = DateTime.UtcNow;
 
-            // Mark any 'Called' tokens as Completed
-            var tokens = await _context.Tokens.Include(t => t.Patient).Where(t => t.QueueId == queue.Id && t.Status == TokenStatus.Called).ToListAsync(cancellationToken);
+            // Mark any 'Called' tokens as Completed and 'Pending' as Cancelled
+            var tokens = await _context.Tokens.Include(t => t.Patient).Where(t => t.QueueId == queue.Id && (t.Status == TokenStatus.Called || t.Status == TokenStatus.Pending)).ToListAsync(cancellationToken);
             foreach (var token in tokens)
             {
-                token.Status = TokenStatus.Completed;
-                token.CompletedAt = DateTime.UtcNow;
-
-                if (token.Patient != null && !string.IsNullOrEmpty(token.Patient.Phone))
+                if (token.Status == TokenStatus.Called)
                 {
-                    try 
-                    { 
-                        var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone, cancellationToken);
-                        if (chatSession == null)
-                        {
-                            chatSession = new ChatSession { PhoneNumber = token.Patient.Phone };
-                            _context.ChatSessions.Add(chatSession);
-                        }
-                        chatSession.CurrentState = "AWAITING_RATING_SCORE";
-                        chatSession.SelectedSessionId = token.Id; // Reusing field to store TokenId for rating
+                    token.Status = TokenStatus.Completed;
+                    token.CompletedAt = DateTime.UtcNow;
 
-                        await _whatsAppService.SendFeedbackRequest(token.Patient.Phone, queue.Doctor.Name, token.Id, queue.BranchId); 
+                    if (token.Patient != null && !string.IsNullOrEmpty(token.Patient.Phone))
+                    {
+                        try 
+                        { 
+                            var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone, cancellationToken);
+                            if (chatSession == null)
+                            {
+                                chatSession = new ChatSession { PhoneNumber = token.Patient.Phone };
+                                _context.ChatSessions.Add(chatSession);
+                            }
+                            chatSession.CurrentState = "AWAITING_RATING_SCORE";
+                            chatSession.SelectedSessionId = token.Id; // Reusing field to store TokenId for rating
+
+                            await _whatsAppService.SendFeedbackRequest(token.Patient.Phone, queue.Doctor.Name, token.Id, queue.BranchId); 
+                        }
+                        catch { /* Log and ignore */ }
                     }
-                    catch { /* Log and ignore */ }
+                }
+                else if (token.Status == TokenStatus.Pending)
+                {
+                    token.Status = TokenStatus.Cancelled;
+                    // Optional: send cancellation message due to session end
                 }
             }
 

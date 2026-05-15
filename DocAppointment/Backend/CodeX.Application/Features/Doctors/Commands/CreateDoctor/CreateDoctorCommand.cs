@@ -17,14 +17,18 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
     public class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCommand, Guid>
     {
         private readonly IApplicationDbContext _context;
-
-        public CreateDoctorCommandHandler(IApplicationDbContext context)
+        private readonly ICurrentUserService _currentUserService;
+        public CreateDoctorCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
+
 
         public async Task<Guid> Handle(CreateDoctorCommand request, CancellationToken cancellationToken)
         {
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, request.OrganizationId);
+            
             var name = request.Name.Trim();
             var specialization = request.Specialization.Trim();
             var regNum = request.RegistrationNumber?.Trim();

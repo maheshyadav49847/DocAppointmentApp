@@ -43,7 +43,7 @@ namespace CodeX.Api.Controllers
                 return BadRequest(new { message = "A valid branch ID is required." });
             }
 
-            _logger.LogInformation("Generic Webhook: SessionId={SessionId}, From={From}, Body={Body}", request.SessionId, request.From, request.Body);
+            _logger.LogInformation("Generic Webhook received for SessionId={SessionId}", request.SessionId);
 
             var response = await _mediator.Send(new ProcessIncomingMessageCommand
             {

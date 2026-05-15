@@ -63,8 +63,8 @@ const ProfilePage: React.FC = () => {
              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <Building size={24} color="var(--text-secondary)" />
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ORGANIZATION ID</p>
-                  <p style={{ margin: '3px 0 0 0', fontFamily: 'monospace', fontSize: '1.05rem' }}>{orgId || 'N/A'}</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>INSTITUTION</p>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '1.05rem', fontWeight: 600 }}>Registered Hospital</p>
                 </div>
              </div>
           </div>
@@ -75,8 +75,8 @@ const ProfilePage: React.FC = () => {
              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <MapPin size={24} color="var(--text-secondary)" />
                 <div>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>BRANCH ID</p>
-                  <p style={{ margin: '3px 0 0 0', fontFamily: 'monospace', fontSize: '1.05rem' }}>{branchId || 'N/A'}</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>LOCATION</p>
+                  <p style={{ margin: '3px 0 0 0', fontSize: '1.05rem', fontWeight: 600 }}>Active Branch</p>
                 </div>
              </div>
           </div>

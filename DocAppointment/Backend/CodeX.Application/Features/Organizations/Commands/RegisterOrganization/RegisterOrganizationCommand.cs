@@ -27,8 +27,11 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
         public async Task<Guid> Handle(RegisterOrganizationCommand request, CancellationToken cancellationToken)
         {
+            var normalizedEmail = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.AdminEmail);
+            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.AdminPhoneNumber);
+
             // 0. Uniqueness Checks
-            var emailExists = await _context.Staff.AnyAsync(s => s.Email == request.AdminEmail, cancellationToken);
+            var emailExists = await _context.Staff.AnyAsync(s => s.Email == normalizedEmail, cancellationToken);
             if (emailExists) throw new Exception("Admin email is already registered.");
 
             var slugExists = await _context.Organizations.AnyAsync(o => o.Slug == request.OrgSlug, cancellationToken);
@@ -43,19 +46,21 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             _context.Organizations.Add(org);
 
             // 2. Create OrgAdmin Staff
-            var emailParts = request.AdminEmail.Split('@')[0].Split('.');
+            var emailParts = normalizedEmail.Split('@')[0].Split('.');
             var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
             var lastName = emailParts.Length > 1 ? char.ToUpper(emailParts[1][0]) + emailParts[1].Substring(1) : "User";
+
+            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.AdminPassword);
 
             var admin = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = org.Id,
-                Email = request.AdminEmail,
+                Email = normalizedEmail,
                 FirstName = firstName,
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
                 Role = StaffRole.OrgAdmin,
-                PhoneNumber = request.AdminPhoneNumber
+                PhoneNumber = normalizedPhone
             };
 
             _context.Staff.Add(admin);

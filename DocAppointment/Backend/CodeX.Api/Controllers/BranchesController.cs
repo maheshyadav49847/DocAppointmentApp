@@ -2,6 +2,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CodeX.Api.Controllers
 {
@@ -48,6 +49,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<ActionResult<Guid>> Create(Branch branch)
         {
             // Ensure the branch is created for the user's organization
@@ -71,6 +73,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Update(Guid id, Branch updatedBranch)
         {
             var branch = await _context.Branches
@@ -100,6 +103,7 @@ namespace CodeX.Api.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var branch = await _context.Branches

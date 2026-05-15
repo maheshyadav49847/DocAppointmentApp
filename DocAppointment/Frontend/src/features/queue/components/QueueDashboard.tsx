@@ -188,7 +188,6 @@ const QueueDashboard: React.FC = () => {
     onError: (err: any) => {
       console.error("End Queue Mutation failed:", err);
       notify.danger('End Session Failed', err.response?.data?.message || err.message);
-      alert("Failed to end session: " + (err.response?.data?.message || err.message));
     }
   });
 
@@ -238,7 +237,10 @@ const QueueDashboard: React.FC = () => {
     setIsCheckingWhatsApp(true);
     try {
       const result = await queueService.checkWhatsAppNumber(selectedBranchId, data.phone);
-      if (result && result.ready && !result.exists) {
+      
+      if (result?.isError) {
+        notify.info("Verification Skipped", "WhatsApp bridge is offline. Booking will proceed without verification.");
+      } else if (result && result.ready && !result.exists) {
         const confirmSave = window.confirm("WhatsApp is not active on this number. Do you still want to save?");
         if (!confirmSave) {
           return;
@@ -246,6 +248,7 @@ const QueueDashboard: React.FC = () => {
       }
     } catch (err) {
       console.error("Error checking WhatsApp availability:", err);
+      notify.info("Verification Skipped", "Could not verify WhatsApp number. Proceeding anyway.");
     } finally {
       setIsCheckingWhatsApp(false);
     }
@@ -488,7 +491,7 @@ const StatCard = ({ icon, label, value, color, subText, ...props }: any) => (
 
 const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeIn 0.3s ease' }}>
-    <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '40px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
+    <div className="modal-card" style={{ width: '100%', maxWidth: '450px', padding: '40px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
       <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 25px' }}>
         <Power size={40} />
       </div>
@@ -832,6 +835,20 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
     }
   });
 
+  const completeMutation = useMutation({
+    mutationFn: () => queueService.completeToken(queueId),
+    onSuccess: () => {
+      notify.success('Consultation Complete', 'The current patient consultation is marked as completed.');
+      refetchQueue();
+      refetchTokens();
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || error.message || "Failed to complete consultation";
+      notify.danger('Completion Failed', message);
+    }
+  });
+
   const alertMutation = useMutation({
     mutationFn: () => queueService.alertPatient(queueId),
     onSuccess: (success) => {
@@ -868,7 +885,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       onEndSession();
     } catch (err) {
       console.error("Error triggering end session:", err);
-      alert("UI Error: " + err);
+      notify.danger('UI Error', String(err));
     }
   };
 
@@ -1089,21 +1106,77 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
         {/* Controls Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'center' }}>
-            <button
-              data-tooltip="Call the next patient in line"
-              onClick={() => callNextMutation.mutate()}
-              disabled={callNextMutation.isPending}
-              className="btn-primary call-next-btn"
-              style={{
-                padding: '30px', fontSize: '1.5rem', borderRadius: '20px',
-                opacity: (!isDoctorArrived) ? 0.5 : 1,
-                cursor: 'pointer'
-              }}
-            >
-              <UserCheck size={32} /> {callNextMutation.isPending ? 'Calling...' : 'Call Next'}
-            </button>
+            {(!queue.currentTokenNumber || queue.currentPatientName === "No one") ? (
+              <button
+                data-tooltip="Call the next patient in line"
+                onClick={() => callNextMutation.mutate()}
+                disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
+                className="btn-primary call-next-btn"
+                style={{
+                  padding: '35px', fontSize: '1.6rem', borderRadius: '20px',
+                  opacity: (!isDoctorArrived || queue.waitingCount === 0) ? 0.5 : 1,
+                  cursor: 'pointer',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '15px'
+                }}
+              >
+                <UserCheck size={35} /> {callNextMutation.isPending ? 'Calling...' : 'Call Next'}
+              </button>
+            ) : (
+              <button
+                data-tooltip="Mark current as complete AND call next patient instantly"
+                onClick={async () => {
+                  try {
+                    await completeMutation.mutateAsync();
+                    if (queue.waitingCount > 0) {
+                      callNextMutation.mutate();
+                    }
+                  } catch (e) {}
+                }}
+                disabled={completeMutation.isPending || callNextMutation.isPending}
+                className="btn-primary"
+                style={{
+                  padding: '35px',
+                  fontSize: '1.6rem',
+                  borderRadius: '20px',
+                  background: 'linear-gradient(135deg, var(--success) 0%, #166534 100%)',
+                  border: 'none',
+                  boxShadow: '0 10px 20px rgba(34, 197, 94, 0.2)',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '15px'
+                }}
+              >
+                {completeMutation.isPending || callNextMutation.isPending ? 
+                  <Clock size={32} className="animate-spin" /> : 
+                  <><CheckCircle2 size={32} /> <ChevronRight size={32} /> Complete & Next</>
+                }
+              </button>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+
+              <button
+                data-tooltip="Mark consultation as complete"
+                onClick={() => completeMutation.mutate()}
+                disabled={completeMutation.isPending || !queue.currentTokenNumber}
+                style={{
+                  ...secondaryControlStyle,
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  color: 'var(--success)',
+                  border: '1px solid rgba(34, 197, 94, 0.2)',
+                  opacity: (!queue.currentTokenNumber) ? 0.5 : 1
+                }}
+              >
+                {completeMutation.isPending ? <Clock size={22} className="animate-spin" /> : <CheckCircle2 size={22} />}
+                Complete
+              </button>
+
               <button
                 data-tooltip="Skip current patient's turn"
                 style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
@@ -1111,18 +1184,19 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 disabled={skipMutation.isPending || !queue.currentTokenNumber}
               >
                 {skipMutation.isPending ? <Clock size={22} className="animate-spin" /> : <SkipForward size={22} />}
-                {skipMutation.isPending ? 'Skipping...' : 'Skip'}
-              </button>
-              <button
-                data-tooltip="Send WhatsApp alert to current patient"
-                style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
-                onClick={() => alertMutation.mutate()}
-                disabled={alertMutation.isPending || !queue.currentTokenNumber}
-              >
-                {alertMutation.isPending ? <Clock size={22} className="animate-spin" /> : <MessageSquare size={22} />}
-                {alertMutation.isPending ? 'Alerting...' : 'Alert'}
+                Skip
               </button>
             </div>
+            
+            <button
+              data-tooltip="Send WhatsApp alert to current patient"
+              style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
+              onClick={() => alertMutation.mutate()}
+              disabled={alertMutation.isPending || !queue.currentTokenNumber}
+            >
+              {alertMutation.isPending ? <Clock size={22} className="animate-spin" /> : <MessageSquare size={22} />}
+              {alertMutation.isPending ? 'Alerting...' : 'Alert Patient'}
+            </button>
 
             <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
 

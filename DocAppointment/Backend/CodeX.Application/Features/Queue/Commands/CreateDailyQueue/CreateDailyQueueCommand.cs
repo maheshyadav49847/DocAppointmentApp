@@ -24,8 +24,19 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
 
         public async Task<Guid> Handle(CreateDailyQueueCommand request, CancellationToken cancellationToken)
         {
-            var today = DateTime.UtcNow.Date;
+            var session = await _context.Sessions
+                .Include(s => s.Doctor)
+                .Include(s => s.Branch)
+                .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
+
+            if (session == null)
+            {
+                throw new Exception("Session not found");
+            }
+
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(session.Branch?.Timezone);
             var tomorrow = today.AddDays(1);
+
             var existing = await _context.DailyQueues
                 .FirstOrDefaultAsync(q =>
                     q.DoctorId == request.DoctorId &&
@@ -43,16 +54,6 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                     if (!hasAccess) throw new Exception("You do not have access to this queue.");
                 }
                 return existing.Id;
-            }
-
-            var session = await _context.Sessions
-                .Include(s => s.Doctor)
-                .Include(s => s.Branch)
-                .FirstOrDefaultAsync(s => s.Id == request.SessionId, cancellationToken);
-
-            if (session == null)
-            {
-                throw new Exception("Session not found");
             }
 
             if (session.Doctor == null)

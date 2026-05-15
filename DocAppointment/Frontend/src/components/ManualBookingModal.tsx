@@ -45,7 +45,7 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
       zIndex: 1000,
       backdropFilter: 'blur(4px)'
     }}>
-      <div className="glass-card" style={{ width: '100%', maxWidth: '450px', margin: '0 20px', position: 'relative' }}>
+      <div className="modal-card" style={{ width: '100%', maxWidth: '450px', margin: '0 20px', position: 'relative' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
           <X size={24} />
         </button>

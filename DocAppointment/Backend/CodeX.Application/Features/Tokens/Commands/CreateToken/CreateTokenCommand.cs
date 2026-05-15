@@ -28,18 +28,37 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
     {
         private readonly IApplicationDbContext _context;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ISmsService _smsService;
         private readonly IQueueNotificationService _notificationService;
 
-        public CreateTokenCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, IQueueNotificationService notificationService)
+        public CreateTokenCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService)
         {
             _context = context;
             _whatsappService = whatsappService;
+            _smsService = smsService;
             _notificationService = notificationService;
+        }
+
+        private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
+        {
+            var log = new MessageLog
+            {
+                BranchId = branchId,
+                RecipientPhone = phone,
+                MessageType = type,
+                Status = status,
+                ErrorMessage = error,
+                TokenId = tokenId
+            };
+            _context.MessageLogs.Add(log);
+            await _context.SaveChangesAsync(default);
         }
 
         public async Task<Guid> Handle(CreateTokenCommand request, CancellationToken cancellationToken)
         {
             var queue = await _context.DailyQueues
+                .Include(q => q.Session)
+                .Include(q => q.Branch)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
 
             if (queue == null) 
@@ -47,9 +66,22 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception($"Queue not found. Requested ID: {request.QueueId}");
             }
 
+            if (queue.Branch != null && !queue.Branch.IsActive)
+            {
+                throw new Exception("This branch is currently offline and not accepting bookings.");
+            }
+
+            var tokenCount = await _context.Tokens.CountAsync(t => t.QueueId == queue.Id, cancellationToken);
+            if (queue.Session.DefaultCapacity > 0 && tokenCount >= queue.Session.DefaultCapacity)
+            {
+                throw new Exception($"Queue is full. Maximum capacity of {queue.Session.DefaultCapacity} reached.");
+            }
+
+            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone);
+
             // 1. Find Patient
             var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => p.Phone == request.PatientPhone, cancellationToken);
+                .FirstOrDefaultAsync(p => p.Phone == normalizedPhone, cancellationToken);
 
             // 2. Duplicate Check (If patient exists)
             if (patient != null)
@@ -71,7 +103,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 patient = new Patient
                 {
                     Name = request.PatientName,
-                    Phone = request.PatientPhone
+                    Phone = normalizedPhone
                 };
                 _context.Patients.Add(patient);
             }
@@ -119,10 +151,23 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 try 
                 {
                     await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId);
+                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
                 }
                 catch (System.Exception ex)
                 {
-                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}. Attempting SMS Fallback...");
+                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Failed", error: ex.Message, tokenId: token.Id);
+
+                    try
+                    {
+                        var smsMsg = $"Namaste {patient.Name}, Aapka Token #{token.TokenNumber} book ho gaya hai. Dr. {queue.Doctor.Name}. Swasth rahein!";
+                        await _smsService.SendSmsAsync(patient.Phone, smsMsg);
+                        await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Sent", tokenId: token.Id);
+                    }
+                    catch (Exception smsEx)
+                    {
+                        await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Failed", error: smsEx.Message, tokenId: token.Id);
+                    }
                 }
             });
 

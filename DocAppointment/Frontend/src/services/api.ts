@@ -6,19 +6,16 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Removed token header logic to rely entirely on httpOnly cookies
 
 // Add response interceptor to handle 401 errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes('/auth/login');
+    const isLoginPage = window.location.pathname === '/login';
+
+    if (error.response?.status === 401 && !isLoginRequest && !isLoginPage) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
     }

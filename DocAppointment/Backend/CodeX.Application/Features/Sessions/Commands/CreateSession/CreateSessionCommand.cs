@@ -19,14 +19,18 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
     public class CreateSessionCommandHandler : IRequestHandler<CreateSessionCommand, Guid>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public CreateSessionCommandHandler(IApplicationDbContext context)
+        public CreateSessionCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Guid> Handle(CreateSessionCommand request, CancellationToken cancellationToken)
         {
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId);
+
             var session = new Session
             {
                 DoctorId = request.DoctorId,

@@ -32,6 +32,11 @@ namespace CodeX.Application.Features.Ratings.Commands.CreateRating
                 throw new Exception("Token not found.");
             }
 
+            if (token.Status != CodeX.Domain.Enums.TokenStatus.Completed)
+            {
+                throw new Exception("You can only rate a completed visit.");
+            }
+
             // Check if rating already exists
             var existingRating = await _context.Ratings.FirstOrDefaultAsync(r => r.TokenId == request.TokenId, cancellationToken);
             if (existingRating != null)

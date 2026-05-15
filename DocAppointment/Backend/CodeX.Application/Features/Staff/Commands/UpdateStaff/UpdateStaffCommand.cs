@@ -54,7 +54,10 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             staff.PhoneNumber = request.PhoneNumber.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.NewPassword);
                 staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
 

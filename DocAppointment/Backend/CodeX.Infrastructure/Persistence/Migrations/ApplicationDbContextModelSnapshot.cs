@@ -86,7 +86,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasIndex("WhatsAppNumber")
                         .IsUnique();
 
-                    b.ToTable("Branches", (string)null);
+                    b.ToTable("Branches");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.ChatSession", b =>
@@ -132,7 +132,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasIndex("PhoneNumber", "BranchId")
                         .IsUnique();
 
-                    b.ToTable("ChatSessions", (string)null);
+                    b.ToTable("ChatSessions");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.DailyQueue", b =>
@@ -183,9 +183,10 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("SessionId");
 
-                    b.HasIndex("DoctorId", "QueueDate", "SessionId");
+                    b.HasIndex("DoctorId", "QueueDate", "SessionId")
+                        .IsUnique();
 
-                    b.ToTable("DailyQueues", (string)null);
+                    b.ToTable("DailyQueues");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Doctor", b =>
@@ -232,7 +233,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasIndex("RegistrationNumber")
                         .HasFilter("\"RegistrationNumber\" IS NOT NULL");
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.MessageLog", b =>
@@ -280,7 +281,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TokenId");
 
-                    b.ToTable("MessageLogs", (string)null);
+                    b.ToTable("MessageLogs");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Organization", b =>
@@ -318,7 +319,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Slug");
 
-                    b.ToTable("Organizations", (string)null);
+                    b.ToTable("Organizations");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Patient", b =>
@@ -356,7 +357,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasIndex("Phone")
                         .IsUnique();
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Rating", b =>
@@ -391,7 +392,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasIndex("TokenId")
                         .IsUnique();
 
-                    b.ToTable("Ratings", (string)null);
+                    b.ToTable("Ratings");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Session", b =>
@@ -444,7 +445,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("DoctorId");
 
-                    b.ToTable("Sessions", (string)null);
+                    b.ToTable("Sessions");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Staff", b =>
@@ -513,7 +514,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Staff", (string)null);
+                    b.ToTable("Staff");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.SystemSetting", b =>
@@ -537,7 +538,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Key");
 
-                    b.ToTable("SystemSettings", (string)null);
+                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Token", b =>
@@ -595,9 +596,10 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("PatientId");
 
-                    b.HasIndex("QueueId", "TokenNumber");
+                    b.HasIndex("QueueId", "TokenNumber")
+                        .IsUnique();
 
-                    b.ToTable("Tokens", (string)null);
+                    b.ToTable("Tokens");
                 });
 
             modelBuilder.Entity("BranchDoctor", b =>

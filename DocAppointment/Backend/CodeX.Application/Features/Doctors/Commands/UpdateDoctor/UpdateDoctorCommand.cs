@@ -16,10 +16,12 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
     public class UpdateDoctorCommandHandler : IRequestHandler<UpdateDoctorCommand, Unit>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public UpdateDoctorCommandHandler(IApplicationDbContext context)
+        public UpdateDoctorCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Unit> Handle(UpdateDoctorCommand request, CancellationToken cancellationToken)
@@ -29,6 +31,8 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
             
             if (doctor == null) throw new Exception("Doctor not found");
+
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, doctor.OrganizationId);
 
             var duplicateExists = await _context.Doctors
                 .AnyAsync(d => d.Id != request.Id && 
