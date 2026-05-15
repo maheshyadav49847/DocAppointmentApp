@@ -31,14 +31,13 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose, icon, maxWidth 
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="glass-card responsive-modal" 
+        className="modal-card responsive-modal" 
         style={{ 
           width: '100%', 
           maxWidth: maxWidth || '450px', 
           margin: '0 20px', 
           padding: '35px', 
-          position: 'relative',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          position: 'relative'
         }}
       >
         <button 

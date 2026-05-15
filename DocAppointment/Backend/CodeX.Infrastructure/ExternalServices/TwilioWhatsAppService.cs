@@ -196,25 +196,16 @@ namespace CodeX.Infrastructure.ExternalServices
             !string.IsNullOrEmpty(AuthToken) &&
             !string.IsNullOrEmpty(FromNumber);
 
-        /// Ensure phone number has whatsapp: prefix and starts with + (E.164)
-        private static string NormaliseWhatsApp(string number)
+        private static string NormaliseWhatsApp(string number, string defaultCountryCode = "91")
         {
             if (string.IsNullOrWhiteSpace(number)) return string.Empty;
-            number = number.Trim().Replace(" ", "").Replace("-", "");
             
-            if (number.StartsWith("whatsapp:")) return number;
-            
-            // Auto-handle 10-digit Indian numbers
-            if (number.Length == 10 && number.All(char.IsDigit))
+            var normalized = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(number, defaultCountryCode);
+            if (normalized.StartsWith("+"))
             {
-                number = "+91" + number;
+                normalized = normalized.Substring(1);
             }
-            else if (!number.StartsWith("+"))
-            {
-                number = "+" + number;
-            }
-            
-            return "whatsapp:" + number;
+            return "whatsapp:+" + normalized;
         }
     }
 }

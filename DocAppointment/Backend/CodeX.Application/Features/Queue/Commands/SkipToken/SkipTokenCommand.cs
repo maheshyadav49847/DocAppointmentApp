@@ -11,16 +11,19 @@ namespace CodeX.Application.Features.Queue.Commands.SkipToken
     {
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
+        private readonly IWhatsAppService _whatsappService;
 
-        public SkipTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService)
+        public SkipTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService)
         {
             _context = context;
             _notificationService = notificationService;
+            _whatsappService = whatsappService;
         }
 
         public async Task<bool> Handle(SkipTokenCommand request, CancellationToken cancellationToken)
         {
             var queue = await _context.DailyQueues
+                .Include(x => x.Doctor)
                 .Include(x => x.Tokens)
                 .ThenInclude(x => x.Patient)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
@@ -53,7 +56,25 @@ namespace CodeX.Application.Features.Queue.Commands.SkipToken
 
                 await _context.SaveChangesAsync(cancellationToken);
                 
-                // Notify all clients
+                // Notify via WhatsApp
+                if (currentToken.Patient != null && !string.IsNullOrEmpty(currentToken.Patient.Phone))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var skipMsg = $"⚠️ *APPOINTMENT MISSED* ⚠️\n\n" +
+                                         $"Aapka *Token #{currentToken.TokenNumber}* (Dr. {queue.Doctor?.Name}) bulaya gaya tha, par aap wahan nahi pahunche.\n\n" +
+                                         $"Is wajah se humein agla patient bulana pada aur aapka number *SKIP* kar diya gaya hai.\n\n" +
+                                         $"👉 Agar aap clinic pahunch gaye hain aur fir se queue me lagna chahte hain, toh kripya is message ka reply *REJOIN* likhkar bhejein. ✨";
+                            
+                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, skipMsg, queue.BranchId);
+                        }
+                        catch { /* Log and ignore background errors */ }
+                    });
+                }
+
+                // Notify all clients via SignalR
                 await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
                 return true;
             }

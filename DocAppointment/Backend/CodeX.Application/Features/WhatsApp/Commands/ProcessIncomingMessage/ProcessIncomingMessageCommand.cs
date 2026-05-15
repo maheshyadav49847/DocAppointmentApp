@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Ratings.Commands.CreateRating;
 using CodeX.Application.Features.Tokens.Commands.CreateToken;
@@ -6,6 +7,7 @@ using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using CodeX.Application.Common.Helpers;
 
 namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 {
@@ -20,16 +22,35 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
     {
         private readonly IApplicationDbContext _context;
         private readonly ISender _mediator;
+        private readonly IWhatsAppService _whatsappService;
+        private readonly ISmsService _smsService;
 
-        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator)
+        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService)
         {
             _context = context;
             _mediator = mediator;
+            _whatsappService = whatsappService;
+            _smsService = smsService;
+        }
+
+        private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
+        {
+            var log = new MessageLog
+            {
+                BranchId = branchId,
+                RecipientPhone = phone,
+                MessageType = type,
+                Status = status,
+                ErrorMessage = error,
+                TokenId = tokenId
+            };
+            _context.MessageLogs.Add(log);
+            await _context.SaveChangesAsync(default);
         }
 
         public async Task<string> Handle(ProcessIncomingMessageCommand request, CancellationToken cancellationToken)
         {
-            var fromPhone = NormalisePhone(request.From);
+            var fromPhone = NormalizationHelper.NormalizePhone(request.From);
             var session = await _context.ChatSessions
                 .FirstOrDefaultAsync(x => x.PhoneNumber == fromPhone && x.BranchId == request.BranchId, cancellationToken);
 
@@ -55,13 +76,21 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             {
                 ResetSession(session);
             }
-            else if (bodyLower is "status" or "check")
+            
+            // Log Incoming Message
+            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received");
+
+            if (bodyLower is "status" or "check")
             {
                 return await HandleStatus(session, cancellationToken);
             }
             else if (bodyLower == "cancel")
             {
                 return await HandleCancel(session, cancellationToken);
+            }
+            else if (bodyLower is "rejoin" or "re-join")
+            {
+                return await HandleRejoin(session, cancellationToken);
             }
 
             var response = session.CurrentState switch
@@ -106,7 +135,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return "⏳ Aapka pichla chunaav expire ho gaya hai.\n\nNaya appointment book karne ke liye kripya *HI* likhkar bhejein. 🙏";
             }
 
-            var today = DateTime.UtcNow.Date;
+            var tzBranch = await _context.Branches.FindAsync(new object[] { session.BranchId.Value }, ct);
+            var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             var queue = await _context.DailyQueues
                 .Include(q => q.Doctor)
@@ -171,7 +201,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
                 ResetSession(session);
 
-                return $"🎉 *APPOINTMENT SAFALTAPOORVAK BOOK HO GAYA!* 🎉\n" +
+                var response = $"🎉 *APPOINTMENT SAFALTAPOORVAK BOOK HO GAYA!* 🎉\n" +
                        $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
                        $"👨‍⚕️ *Doctor:* Dr. {queue.Doctor?.Name}\n" +
                        $"🕒 *Session:* {queue.Session?.SessionName}\n" +
@@ -180,6 +210,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                        $"• Apna live status dekhne ke liye kisi bhi waqt *STATUS* likhkar bhejein.\n" +
                        $"• Agar aap nahi aa sakte, toh *CANCEL* likhkar appointment radd kar sakte hain.\n\n" +
                        $"✨ _Swasth rahein, muskurate rahein!_";
+
+                // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
+                await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: tokenId);
+                
+                return response;
             }
             catch (Exception ex)
             {
@@ -204,6 +239,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     .FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
                 if (branch != null)
                 {
+                    if (!branch.IsActive)
+                    {
+                        return "⚠️ Maaf kijiye, yeh branch abhi offline hai aur yahan booking band hai. 🙏";
+                    }
                     hospitalName = branch.Organization?.Name ?? branch.Name;
                     branchName = branch.Name;
                 }
@@ -437,6 +476,37 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             return "✅ Aapka appointment safaltapoorvak radd (Cancel) kar diya gaya hai. Swasth rahein! ✨";
         }
 
+        private async Task<string> HandleRejoin(ChatSession session, CancellationToken ct)
+        {
+            if (!session.BranchId.HasValue)
+            {
+                return "⚠️ Yeh chat abhi branch se link nahi hai.\n\nKripya *HI* likhkar shuru karein. 🙏";
+            }
+
+            // Find the most recent skipped token for this patient in this branch
+            var skippedToken = await _context.Tokens
+                .Include(t => t.Queue)
+                .ThenInclude(q => q.Doctor)
+                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                            t.Queue.BranchId == session.BranchId.Value &&
+                            t.Status == TokenStatus.Skipped)
+                .OrderByDescending(t => t.BookedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (skippedToken == null)
+            {
+                return "ℹ️ Aapka is branch me koi *Skipped* (missed) appointment nahi mila.\n\nNaya appointment lene ke liye *HI* likhein. ✨";
+            }
+
+            // Re-queue the token
+            skippedToken.Status = TokenStatus.Pending;
+            await _context.SaveChangesAsync(ct);
+
+            return $"✅ *SWAGAT HAI WAPAS!* ✅\n\n" +
+                   $"Aapka *Token #{skippedToken.TokenNumber}* (Dr. {skippedToken.Queue.Doctor.Name}) fir se queue me laga diya gaya hai.\n\n" +
+                   $"👉 Apna live status dekhne ke liye *STATUS* likhein. ✨";
+        }
+
         private async Task<List<Doctor>> GetAvailableDoctors(Guid? branchId, CancellationToken ct)
         {
             if (!branchId.HasValue)
@@ -444,7 +514,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return new List<Doctor>();
             }
 
-            var today = DateTime.UtcNow.Date;
+            var tzBranch = await _context.Branches.FindAsync(new object[] { branchId.Value }, ct);
+            var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
@@ -483,7 +554,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return new List<Session>();
             }
 
-            var today = DateTime.UtcNow.Date;
+            var tzBranch = await _context.Branches.FindAsync(new object[] { branchId.Value }, ct);
+            var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
@@ -511,31 +583,5 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             return availableSessions.OrderBy(s => s.StartTime).ToList();
         }
 
-        private static string NormalisePhone(string phoneNumber)
-        {
-            if (string.IsNullOrWhiteSpace(phoneNumber))
-            {
-                return string.Empty;
-            }
-
-            var trimmed = phoneNumber.Trim();
-            if (trimmed.StartsWith("whatsapp:", StringComparison.OrdinalIgnoreCase))
-            {
-                trimmed = trimmed["whatsapp:".Length..];
-            }
-
-            if (trimmed.EndsWith("@c.us", StringComparison.OrdinalIgnoreCase))
-            {
-                trimmed = trimmed[..^"@c.us".Length];
-            }
-
-            var digits = new string(trimmed.Where(char.IsDigit).ToArray());
-            if (digits.Length == 10)
-            {
-                digits = "91" + digits;
-            }
-
-            return "+" + digits;
-        }
     }
 }

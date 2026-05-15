@@ -339,26 +339,30 @@ const AnalyticsPage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                  <div style={{ padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                       <span style={{ fontSize: '0.8rem' }}>API Response Time</span>
-                       <span style={{ fontWeight: 700, color: '#10b981' }}>124ms</span>
+                       <span style={{ fontSize: '0.8rem' }}>API Latency (Global)</span>
+                       <span style={{ fontWeight: 700, color: '#10b981' }}>{analytics?.platformStats.avgApiResponseTimeMs}ms</span>
                     </div>
-                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}><div style={{ height: '100%', width: '15%', background: '#10b981' }} /></div>
+                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
+                       <div style={{ height: '100%', width: '15%', background: '#10b981' }} />
+                    </div>
                  </div>
                  <div style={{ padding: '15px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                       <span style={{ fontSize: '0.8rem' }}>Database Load</span>
-                       <span style={{ fontWeight: 700, color: '#fbbf24' }}>42%</span>
+                       <span style={{ fontSize: '0.8rem' }}>Total Ecosystem Scale</span>
+                       <span style={{ fontWeight: 700, color: '#fbbf24' }}>{analytics?.platformStats.totalOrganizations} Orgs / {analytics?.platformStats.totalBranches} Branches</span>
                     </div>
-                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}><div style={{ height: '100%', width: '42%', background: '#fbbf24' }} /></div>
+                    <div style={{ height: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
+                       <div style={{ height: '100%', width: '100%', background: '#fbbf24' }} />
+                    </div>
                  </div>
               </div>
            </div>
            <div className="glass-card" style={{ padding: '25px' }}>
-              <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Database size={20} color="var(--accent-color)" /> Tenant Resource Usage</h3>
+              <h3 style={{ margin: '0 0 25px 0', display: 'flex', alignItems: 'center', gap: '10px' }}><Database size={20} color="var(--accent-color)" /> Storage & SaaS Usage</h3>
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>DATA CONSUMPTION</p>
-                 <h2 style={{ margin: '10px 0', fontSize: '3rem', fontWeight: 800 }}>85.4 <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>MB</span></h2>
-                 <p style={{ margin: 0, fontSize: '0.7rem', color: '#10b981' }}>Within SaaS Tier Limits</p>
+                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>DATABASE STORAGE</p>
+                 <h2 style={{ margin: '10px 0', fontSize: '3rem', fontWeight: 800 }}>{analytics?.platformStats.databaseSizeMb} <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>MB</span></h2>
+                 <p style={{ margin: 0, fontSize: '0.7rem', color: '#10b981' }}>Active Tenant Health: OPTIMAL</p>
               </div>
            </div>
         </div>

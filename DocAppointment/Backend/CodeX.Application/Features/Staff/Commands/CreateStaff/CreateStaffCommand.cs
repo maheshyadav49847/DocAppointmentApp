@@ -57,6 +57,8 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
             if (emailExists)
                 throw new Exception($"The email '{email}' is already registered in the system.");
 
+            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.Password);
+
             var staff = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = organizationId,

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../../../services/api';
 import { useAuthStore } from '../../../stores/authStore';
+import { notify } from '../../../stores/notificationStore';
 import PageHeader from '../../../components/UI/PageHeader';
 
 interface BridgeStatus {
@@ -74,7 +75,7 @@ const WhatsAppSettings: React.FC = () => {
     try {
       await api.post(`/whatsapp/bridge/restart/${selectedBranchId}`);
     } catch (err) {
-      alert('Failed to restart.');
+      notify.danger('Restart Failed', 'Failed to restart bridge.');
     } finally {
       setActionLoading(false);
     }
@@ -86,7 +87,7 @@ const WhatsAppSettings: React.FC = () => {
     try {
       await api.post(`/whatsapp/bridge/logout/${selectedBranchId}`);
     } catch (err) {
-      alert('Failed to logout.');
+      notify.danger('Logout Failed', 'Failed to logout from bridge.');
     } finally {
       setActionLoading(false);
     }
@@ -282,7 +283,7 @@ const WhatsAppSettings: React.FC = () => {
                   border: '4px solid var(--accent-color)'
                 }}>
                   <iframe 
-                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${selectedBranchId}`} 
+                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${selectedBranchId}?apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
                     style={{ width: '300px', height: '300px', border: 'none' }}
                     scrolling="no"
                   />

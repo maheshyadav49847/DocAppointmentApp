@@ -13,12 +13,29 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ISmsService _smsService;
 
-        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService)
+        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _smsService = smsService;
+        }
+
+        private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
+        {
+            var log = new MessageLog
+            {
+                BranchId = branchId,
+                RecipientPhone = phone,
+                MessageType = type,
+                Status = status,
+                ErrorMessage = error,
+                TokenId = tokenId
+            };
+            _context.MessageLogs.Add(log);
+            await _context.SaveChangesAsync(default);
         }
 
         public async Task<int> Handle(CallNextTokenCommand request, CancellationToken cancellationToken)
@@ -102,7 +119,27 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 {
                     if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
                     {
-                        await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                        try
+                        {
+                            await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                            await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Delivered", tokenId: nextToken.Id);
+                        }
+                        catch (Exception ex)
+                        {
+                            _ = LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Failed", error: ex.Message, tokenId: nextToken.Id);
+                            
+                            // SMS Fallback for critical turn alert
+                            try
+                            {
+                                var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{nextToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
+                                await _smsService.SendSmsAsync(nextToken.Patient.Phone, smsMsg);
+                                await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Sent", tokenId: nextToken.Id);
+                            }
+                            catch (Exception smsEx)
+                            {
+                                await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Failed", error: smsEx.Message, tokenId: nextToken.Id);
+                            }
+                        }
                     }
 
                     // Automated Upcoming Alerts

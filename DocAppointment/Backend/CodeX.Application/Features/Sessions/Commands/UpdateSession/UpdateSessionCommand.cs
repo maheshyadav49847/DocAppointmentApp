@@ -18,16 +18,21 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
     public class UpdateSessionCommandHandler : IRequestHandler<UpdateSessionCommand, Unit>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public UpdateSessionCommandHandler(IApplicationDbContext context)
+        public UpdateSessionCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Unit> Handle(UpdateSessionCommand request, CancellationToken cancellationToken)
         {
             var session = await _context.Sessions.FindAsync(new object[] { request.Id }, cancellationToken);
             if (session == null) throw new Exception("Session not found");
+
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, session.BranchId);
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId); // If changing branch
 
             session.BranchId = request.BranchId;
             session.SessionName = request.SessionName;

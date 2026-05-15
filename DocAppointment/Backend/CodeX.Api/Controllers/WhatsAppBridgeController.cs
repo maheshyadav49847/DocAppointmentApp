@@ -88,10 +88,17 @@ namespace CodeX.Api.Controllers
                 var content = await response.Content.ReadAsStringAsync();
                 return Content(content, "application/json");
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback to exists=true if bridge is offline so booking flow isn't blocked
-                return Ok(new { ready = false, exists = true });
+                // Fallback: If bridge is offline, we assume number exists but flag the error
+                // This prevents blocking the manual booking flow if the bridge is down
+                return Ok(new 
+                { 
+                    ready = false, 
+                    exists = true, 
+                    isError = true, 
+                    message = "Could not reach WhatsApp bridge. Verification skipped." 
+                });
             }
         }
     }

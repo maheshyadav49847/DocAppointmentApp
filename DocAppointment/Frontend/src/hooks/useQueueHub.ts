@@ -9,10 +9,7 @@ export const useQueueHub = (branchId: string | null) => {
 
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(import.meta.env.VITE_HUB_URL, {
-        accessTokenFactory: () => {
-          const state = JSON.parse(localStorage.getItem('auth-storage') || '{}');
-          return state?.state?.token || '';
-        }
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();

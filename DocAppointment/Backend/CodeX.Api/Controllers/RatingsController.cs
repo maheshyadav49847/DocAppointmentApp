@@ -13,10 +13,14 @@ namespace CodeX.Api.Controllers
     public class RatingsController : ControllerBase
     {
         private readonly ISender _mediator;
+        private readonly CodeX.Application.Common.Interfaces.IApplicationDbContext _context;
+        private readonly CodeX.Application.Common.Interfaces.ICurrentUserService _currentUserService;
 
-        public RatingsController(ISender mediator)
+        public RatingsController(ISender mediator, CodeX.Application.Common.Interfaces.IApplicationDbContext context, CodeX.Application.Common.Interfaces.ICurrentUserService currentUserService)
         {
             _mediator = mediator;
+            _context = context;
+            _currentUserService = currentUserService;
         }
 
         /// <summary>
@@ -45,6 +49,16 @@ namespace CodeX.Api.Controllers
         [Authorize]
         public async Task<IActionResult> GetDoctorRatings(Guid doctorId)
         {
+            // Enforcement: Ensure doctor belongs to current user's organization
+            if (!_currentUserService.IsInRole("SuperAdmin"))
+            {
+                var doctorExists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_context.Doctors, d => d.Id == doctorId && d.OrganizationId == _currentUserService.OrgId);
+                if (!doctorExists)
+                {
+                    return Forbid();
+                }
+            }
+
             var result = await _mediator.Send(new GetDoctorRatingsQuery { DoctorId = doctorId });
             return Ok(result);
         }

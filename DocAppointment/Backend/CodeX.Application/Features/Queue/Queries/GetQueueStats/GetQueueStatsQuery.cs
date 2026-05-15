@@ -28,7 +28,8 @@ namespace CodeX.Application.Features.Queue.Queries.GetQueueStats
 
         public async Task<QueueStatsDto> Handle(GetQueueStatsQuery request, CancellationToken cancellationToken)
         {
-            var today = DateTime.UtcNow.Date;
+            var branch = await _context.Branches.FindAsync(new object[] { request.BranchId }, cancellationToken);
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch?.Timezone);
             var tomorrow = today.AddDays(1);
 
             var dailyQueues = await _context.DailyQueues

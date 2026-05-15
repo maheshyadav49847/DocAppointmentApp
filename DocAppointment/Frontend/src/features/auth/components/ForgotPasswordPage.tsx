@@ -21,8 +21,50 @@ const ForgotPasswordPage: React.FC = () => {
     }
   }, [countdown]);
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateRequest = () => {
+    const newErrors: Record<string, string> = {};
+    if (!identifier.trim()) {
+      newErrors.identifier = 'Email or Phone is required';
+    } else {
+      const isEmail = identifier.includes('@');
+      if (isEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+        newErrors.identifier = 'Invalid email format';
+      } else if (!isEmail) {
+        const cleanPhone = identifier.replace(/\D/g, '');
+        if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+          newErrors.identifier = 'Enter a valid 10-15 digit phone number';
+        }
+      }
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateReset = () => {
+    const newErrors: Record<string, string> = {};
+    if (otp.length !== 6) {
+      newErrors.otp = 'OTP must be 6 digits';
+    }
+    
+    const hasUpper = /[A-Z]/.test(newPassword);
+    const hasLower = /[a-z]/.test(newPassword);
+    const hasNumber = /\d/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+    
+    if (newPassword.length < 8 || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+      newErrors.newPassword = 'Password must be 8+ chars with Uppercase, Lowercase, Number and Special character.';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleRequest = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setErrors({});
+    if (!validateRequest()) return;
     if (countdown > 0 && step === 'reset') return; // Prevent spamming resend
 
     setLoading(true);
@@ -49,6 +91,9 @@ const ForgotPasswordPage: React.FC = () => {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    if (!validateReset()) return;
+
     setLoading(true);
     try {
       await authService.resetPassword(identifier, otp, newPassword);
@@ -101,7 +146,7 @@ const ForgotPasswordPage: React.FC = () => {
         </p>
 
         {step === 'request' ? (
-          <form onSubmit={handleRequest} style={{ textAlign: 'left' }}>
+          <form onSubmit={handleRequest} noValidate style={{ textAlign: 'left' }}>
             <div style={{ marginBottom: '25px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <Mail size={16} /> Email or Phone Number
@@ -112,17 +157,18 @@ const ForgotPasswordPage: React.FC = () => {
                 className="modern-input"
                 placeholder="admin@hospital.com or +91..."
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                onChange={(e) => { setIdentifier(e.target.value); setErrors(prev => ({ ...prev, identifier: '' })); }}
                 style={{ 
                   width: '100%', 
                   padding: '14px 16px', 
                   borderRadius: '12px', 
                   background: 'rgba(255,255,255,0.03)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
+                  border: `1px solid ${errors.identifier ? 'var(--danger)' : 'rgba(255,255,255,0.1)'}`, 
                   color: 'white',
                   transition: 'all 0.3s'
                 }}
               />
+              {errors.identifier && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '8px' }}>{errors.identifier}</p>}
             </div>
 
             <button
@@ -145,7 +191,7 @@ const ForgotPasswordPage: React.FC = () => {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleReset} style={{ textAlign: 'left' }}>
+          <form onSubmit={handleReset} noValidate style={{ textAlign: 'left' }}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <ShieldCheck size={16} /> Enter OTP
@@ -157,13 +203,13 @@ const ForgotPasswordPage: React.FC = () => {
                 className="modern-input"
                 placeholder="6-digit code"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => { setOtp(e.target.value); setErrors(prev => ({ ...prev, otp: '' })); }}
                 style={{ 
                   width: '100%', 
                   padding: '14px 16px', 
                   borderRadius: '12px', 
                   background: 'rgba(255,255,255,0.03)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
+                  border: `1px solid ${errors.otp ? 'var(--danger)' : 'rgba(255,255,255,0.1)'}`, 
                   color: 'white',
                   textAlign: 'center',
                   fontSize: '1.2rem',
@@ -171,6 +217,7 @@ const ForgotPasswordPage: React.FC = () => {
                   fontWeight: 800
                 }}
               />
+              {errors.otp && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '8px', textAlign: 'center' }}>{errors.otp}</p>}
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -183,16 +230,17 @@ const ForgotPasswordPage: React.FC = () => {
                 className="modern-input"
                 placeholder="••••••••"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => { setNewPassword(e.target.value); setErrors(prev => ({ ...prev, newPassword: '' })); }}
                 style={{ 
                   width: '100%', 
                   padding: '14px 16px', 
                   borderRadius: '12px', 
                   background: 'rgba(255,255,255,0.03)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
+                  border: `1px solid ${errors.newPassword ? 'var(--danger)' : 'rgba(255,255,255,0.1)'}`, 
                   color: 'white'
                 }}
               />
+              {errors.newPassword && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '8px' }}>{errors.newPassword}</p>}
             </div>
 
             <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>

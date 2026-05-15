@@ -34,7 +34,10 @@ namespace CodeX.Api.Controllers
             }
 
             var effectiveBranchId = branchId;
-            if (_currentUserService.IsInRole(nameof(StaffRole.BranchAdmin)))
+            
+            // Branch-level isolation for BranchAdmin and Receptionist
+            if (_currentUserService.IsInRole(nameof(StaffRole.BranchAdmin)) || 
+                _currentUserService.IsInRole(nameof(StaffRole.Receptionist)))
             {
                 if (!_currentUserService.BranchId.HasValue)
                 {
@@ -43,7 +46,6 @@ namespace CodeX.Api.Controllers
 
                 if (branchId.HasValue && branchId != _currentUserService.BranchId)
                 {
-                    Console.WriteLine($"[AUTH_DEBUG] 403 Forbidden: User BranchId={_currentUserService.BranchId}, Requested BranchId={branchId}");
                     return Forbid();
                 }
 

@@ -9,7 +9,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<DailyQueue> builder)
         {
             builder.HasKey(x => x.Id);
-            builder.HasIndex(x => new { x.DoctorId, x.QueueDate, x.SessionId });
+            builder.HasIndex(x => new { x.DoctorId, x.QueueDate, x.SessionId }).IsUnique().HasFilter("\"IsDeleted\" = false");
 
             builder.HasOne(x => x.Doctor)
                    .WithMany(x => x.DailyQueues)

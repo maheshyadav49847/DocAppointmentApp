@@ -9,12 +9,30 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{email?: string, password?: string}>({});
+
+  const validate = () => {
+    const errors: {email?: string, password?: string} = {};
+    if (!email) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Invalid email format';
+    }
+    if (!password) {
+      errors.password = 'Password is required';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
   
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
+    if (!validate()) return;
+    
     setLoading(true);
     setError('');
 
@@ -74,7 +92,7 @@ const LoginPage: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
+        <form onSubmit={handleSubmit} noValidate style={{ textAlign: 'left' }}>
           <div style={{ marginBottom: '20px' }}>
             <label data-tooltip="Enter your registered hospital email" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
               <Mail size={16} /> Email Address
@@ -82,10 +100,12 @@ const LoginPage: React.FC = () => {
             <input 
               type="email" 
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setFieldErrors(prev => ({ ...prev, email: '' })); }}
               placeholder="admin@hospital.com"
               required 
+              style={{ borderColor: fieldErrors.email ? 'var(--danger)' : undefined }}
             />
+            {fieldErrors.email && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{fieldErrors.email}</p>}
           </div>
 
           <div style={{ marginBottom: '30px' }}>
@@ -95,10 +115,12 @@ const LoginPage: React.FC = () => {
             <input 
               type="password" 
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}
               placeholder="••••••••"
               required 
+              style={{ borderColor: fieldErrors.password ? 'var(--danger)' : undefined }}
             />
+            {fieldErrors.password && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{fieldErrors.password}</p>}
             <div style={{ textAlign: 'right', marginTop: '8px' }}>
               <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--accent-color)', textDecoration: 'none' }}>Forgot password?</Link>
             </div>

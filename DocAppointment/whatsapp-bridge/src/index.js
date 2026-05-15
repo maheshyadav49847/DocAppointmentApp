@@ -19,6 +19,15 @@ const apiKey = process.env.API_KEY || "";
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
+function requireAuth(req, res, next) {
+  if (!apiKey) return next();
+  const providedKey = req.header("X-Bridge-Api-Key") || req.query.apiKey;
+  if (providedKey === apiKey) {
+    return next();
+  }
+  return res.status(401).json({ error: "Unauthorized" });
+}
+
 const clients = new Map();
 
 function buildBridgeHeaders() {
@@ -34,7 +43,8 @@ function toChatId(phoneNumber) {
   if (!digits) {
     throw new Error("A valid phone number is required.");
   }
-  const finalDigits = digits.length === 10 ? `91${digits}` : digits;
+  const countryCode = process.env.DEFAULT_COUNTRY_CODE || "91";
+  const finalDigits = digits.length === 10 ? `${countryCode}${digits}` : digits;
   return `${finalDigits}@s.whatsapp.net`;
 }
 
@@ -198,7 +208,7 @@ app.get("/status/test", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/qr/:branchId", async (req, res) => {
+app.get("/qr/:branchId", requireAuth, async (req, res) => {
   const { state } = await getClient(req.params.branchId);
   if (state.ready) {
     return res.send("<html><body><h2>Node Online</h2></body></html>");
@@ -219,7 +229,7 @@ app.get("/qr/:branchId", async (req, res) => {
   res.send(`<html><body style="margin:0;display:flex;align-items:center;justify-content:center;"><img src="${qrImage}" style="width:90%;height:90%;object-fit:contain;" /></body></html>`);
 });
 
-app.get("/status/:branchId", async (req, res) => {
+app.get("/status/:branchId", requireAuth, async (req, res) => {
   const { state } = await getClient(req.params.branchId);
   res.json({
     ...state,
@@ -227,10 +237,10 @@ app.get("/status/:branchId", async (req, res) => {
   });
 });
 
-app.post("/send-message", async (req, res) => {
+app.post("/send-message", requireAuth, async (req, res) => {
   const { branchId, to, message } = req.body ?? {};
-  console.log(`[OUTGOING] Attempting relay for ${branchId} to ${to}...`);
-  console.log(`[OUTGOING] Message: "${message}"`);
+  console.log(`[OUTGOING] Attempting relay for ${branchId} to ***...`);
+  console.log(`[OUTGOING] Message payload received.`);
 
   if (!branchId || !to || !message) {
     console.error("[OUTGOING] Missing parameters");
@@ -246,7 +256,7 @@ app.post("/send-message", async (req, res) => {
 
     const jid = toChatId(to);
     await entry.client.sendMessage(jid, { text: String(message) });
-    console.log(`[OUTGOING] Message sent successfully to ${jid}`);
+    console.log(`[OUTGOING] Message sent successfully`);
     return res.json({ sent: true });
   } catch (error) {
     console.error(`[OUTGOING] Failed to send message for ${branchId}: ${error.message}`);
@@ -254,31 +264,30 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-app.post("/restart/:branchId", async (req, res) => {
+app.post("/restart/:branchId", requireAuth, async (req, res) => {
   await destroyClient(req.params.branchId);
   res.json({ message: "Resetting..." });
 });
 
-app.post("/logout/:branchId", async (req, res) => {
+app.post("/logout/:branchId", requireAuth, async (req, res) => {
   await destroyClient(req.params.branchId, { logout: true });
   res.json({ message: "Logged out." });
 });
 
-app.get("/check-number/:branchId/:phone", async (req, res) => {
+app.get("/check-number/:branchId/:phone", requireAuth, async (req, res) => {
   const { branchId, phone } = req.params;
   try {
     const entry = await getClient(branchId);
     if (!entry.client || !entry.state.ready) {
-      // If bridge client isn't ready/authenticated, assume exists=true so flow doesn't block
-      return res.json({ ready: false, exists: true });
+      return res.json({ ready: false, exists: null, status: "verification_unavailable" });
     }
     const jid = toChatId(phone);
     const result = await entry.client.onWhatsApp(jid);
     const exists = result && result.length > 0 && result[0].exists;
-    return res.json({ ready: true, exists: Boolean(exists) });
+    return res.json({ ready: true, exists: Boolean(exists), status: exists ? "exists" : "not_exists" });
   } catch (error) {
-    console.error(`[CHECK] Failed to verify number ${phone} for branch ${branchId}: ${error.message}`);
-    return res.json({ ready: false, exists: true });
+    console.error(`[CHECK] Failed to verify number for branch ${branchId}: ${error.message}`);
+    return res.json({ ready: false, exists: null, status: "verification_unavailable" });
   }
 });
 

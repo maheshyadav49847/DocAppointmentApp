@@ -13,6 +13,7 @@ export interface BranchAnalytics {
   operations: { avgDoctorPunctualityMinutes: number; slotUtilizationPercent: number };
   staffPerformance: { staffName: string; tokensGenerated: number }[];
   whatsAppStats: { totalSent: number; delivered: number; failed: number };
+  platformStats: { totalOrganizations: number; totalBranches: number; avgApiResponseTimeMs: number; databaseSizeMb: number };
   hourlyTrends: { hour: number; count: number }[];
   doctorPerformance: { doctorName: string; tokenCount: number; avgWaitTime: number; revenue: number }[];
   dailyWaitTimeTrends: { date: string; avgWaitTime: number }[];

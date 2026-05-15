@@ -10,6 +10,9 @@ import {
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const [formData, setFormData] = useState({
     orgName: '',
     orgSlug: '',
@@ -21,26 +24,68 @@ const RegisterPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setErrors(prev => ({ ...prev, [name]: '' }));
+    setFormError('');
+    
     if (name === 'orgSlug') {
-      // Auto-sanitize slug
       setFormData(prev => ({ ...prev, [name]: value.toLowerCase().replace(/[^a-z0-9-]/g, '') }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const { orgName, orgSlug, adminEmail, adminPassword, confirmPassword, adminPhoneNumber } = formData;
+    const newErrors: Record<string, string> = {};
     
-    if (formData.adminPassword !== formData.confirmPassword) {
-      notify.danger('Password Mismatch', 'Confirm password does not match.');
-      return;
+    if (orgName.trim().length < 3) {
+      newErrors.orgName = 'Organization name should be at least 3 characters.';
     }
 
-    if (formData.adminPassword.length < 6) {
-      notify.danger('Weak Password', 'Password must be at least 6 characters.');
-      return;
+    if (!orgSlug || orgSlug.length < 3) {
+      newErrors.orgSlug = 'Slug must be at least 3 characters.';
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(adminEmail)) {
+      newErrors.adminEmail = 'Please enter a valid email address.';
+    }
+
+    const cleanPhone = adminPhoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      newErrors.adminPhoneNumber = 'Enter a valid 10-15 digit WhatsApp number.';
+    }
+
+    if (adminPassword !== confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password does not match.';
+    }
+
+    const hasUpper = /[A-Z]/.test(adminPassword);
+    const hasLower = /[a-z]/.test(adminPassword);
+    const hasNumber = /\d/.test(adminPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(adminPassword);
+
+    if (adminPassword.length < 8 || !hasUpper || !hasLower || !hasNumber || !hasSpecial) {
+      newErrors.adminPassword = 'Password must be 8+ chars with Uppercase, Lowercase, Number and Special character.';
+    }
+
+    setErrors(newErrors);
+    
+    if (Object.keys(newErrors).length > 0) {
+      setFormError('Please fix the errors below.');
+      notify.danger('Validation Error', 'Check the highlighted fields.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setFormError('');
+    
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -52,10 +97,12 @@ const RegisterPage: React.FC = () => {
         adminPhoneNumber: formData.adminPhoneNumber
       });
       
-      notify.success('Registration Successful', 'Your organization has been registered. Please login.');
+      notify.success('Registration Successful', 'Your organization has been registered.');
       navigate('/login');
     } catch (error: any) {
-      notify.danger('Registration Failed', error.response?.data?.message || 'Something went wrong. Try a different slug.');
+      const msg = error.response?.data?.message || 'Something went wrong. Try a different slug.';
+      setFormError(msg);
+      notify.danger('Registration Failed', msg);
     } finally {
       setLoading(false);
     }
@@ -117,7 +164,20 @@ const RegisterPage: React.FC = () => {
             <p style={{ color: 'var(--text-secondary)' }}>Enter your details to get started with CodeX.</p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {formError && (
+              <div style={{ 
+                background: 'rgba(239, 68, 68, 0.1)', 
+                color: 'var(--danger)', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                fontSize: '0.9rem',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                textAlign: 'center'
+              }}>
+                {formError}
+              </div>
+            )}
             <div className="input-group">
               <label data-tooltip="The legal name of your healthcare facility" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 <Building2 size={16} /> Organization Name
@@ -129,7 +189,9 @@ const RegisterPage: React.FC = () => {
                 required 
                 value={formData.orgName}
                 onChange={handleChange}
+                style={{ borderColor: errors.orgName ? 'var(--danger)' : undefined }}
               />
+              {errors.orgName && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{errors.orgName}</p>}
             </div>
 
             <div className="input-group">
@@ -144,12 +206,13 @@ const RegisterPage: React.FC = () => {
                   required 
                   value={formData.orgSlug}
                   onChange={handleChange}
-                  style={{ paddingRight: '120px' }}
+                  style={{ paddingRight: '120px', borderColor: errors.orgSlug ? 'var(--danger)' : undefined }}
                 />
                 <span style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-secondary)', pointerEvents: 'none' }}>
                   .docapp.live
                 </span>
               </div>
+              {errors.orgSlug && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{errors.orgSlug}</p>}
               <p style={{ margin: '5px 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Used for your hospital's public booking page.</p>
             </div>
 
@@ -166,7 +229,9 @@ const RegisterPage: React.FC = () => {
                 required 
                 value={formData.adminEmail}
                 onChange={handleChange}
+                style={{ borderColor: errors.adminEmail ? 'var(--danger)' : undefined }}
               />
+              {errors.adminEmail && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{errors.adminEmail}</p>}
             </div>
 
             <div className="input-group">
@@ -180,12 +245,14 @@ const RegisterPage: React.FC = () => {
                 required 
                 value={formData.adminPhoneNumber}
                 onChange={handleChange}
+                style={{ borderColor: errors.adminPhoneNumber ? 'var(--danger)' : undefined }}
               />
+              {errors.adminPhoneNumber && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{errors.adminPhoneNumber}</p>}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               <div className="input-group">
-                <label data-tooltip="Create a strong password (min 6 characters)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <label data-tooltip="Create a strong password (min 8 characters)" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                   <LockIcon size={16} /> Password
                 </label>
                 <input 
@@ -195,7 +262,9 @@ const RegisterPage: React.FC = () => {
                   required 
                   value={formData.adminPassword}
                   onChange={handleChange}
+                  style={{ borderColor: errors.adminPassword ? 'var(--danger)' : undefined }}
                 />
+                {errors.adminPassword && <p style={{ color: 'var(--danger)', fontSize: '0.65rem', marginTop: '5px', lineHeight: '1.2' }}>{errors.adminPassword}</p>}
               </div>
               <div className="input-group">
                 <label data-tooltip="Re-type password for verification" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
@@ -208,7 +277,9 @@ const RegisterPage: React.FC = () => {
                   required 
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  style={{ borderColor: errors.confirmPassword ? 'var(--danger)' : undefined }}
                 />
+                {errors.confirmPassword && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{errors.confirmPassword}</p>}
               </div>
             </div>
 

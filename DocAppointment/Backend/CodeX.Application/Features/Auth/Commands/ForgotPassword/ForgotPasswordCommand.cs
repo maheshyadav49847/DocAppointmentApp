@@ -28,8 +28,13 @@ namespace CodeX.Application.Features.Auth.Commands.ForgotPassword
 
         public async Task<bool> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
         {
+            var isEmail = request.Identifier.Contains("@");
+            var normalizedIdentifier = isEmail ? 
+                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.Identifier) : 
+                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.Identifier);
+
             var staff = await _context.Staffs
-                .FirstOrDefaultAsync(x => x.Email == request.Identifier || x.PhoneNumber == request.Identifier, cancellationToken);
+                .FirstOrDefaultAsync(x => x.Email == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
 
             if (staff == null)
             {
@@ -43,7 +48,7 @@ namespace CodeX.Application.Features.Auth.Commands.ForgotPassword
             await _context.SaveChangesAsync(cancellationToken);
 
             var message = $"Your password reset OTP is: {otp}. Valid for 15 minutes.";
-            Console.WriteLine($"[OTP DEBUG] Method: {request.Method}, ID: {request.Identifier}, OTP: {otp}");
+            Console.WriteLine($"[OTP DEBUG] Method: {request.Method}, ID: *** - OTP Generated and Sent.");
 
             if (request.Method == "Email")
             {

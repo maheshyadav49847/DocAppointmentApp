@@ -7,6 +7,7 @@ using CodeX.Application.Features.Doctors.Queries.GetOrganizationDoctors;
 using CodeX.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CodeX.Api.Controllers
 {
@@ -22,6 +23,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<ActionResult<Guid>> Create(CreateDoctorCommand command)
         {
             var finalCommand = command with { OrganizationId = _currentUserService.OrgId };
@@ -60,6 +62,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Update(Guid id, UpdateDoctorCommand command)
         {
             if (id != command.Id) return BadRequest();
@@ -76,6 +79,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try 

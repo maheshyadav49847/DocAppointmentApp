@@ -10,7 +10,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Phone).IsRequired().HasMaxLength(20);
-            builder.HasIndex(x => x.Phone).IsUnique();
+            builder.HasIndex(x => x.Phone).IsUnique().HasFilter("\"IsDeleted\" = false");
         }
     }
 }
