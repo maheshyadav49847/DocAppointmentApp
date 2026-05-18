@@ -1,0 +1,397 @@
+/* SessionsList.css */
+
+.sessions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.sessions-content {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.branch-select-container {
+    min-width: 220px;
+}
+
+.branch-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.branch-dropdown {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.branch-dropdown:focus {
+    border-color: var(--accent-color);
+}
+
+.branch-dropdown option {
+    background: #0f172a;
+    color: white;
+}
+
+.session-actions-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+}
+
+.doctor-dropdown-wrapper {
+    flex: 1;
+    width: 100%;
+    max-width: 300px;
+}
+
+.doctor-dropdown {
+    width: 100%;
+    height: 48px;
+    padding: 0 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: white;
+    font-weight: 600;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.doctor-dropdown:focus:not(:disabled) {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.doctor-dropdown option {
+    background: #0f172a;
+    color: white;
+}
+
+.add-session-btn {
+    height: 48px;
+    padding: 0 25px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 4px 15px var(--accent-glow);
+}
+
+.section-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.empty-state-box {
+    text-align: center;
+    padding: 80px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.empty-state-icon {
+    margin-bottom: 20px;
+    opacity: 0.2;
+    color: var(--accent-color);
+}
+
+.empty-state-title {
+    margin: 0;
+    color: white;
+}
+
+.empty-state-text {
+    color: var(--text-secondary);
+}
+
+.grid-sessions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.session-card {
+    border-left: 4px solid var(--accent-color);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 25px;
+    transition: all 0.3s ease;
+}
+
+.session-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-3px);
+}
+
+.session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.session-name {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: white;
+}
+
+.session-occurrence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+.session-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.session-action-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-edit-session:hover {
+    background: rgba(56, 189, 248, 0.1);
+    color: var(--accent-color);
+}
+
+.btn-delete-session {
+    background: rgba(239, 68, 68, 0.03);
+    border: 1px solid rgba(239, 68, 68, 0.1);
+    color: rgba(239, 68, 68, 0.5);
+}
+
+.btn-delete-session:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+
+.session-data-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.session-data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.session-data-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.label-hours { color: var(--accent-color); }
+.label-capacity { color: #a78bfa; }
+
+.session-data-value {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.capacity-unit {
+    font-weight: 400;
+    opacity: 0.6;
+}
+
+/* Form Styles */
+.recurrence-toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.recurrence-card {
+    padding: 16px;
+    border-radius: 14px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.recurrence-card-active {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: var(--accent-color);
+    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.15);
+}
+
+.recurrence-icon {
+    color: var(--text-secondary);
+    transition: color 0.3s;
+}
+
+.recurrence-card-active .recurrence-icon {
+    color: var(--accent-color);
+}
+
+.recurrence-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: color 0.3s;
+}
+
+.recurrence-card-active .recurrence-label {
+    color: white;
+}
+
+.recurrence-desc {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.form-field-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    color: white;
+    padding: 12px;
+    outline: none;
+}
+
+.form-select option {
+    background: #0f172a;
+    color: white;
+}
+
+.form-input-row {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modal-footer-row {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn-cancel-session {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-cancel-session:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-submit-session {
+    flex: 1;
+}
+
+/* Delete Modal */
+.delete-confirm-box {
+    text-align: center;
+}
+
+.delete-alert-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.1);
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--danger);
+}
+
+.delete-alert-text {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.btn-delete-final {
+    flex: 1;
+    background: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.mb-25 { margin-bottom: 25px; }
+.grid-full-width { grid-column: 1 / -1; }
+

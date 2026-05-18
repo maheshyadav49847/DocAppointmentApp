@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notify } from '../../../stores/notificationStore';
 import { Building2 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
+import './QueueDashboard.css';
 
 const QueueDashboard: React.FC = () => {
   const { branchId: globalBranchId, orgId, setBranch } = useAuthStore();
@@ -117,8 +118,6 @@ const QueueDashboard: React.FC = () => {
     }
   };
 
-
-
   const handleManageSession = (doctor: any, session: any, queueId: string) => {
     setActiveSession({ doctor, session, queueId });
     setSearchParams({ mode: 'manage', queueId: queueId });
@@ -128,7 +127,7 @@ const QueueDashboard: React.FC = () => {
     mutationFn: (data: any) => queueService.createToken(data),
     onSuccess: (_result, variables) => {
       notify.success('Patient Booked', `New token created for ${variables.patientName || 'patient'}.`);
-      queryClient.invalidateQueries({ queryKey: ['upcomingTokens', activeSession?.queueId] });
+      queryClient.invalidateQueries({ queryKey: ['upcomingTokens', activeSession?.queueId || urlQueueId] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       setIsModalOpen(false);
     },
@@ -203,11 +202,15 @@ const QueueDashboard: React.FC = () => {
   });
 
   const handleManualBookingSubmit = async (data: { name: string; phone: string }) => {
-    if (!activeSession?.queueId) return;
+    const currentQueueId = activeSession?.queueId || urlQueueId;
+    if (!currentQueueId) {
+      notify.danger("Error", "No active session found. Please try refreshing.");
+      return;
+    }
 
     // Strict Client-side duplicate check
     // We search across ALL tokens in the current session (Pending and Now Serving)
-    const queueData = queryClient.getQueryData(['upcomingTokens', activeSession.queueId]) as any[];
+    const queueData = queryClient.getQueryData(['upcomingTokens', currentQueueId]) as any[];
     const isDuplicate = queueData && queueData.some((t: any) =>
       t.patientPhone === data.phone && (t.status === 0 || t.status === 1)
     );
@@ -237,7 +240,7 @@ const QueueDashboard: React.FC = () => {
     }
 
     createTokenMutation.mutate({
-      queueId: activeSession.queueId,
+      queueId: currentQueueId,
       patientName: data.name,
       patientPhone: data.phone,
       source: 2 // Manual
@@ -253,16 +256,16 @@ const QueueDashboard: React.FC = () => {
   }, [doctors, searchQuery]);
 
   if (isLoadingDoctors) return (
-    <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+    <div className="loading-container">
       <div className="pulse-container">
         <Activity size={60} color="var(--accent-color)" className="animate-pulse" />
       </div>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', letterSpacing: '1px' }}>PREPARING DASHBOARD...</p>
+      <p className="loading-text">PREPARING DASHBOARD...</p>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', paddingBottom: '50px' }}>
+    <div className="queue-dashboard-container">
       {viewMode === 'overview' ? (
         <Overview
           doctors={filteredDoctors}
@@ -328,17 +331,16 @@ const QueueDashboard: React.FC = () => {
 
       {deletingTokenId && (
         <Modal title="Confirm Deletion" onClose={() => setDeletingTokenId(null)} icon={<AlertTriangle size={24} color="var(--danger)" />}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)' }}>
+          <div className="modal-delete-content">
+            <div className="modal-delete-icon-wrapper">
               <AlertTriangle size={30} />
             </div>
-            <p style={{ fontSize: '1.1rem', marginBottom: '30px' }}>Are you sure you want to remove this patient from the queue? This will mark the token as cancelled.</p>
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button onClick={() => setDeletingTokenId(null)} style={{ flex: 1, padding: '10px 20px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 600 }}><X size={16} /> No, Keep</button>
+            <p className="modal-delete-text">Are you sure you want to remove this patient from the queue? This will mark the token as cancelled.</p>
+            <div className="modal-actions-gap">
+              <button onClick={() => setDeletingTokenId(null)} className="btn-secondary-ghost"><X size={16} /> No, Keep</button>
               <button
                 onClick={() => deleteTokenMutation.mutate(deletingTokenId)}
-                className="btn-primary"
-                style={{ flex: 1, background: 'var(--danger)', border: '1px solid var(--danger)', padding: '10px 20px', borderRadius: '8px', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                className="btn-danger-action"
               >
                 <Trash2 size={18} /> {deleteTokenMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
               </button>
@@ -353,30 +355,26 @@ const QueueDashboard: React.FC = () => {
 // --- SUB-COMPONENT: OVERVIEW ---
 const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onManage, selectedBranchId, setSelectedBranchId, branches, processingSessions }: any) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '35px' }}>
+    <div className="overview-container">
       <PageHeader
         title="Queue"
         accentTitle="Dashboard"
         subtitle="Monitor and manage doctor sessions in real-time."
         icon={<LayoutDashboard />}
         rightElement={
-          <div style={{ minWidth: '250px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+          <div className="branch-select-container">
+            <label className="branch-select-label">
               <Building2 size={14} /> Hospital Branch
             </label>
             <select
               data-tooltip="Switch hospital branch dashboard"
               value={selectedBranchId}
               onChange={(e) => setSelectedBranchId(e.target.value)}
-              style={{
-                width: '100%', padding: '12px 15px', borderRadius: '12px',
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                color: 'white', fontWeight: 600, fontSize: '0.9rem'
-              }}
+              className="branch-select"
             >
-              <option value="" style={{ background: '#0f172a' }}>Choose a branch...</option>
+              <option value="">Choose a branch...</option>
               {branches?.map((b: any) => (
-                <option key={b.id} value={b.id} style={{ background: '#0f172a' }}>{b.name}</option>
+                <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
           </div>
@@ -384,50 +382,50 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
       />
 
       {!selectedBranchId ? (
-        <div style={{ textAlign: 'center', padding: '120px', background: 'rgba(255,255,255,0.02)', borderRadius: '30px', border: '1px dashed rgba(255,255,255,0.1)' }}>
-          <Building2 size={80} style={{ marginBottom: '30px', opacity: 0.1, color: 'var(--accent-color)' }} />
-          <h2 style={{ color: 'white', fontSize: '2rem' }}>Operational Oversight</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: '500px', margin: '15px auto' }}>Please select a hospital branch from the header to monitor live patient queues and manage professional sessions.</p>
+        <div className="no-branch-selected">
+          <Building2 size={80} className="no-branch-icon" />
+          <h2 className="no-branch-title">Operational Oversight</h2>
+          <p className="no-branch-p">Please select a hospital branch from the header to monitor live patient queues and manage professional sessions.</p>
         </div>
       ) : (
         <>
           {/* Header Stats */}
           <div className="grid-stats">
-            <StatCard data-tooltip="Total patients registered across all sessions today" icon={<Users />} label="Total Patients" value={stats?.totalPatientsToday || 0} color="var(--accent-color)" />
-            <StatCard data-tooltip="Total patients successfully served today" icon={<CheckCircle2 />} label="Completed" value={stats?.completedPatients || 0} color="var(--success)" />
-            <StatCard data-tooltip="Total patients marked as absent today" icon={<AlertCircle />} label="Skipped" value={stats?.skippedPatients || 0} color="var(--danger)" />
-            <StatCard data-tooltip="Average wait time for patients across all sessions" icon={<Clock />} label="Avg Wait Time" value={`${stats?.avgWaitTimeMinutes || 0}m`} color="#FACC15" />
+            <StatCard data-tooltip="Total patients registered across all sessions today" icon={<Users />} label="Total Patients" value={stats?.totalPatientsToday || 0} variant="accent" />
+            <StatCard data-tooltip="Total patients successfully served today" icon={<CheckCircle2 />} label="Completed" value={stats?.completedPatients || 0} variant="success" />
+            <StatCard data-tooltip="Total patients marked as absent today" icon={<AlertCircle />} label="Skipped" value={stats?.skippedPatients || 0} variant="danger" />
+            <StatCard data-tooltip="Average wait time for patients across all sessions" icon={<Clock />} label="Avg Wait Time" value={`${stats?.avgWaitTimeMinutes || 0}m`} variant="warning" />
           </div>
 
-          <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }} className="flex-mobile-column">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <div style={{ background: 'var(--accent-glow)', padding: '10px', borderRadius: '12px', color: 'var(--accent-color)', boxShadow: '0 0 15px var(--accent-glow)' }}>
+          <div className="glass-card sessions-card-body">
+            <div className="sessions-header-actions flex-mobile-column">
+              <div className="active-sessions-title-wrapper">
+                <div className="active-sessions-icon-bg">
                   <Stethoscope size={24} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Active Sessions</h3>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Doctors currently handling patient queues</p>
+                  <h3 className="active-sessions-title">Active Sessions</h3>
+                  <p className="active-sessions-subtitle">Doctors currently handling patient queues</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '400px' }} className="flex-mobile-column full-width-mobile">
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+              <div className="search-input-wrapper flex-mobile-column full-width-mobile">
+                <div className="search-input-container">
+                  <Search size={18} className="search-icon-pos" />
                   <input
                     data-tooltip="Find doctor by name or specialty"
                     type="text"
                     placeholder="Search doctor or specialty..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '45px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', width: '100%' }}
+                    className="search-input-field"
                   />
                 </div>
               </div>
             </div>
 
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)' }} />
+            <div className="divider-light" />
 
-            <div className="grid-sessions">
+            <div className="queue-grid-sessions">
               {doctors?.map((doc: any) => (
                 <DoctorCard
                   key={doc.id}
@@ -441,10 +439,10 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
             </div>
 
             {doctors?.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '80px', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                <AlertCircle size={40} color="var(--text-secondary)" style={{ marginBottom: '15px' }} />
+              <div className="no-doctors-found">
+                <AlertCircle size={40} color="var(--text-secondary)" className="no-doctors-icon" />
                 <h3>No doctors found</h3>
-                <p style={{ color: 'var(--text-secondary)' }}>Try adjusting your search query.</p>
+                <p>Try adjusting your search query.</p>
               </div>
             )}
           </div>
@@ -454,53 +452,40 @@ const Overview = ({ doctors, stats, searchQuery, setSearchQuery, onStart, onMana
   );
 };
 
-const StatCard = ({ icon, label, value, color, subText, ...props }: any) => (
-  <div className="glass-card stat-card-responsive" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }} {...props}>
-    <div style={{ position: 'absolute', top: '-20px', left: '-20px', width: '80px', height: '80px', background: color, filter: 'blur(50px)', opacity: 0.1 }}></div>
-    <div style={{ color: color, display: 'flex', zIndex: 1 }}>
+const StatCard = ({ icon, label, value, variant, subText, ...props }: any) => (
+  <div className={`glass-card stat-card-responsive stat-card-container stat-card-${variant}`} {...props}>
+    <div className="stat-card-glow bg-current-color"></div>
+    <div className="stat-card-icon-wrapper text-current-color">
       {React.cloneElement(icon, { size: 24 })}
     </div>
-    <div style={{ zIndex: 1 }}>
-      <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600 }}>{label}</p>
-      <h3 style={{ margin: '5px 0 0 0', fontSize: '1.8rem', fontWeight: 800 }}>{value}</h3>
-      {subText && <p style={{ margin: '5px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)', opacity: 0.8 }} className="desktop-only">{subText}</p>}
+    <div className="stat-card-content">
+      <p className="stat-card-label">{label}</p>
+      <h3 className="stat-card-value">{value}</h3>
+      {subText && <p className="stat-card-subtext desktop-only">{subText}</p>}
     </div>
   </div>
 );
 
 const ConfirmDialog = ({ title, message, onConfirm, onCancel }: any) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, animation: 'fadeIn 0.3s ease' }}>
-    <div className="modal-card" style={{ width: '100%', maxWidth: '450px', padding: '40px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' }}>
-      <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 25px' }}>
+  <div className="confirm-dialog-overlay">
+    <div className="modal-card confirm-dialog-card">
+      <div className="confirm-dialog-icon-bg">
         <Power size={40} />
       </div>
-      <h2 style={{ margin: '0 0 10px', fontSize: '1.8rem' }}>{title}</h2>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '35px', lineHeight: '1.6' }}>{message}</p>
-      <div style={{ display: 'flex', gap: '15px' }}>
+      <h2 className="confirm-dialog-title">{title}</h2>
+      <p className="confirm-dialog-message">{message}</p>
+      <div className="modal-actions-gap">
         <button
           data-tooltip="Return to management console"
           onClick={onCancel}
-          style={{
-            flex: 1, padding: '12px 20px', borderRadius: '10px',
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.9rem',
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          className="btn-cancel-dialog"
         >
           <X size={18} /> Cancel
         </button>
         <button
           data-tooltip="Terminate session and close queue"
           onClick={onConfirm}
-          style={{
-            flex: 1, padding: '12px 20px', borderRadius: '10px',
-            background: 'var(--danger)', border: 'none', color: 'white',
-            cursor: 'pointer', fontWeight: 800, display: 'flex',
-            alignItems: 'center', justifyContent: 'center', gap: '10px', fontSize: '0.9rem'
-          }}
+          className="btn-confirm-end"
         >
           <Power size={18} /> Confirm End
         </button>
@@ -542,56 +527,31 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSes
   const activeSess = todaysSessions.find((s: any) => s.id === selectedSessId) || todaysSessions[0];
 
   return (
-    <div className="glass-card doctor-status-card" style={{ padding: '0', overflow: 'hidden', transition: 'all 0.3s ease' }}>
-      <div className="doctor-card-header" style={{ padding: '25px', background: 'linear-gradient(to bottom, rgba(255,255,255,0.03), transparent)', display: 'flex', alignItems: 'center', gap: '18px' }}>
-        <div style={{
-          width: '60px', height: '60px', borderRadius: '18px',
-          background: 'var(--accent-glow)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color)',
-          border: '1px solid rgba(56, 189, 248, 0.3)'
-        }}>
+    <div className="glass-card doctor-status-card doctor-card-container">
+      <div className="doctor-card-header doctor-card-header-wrapper">
+        <div className="doctor-card-avatar-bg">
           <UserCircle size={35} />
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: '1.3rem' }}>{doctor.name}</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-color)', fontSize: '0.9rem', fontWeight: 600 }}>
+        <div className="doctor-card-name-wrapper">
+          <h3 className="doctor-card-name">{doctor.name}</h3>
+          <div className="doctor-card-specialization">
             <Stethoscope size={14} />
             {doctor.specialization}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>SESSIONS</span>
-          <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{sessions?.length || 0}</span>
+        <div className="doctor-card-sessions-count">
+          <span className="doctor-card-sessions-label">SESSIONS</span>
+          <span className="doctor-card-sessions-value">{sessions?.length || 0}</span>
         </div>
       </div>
 
       {todaysSessions.length > 1 && (
-        <div className="custom-scrollbar" style={{
-          padding: '0 25px 15px',
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          scrollBehavior: 'smooth'
-        }}>
+        <div className="custom-scrollbar doctor-sessions-tabs">
           {todaysSessions.map((sess: any) => (
             <button
               key={sess.id}
               onClick={() => setSelectedSessId(sess.id)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                background: selectedSessId === sess.id ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255,255,255,0.03)',
-                color: selectedSessId === sess.id ? 'var(--accent-color)' : 'var(--text-secondary)',
-                border: `1px solid ${selectedSessId === sess.id ? 'rgba(56, 189, 248, 0.3)' : 'rgba(255,255,255,0.05)'}`,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              className={`doctor-session-tab-btn ${selectedSessId === sess.id ? 'active' : ''}`}
             >
               <Clock size={12} />
               {sess.sessionName}
@@ -601,13 +561,13 @@ const DoctorCard = ({ doctor, onStart, onManage, selectedBranchId, processingSes
       )}
 
       {todaysSessions.length === 0 ? (
-        <div style={{ padding: '0 25px 25px' }}>
-          <div style={{ padding: '15px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No scheduled shifts today.</p>
+        <div className="no-shifts-container">
+          <div className="no-shifts-card">
+            <p className="no-shifts-text">No scheduled shifts today.</p>
           </div>
         </div>
       ) : (
-        <div style={{ padding: '0 25px 25px' }}>
+        <div className="session-item-wrapper">
           <SessionItem
             doctor={doctor}
             session={activeSess}
@@ -640,106 +600,68 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
   const displayQueueId = activeQueue?.id || fallbackQueueId;
 
   return (
-    <div style={{
-      padding: '22px',
-      background: isLive ? 'rgba(56, 189, 248, 0.03)' : 'rgba(255,255,255,0.01)',
-      borderRadius: '18px',
-      border: `1px solid ${isLive ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)'}`,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
-      position: 'relative',
-      boxShadow: isLive ? '0 10px 30px rgba(56, 189, 248, 0.05)' : 'none',
-      transition: 'all 0.3s ease'
-    }}>
+    <div className={`session-item-container ${isLive ? 'is-live' : 'is-idle'}`}>
       {/* Header: Name and Time */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{
-            width: '45px', height: '45px', borderRadius: '12px',
-            background: 'rgba(255,255,255,0.03)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', color: isLive ? 'var(--accent-color)' : 'var(--text-secondary)'
-          }}>
+      <div className="session-item-header">
+        <div className="session-item-title-row">
+          <div className={`session-item-icon-bg ${isLive ? 'text-accent' : 'text-secondary'}`}>
             <Clock size={22} />
           </div>
           <div>
-            <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>{session.sessionName}</h4>
-            <span style={{ fontSize: '0.8rem', color: 'var(--accent-color)', fontWeight: 600 }}>
+            <h4 className="session-item-title">{session.sessionName}</h4>
+            <span className="session-item-type">
               {session.isDaily ? 'EVERY DAY (DAILY)' : 'SPECIFIC DAY'}
             </span>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+            <div className="session-item-time">
               {session.startTime.substring(0, 5)} <ChevronRight size={10} /> {session.endTime.substring(0, 5)}
             </div>
           </div>
         </div>
 
         {isLive && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+          <div className="live-badge-wrapper">
+            <div className="live-badge-label">
               <div className="live-dot"></div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '1px' }}>LIVE</span>
+              <span className="live-badge-text">LIVE</span>
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', marginTop: '2px' }}>#{activeQueue?.currentTokenNumber || '0'}</div>
+            <div className="live-token-number">#{activeQueue?.currentTokenNumber || '0'}</div>
           </div>
         )}
       </div>
 
       {/* Stats and Action Row */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'rgba(255,255,255,0.02)',
-        padding: '18px',
-        borderRadius: '14px',
-        border: '1px solid rgba(255,255,255,0.05)',
-        gap: '18px'
-      }}>
-        <div style={{ display: 'flex', gap: '20px', width: '100%', justifyContent: 'space-between' }}>
-          <div data-tooltip="Total patients currently waiting" style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Wait</span>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-color)' }}>{activeQueue?.waitingCount || 0}</span>
+      <div className="session-stats-container">
+        <div className="session-stats-row">
+          <div data-tooltip="Total patients currently waiting" className="session-stat-item">
+            <span className="session-stat-label">Wait</span>
+            <span className="session-stat-value text-accent">{activeQueue?.waitingCount || 0}</span>
           </div>
-          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
-          <div data-tooltip="Patients successfully treated today" style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Done</span>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--success)' }}>{activeQueue?.completedCount || 0}</span>
+          <div className="session-stat-divider"></div>
+          <div data-tooltip="Patients successfully treated today" className="session-stat-item">
+            <span className="session-stat-label">Done</span>
+            <span className="session-stat-value text-success">{activeQueue?.completedCount || 0}</span>
           </div>
-          <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', alignSelf: 'center' }}></div>
-          <div data-tooltip="Patients who were skipped" style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Skip</span>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--danger)' }}>{activeQueue?.skippedCount || 0}</span>
+          <div className="session-stat-divider"></div>
+          <div data-tooltip="Patients who were skipped" className="session-stat-item">
+            <span className="session-stat-label">Skip</span>
+            <span className="session-stat-value text-danger">{activeQueue?.skippedCount || 0}</span>
           </div>
         </div>
 
         {isLive ? (
           <button
             data-tooltip="Open queue management console"
-            className="btn-primary doctor-card-btn"
+            className="btn-primary doctor-card-btn manage-session-btn"
             onClick={() => onManage(doctor, session, displayQueueId)}
-            style={{
-              width: '100%',
-              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px',
-              minHeight: '44px', gap: '8px', fontWeight: 700
-            }}
           >
             <Settings size={14} /> Manage Session
           </button>
         ) : (
           <button
             data-tooltip="Initialize queue for this shift"
-            className="start-btn doctor-card-btn"
+            className={`start-btn doctor-card-btn start-session-btn ${isProcessing ? 'processing' : ''}`}
             onClick={() => onStart(doctor, session)}
             disabled={isProcessing}
-            style={{
-              width: '100%',
-              padding: '12px 18px', fontSize: '0.85rem', borderRadius: '10px',
-              minHeight: '44px', gap: '8px', fontWeight: 700,
-              background: isProcessing ? 'rgba(56, 189, 248, 0.05)' : 'rgba(56, 189, 248, 0.1)',
-              border: '1px solid rgba(56, 189, 248, 0.2)',
-              color: 'var(--accent-color)',
-              opacity: isProcessing ? 0.7 : 1,
-              cursor: isProcessing ? 'not-allowed' : 'pointer'
-            }}
           >
             {isProcessing ? (
               <Clock size={12} className="animate-spin" />
@@ -908,92 +830,51 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
   }, [connection, queueId, refetchQueue, refetchTokens]);
 
   if (!queue) return (
-    <div style={{ height: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Clock size={40} className="animate-spin" style={{ opacity: 0.2 }} />
+    <div className="loading-spinner">
+      <Clock size={40} className="animate-spin opacity-20" />
     </div>
   );
 
   const isDoctorArrived = queue.status === 1;
 
-  const secondaryControlStyle: React.CSSProperties = {
-    padding: '10px 20px',
-    borderRadius: '10px',
-    background: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    color: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-    cursor: 'pointer',
-    fontWeight: 600,
-    transition: 'all 0.2s'
-  };
-
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', animation: 'fadeIn 0.5s ease' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }} className="flex-mobile-column">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', width: '100%' }}>
-          <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '10px', borderRadius: '8px', cursor: 'pointer', color: 'white', display: 'flex' }}>
+    <div className="manage-queue-container">
+      <div className="manage-header flex-mobile-column">
+        <div className="manage-header-left">
+          <button onClick={onBack} className="btn-back">
             <ArrowLeft size={24} />
           </button>
           <button 
             data-tooltip="Refresh live queue data"
             onClick={handleRefresh} 
             disabled={isRefreshing || isManualSync}
-            style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              border: 'none', 
-              padding: '10px', 
-              borderRadius: '8px', 
-              cursor: (isRefreshing || isManualSync) ? 'not-allowed' : 'pointer', 
-              color: (isRefreshing || isManualSync) ? 'var(--text-secondary)' : 'var(--accent-color)', 
-              display: 'flex',
-              opacity: (isRefreshing || isManualSync) ? 0.7 : 1,
-              transition: 'all 0.3s',
-              transform: (isRefreshing || isManualSync) ? 'scale(0.95)' : 'scale(1)'
-            }}
+            className={`btn-refresh ${(isRefreshing || isManualSync) ? 'loading' : ''}`}
             title="Refresh Data"
           >
             <RotateCcw size={20} className={(isRefreshing || isManualSync) ? 'animate-spin' : ''} />
           </button>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 className="doctor-name-manage">
               <Stethoscope size={24} color="var(--accent-color)" /> {queue?.doctorName || doctor.name}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{queue?.sessionName || session.sessionName} Session</span>
-              <span className="desktop-only" style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></span>
-              <span style={{ color: 'var(--success)', fontSize: '0.75rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div className="session-info-manage">
+              <span className="session-name-text">{queue?.sessionName || session.sessionName} Session</span>
+              <span className="desktop-only dot-separator"></span>
+              <span className="live-indicator-manage">
                 <span className="live-dot"></span> LIVE
               </span>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="flex-gap-10">
           <button
             data-tooltip="Permanently close this doctor's session"
             type="button"
             onClick={handleEndSession}
             disabled={isEnding}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'rgba(239, 68, 68, 0.05)',
-              border: '1px solid var(--danger)',
-              color: 'var(--danger)',
-              fontWeight: 800,
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              opacity: isEnding ? 0.5 : 1,
-              transition: 'all 0.3s',
-              whiteSpace: 'nowrap'
-            }}
+            className={`end-session-btn-manage ${isEnding ? 'btn-disabled' : ''}`}
           >
             <Power size={18} /> End Session
           </button>
@@ -1001,62 +882,58 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       </div>
 
       {/* Header Stats - Doctor Specific */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+      <div className="stats-grid-manage">
         <StatCard
           icon={<Users />}
           label="Total Registered"
           value={(queue?.waitingCount || 0) + (queue?.completedCount || 0) + (queue?.skippedCount || 0) + (queue?.nowServing ? 1 : 0)}
-          color="var(--accent-color)"
+          variant="accent"
           subText="Total patients for today"
         />
         <StatCard
           icon={<CheckCircle2 />}
           label="Served Patients"
           value={(queue?.completedCount || 0) + (queue?.nowServing ? 1 : 0)}
-          color="var(--success)"
+          variant="success"
           subText={`${queue?.completedCount || 0} completed, ${queue?.nowServing ? '1 currently in cabin' : 'consultation room empty'}`}
         />
         <StatCard
           icon={<Clock />}
           label="Waiting Now"
           value={queue?.waitingCount || 0}
-          color="#FACC15"
+          variant="warning"
           subText="Patients yet to be seen"
         />
         <StatCard
           icon={<AlertCircle />}
           label="Skipped"
           value={queue?.skippedCount || 0}
-          color="var(--danger)"
+          variant="danger"
           subText="Patients who missed their turn"
         />
       </div>
 
       <div className="grid-manage-queue">
         {/* Now Serving Main Card */}
-        <div className="glass-card now-serving-card" style={{
-          background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 40px',
-          border: '1px solid rgba(56, 189, 248, 0.2)', position: 'relative', overflow: 'hidden'
-        }}>
-          <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'var(--accent-glow)', filter: 'blur(100px)', opacity: 0.3 }}></div>
+        <div className="glass-card now-serving-card now-serving-card-manage">
+          <div className="now-serving-glow"></div>
 
-          <span className="currentTokenLabel" style={{ color: 'var(--accent-color)', fontWeight: 800, letterSpacing: '4px', fontSize: '1rem', textTransform: 'uppercase', marginBottom: '20px' }}>Current Token</span>
+          <span className="currentTokenLabel current-token-label">Current Token</span>
 
-          <div style={{ position: 'relative' }} key={queue.currentTokenNumber}>
+          <div className="token-number-display" key={queue.currentTokenNumber}>
             {(queue.currentTokenNumber === 0 || queue.currentPatientName === "No one") && queue.waitingCount === 0 ? (
-              <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease' }}>
-                <Users size={100} color="var(--accent-color)" style={{ marginBottom: '20px', opacity: 0.2 }} />
-                <h2 style={{ fontSize: '2.5rem', fontWeight: 800, margin: 0, color: 'white', opacity: 0.5 }}>NOBODY IN QUEUE</h2>
-                <p style={{ color: 'var(--text-secondary)', marginTop: '10px' }}>Waiting for new patients to register.</p>
+              <div className="empty-queue-container">
+                <Users size={100} color="var(--accent-color)" className="empty-queue-icon" />
+                <h2 className="empty-queue-title">NOBODY IN QUEUE</h2>
+                <p className="empty-queue-p">Waiting for new patients to register.</p>
               </div>
             ) : (
               <>
-                <h1 className="token-number-animate" style={{ fontSize: '12rem', margin: 0, lineHeight: 0.8, fontWeight: 900, textShadow: '0 0 60px var(--accent-glow)', color: 'white' }}>
+                <h1 className="token-number-animate token-number-large">
                   {queue.currentTokenNumber || '--'}
                 </h1>
                 {callNextMutation.isPending && (
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', borderRadius: '20px' }}>
+                  <div className="token-loading-overlay">
                     <Clock size={60} className="animate-spin" color="var(--accent-color)" />
                   </div>
                 )}
@@ -1064,13 +941,13 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             )}
           </div>
 
-          <div style={{ marginTop: '50px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }} className="full-width-mobile">
-            <div className="patient-name-box" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.05)', padding: '15px 40px', borderRadius: '50px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+          <div className="patient-info-manage full-width-mobile">
+            <div className="patient-name-box patient-name-container">
               <UserCircle size={28} color="var(--accent-color)" />
-              <span style={{ fontSize: '1.8rem', fontWeight: 700 }}>{queue.currentPatientName || 'Waiting...'}</span>
+              <span className="patient-name-text">{queue.currentPatientName || 'Waiting...'}</span>
             </div>
             {queue.currentPatientName && (
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="consultation-status">
                 <CheckCircle2 size={14} color="var(--success)" /> Patient at Consultation
               </span>
             )}
@@ -1078,173 +955,105 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
         </div>
 
         {/* Controls Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="glass-card" style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, justifyContent: 'center' }}>
+        <div className="controls-column-manage">
+          <div className="glass-card controls-card-main">
             {(!queue.currentTokenNumber || queue.currentPatientName === "No one") ? (
               <button
                 data-tooltip="Call the next patient in line"
                 onClick={() => callNextMutation.mutate()}
                 disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
-                className="btn-primary call-next-btn"
-                style={{
-                  padding: '35px', fontSize: '1.6rem', borderRadius: '20px',
-                  opacity: (!isDoctorArrived || queue.waitingCount === 0) ? 0.5 : 1,
-                  cursor: 'pointer',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '15px'
-                }}
+                className={`btn-primary call-next-btn call-next-btn-large ${(!isDoctorArrived || queue.waitingCount === 0) ? 'btn-disabled' : ''}`}
               >
-                <UserCheck size={35} /> {callNextMutation.isPending ? 'Calling...' : 'Call Next'}
+                {callNextMutation.isPending ? <Clock size={32} className="animate-spin" /> : <><UserCheck size={35} /> Call Next Patient</>}
               </button>
             ) : (
               <button
-                data-tooltip="Mark current as complete AND call next patient instantly"
-                onClick={async () => {
-                  try {
-                    await completeMutation.mutateAsync();
-                    if (queue.waitingCount > 0) {
-                      callNextMutation.mutate();
-                    }
-                  } catch (e) { }
-                }}
-                disabled={completeMutation.isPending || callNextMutation.isPending}
-                className="btn-primary"
-                style={{
-                  padding: '35px',
-                  fontSize: '1.6rem',
-                  borderRadius: '20px',
-                  background: 'linear-gradient(135deg, var(--success) 0%, #166534 100%)',
-                  border: 'none',
-                  boxShadow: '0 10px 20px rgba(34, 197, 94, 0.2)',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '15px'
-                }}
+                data-tooltip="Finish current consultation and empty the room"
+                onClick={() => completeMutation.mutate()}
+                disabled={completeMutation.isPending}
+                className="btn-primary complete-next-btn-large"
+                style={{ background: 'var(--success)', color: 'white' }}
               >
-                {completeMutation.isPending || callNextMutation.isPending ?
+                {completeMutation.isPending ?
                   <Clock size={32} className="animate-spin" /> :
-                  <><CheckCircle2 size={32} /> <ChevronRight size={32} /> Complete & Next</>
+                  <><CheckCircle2 size={32} /> Finish Consultation</>
                 }
               </button>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-
-              <button
-                data-tooltip="Mark consultation as complete"
-                onClick={() => completeMutation.mutate()}
-                disabled={completeMutation.isPending || !queue.currentTokenNumber}
-                style={{
-                  ...secondaryControlStyle,
-                  background: 'rgba(34, 197, 94, 0.1)',
-                  color: 'var(--success)',
-                  border: '1px solid rgba(34, 197, 94, 0.2)',
-                  opacity: (!queue.currentTokenNumber) ? 0.5 : 1
-                }}
-              >
-                {completeMutation.isPending ? <Clock size={22} className="animate-spin" /> : <CheckCircle2 size={22} />}
-                Complete
-              </button>
-
+            <div className="secondary-controls-grid">
               <button
                 data-tooltip="Skip current patient's turn"
-                style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
+                className={`skip-btn-secondary ${(!queue.currentTokenNumber) ? 'btn-disabled' : ''}`}
                 onClick={() => skipMutation.mutate()}
                 disabled={skipMutation.isPending || !queue.currentTokenNumber}
               >
                 {skipMutation.isPending ? <Clock size={22} className="animate-spin" /> : <SkipForward size={22} />}
-                Skip
+                Skip Patient
+              </button>
+
+              <button
+                data-tooltip="Send WhatsApp alert to current patient"
+                className={`alert-btn-secondary ${(!queue.currentTokenNumber) ? 'btn-disabled' : ''}`}
+                onClick={() => alertMutation.mutate()}
+                disabled={alertMutation.isPending || !queue.currentTokenNumber}
+              >
+                {alertMutation.isPending ? <Clock size={22} className="animate-spin" /> : <MessageSquare size={22} />}
+                Alert Patient
               </button>
             </div>
 
-            <button
-              data-tooltip="Send WhatsApp alert to current patient"
-              style={{ ...secondaryControlStyle, opacity: (!queue.currentTokenNumber) ? 0.5 : 1 }}
-              onClick={() => alertMutation.mutate()}
-              disabled={alertMutation.isPending || !queue.currentTokenNumber}
-            >
-              {alertMutation.isPending ? <Clock size={22} className="animate-spin" /> : <MessageSquare size={22} />}
-              {alertMutation.isPending ? 'Alerting...' : 'Alert Patient'}
-            </button>
-
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '10px 0' }}></div>
+            <div className="control-divider"></div>
 
             <button
               data-tooltip="Mark doctor's presence (optional)"
               onClick={() => markArrivedMutation.mutate()}
               disabled={isDoctorArrived || markArrivedMutation.isPending}
-              style={{
-                background: isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                color: isDoctorArrived ? 'var(--success)' : 'white',
-                border: `1px solid ${isDoctorArrived ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.1)'}`,
-                padding: '15px', borderRadius: '14px', cursor: isDoctorArrived ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600,
-                fontSize: '0.9rem', transition: 'all 0.3s'
-              }}
+              className={`mark-arrival-btn ${isDoctorArrived ? 'arrived' : 'not-arrived'}`}
             >
               {isDoctorArrived ? <CheckCircle2 size={18} /> : <Play size={18} />}
               {isDoctorArrived ? "Doctor is Present" : "Mark Arrival"}
             </button>
           </div>
 
-          <div className="glass-card" style={{ padding: '25px', display: 'flex', alignItems: 'center', gap: '15px', background: 'rgba(255,255,255,0.02)' }}>
-            <div style={{ padding: '12px', background: 'rgba(56, 189, 248, 0.1)', color: 'var(--accent-color)', borderRadius: '12px' }}>
+          <div className="glass-card integrity-card">
+            <div className="integrity-icon-bg">
               <Info size={24} />
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Queue Integrity</p>
-              <p style={{ margin: 0, fontWeight: 700 }}>Real-time syncing is active.</p>
+              <p className="integrity-label">Queue Integrity</p>
+              <p className="integrity-text">Real-time syncing is active.</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs and Search Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px', marginBottom: '25px' }} className="flex-mobile-column">
-        <div style={{ display: 'flex', gap: '5px', background: 'rgba(255,255,255,0.03)', padding: '5px', borderRadius: '14px', width: '100%', overflowX: 'auto' }} className="no-scrollbar">
+      <div className="tabs-section-manage flex-mobile-column">
+        <div className="tabs-container no-scrollbar">
           <button
             onClick={() => setActiveTab('waiting')}
-            style={{
-              padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
-              background: activeTab === 'waiting' ? 'var(--accent-color)' : 'transparent',
-              color: activeTab === 'waiting' ? 'black' : 'var(--text-secondary)',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
-            }}
+            className={`tab-btn-manage ${activeTab === 'waiting' ? 'active-waiting' : ''}`}
           >
             <Clock size={14} /> Waiting ({upcomingTokens?.filter((t: any) => t.status === 0).length || 0})
           </button>
           <button
             onClick={() => setActiveTab('completed')}
-            style={{
-              padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
-              background: activeTab === 'completed' ? 'var(--success)' : 'transparent',
-              color: activeTab === 'completed' ? 'black' : 'var(--text-secondary)',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
-            }}
+            className={`tab-btn-manage ${activeTab === 'completed' ? 'active-completed' : ''}`}
           >
             <CheckCircle2 size={14} /> Served ({upcomingTokens?.filter((t: any) => t.status === 2).length || 0})
           </button>
           <button
             onClick={() => setActiveTab('skipped')}
-            style={{
-              padding: '10px 18px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem',
-              background: activeTab === 'skipped' ? 'var(--danger)' : 'transparent',
-              color: activeTab === 'skipped' ? 'black' : 'var(--text-secondary)',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap'
-            }}
+            className={`tab-btn-manage ${activeTab === 'skipped' ? 'active-skipped' : ''}`}
           >
             <AlertCircle size={14} /> Skipped ({upcomingTokens?.filter((t: any) => t.status === 3).length || 0})
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%', maxWidth: '600px', marginLeft: 'auto' }} className="flex-mobile-column">
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={18} style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+        <div className="search-actions-row flex-mobile-column">
+          <div className="table-search-wrapper">
+            <Search size={18} className="table-search-icon" />
             <input
               type="text"
               placeholder={`Search in ${activeTab}...`}
@@ -1254,11 +1063,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 else if (activeTab === 'completed') setServedSearch(e.target.value);
                 else setSkippedSearch(e.target.value);
               }}
-              style={{
-                width: '100%', padding: '12px 15px 12px 45px', borderRadius: '12px',
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                color: 'white', fontSize: '0.9rem'
-              }}
+              className="table-search-input"
             />
           </div>
 
@@ -1266,21 +1071,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
             data-tooltip="Manually book a patient in the queue"
             type="button"
             onClick={onManualBooking}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 18px',
-              borderRadius: '10px',
-              background: 'rgba(56, 189, 248, 0.05)',
-              border: '1px solid var(--accent-color)',
-              color: 'var(--accent-color)',
-              fontWeight: 800,
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              transition: 'all 0.3s',
-              whiteSpace: 'nowrap'
-            }}
+            className="new-booking-btn"
           >
             <PlusCircle size={18} /> New Booking
           </button>
@@ -1288,39 +1079,39 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       </div>
 
       {/* Patients Table */}
-      <div className="glass-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className="glass-card patients-table-card">
+        <div className="table-container patients-table-container">
+          <table className="patients-table">
             <thead>
-              <tr style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)' }}>
-                <th style={{ padding: '20px 30px', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Hash size={14} /> Token</div>
+              <tr className="table-head-row">
+                <th className="table-th">
+                  <div className="th-content"><Hash size={14} /> Token</div>
                 </th>
-                <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><User size={14} /> Patient Name</div>
+                <th className="table-th">
+                  <div className="th-content"><User size={14} /> Patient Name</div>
                 </th>
-                <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Search size={14} /> Phone Number</div>
+                <th className="table-th">
+                  <div className="th-content"><Search size={14} /> Phone Number</div>
                 </th>
-                <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Clock size={14} /> Check-in</div>
+                <th className="table-th">
+                  <div className="th-content"><Clock size={14} /> Check-in</div>
                 </th>
                 {activeTab === 'completed' && (
-                  <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle2 size={14} /> Checkout</div>
+                  <th className="table-th">
+                    <div className="th-content"><CheckCircle2 size={14} /> Checkout</div>
                   </th>
                 )}
                 {activeTab === 'skipped' && (
-                  <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><X size={14} /> Skipped Time</div>
+                  <th className="table-th">
+                    <div className="th-content"><X size={14} /> Skipped Time</div>
                   </th>
                 )}
-                <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={14} /> Status</div>
+                <th className="table-th">
+                  <div className="th-content"><AlertCircle size={14} /> Status</div>
                 </th>
                 {activeTab !== 'completed' && (
-                  <th style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', textAlign: 'right', paddingRight: '30px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}><Zap size={14} /> Actions</div>
+                  <th className="table-th th-actions-header">
+                    <div className="th-content-right"><Zap size={14} /> Actions</div>
                   </th>
                 )}
               </tr>
@@ -1342,8 +1133,8 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 if (!filtered || filtered.length === 0) {
                   return (
                     <tr>
-                      <td colSpan={7} style={{ padding: '100px 0', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '1.2rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', opacity: 0.4 }}>
+                      <td colSpan={7} className="empty-table-td">
+                        <div className="empty-table-wrapper">
                           <Users size={40} />
                           <span>{waitingSearch || servedSearch || skippedSearch ? "No matching patients found" : "Nobody in the queue"}</span>
                         </div>
@@ -1353,34 +1144,34 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 }
 
                 return filtered.map((t: any) => (
-                  <tr key={t.id} className="table-row-hover" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '22px 30px', fontWeight: 900, color: 'var(--accent-color)', fontSize: '1.2rem' }}>#{t.tokenNumber}</td>
-                    <td style={{ fontWeight: 700, fontSize: '1.1rem' }}>{t.patientName}</td>
-                    <td style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>{t.patientPhone}</td>
-                    <td style={{ color: 'var(--text-secondary)' }}>{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                  <tr key={t.id} className="table-row-hover table-row-item">
+                    <td className="td-token">#{t.tokenNumber}</td>
+                    <td className="td-name">{t.patientName}</td>
+                    <td className="td-phone">{t.patientPhone}</td>
+                    <td className="td-time">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     {activeTab === 'completed' && (
-                      <td style={{ color: 'var(--text-secondary)' }}>
+                      <td className="td-time">
                         {t.completedAt ? new Date(t.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---'}
                       </td>
                     )}
                     {activeTab === 'skipped' && (
-                      <td style={{ color: 'var(--text-secondary)' }}>
+                      <td className="td-time">
                         {t.updatedAt ? new Date(t.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '---'}
                       </td>
                     )}
                     <td>
-                      {t.status === 0 && <span style={{ ...badgeStyle, color: 'var(--accent-color)', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>Pending</span>}
-                      {t.status === 2 && <span style={{ ...badgeStyle, color: 'var(--success)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>Served</span>}
-                      {t.status === 3 && <span style={{ ...badgeStyle, color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>Skipped</span>}
+                      {t.status === 0 && <span className="status-badge status-badge-pending">Pending</span>}
+                      {t.status === 2 && <span className="status-badge status-badge-served">Served</span>}
+                      {t.status === 3 && <span className="status-badge status-badge-skipped">Skipped</span>}
                     </td>
                     {activeTab !== 'completed' && (
-                      <td style={{ textAlign: 'right', paddingRight: '30px' }}>
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <td className="td-actions">
+                        <div className="actions-wrapper">
                           {t.status === 3 && (
                             <button
                               data-tooltip="Requeue: Move patient back to waiting list"
                               onClick={() => requeueMutation.mutate(t.id)}
-                              style={{ background: 'rgba(56, 189, 248, 0.1)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              className="action-btn-blue"
                             >
                               <Play size={16} fill="var(--accent-color)" />
                             </button>
@@ -1390,7 +1181,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                               <button
                                 data-tooltip="Modify patient details"
                                 onClick={() => setEditingToken(t)}
-                                style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--accent-color)', padding: '10px', borderRadius: '10px', cursor: 'pointer' }}
+                                className="action-btn-ghost"
                               >
                                 <Edit size={18} />
                               </button>
@@ -1398,7 +1189,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                                 <button
                                   data-tooltip="Delete: Permanently remove from queue"
                                   onClick={() => setDeletingTokenId(t.id)}
-                                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: 'var(--danger)', padding: '10px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  className="action-btn-danger"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -1417,12 +1208,6 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
       </div>
     </div>
   );
-};
-
-const badgeStyle: React.CSSProperties = {
-  padding: '6px 14px', borderRadius: '30px', background: 'rgba(255,255,255,0.05)',
-  fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px',
-  border: '1px solid rgba(255,255,255,0.1)'
 };
 
 const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
@@ -1462,21 +1247,21 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
 
   return (
     <Modal title="Edit Patient Details" onClose={onClose} icon={<Edit color="var(--accent-color)" />}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="edit-modal-container">
         <div>
-          <label data-tooltip="Update patient's official name" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <label data-tooltip="Update patient's official name" className="edit-modal-label">
             <User size={14} /> Patient Name
           </label>
           <input
             value={name}
             onChange={(e) => { setName(e.target.value); setErrors(prev => ({ ...prev, name: undefined })); }}
             placeholder="Enter name"
-            style={{ borderColor: errors.name ? 'var(--danger)' : 'rgba(255,255,255,0.1)' }}
+            className={errors.name ? 'input-field-error' : ''}
           />
-          {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '5px' }}>{errors.name}</p>}
+          {errors.name && <p className="edit-modal-error-text">{errors.name}</p>}
         </div>
         <div>
-          <label data-tooltip="Update WhatsApp contact for notifications" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          <label data-tooltip="Update WhatsApp contact for notifications" className="edit-modal-label">
             <Smartphone size={14} /> Phone Number (WhatsApp)
           </label>
           <input
@@ -1487,20 +1272,15 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
               setErrors(prev => ({ ...prev, phone: undefined }));
             }}
             placeholder="10 digit number"
-            style={{ borderColor: errors.phone ? 'var(--danger)' : 'rgba(255,255,255,0.1)' }}
+            className={errors.phone ? 'input-field-error' : ''}
           />
-          {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.7rem', marginTop: '5px' }}>{errors.phone}</p>}
+          {errors.phone && <p className="edit-modal-error-text">{errors.phone}</p>}
         </div>
-        <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+        <div className="edit-modal-actions">
           <button
             data-tooltip="Discard changes and return"
             onClick={onClose}
-            style={{
-              flex: 1, padding: '10px 20px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-              color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              fontSize: '0.9rem', fontWeight: 600
-            }}
+            className="btn-cancel-modal"
           >
             <X size={18} /> Cancel
           </button>
@@ -1508,13 +1288,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
             data-tooltip="Update patient record in queue"
             onClick={handleSave}
             disabled={!isValid}
-            style={{
-              flex: 1.5, padding: '10px 20px', borderRadius: '8px',
-              background: isValid ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)',
-              border: 'none', color: isValid ? 'black' : 'rgba(255,255,255,0.3)',
-              fontWeight: 700, cursor: isValid ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.9rem'
-            }}
+            className={`btn-save-modal ${isValid ? 'active' : 'disabled'}`}
           >
             <CheckCircle2 size={18} /> Save Changes
           </button>
@@ -1525,4 +1299,3 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
 };
 
 export default QueueDashboard;
-
