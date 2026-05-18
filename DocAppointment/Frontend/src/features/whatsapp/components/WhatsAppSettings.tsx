@@ -35,7 +35,7 @@ const WhatsAppSettings: React.FC = () => {
   const [status, setStatus] = useState<BridgeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const currentBranchId = useAuthStore((state) => state.branchId);
+  const { branchId: currentBranchId, setBranch } = useAuthStore();
 
   useEffect(() => {
     const fetchBranches = async () => {
@@ -148,7 +148,10 @@ const WhatsAppSettings: React.FC = () => {
             {branches.map(branch => (
               <div 
                 key={branch.id}
-                onClick={() => setSelectedBranchId(branch.id)}
+                onClick={() => {
+                  setSelectedBranchId(branch.id);
+                  setBranch(branch.id);
+                }}
                 className={`branch-item ${selectedBranchId === branch.id ? 'active' : ''}`}
                 style={{ 
                   padding: '1.2rem', 

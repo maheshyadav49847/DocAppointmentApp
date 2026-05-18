@@ -6,12 +6,14 @@ import DoctorsList from './features/doctors/components/DoctorsList';
 import SessionsList from './features/sessions/components/SessionsList';
 import ProfilePage from './features/profile/components/ProfilePage';
 import StaffList from './features/staff/components/StaffList';
+
 import AnalyticsPage from './features/analytics/components/AnalyticsPage';
 import BranchesPage from './features/settings/components/BranchesPage';
 import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
 import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
 import WhatsAppSettings from './features/whatsapp/components/WhatsAppSettings';
+import WhatsAppSettingsReplica from './features/whatsapp/components/WhatsAppSettingsReplica';
 import { useAuthStore } from './stores/authStore';
 import { notify } from './stores/notificationStore';
 
@@ -70,6 +72,8 @@ function App() {
           )
         } />
 
+
+
         <Route path="/analytics" element={
           email && isAdmin ? (
             <DashboardLayout>
@@ -79,6 +83,8 @@ function App() {
             <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
+
+
 
         <Route path="/branches" element={
           email && role === 'OrgAdmin' ? (
@@ -100,6 +106,8 @@ function App() {
           )
         } />
 
+
+
         <Route path="/sessions" element={
           email && isAdmin ? (
             <DashboardLayout>
@@ -109,6 +117,8 @@ function App() {
             <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
+
+
 
         <Route path="/profile" element={
           email ? (
@@ -130,10 +140,21 @@ function App() {
           )
         } />
 
+
         <Route path="/whatsapp-settings" element={
           email && (role === 'OrgAdmin' || role === 'SuperAdmin') ? (
             <DashboardLayout>
               <WhatsAppSettings />
+            </DashboardLayout>
+          ) : (
+            <Navigate to={email ? "/dashboard" : "/login"} />
+          )
+        } />
+
+        <Route path="/whatsapp-replica" element={
+          email && (role === 'OrgAdmin' || role === 'SuperAdmin') ? (
+            <DashboardLayout>
+              <WhatsAppSettingsReplica />
             </DashboardLayout>
           ) : (
             <Navigate to={email ? "/dashboard" : "/login"} />
