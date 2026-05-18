@@ -13,7 +13,6 @@ import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
 import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
 import WhatsAppSettings from './features/whatsapp/components/WhatsAppSettings';
-import WhatsAppSettingsReplica from './features/whatsapp/components/WhatsAppSettingsReplica';
 import { useAuthStore } from './stores/authStore';
 import { notify } from './stores/notificationStore';
 
@@ -151,15 +150,6 @@ function App() {
           )
         } />
 
-        <Route path="/whatsapp-replica" element={
-          email && (role === 'OrgAdmin' || role === 'SuperAdmin') ? (
-            <DashboardLayout>
-              <WhatsAppSettingsReplica />
-            </DashboardLayout>
-          ) : (
-            <Navigate to={email ? "/dashboard" : "/login"} />
-          )
-        } />
 
         <Route path="/" element={<Navigate to={email ? "/dashboard" : "/login"} />} />
       </Routes>

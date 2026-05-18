@@ -33,7 +33,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions", visible: isAdmin },
     { icon: <UserCog size={20} />, label: "Staff", path: "/staff", visible: isAdmin },
     { icon: <MessageSquare size={20} />, label: "WhatsApp", path: "/whatsapp-settings", visible: role === 'OrgAdmin' || role === 'SuperAdmin' },
-    { icon: <MessageSquare size={20} />, label: "Replica WhatsApp", path: "/whatsapp-replica", visible: role === 'OrgAdmin' || role === 'SuperAdmin' },
   ].filter(item => item.visible);
 
   return (
