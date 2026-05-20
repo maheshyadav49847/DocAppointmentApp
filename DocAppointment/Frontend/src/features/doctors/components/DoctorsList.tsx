@@ -171,14 +171,14 @@ const DoctorsList: React.FC = () => {
 
       <div className="doctors-content glass-card">
         <div className="actions-row flex-mobile-column">
-          <div className="search-wrapper full-width-mobile">
-            <Search size={18} className="search-icon" />
+          <div className="doctor-search-wrapper full-width-mobile">
+            <Search size={18} className="doctor-search-icon" />
             <input 
               type="text" 
               placeholder="Search all professionals..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
+              className="doctor-search-input"
             />
           </div>
 

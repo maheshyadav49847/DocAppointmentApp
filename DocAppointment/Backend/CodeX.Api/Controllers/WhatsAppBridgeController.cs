@@ -101,5 +101,40 @@ namespace CodeX.Api.Controllers
                 });
             }
         }
+        [HttpPost("send")]
+        public async Task<IActionResult> SendMessage([FromBody] SendMessageDto dto)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{BridgeUrl}/send-message");
+                if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
+                
+                var jsonContent = new StringContent(System.Text.Json.JsonSerializer.Serialize(new {
+                    branchId = dto.BranchId,
+                    to = dto.To,
+                    message = dto.Message
+                }), System.Text.Encoding.UTF8, "application/json");
+                request.Content = jsonContent;
+
+                var response = await _httpClient.SendAsync(request);
+                var content = await response.Content.ReadAsStringAsync();
+                
+                if (response.IsSuccessStatusCode)
+                    return Content(content, "application/json");
+                else
+                    return StatusCode((int)response.StatusCode, content);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Failed to reach bridge: " + ex.Message });
+            }
+        }
+    }
+
+    public class SendMessageDto
+    {
+        public string BranchId { get; set; } = string.Empty;
+        public string To { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 }

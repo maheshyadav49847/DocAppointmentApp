@@ -29,6 +29,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { icon: <BarChart3 size={20} />, label: "Reports", path: "/analytics", visible: isAdmin },
     { icon: <Building2 size={20} />, label: "Branches", path: "/branches", visible: role === 'OrgAdmin' || role === 'SuperAdmin' },
     { icon: <Users size={20} />, label: "Doctors", path: "/doctors", visible: isAdmin },
+    { icon: <User size={20} />, label: "Patients", path: "/patients", visible: true },
 
     { icon: <Calendar size={20} />, label: "Sessions", path: "/sessions", visible: isAdmin },
     { icon: <UserCog size={20} />, label: "Staff", path: "/staff", visible: isAdmin },

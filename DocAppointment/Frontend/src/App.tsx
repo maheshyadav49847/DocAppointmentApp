@@ -13,6 +13,7 @@ import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
 import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
 import WhatsAppSettings from './features/whatsapp/components/WhatsAppSettings';
+import PatientsList from './features/patients/components/PatientsList';
 import { useAuthStore } from './stores/authStore';
 import { notify } from './stores/notificationStore';
 
@@ -150,6 +151,15 @@ function App() {
           )
         } />
 
+        <Route path="/patients" element={
+          email ? (
+            <DashboardLayout>
+              <PatientsList />
+            </DashboardLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        } />
 
         <Route path="/" element={<Navigate to={email ? "/dashboard" : "/login"} />} />
       </Routes>

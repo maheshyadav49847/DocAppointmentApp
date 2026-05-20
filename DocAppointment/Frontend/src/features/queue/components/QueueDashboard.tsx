@@ -666,7 +666,7 @@ const SessionItem = ({ doctor, session, onStart, onManage, isProcessing }: any) 
             {isProcessing ? (
               <Clock size={12} className="animate-spin" />
             ) : (
-              <Play size={12} fill="var(--accent-color)" />
+              <Play size={12} fill="currentColor" />
             )}
             {isProcessing ? 'Starting...' : 'Start Session'}
           </button>
