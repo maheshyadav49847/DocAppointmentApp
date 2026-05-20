@@ -15,47 +15,46 @@
 
 .actions-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 15px;
 }
 
-.search-wrapper {
+.doctor-search-wrapper {
     position: relative;
-    width: 100%;
-    max-width: 300px;
+    width: 400px;
 }
 
-.search-icon {
+.doctor-search-icon {
     position: absolute;
     left: 15px;
-    top: 15px;
+    top: 50%;
+    transform: translateY(-50%);
     color: var(--text-secondary);
 }
 
-.search-input {
-    padding-left: 45px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+.doctor-search-input {
     width: 100%;
-    height: 48px;
+    padding: 12px 15px 12px 45px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
+    font-size: 0.9rem;
     outline: none;
     transition: all 0.3s;
 }
 
-.search-input:focus {
-    border-color: var(--accent-color);
-    background: rgba(255, 255, 255, 0.04);
+.doctor-search-input:focus {
+    border-color: rgba(56, 189, 248, 0.5);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .add-doctor-btn {
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 48px;
-    padding: 0 25px;
+    padding: 10px 20px;
     border-radius: 12px;
     font-weight: 700;
     box-shadow: 0 4px 15px var(--accent-glow);

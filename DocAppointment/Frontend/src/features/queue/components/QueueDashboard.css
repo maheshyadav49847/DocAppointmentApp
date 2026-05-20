@@ -180,8 +180,7 @@
 .search-input-wrapper {
     display: flex;
     gap: 12px;
-    width: 100%;
-    max-width: 400px;
+    width: 400px;
 }
 
 .search-input-container {
@@ -432,6 +431,14 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.doctor-session-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 .no-shifts-container {
@@ -595,6 +602,16 @@
     min-height: 44px;
     gap: 8px;
     font-weight: 700;
+    transition: all 0.3s ease;
+    color: var(--accent-color);
+}
+
+.start-session-btn:hover:not(:disabled) {
+    background: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    color: #000 !important;
+    box-shadow: 0 8px 25px var(--accent-glow) !important;
+    transform: translateY(-2px);
 }
 
 /* ManageQueue Styles */

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, PlusCircle, User, Smartphone } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 interface ManualBookingModalProps {
   isOpen: boolean;
@@ -9,8 +10,9 @@ interface ManualBookingModalProps {
 }
 
 const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [searchParams] = useSearchParams();
+  const [name, setName] = useState(searchParams.get('name') || '');
+  const [phone, setPhone] = useState(searchParams.get('phone') || '');
   const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
 
   const validate = () => {

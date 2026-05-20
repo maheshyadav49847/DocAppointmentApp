@@ -373,15 +373,15 @@ const StaffList: React.FC = () => {
           
           <div className="staff-actions-right flex-mobile-column full-width-mobile">
             {/* Search Input */}
-            <div className="search-wrapper full-width-mobile">
-              <Search size={16} className="search-icon" />
+            <div className="staff-search-wrapper full-width-mobile">
+              <Search size={16} className="staff-search-icon" />
               <input 
                 data-tooltip="Search staff by name, email, role or employee ID"
                 type="text" 
                 placeholder="Search staff..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
+                className="staff-search-input"
               />
             </div>
 

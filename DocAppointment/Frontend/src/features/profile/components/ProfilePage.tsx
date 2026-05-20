@@ -4,7 +4,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import PageHeader from '../../../components/UI/PageHeader';
 
 const ProfilePage: React.FC = () => {
-  const { email, role, orgId, branchId } = useAuthStore();
+  const { email, role } = useAuthStore();
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
