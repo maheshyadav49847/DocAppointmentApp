@@ -16,8 +16,15 @@ namespace CodeX.Domain.Entities
         public string Phone { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string? MetaDataJson { get; set; } // For preferences, age, etc.
+        public string? Age { get; set; }
+        public string? Gender { get; set; }
+        public string? BloodGroup { get; set; }
+        public string? ChronicTags { get; set; }
 
-        // Navigation Property
+        // Navigation Properties
         public virtual ICollection<Token> Tokens { get; set; } = new List<Token>();
+        public virtual ICollection<PatientVisit> Visits { get; set; } = new List<PatientVisit>();
+        public virtual ICollection<PatientAttachment> Attachments { get; set; } = new List<PatientAttachment>();
+        public virtual ICollection<FollowUp> FollowUps { get; set; } = new List<FollowUp>();
     }
 }

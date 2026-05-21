@@ -3,6 +3,7 @@ using System;
 using CodeX.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeX.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260520175832_AddFollowUpInstructions")]
+    partial class AddFollowUpInstructions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -457,9 +460,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("PatientVisitId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -469,8 +469,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PatientId");
-
-                    b.HasIndex("PatientVisitId");
 
                     b.ToTable("PatientAttachments");
                 });
@@ -911,13 +909,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CodeX.Domain.Entities.PatientVisit", "PatientVisit")
-                        .WithMany("Attachments")
-                        .HasForeignKey("PatientVisitId");
-
                     b.Navigation("Patient");
-
-                    b.Navigation("PatientVisit");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.PatientVisit", b =>
@@ -1059,8 +1051,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CodeX.Domain.Entities.PatientVisit", b =>
                 {
-                    b.Navigation("Attachments");
-
                     b.Navigation("Medicines");
                 });
 

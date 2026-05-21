@@ -18,6 +18,10 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<ChatSession> ChatSessions { get; }
         DbSet<MessageLog> MessageLogs { get; }
         DbSet<Staff> Staffs { get; }
+        DbSet<PatientVisit> PatientVisits { get; }
+        DbSet<VisitMedicine> VisitMedicines { get; }
+        DbSet<PatientAttachment> PatientAttachments { get; }
+        DbSet<FollowUp> FollowUps { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

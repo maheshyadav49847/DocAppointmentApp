@@ -79,6 +79,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Allow up to 15MB multipart uploads (covers 10MB limit with overhead)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 15 * 1024 * 1024; // 15MB
+});
+
+// Background Hosted Services
+builder.Services.AddHostedService<CodeX.Api.BackgroundServices.FollowUpReminderService>();
+
 var app = builder.Build();
 
 app.UseCors("DefaultPolicy");
@@ -119,6 +128,7 @@ app.Use(async (context, next) =>
 });
 
 // app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
