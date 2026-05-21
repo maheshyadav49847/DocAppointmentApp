@@ -19,10 +19,16 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPatients()
+        public async Task<IActionResult> GetPatients([FromQuery] Guid? branchId)
         {
-            // Simple query to get all patients (in production, we'd add pagination and filtering)
-            var patients = await _context.Patients
+            IQueryable<Patient> query = _context.Patients;
+
+            if (branchId.HasValue && branchId.Value != Guid.Empty)
+            {
+                query = query.Where(p => p.Tokens.Any(t => t.Queue.BranchId == branchId.Value));
+            }
+
+            var patients = await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Select(p => new
                 {
@@ -31,6 +37,10 @@ namespace CodeX.Api.Controllers
                     p.Name,
                     p.Phone,
                     p.CreatedAt,
+                    p.Age,
+                    p.Gender,
+                    p.BloodGroup,
+                    p.ChronicTags,
                     LastVisit = p.Tokens
                         .Where(t => t.Queue.QueueDate < DateTime.UtcNow.Date || t.Status == CodeX.Domain.Enums.TokenStatus.Completed)
                         .OrderByDescending(t => t.Queue.QueueDate)

@@ -33,3 +33,7 @@ Thumbs.db
 publish_out/
 publish_tmp/
 logs/
+
+# Uploaded attachment files
+uploads/
+wwwroot/uploads/

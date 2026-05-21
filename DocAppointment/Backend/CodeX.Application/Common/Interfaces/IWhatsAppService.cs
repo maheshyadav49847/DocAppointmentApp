@@ -3,7 +3,7 @@ namespace CodeX.Application.Common.Interfaces
     public interface IWhatsAppService
     {
         // ─── Patient Notifications ────────────────────────────────────────────
-        Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId);
+        Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null);
         Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId);
         Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId);
         Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId);

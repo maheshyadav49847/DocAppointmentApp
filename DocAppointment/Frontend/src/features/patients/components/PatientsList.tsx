@@ -1,389 +1,879 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare, History, CalendarPlus, Send, X, Activity, Heart, ShieldAlert, ArrowLeft } from 'lucide-react';
+import {
+  Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
+  History, CalendarPlus, Send, X, ArrowLeft, Building2, Edit, Check,
+  Trash2, Download, Plus, FileText, Bell, BellOff, CheckCircle, ClipboardList,
+  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2
+} from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
 import { useAuthStore } from '../../../stores/authStore';
+import { branchService } from '../../../services/branchService';
 import { notify } from '../../../stores/notificationStore';
 import api from '../../../services/api';
 import './PatientsList.css';
 
+interface Medicine { medicineName: string; dosage: string; }
+
 const PatientsList: React.FC = () => {
   const navigate = useNavigate();
-  const { branchId } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { orgId, branchId: currentBranchId } = useAuthStore();
+
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(currentBranchId || 'all');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Modal States
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  // Doctor Workspace Tabs (Right Sidebar)
+  const [workspaceTab, setWorkspaceTab] = useState<'history' | 'reports' | 'followups'>('history');
+
+  // Modals
   const [messagingPatient, setMessagingPatient] = useState<any>(null);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  
-  const [selectedPatientForHistory, setSelectedPatientForHistory] = useState<any>(null);
+
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editAge, setEditAge] = useState('');
+  const [editGender, setEditGender] = useState('');
+  const [editBloodGroup, setEditBloodGroup] = useState('');
+  const [editChronicTags, setEditChronicTags] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Active Consultation State (Doctor's Main View)
+  const [visitDoctorId, setVisitDoctorId] = useState('');
+  const [visitSymptoms, setVisitSymptoms] = useState('');
+  const [visitDiagnosis, setVisitDiagnosis] = useState('');
+  const [visitAdvice, setVisitAdvice] = useState('');
+  const [visitInternalNotes, setVisitInternalNotes] = useState('');
+  const [visitFollowUpDate, setVisitFollowUpDate] = useState('');
+  const [visitFollowUpInstructions, setVisitFollowUpInstructions] = useState('');
+  const [visitMedicines, setVisitMedicines] = useState<Medicine[]>([]);
+  const [visitFiles, setVisitFiles] = useState<{file: File, category: string}[]>([]);
+  const [stagingFile, setStagingFile] = useState<File | null>(null);
+  const [stagingCategory, setStagingCategory] = useState('Lab Report');
+  const [isSavingVisit, setIsSavingVisit] = useState(false);
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
+  const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
+
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('Lab Report');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [isSavingAttachment, setIsSavingAttachment] = useState(false);
+
+  useEffect(() => {
+    if (currentBranchId) setSelectedBranchId(currentBranchId);
+  }, [currentBranchId]);
+
+  useEffect(() => {
+    if (selectedPatient && isEditingProfile) {
+      setEditAge(selectedPatient.age || '');
+      setEditGender(selectedPatient.gender || '');
+      setEditBloodGroup(selectedPatient.bloodGroup || '');
+      setEditChronicTags(selectedPatient.chronicTags || '');
+    }
+  }, [selectedPatient, isEditingProfile]);
+
+  // Reset consultation form when patient changes
+  useEffect(() => {
+    setVisitSymptoms('');
+    setVisitDiagnosis('');
+    setVisitAdvice('');
+    setVisitInternalNotes('');
+    setVisitFollowUpDate('');
+    setVisitFollowUpInstructions('');
+    setVisitMedicines([]);
+    setVisitFiles([]);
+  }, [selectedPatient]);
+
+  // Premium UX: Keyboard-First Navigation (Ctrl+Enter to save)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        const btn = document.getElementById('btn-save-consult');
+        if (btn && !(btn as HTMLButtonElement).disabled) {
+          e.preventDefault();
+          btn.click();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // ── Queries ──────────────────────────────────────────────────────
+  const { data: branches } = useQuery({
+    queryKey: ['branches', orgId],
+    queryFn: () => orgId ? branchService.getBranches(orgId) : Promise.resolve([]),
+    enabled: !!orgId,
+  });
+
+  const { data: doctors } = useQuery({
+    queryKey: ['doctors', orgId],
+    queryFn: async () => { const r = await api.get('/doctors'); return r.data; },
+    enabled: !!orgId,
+  });
+
+  // Auto-select first doctor if available and none selected
+  useEffect(() => {
+    if (doctors && doctors.length > 0 && !visitDoctorId) {
+      setVisitDoctorId(doctors[0].id);
+    }
+  }, [doctors, visitDoctorId]);
 
   const { data: patients, isLoading } = useQuery({
-    queryKey: ['patients'],
+    queryKey: ['patients', selectedBranchId],
     queryFn: async () => {
-      const response = await api.get('/patients');
-      return response.data;
-    }
-  });
-
-  const { data: patientHistory, isLoading: isHistoryLoading } = useQuery({
-    queryKey: ['patientHistory', selectedPatientForHistory?.id],
-    queryFn: async () => {
-      if (!selectedPatientForHistory) return [];
-      const response = await api.get(`/patients/${selectedPatientForHistory.id}/history`);
-      return response.data;
+      const r = await api.get('/patients', {
+        params: { branchId: selectedBranchId !== 'all' ? selectedBranchId : undefined },
+      });
+      return r.data;
     },
-    enabled: !!selectedPatientForHistory
   });
 
-  const filteredPatients = patients?.filter((p: any) => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.phone.includes(searchQuery)
+  const { data: clinicalVisits, isLoading: isVisitsLoading } = useQuery({
+    queryKey: ['clinicalVisits', selectedPatient?.id],
+    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/visits`); return r.data; },
+    enabled: !!selectedPatient,
+  });
+
+  const { data: attachments, isLoading: isAttachmentsLoading } = useQuery({
+    queryKey: ['attachments', selectedPatient?.id],
+    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/attachments`); return r.data; },
+    enabled: !!selectedPatient,
+  });
+
+  const { data: followups, isLoading: isFollowupsLoading } = useQuery({
+    queryKey: ['followups', selectedPatient?.id],
+    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/followups`); return r.data; },
+    enabled: !!selectedPatient,
+  });
+
+  const filteredPatients = patients?.filter((p: any) =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.phone.includes(searchQuery)
   ) || [];
+
+  const getFileBaseUrl = () => (api.defaults.baseURL || '').replace(/\/api\/?$/, '');
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !messagingPatient) return;
     setIsSending(true);
     try {
       await api.post('/whatsapp/bridge/send', {
-        branchId: branchId || '',
-        to: messagingPatient.phone,
-        message: messageText
+        branchId: currentBranchId || '', to: messagingPatient.phone, message: messageText,
       });
-      notify.success('Message Sent', `WhatsApp message sent to ${messagingPatient.name}`);
-      setMessagingPatient(null);
-      setMessageText('');
-    } catch (err: any) {
-      notify.danger('Failed', 'Could not send WhatsApp message. Ensure the bridge is online.');
-      console.error("WhatsApp Send Error:", err.response?.data || err.message);
-    } finally {
-      setIsSending(false);
+      notify.success('Sent', `WhatsApp message sent to ${messagingPatient.name}`);
+      setMessagingPatient(null); setMessageText('');
+    } catch { notify.danger('Failed', 'WhatsApp bridge may be offline.'); }
+    finally { setIsSending(false); }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!selectedPatient) return;
+    setIsSavingProfile(true);
+    try {
+      const r = await api.put(`/patientclinical/${selectedPatient.id}`, {
+        age: editAge, gender: editGender, bloodGroup: editBloodGroup, chronicTags: editChronicTags,
+      });
+      setSelectedPatient((prev: any) => ({ ...prev, ...r.data }));
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      notify.success('Saved', 'Patient profile updated.');
+      setIsEditingProfile(false);
+    } catch { notify.danger('Error', 'Failed to update profile.'); }
+    finally { setIsSavingProfile(false); }
+  };
+
+  const handleSaveConsultation = async () => {
+    if (!selectedPatient || !visitDoctorId) { notify.warning('Required', 'Please select a doctor.'); return; }
+    setIsSavingVisit(true);
+    try {
+      let visitId: string;
+      if (editingVisitId) {
+        await api.put(`/patientclinical/visits/${editingVisitId}`, {
+          symptoms: visitSymptoms,
+          diagnosis: visitDiagnosis,
+          advice: visitAdvice,
+          internalNotes: visitInternalNotes,
+          followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
+          followUpInstructions: visitFollowUpInstructions || null,
+          medicines: visitMedicines,
+        });
+        visitId = editingVisitId;
+      } else {
+        const res = await api.post(`/patientclinical/${selectedPatient.id}/visits`, {
+          doctorId: visitDoctorId,
+          symptoms: visitSymptoms,
+          diagnosis: visitDiagnosis,
+          advice: visitAdvice,
+          internalNotes: visitInternalNotes,
+          followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
+          followUpInstructions: visitFollowUpInstructions || null,
+          medicines: visitMedicines,
+        });
+        visitId = res.data.id;
+      }
+      
+      // Upload attached documents for this visit
+      if (visitFiles.length > 0) {
+        for (const item of visitFiles) {
+          const formData = new FormData();
+          formData.append('file', item.file);
+          formData.append('category', item.category);
+          formData.append('patientVisitId', visitId);
+          await api.post(`/patientclinical/${selectedPatient.id}/attachments`, formData);
+        }
+        queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
+      }
+      
+      if (!editingVisitId && visitFollowUpDate) {
+        // Follow-ups are automatically updated by PUT /visits endpoint if editing
+        // But for POST, the backend also automatically adds it if we sent followUpDate
+        // Actually backend POST adds it automatically. We don't need this extra POST unless we want to force it?
+        // Let's remove the redundant POST to followups since the AddPatientVisit API already does it!
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
+      queryClient.invalidateQueries({ queryKey: ['followups', selectedPatient.id] });
+      notify.success('Saved', 'Consultation notes saved successfully.');
+      
+      // Clear form
+      setVisitSymptoms('');
+      setVisitDiagnosis('');
+      setVisitAdvice('');
+      setVisitInternalNotes('');
+      setVisitFollowUpDate('');
+      setVisitFollowUpInstructions('');
+      setVisitMedicines([]);
+      setVisitFiles([]);
+      setStagingFile(null);
+      setStagingCategory('Lab Report');
+      setEditingVisitId(null);
+      setExistingAttachments([]);
+      setWorkspaceTab('history');
+    } catch { notify.danger('Error', 'Failed to save consultation.'); }
+    finally { setIsSavingVisit(false); }
+  };
+
+  const handleEditVisit = (visit: any) => {
+    setEditingVisitId(visit.id);
+    setVisitDoctorId(visit.doctorId || '');
+    setVisitSymptoms(visit.symptoms || '');
+    setVisitDiagnosis(visit.diagnosis || '');
+    setVisitAdvice(visit.advice || '');
+    setVisitInternalNotes(visit.internalNotes || '');
+    setVisitFollowUpDate(visit.followUpDate ? visit.followUpDate.substring(0, 10) : '');
+    setVisitFollowUpInstructions(visit.followUpInstructions || '');
+    setVisitMedicines(visit.medicines ? visit.medicines.map((m: any) => ({ medicineName: m.medicineName, dosage: m.dosage })) : []);
+    setExistingAttachments(visit.attachments || []);
+    setVisitFiles([]);
+    setStagingFile(null);
+    setStagingCategory('Lab Report');
+    
+    // Scroll to form
+    const formElement = document.querySelector('.consult-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
+  const handleUploadAttachment = async () => {
+    if (!selectedPatient || uploadFiles.length === 0) { notify.warning('Required', 'Please select at least one file.'); return; }
+    
+    // Check sizes
+    if (uploadFiles.some(f => f.size > 10 * 1024 * 1024)) {
+      notify.warning('Too Large', 'Each file must be under 10MB.');
+      return;
+    }
+
+    setIsSavingAttachment(true);
+    try {
+      for (const file of uploadFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', uploadCategory);
+        await api.post(`/patientclinical/${selectedPatient.id}/attachments`, formData);
+      }
+      queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
+      notify.success('Uploaded', `${uploadFiles.length} file(s) uploaded successfully.`);
+      setIsUploadingAttachment(false); setUploadFiles([]);
+    } catch (err: any) {
+      const msg = err?.response?.data;
+      notify.danger('Upload Failed', typeof msg === 'string' ? msg : 'Upload failed.');
+    } finally { setIsSavingAttachment(false); }
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    if (!window.confirm('Delete this file?')) return;
+    try {
+      await api.delete(`/patientclinical/attachments/${id}`);
+      queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
+      notify.success('Deleted', 'File deleted.');
+    } catch { notify.danger('Error', 'Could not delete file.'); }
+  };
+
+  const handleToggleReminder = async (fup: any) => {
+    try {
+      await api.put(`/patientclinical/followups/${fup.id}`, {
+        reminderEnabled: !fup.reminderEnabled, followUpDate: fup.followUpDate,
+      });
+      queryClient.invalidateQueries({ queryKey: ['followups', selectedPatient.id] });
+    } catch { notify.danger('Error', 'Failed to update reminder.'); }
+  };
+
+  const formatDate = (d: string, opts?: Intl.DateTimeFormatOptions) =>
+    new Date(d).toLocaleDateString('en-IN', opts || { day: 'numeric', month: 'short', year: 'numeric' });
+
+  const patientCode = selectedPatient
+    ? (selectedPatient.patientCode || 'PT-' + selectedPatient.id.substring(0, 6).toUpperCase())
+    : '';
+
+  // ── Render ───────────────────────────────────────────────────────
   return (
     <div className="patients-container">
-      <PageHeader 
-        title="Patient" 
-        accentTitle="Directory" 
-        subtitle="Manage and view all registered patients across the organization."
-        icon={<Users />}
-      />
 
-      {selectedPatientForHistory ? (
-        <div className="glass-card ehr-portal-fullpage animate-fade-in">
-          <div className="ehr-portal-header">
-            <button className="btn-back-directory" onClick={() => setSelectedPatientForHistory(null)}>
-              <ArrowLeft size={16} /> Back to Directory
-            </button>
-            <div className="ehr-portal-title">
-              <div className="ehr-pulse-indicator">
-                <Activity size={20} className="text-accent animate-pulse" />
-              </div>
-              <div className="ehr-title-details">
-                <h3>Clinical EHR Portal</h3>
-                <span className="ehr-subtitle">Patient File • {selectedPatientForHistory.name}</span>
-              </div>
+      {/* Page Header */}
+      {!selectedPatient && (
+        <PageHeader
+          title="Patient"
+          accentTitle="Directory"
+          subtitle="Manage registered patients and clinical records."
+          icon={<Users />}
+          rightElement={
+            <div className="branch-select-container">
+              <label className="branch-select-label"><Building2 size={12} /> Branch</label>
+              <select value={selectedBranchId} onChange={e => setSelectedBranchId(e.target.value)} className="branch-select">
+                <option value="all">All Branches</option>
+                {branches?.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
             </div>
-            <div className="ehr-header-actions">
-              <span className="patient-portal-code">{selectedPatientForHistory.patientCode || 'PT-' + selectedPatientForHistory.id.substring(0, 6).toUpperCase()}</span>
-            </div>
-          </div>
-          
-          <div className="ehr-portal-grid">
-            {/* Left Section: Clinical Vitals & Stats */}
-            <div className="ehr-vitals-column">
-              <h4 className="column-title">Patient Vitals & Diagnoses</h4>
-              
-              <div className="vitals-glowing-card">
-                <div className="vitals-header">
-                  <Heart size={16} className="vital-icon-red animate-pulse" />
-                  <span>Live Vitals Summary</span>
+          }
+        />
+      )}
+
+      {selectedPatient ? (
+        /* ════════════════════════════════════════════════════════
+           DOCTOR'S WORKSPACE (EHR PORTAL)
+        ════════════════════════════════════════════════════════ */
+        <div className="doctor-workspace">
+
+          {/* ── Patient Banner (Compact) ─────────────────────────────────── */}
+          <div className="ehr-banner-compact">
+            <div className="ehr-banner-left">
+              <button className="btn-back-icon" onClick={() => setSelectedPatient(null)} title="Back to Directory">
+                <ArrowLeft size={18} />
+              </button>
+              <div className="ehr-avatar-sm">{selectedPatient.name.charAt(0)}</div>
+              <div className="ehr-patient-info">
+                <div className="ehr-patient-title-row">
+                  <h2 className="ehr-patient-name">{selectedPatient.name}</h2>
+                  <span className="ehr-code-badge">{patientCode}</span>
+                  <button className="btn-icon-ghost" onClick={() => setIsEditingProfile(true)} title="Edit Profile">
+                    <Edit size={14} />
+                  </button>
                 </div>
-                <div className="vitals-grid">
-                  <div className="vital-stat-box">
-                    <span className="vital-label">Blood Pressure</span>
-                    <span className="vital-value text-white">120/80 <span className="vital-unit">mmHg</span></span>
-                  </div>
-                  <div className="vital-stat-box">
-                    <span className="vital-label">Heart Rate</span>
-                    <span className="vital-value text-accent">78 <span className="vital-unit">BPM</span></span>
-                  </div>
-                  <div className="vital-stat-box">
-                    <span className="vital-label">Oxygen SpO2</span>
-                    <span className="vital-value text-green">98 <span className="vital-unit">%</span></span>
-                  </div>
-                  <div className="vital-stat-box">
-                    <span className="vital-label">Blood Sugar</span>
-                    <span className="vital-value text-amber">96 <span className="vital-unit">mg/dL</span></span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="diagnosis-plan-card">
-                <span className="card-mini-label">PRIMARY CARE PLAN</span>
-                <h4 className="care-plan-title">Standard Outpatient Protocol</h4>
-                <p className="care-plan-desc">WhatsApp prescription broadcasts and automated check-ins enabled for all upcoming visits.</p>
-              </div>
-
-              <div className="clinical-notice-banner">
-                <ShieldAlert size={14} className="text-accent" />
-                <span>Authorized clinical personnel access only. Changes are audited.</span>
-              </div>
-            </div>
-
-            {/* Right Section: Timelines */}
-            <div className="ehr-timeline-column">
-              <h4 className="column-title">Consultation Timeline & Clinical Notes</h4>
-              
-              {isHistoryLoading ? (
-                <div className="ehr-loading-state">
-                  <div className="spinner-glow" />
-                  <span>Synchronizing clinical database...</span>
-                </div>
-              ) : !patientHistory || patientHistory.length === 0 ? (
-                <div className="ehr-empty-state">
-                  <History size={32} className="text-secondary opacity-40" />
-                  <p>No recorded consultations or clinical logs in this branch.</p>
-                </div>
-              ) : (
-                <div className="ehr-scrollable-timeline custom-scrollbar">
-                  {patientHistory.map((visit: any, index: number) => (
-                    <div key={visit.id} className="timeline-item-card animate-slide-in">
-                      <div className="timeline-glow-connector">
-                        <div className="timeline-glow-dot" />
-                        {index < patientHistory.length - 1 && <div className="timeline-glow-line" />}
-                      </div>
-
-                      <div className="timeline-card-content">
-                        <div className="timeline-card-top">
-                          <div className="timeline-visit-meta">
-                            <span className="visit-token-tag">Token #{visit.tokenNumber}</span>
-                            <span className="visit-date-tag">
-                              {new Date(visit.queueDate).toLocaleDateString('en-IN', {
-                                day: 'numeric', month: 'short', year: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                          <span className={`compact-status status-${visit.status}`}>
-                            {visit.status === 0 ? 'Pending' : visit.status === 1 ? 'Called' : visit.status === 2 ? 'Completed' : 'Cancelled'}
-                          </span>
-                        </div>
-
-                        <div className="timeline-card-middle">
-                          <h4 className="timeline-doctor-name">Dr. {visit.doctorName}</h4>
-                          <span className="timeline-dept-badge">{visit.department}</span>
-                        </div>
-
-                        <div className="timeline-card-notes">
-                          <span className="notes-label">Prescription / Diagnostic Summary:</span>
-                          <p className="notes-text">
-                            {visit.status === 2 
-                              ? "Standard follow-up consultation completed. Advised maintenance dosage and routine check-up in 15 days."
-                              : visit.status === 3 
-                              ? "Consultation cancelled by the patient/staff. Token slot returned to the available queue."
-                              : "Patient is queued in the outpatient waiting lobby. Direct broadcast active."
-                            }
-                          </p>
-                        </div>
-
-                        <div className="timeline-card-bottom">
-                          <span className="billing-label">Consultation Fee</span>
-                          <span className="billing-amount">₹{visit.feePaid}</span>
-                        </div>
-                      </div>
-                    </div>
+                <div className="ehr-vitals-inline">
+                  <span className="vital-text">{selectedPatient.gender || 'No Gender'}</span>
+                  <span className="vital-dot">•</span>
+                  <span className="vital-text">{selectedPatient.age || 'No Age'}</span>
+                  {selectedPatient.bloodGroup && (
+                    <>
+                      <span className="vital-dot">•</span>
+                      <span className="vital-text blood-group"><Droplets size={10} /> {selectedPatient.bloodGroup}</span>
+                    </>
+                  )}
+                  {selectedPatient.chronicTags && selectedPatient.chronicTags.split(',').map((t: string) => (
+                    <span key={t} className="chronic-tag-sm">{t.trim()}</span>
                   ))}
                 </div>
-              )}
+              </div>
+            </div>
+            <div className="ehr-banner-right">
+                {/* Reserved for future right-aligned banner items */}
+            </div>
+          </div>
+
+          {/* ── Split Layout ─────────────────────── */}
+          <div className="workspace-grid">
+            
+            {/* LEFT: Active Consultation Form */}
+            <div className="workspace-main panel-glass">
+              <div className="panel-header">
+                <div className="panel-title">
+                  <Activity size={18} className="text-accent" />
+                  <h3>{editingVisitId ? 'Edit Consultation' : 'Active Consultation'}</h3>
+                </div>
+              </div>
+
+              <div className="consult-form">
+                <div className="form-group">
+                  <label className="form-label">Consulting Doctor</label>
+                  <select className="form-select" value={visitDoctorId} onChange={e => setVisitDoctorId(e.target.value)}>
+                    <option value="">— Select Doctor —</option>
+                    {doctors?.map((d: any) => (
+                      <option key={d.id} value={d.id}>Dr. {d.name} · {d.specialization}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Symptoms / Complaints</label>
+                    <textarea className="form-textarea" placeholder="What is the patient experiencing?" rows={2}
+                      value={visitSymptoms} onChange={e => setVisitSymptoms(e.target.value)} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Diagnosis</label>
+                    <textarea className="form-textarea" placeholder="Clinical diagnosis..." rows={2}
+                      value={visitDiagnosis} onChange={e => setVisitDiagnosis(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Advice & Treatment Plan</label>
+                  <textarea className="form-textarea" placeholder="Instructions, diet, rest..." rows={2}
+                    value={visitAdvice} onChange={e => setVisitAdvice(e.target.value)} />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Private Notes (Doctor Only)</label>
+                  <input type="text" className="form-input notes-field" placeholder="Confidential observations..." 
+                    value={visitInternalNotes} onChange={e => setVisitInternalNotes(e.target.value)} />
+                </div>
+
+                <div className="form-group" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <label className="form-label" style={{ marginBottom: '12px' }}><Upload size={14} style={{ marginRight: '6px' }}/>Attach Documents for this Visit</label>
+                  
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <select className="form-select" style={{ width: '140px' }} value={stagingCategory} onChange={e => setStagingCategory(e.target.value)}>
+                      <option value="Lab Report">Lab Report</option>
+                      <option value="X-Ray">X-Ray</option>
+                      <option value="MRI Scan">MRI Scan</option>
+                      <option value="Prescription">Prescription</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <input 
+                      type="file" 
+                      className="form-input" 
+                      style={{ flex: 1, minWidth: '200px' }}
+                      onChange={e => {
+                        if (e.target.files?.[0]) setStagingFile(e.target.files[0]);
+                      }}
+                    />
+                    <button className="btn-add-sm" onClick={() => {
+                      if (stagingFile) {
+                        setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]);
+                        setStagingFile(null);
+                        // Reset input
+                        const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                        if (input) input.value = '';
+                      }
+                    }}>
+                      <Plus size={14} /> Add
+                    </button>
+                  </div>
+
+                  {(visitFiles.length > 0 || existingAttachments.length > 0) && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {existingAttachments.map((item: any) => (
+                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(14, 165, 233, 0.05)', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                          <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>[{item.category}]</span>
+                            <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>{item.fileName}</a>
+                          </div>
+                          <button className="btn-del-icon" style={{ padding: '4px' }} onClick={async () => {
+                             if (confirm('Delete this attachment permanently?')) {
+                               try {
+                                 await api.delete(`/patientclinical/attachments/${item.id}`);
+                                 setExistingAttachments(existingAttachments.filter((a) => a.id !== item.id));
+                                 queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
+                                 queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
+                               } catch { notify.danger('Error', 'Failed to delete attachment.'); }
+                             }
+                          }}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {visitFiles.map((item, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(14, 165, 233, 0.05)', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
+                          <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>[{item.category}]</span>
+                            <span style={{ color: 'var(--text-secondary)' }}>{item.file.name}</span>
+                          </div>
+                          <button className="btn-del-icon" style={{ padding: '4px' }} onClick={() => {
+                            setVisitFiles(visitFiles.filter((_, i) => i !== index));
+                          }}>
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="prescription-section">
+                  <div className="section-header">
+                    <h4><HeartPulse size={15} className="text-accent" /> Prescription</h4>
+                    <button className="btn-add-sm" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: '', dosage: '' }])}>
+                      <Plus size={12} /> Add Custom
+                    </button>
+                  </div>
+
+                  <div className="med-chip-container">
+                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Paracetamol 650mg', dosage: '1-0-1' }])}>+ Paracetamol</div>
+                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Amoxicillin 500mg', dosage: '1-0-1 x 5 Days' }])}>+ Amoxicillin</div>
+                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Pantoprazole 40mg', dosage: '1-0-0 Before Food' }])}>+ Pantoprazole</div>
+                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Cough Syrup', dosage: '2 tsp x 3 times' }])}>+ Cough Syrup</div>
+                  </div>
+
+                  <div className="rx-list">
+                    {visitMedicines.length === 0 ? (
+                      <div className="rx-empty">No medicines prescribed yet. Use quick-add chips above or add custom.</div>
+                    ) : (
+                      visitMedicines.map((m, i) => (
+                        <div key={i} className="rx-row">
+                          <input className="form-input rx-name" type="text" placeholder="Medicine Name (e.g. Paracetamol 650mg)"
+                            value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
+                          <input className="form-input rx-dosage" type="text" placeholder="Dosage (e.g. 1-0-1 x 3 Days)"
+                            value={m.dosage} onChange={e => { const u = [...visitMedicines]; u[i].dosage = e.target.value; setVisitMedicines(u); }} />
+                          <button className="btn-del-icon" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Next Follow-up Date (Optional)</label>
+                  <input type="date" className="form-input" style={{ width: '200px' }}
+                    value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} />
+                </div>
+
+                {visitFollowUpDate && (
+                  <div className="form-group slide-down instruction-box-premium">
+                    <label className="form-label" style={{ color: 'var(--accent-color)' }}>📝 Patient Instructions (Sent via WhatsApp)</label>
+                    <textarea 
+                      className="form-textarea" 
+                      placeholder="e.g. Bring old reports, come fasting..."
+                      rows={2}
+                      value={visitFollowUpInstructions} 
+                      onChange={e => setVisitFollowUpInstructions(e.target.value)} 
+                    />
+                    <div className="quick-instruction-chips">
+                      <span className="qi-chip" onClick={() => setVisitFollowUpInstructions(prev => (prev ? prev + ', ' : '') + 'Bring all previous reports')}>+ Old Reports</span>
+                      <span className="qi-chip" onClick={() => setVisitFollowUpInstructions(prev => (prev ? prev + ', ' : '') + 'Come empty stomach (Fasting)')}>+ Fasting</span>
+                      <span className="qi-chip" onClick={() => setVisitFollowUpInstructions(prev => (prev ? prev + ', ' : '') + 'Arrive 15 mins early')}>+ 15 Mins Early</span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              <div className="panel-footer" style={{ display: 'flex', gap: '12px' }}>
+                <button className="btn-cancel-consult" onClick={() => {
+                  setVisitSymptoms('');
+                  setVisitDiagnosis('');
+                  setVisitAdvice('');
+                  setVisitInternalNotes('');
+                  setVisitFollowUpDate('');
+                  setVisitFollowUpInstructions('');
+                  setVisitMedicines([]);
+                  setVisitFiles([]);
+                  setStagingFile(null);
+                  setStagingCategory('Lab Report');
+                  setEditingVisitId(null);
+                  setExistingAttachments([]);
+                }}>
+                  Cancel
+                </button>
+                <button id="btn-save-consult" className="btn-save-consult" onClick={handleSaveConsultation} disabled={isSavingVisit || !visitDoctorId}>
+                  {isSavingVisit ? <span className="spinner-sm" /> : <Save size={16} />}
+                  {isSavingVisit ? 'Saving Record...' : editingVisitId ? 'Update Consultation Record' : 'Save Consultation Record'}
+                  <span className="shortcut-hint">Ctrl+Enter</span>
+                </button>
+              </div>
+            </div>
+
+            {/* RIGHT: History & Sidebar */}
+            <div className="workspace-sidebar panel-glass">
+              <div className="sidebar-tabs">
+                <button className="sb-tab active">
+                  History {clinicalVisits?.length > 0 && <span>({clinicalVisits.length})</span>}
+                </button>
+              </div>
+
+              <div className="sidebar-content">
+                
+                {workspaceTab === 'history' && (
+                  <div className="history-pane">
+                    {isVisitsLoading ? (
+                      <div className="compact-timeline" style={{ paddingTop: '10px' }}>
+                        <div className="skeleton-box skeleton-block"></div>
+                        <div className="skeleton-box skeleton-block" style={{ opacity: 0.6 }}></div>
+                        <div className="skeleton-box skeleton-block" style={{ opacity: 0.3 }}></div>
+                      </div>
+                    ) : !clinicalVisits?.length ? (
+                      <div className="ehr-state-sm">No past visits found.</div>
+                    ) : (
+                      <div className="compact-timeline">
+                        {clinicalVisits.map((v: any, index: number) => (
+                          <div key={v.id} className="ct-item">
+                            <div className="ct-date">{formatDate(v.visitDate)}</div>
+                            <div className="ct-card">
+                              <div className="ct-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <span>Dr. {v.doctorName} {v.tokenId && <span className="ct-badge">Queue</span>}</span>
+                                {index === 0 && (
+                                  <button className="btn-icon-ghost" style={{ padding: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} onClick={() => handleEditVisit(v)} title="Edit Consultation">
+                                    <Edit2 size={12} />
+                                  </button>
+                                )}
+                              </div>
+                              {v.diagnosis && <div className="ct-text"><strong>Dx:</strong> {v.diagnosis}</div>}
+                              {v.symptoms && <div className="ct-text"><strong>Sx:</strong> {v.symptoms}</div>}
+                              {v.advice && <div className="ct-text"><strong>Advice/Plan:</strong> {v.advice}</div>}
+                              {v.internalNotes && <div className="ct-text" style={{ color: 'var(--accent-color)' }}><strong>Private Note:</strong> {v.internalNotes}</div>}
+                              {v.followUpDate && (
+                                <div className="ct-text" style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 10px', borderRadius: '6px', marginTop: '4px' }}>
+                                  <div><strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
+                                  {v.followUpInstructions && <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>📝 {v.followUpInstructions}</div>}
+                                </div>
+                              )}
+                              {v.medicines?.length > 0 && (
+                                <div className="ct-rx">
+                                  {v.medicines.map((m:any) => <div key={m.id}>• {m.medicineName} ({m.dosage})</div>)}
+                                </div>
+                              )}
+                              {v.attachments?.length > 0 && (
+                                <div className="ct-attachments" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  {v.attachments.map((a:any) => (
+                                    <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
+                                       style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.2)', color: 'var(--accent-color)', fontWeight: 600, transition: '0.2s' }}>
+                                      <FileText size={12} style={{ marginRight: '6px' }} /> [{a.category}] {a.fileName}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Render Unlinked Attachments */}
+                        {(() => {
+                          const linkedAttachmentIds = new Set(clinicalVisits?.flatMap((v:any) => v.attachments?.map((a:any) => a.id) || []));
+                          const unlinkedAttachments = attachments?.filter((a:any) => !linkedAttachmentIds.has(a.id));
+                          
+                          if (unlinkedAttachments && unlinkedAttachments.length > 0) {
+                            return (
+                              <div className="ct-item">
+                                <div className="ct-date">Archive</div>
+                                <div className="ct-card">
+                                  <div className="ct-header">Independent Reports</div>
+                                  <div className="ct-text" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>These documents were uploaded separately from any consultation.</div>
+                                  <div className="ct-attachments" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {unlinkedAttachments.map((a:any) => (
+                                      <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
+                                         style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.2)', color: 'var(--accent-color)', fontWeight: 600, transition: '0.2s' }}>
+                                        <FileText size={12} style={{ marginRight: '6px' }} /> [{a.category}] {a.fileName}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
       ) : (
-        <div className="glass-card patients-card-body patients-main-section">
-          <div className="patients-header-actions flex-mobile-column">
-            <div className="search-input-wrapper full-width-mobile">
+        /* ════════════════════════════════════════════════════════
+           PATIENT DIRECTORY TABLE
+        ════════════════════════════════════════════════════════ */
+        <div className="glass-card patients-card-body">
+          <div className="patients-header-actions">
+            <div className="search-input-wrapper">
               <div className="search-input-container">
-                <Search size={18} className="search-icon-pos" />
-                <input 
-                  type="text" 
-                  placeholder="Search by name or phone..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input-field"
-                />
+                <Search size={15} className="search-icon-pos" />
+                <input type="text" placeholder="Search by name or phone..."
+                  value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  className="search-input-field" />
               </div>
             </div>
-            <button className="btn-primary patients-new-btn full-width-mobile">
-              <UserPlus size={16} /> New Patient
+            <button className="btn-primary"
+              onClick={() => navigate('/dashboard?action=book')}>
+              <UserPlus size={15} /> New Patient
             </button>
           </div>
 
           <div className="divider-light" />
 
-          <div className="patients-table-card">
-            <div className="patients-table-container custom-scrollbar animate-fade-in">
-              <table className="patients-table">
-                <thead className="table-head-row">
-                  <tr>
-                    <th className="table-th">
-                      <div className="th-content">ID</div>
-                    </th>
-                    <th className="table-th">
-                      <div className="th-content"><Users size={16} /> Patient Name</div>
-                    </th>
-                    <th className="table-th">
-                      <div className="th-content"><Phone size={16} /> Contact</div>
-                    </th>
-                    <th className="table-th">
-                      <div className="th-content">
-                        <CalendarIcon size={14} /> Registered On
-                      </div>
-                    </th>
-                    <th className="table-th">
-                      <div className="th-content">Last Visit</div>
-                    </th>
-                    <th className="table-th">
-                      <div className="th-content">Next Visit</div>
-                    </th>
-                    <th className="table-th th-actions-header">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={7} className="empty-table-td">
-                        <div className="empty-table-wrapper">
-                          <div className="spinner animate-spin" />
-                          <p>Loading patient directory...</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : filteredPatients.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="empty-table-td">
-                        <div className="empty-table-wrapper">
-                          <Users size={40} />
-                          <p>No patients found.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredPatients.map((patient: any) => (
-                      <tr key={patient.id} className={`table-row-item ${selectedPatientForHistory?.id === patient.id ? 'row-expanded-active' : ''}`}>
-                        <td className="td-id">
-                          <span className="patient-id-badge">{patient.patientCode || 'PT-' + patient.id.substring(0, 6).toUpperCase()}</span>
-                        </td>
-                        <td className="td-name">
-                          <div className="patient-name-cell">
-                            <div className="patient-avatar-placeholder">
-                              {patient.name.charAt(0)}
-                            </div>
-                            <div className="patient-name-details">
-                              <span className="patient-full-name">{patient.name}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="td-phone">{patient.phone}</td>
-                        <td className="td-time">
-                          {new Date(patient.createdAt).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short', year: 'numeric'
-                          })}
-                        </td>
-                        <td className="td-time">
-                          {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short', year: 'numeric'
-                          }) : <span style={{color: 'var(--text-secondary)'}}>None</span>}
-                        </td>
-                        <td className="td-time">
-                          {patient.nextVisit ? new Date(patient.nextVisit).toLocaleDateString('en-IN', {
-                            day: 'numeric', month: 'short', year: 'numeric'
-                          }) : <span style={{color: 'var(--text-secondary)'}}>N/A</span>}
-                        </td>
-                        <td className="td-actions">
-                          <div className="actions-wrapper">
-                            <button 
-                              className="action-btn-ghost text-accent" 
-                              data-tooltip="Direct Message"
-                              onClick={() => setMessagingPatient(patient)}
-                            >
-                              <MessageSquare size={16} />
-                            </button>
-                            <button 
-                              className="action-btn-ghost text-success" 
-                              data-tooltip="Quick Book"
-                              onClick={() => navigate(`/dashboard?action=book&phone=${patient.phone}&name=${patient.name}`)}
-                            >
-                              <CalendarPlus size={16} />
-                            </button>
-                            <button 
-                              className={`action-btn-ghost ${selectedPatientForHistory?.id === patient.id ? 'action-btn-active text-primary' : 'text-primary'}`}
-                              data-tooltip="Patient History"
-                              onClick={() => setSelectedPatientForHistory(selectedPatientForHistory?.id === patient.id ? null : patient)}
-                            >
-                              <History size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div className="patients-bento-grid">
+            {isLoading ? (
+              <div className="empty-table-wrapper" style={{ gridColumn: '1 / -1' }}>
+                <div className="spinner-ring" /><span>Loading...</span>
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="empty-table-wrapper" style={{ gridColumn: '1 / -1' }}>
+                <Users size={32} /><span>No patients found.</span>
+              </div>
+            ) : filteredPatients.map((p: any) => (
+              <div key={p.id} className="patient-bento-card">
+                <div className="pb-header">
+                  <div className="pb-avatar">{p.name.charAt(0)}</div>
+                  <span className="pb-id">{p.patientCode || 'PT-' + p.id.substring(0, 6).toUpperCase()}</span>
+                </div>
+                
+                <div className="pb-info">
+                  <div className="pb-name">{p.name}</div>
+                  <div className="pb-phone"><Phone size={11} /> {p.phone}</div>
+                  <div className="pb-stats-row">
+                    {p.age > 0 && <span className="pb-pill">{p.age} Yrs</span>}
+                    {p.gender && <span className={`pb-pill gender`}>{p.gender.charAt(0)}</span>}
+                    {p.bloodGroup && <span className="pb-pill blood">{p.bloodGroup}</span>}
+                  </div>
+                </div>
+
+                <div className="pb-footer">
+                  <div className="pb-time">
+                    {p.lastVisit ? `Last Visit: ${formatDate(p.lastVisit)}` : `Reg: ${formatDate(p.createdAt)}`}
+                  </div>
+                  <div className="actions-wrapper">
+                    <button className="action-btn-ghost" data-tooltip="WhatsApp"
+                      onClick={() => { setMessagingPatient(p); setMessageText(''); }}>
+                      <MessageSquare size={14} />
+                    </button>
+                    <button className="pb-action" data-tooltip="Consult"
+                      onClick={() => { setSelectedPatient(p); setWorkspaceTab('history'); }}>
+                      Consult
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* WhatsApp Message Modal */}
-      {messagingPatient && (
-        <Modal 
-          title="Direct Message" 
-          onClose={() => setMessagingPatient(null)} 
-          icon={<MessageSquare size={24} color="var(--accent-color)" />}
-        >
-          <div className="patient-modal-content">
-            <div className="wa-profile-header">
-              <div className="wa-avatar">{messagingPatient.name.charAt(0)}</div>
-              <div className="wa-profile-info">
-                <h4>{messagingPatient.name}</h4>
-                <p>
-                  <Phone size={12} /> {messagingPatient.phone}
-                </p>
-              </div>
-              <div className="wa-status-badge">
-                <span className="wa-dot"></span> Bridge Active
-              </div>
-            </div>
-            
-            <div className="form-group wa-msg-group">
-              <label>Message Content</label>
-              <div className="wa-input-container">
-                <textarea 
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Type your message here..."
-                  rows={4}
-                  className="wa-textarea custom-scrollbar"
-                />
-              </div>
-              <p className="wa-hint">This message will be sent instantly to the patient's WhatsApp.</p>
-            </div>
+      {/* ════════════ MODALS ════════════ */}
 
-            <div className="wa-actions">
-              <button onClick={() => setMessagingPatient(null)} className="btn-secondary-ghost wa-cancel-btn flex-center gap-2">
-                <X size={16} /> Cancel
-              </button>
-              <button 
-                onClick={handleSendMessage} 
-                disabled={isSending || !messageText.trim()}
-                className="btn-primary wa-send-btn flex-center gap-2"
-              >
-                {isSending ? <span className="spinner spinner-sm" /> : <Send size={16} />} 
+      {/* WhatsApp Modal */}
+      {messagingPatient && (
+        <Modal title="Send WhatsApp" icon={<MessageSquare size={20} color="var(--accent-color)" />}
+          onClose={() => setMessagingPatient(null)} maxWidth="460px">
+          <div className="modal-body">
+            <div className="wa-recipient-box">
+              <div className="wa-avatar">{messagingPatient.name.charAt(0)}</div>
+              <div className="wa-info">
+                <h4>{messagingPatient.name}</h4>
+                <p><Phone size={11} /> {messagingPatient.phone}</p>
+              </div>
+              <div className="wa-bridge-dot"><span className="wa-dot" /> Bridge</div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Message</label>
+              <div className="wa-textarea-wrap">
+                <textarea className="wa-textarea" rows={4} placeholder="Type your message..."
+                  value={messageText} onChange={e => setMessageText(e.target.value)} />
+              </div>
+              <span className="wa-hint">Sent via WhatsApp bridge instantly.</span>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setMessagingPatient(null)}><X size={14} /> Cancel</button>
+              <button className="btn-submit" onClick={handleSendMessage}
+                disabled={isSending || !messageText.trim()}>
+                {isSending ? <span className="spinner-sm" /> : <Send size={14} />}
                 {isSending ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Profile Modal */}
+      {isEditingProfile && selectedPatient && (
+        <Modal title="Edit Patient Profile" icon={<Edit size={20} color="var(--accent-color)" />}
+          onClose={() => setIsEditingProfile(false)} maxWidth="480px">
+          <div className="modal-body">
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Age</label>
+                <input className="form-input" type="text" placeholder="e.g. 34 Years"
+                  value={editAge} onChange={e => setEditAge(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Gender</label>
+                <select className="form-select" value={editGender} onChange={e => setEditGender(e.target.value)}>
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Blood Group</label>
+              <input className="form-input" type="text" placeholder="e.g. O+"
+                value={editBloodGroup} onChange={e => setEditBloodGroup(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Chronic Conditions (comma-separated)</label>
+              <input className="form-input" type="text" placeholder="e.g. Diabetes, Hypertension"
+                value={editChronicTags} onChange={e => setEditChronicTags(e.target.value)} />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setIsEditingProfile(false)}><X size={14} /> Cancel</button>
+              <button className="btn-submit" onClick={handleSaveProfile} disabled={isSavingProfile}>
+                {isSavingProfile ? <span className="spinner-sm" /> : <Check size={14} />}
+                {isSavingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Upload Modal */}
+      {isUploadingAttachment && (
+        <Modal title="Upload Report / File" icon={<Upload size={20} color="var(--accent-color)" />}
+          onClose={() => { setIsUploadingAttachment(false); setUploadFiles([]); }} maxWidth="420px">
+          <div className="modal-body">
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select className="form-select" value={uploadCategory} onChange={e => setUploadCategory(e.target.value)}>
+                <option value="Lab Report">Lab Report</option>
+                <option value="X-Ray">X-Ray / Scan</option>
+                <option value="MRI Scan">MRI / CT Scan</option>
+                <option value="Prescription">Prescription</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Files (PDF, PNG, JPG — max 10 MB per file)</label>
+              <input type="file" className="file-input-styled" accept=".pdf,.png,.jpg,.jpeg" multiple
+                onChange={e => { if (e.target.files) setUploadFiles(Array.from(e.target.files)); }} />
+              {uploadFiles.length > 0 && (
+                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--accent-color)' }}>
+                  {uploadFiles.length} file(s) selected
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancel"
+                onClick={() => { setIsUploadingAttachment(false); setUploadFiles([]); }}>
+                <X size={14} /> Cancel
+              </button>
+              <button className="btn-submit" onClick={handleUploadAttachment}
+                disabled={isSavingAttachment || uploadFiles.length === 0}>
+                {isSavingAttachment ? <span className="spinner-sm" /> : <Upload size={14} />}
+                {isSavingAttachment ? 'Uploading...' : 'Upload'}
               </button>
             </div>
           </div>

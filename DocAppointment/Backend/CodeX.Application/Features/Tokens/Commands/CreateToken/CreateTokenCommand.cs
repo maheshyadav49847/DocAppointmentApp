@@ -145,12 +145,19 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception("Failed to allocate a unique token number. Please retry.");
             }
 
+            // Calculate predictive wait time (assuming 10 mins per waiting patient ahead of this token)
+            var patientsAhead = await _context.Tokens
+                .Where(t => t.QueueId == queue.Id && (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called) && t.TokenNumber < token.TokenNumber)
+                .CountAsync(cancellationToken);
+            var estimatedWaitMinutes = patientsAhead * 10;
+            if (estimatedWaitMinutes == 0) estimatedWaitMinutes = 5; // Minimum buffer
+
             // 4. Notifications (Fire and forget to keep UI fast)
             _ = Task.Run(async () => 
             {
                 try 
                 {
-                    await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId);
+                    await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
                     await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
                 }
                 catch (System.Exception ex)

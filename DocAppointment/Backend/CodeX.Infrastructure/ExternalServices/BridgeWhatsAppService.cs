@@ -21,14 +21,19 @@ namespace CodeX.Infrastructure.ExternalServices
             _logger = logger;
         }
 
-        public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId)
+        public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
         {
+            var waitTimeMsg = estimatedWaitMinutes.HasValue 
+                ? $"⏱️ *Estimated Wait:* ~{estimatedWaitMinutes.Value} mins\n\n" 
+                : "";
+                
             var message =
                 $"🏥 *APPOINTMENT CONFIRMED* 🏥\n" +
                 $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
                 $"Hello *{patientName}* 🙏,\n\n" +
                 $"Aapka doctor appointment safaltapoorvak book ho gaya hai.\n\n" +
                 $"🔢 *Aapka Token Number:* #{tokenNumber}\n\n" +
+                waitTimeMsg +
                 $"📌 *Zaroori Baatein:*\n" +
                 $"• Kripya samay par clinic pahunchein.\n" +
                 $"• Aapko baar-baar poochna nahi padega, aapka number aane se pehle hum aapko WhatsApp par alert bhej denge.\n\n" +

@@ -95,3 +95,7 @@ api-build.log
 api-build2.log
 infra-build.log
 whatsapp-bridge/*.log
+
+# Uploaded attachment files
+uploads/
+wwwroot/uploads/

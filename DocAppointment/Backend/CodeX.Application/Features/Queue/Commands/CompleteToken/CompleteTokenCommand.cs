@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Enums;
+using CodeX.Domain.Entities;
 
 namespace CodeX.Application.Features.Queue.Commands.CompleteToken
 {
@@ -34,6 +35,20 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                 currentToken.Status = TokenStatus.Completed;
                 currentToken.CompletedAt = DateTime.UtcNow;
                 queue.CurrentTokenNumber = 0;
+
+                // Auto seed a PatientVisit record
+                var visit = new PatientVisit
+                {
+                    PatientId = currentToken.PatientId,
+                    TokenId = currentToken.Id,
+                    DoctorId = queue.DoctorId,
+                    VisitDate = DateTime.UtcNow,
+                    Symptoms = string.Empty,
+                    Diagnosis = string.Empty,
+                    Advice = string.Empty,
+                    InternalNotes = "Seeded from completed token."
+                };
+                _context.PatientVisits.Add(visit);
                 
                 await _context.SaveChangesAsync(cancellationToken);
                 

@@ -25,6 +25,10 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<MessageLog> MessageLogs => Set<MessageLog>();
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
         public DbSet<Staff> Staffs => Set<Staff>();
+        public DbSet<PatientVisit> PatientVisits => Set<PatientVisit>();
+        public DbSet<VisitMedicine> VisitMedicines => Set<VisitMedicine>();
+        public DbSet<PatientAttachment> PatientAttachments => Set<PatientAttachment>();
+        public DbSet<FollowUp> FollowUps => Set<FollowUp>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,6 +46,10 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<Patient>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Token>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<MessageLog>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<PatientVisit>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<VisitMedicine>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<PatientAttachment>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<FollowUp>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<ChatSession>()
                 .HasIndex(x => new { x.PhoneNumber, x.BranchId })
                 .IsUnique();
