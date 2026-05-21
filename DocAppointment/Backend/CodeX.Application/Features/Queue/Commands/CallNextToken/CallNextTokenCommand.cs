@@ -46,22 +46,20 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 .ThenInclude(x => x.Patient)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
 
-            if (queue == null) throw new Exception("Queue not found");
+            if (queue == null)
+                throw new CodeX.Application.Common.Exceptions.EntityNotFoundException("DailyQueue", request.QueueId);
 
-            // Find the next Pending token
             var nextToken = queue.Tokens
                 .Where(t => t.Status == TokenStatus.Pending)
                 .OrderBy(t => t.TokenNumber)
                 .FirstOrDefault();
 
-            // Mark the previous 'Called' token as Completed
             var currentToken = queue.Tokens.FirstOrDefault(t => t.Status == TokenStatus.Called);
             if (currentToken != null)
             {
                 currentToken.Status = TokenStatus.Completed;
                 currentToken.CompletedAt = DateTime.UtcNow;
 
-                // Send Feedback Request to the patient who just finished
                 if (currentToken.Patient != null && !string.IsNullOrEmpty(currentToken.Patient.Phone))
                 {
                     try
@@ -73,34 +71,29 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                             _context.ChatSessions.Add(chatSession);
                         }
                         chatSession.CurrentState = "AWAITING_RATING_SCORE";
-                        chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
+                        chatSession.SelectedSessionId = currentToken.Id;
 
                         await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id, queue.BranchId);
                     }
-                    catch { /* Log and ignore */ }
+                    catch { }
                 }
             }
 
             if (nextToken != null)
             {
-                // Update Next Token Status
                 nextToken.Status = TokenStatus.Called;
                 nextToken.CalledAt = DateTime.UtcNow;
-
-                // Update Queue Current Token
                 queue.CurrentTokenNumber = nextToken.TokenNumber;
                 queue.Status = QueueStatus.Active;
             }
             else
             {
-                // No more tokens, just clear the current one
                 queue.CurrentTokenNumber = 0;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Notify via SignalR (Background)
-            _ = Task.Run(async () => 
+            _ = Task.Run(async () =>
             {
                 try
                 {
@@ -112,8 +105,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 }
             });
 
-            // Notify via WhatsApp (Background)
-            _ = Task.Run(async () => 
+            _ = Task.Run(async () =>
             {
                 try
                 {
@@ -127,8 +119,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         catch (Exception ex)
                         {
                             _ = LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Failed", error: ex.Message, tokenId: nextToken.Id);
-                            
-                            // SMS Fallback for critical turn alert
+
                             try
                             {
                                 var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{nextToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
@@ -142,7 +133,6 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         }
                     }
 
-                    // Automated Upcoming Alerts
                     var upcomingPositions = new[] { 3, 5 };
                     foreach (var pos in upcomingPositions)
                     {

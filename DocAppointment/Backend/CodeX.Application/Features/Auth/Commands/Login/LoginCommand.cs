@@ -33,14 +33,17 @@ namespace CodeX.Application.Features.Auth.Commands.Login
 
             if (staff == null || !BCrypt.Net.BCrypt.Verify(request.Password, staff.PasswordHash))
             {
-                throw new Exception("Invalid credentials");
+                throw new CodeX.Application.Common.Exceptions.UnauthorizedAccessException(
+                    "Invalid email or password.",
+                    "INVALID_CREDENTIALS"
+                );
             }
 
             var token = _identityService.GenerateJwtToken(
-                staff.Id, 
-                staff.Email, 
-                staff.Role.ToString(), 
-                staff.BranchId, 
+                staff.Id,
+                staff.Email,
+                staff.Role.ToString(),
+                staff.BranchId,
                 staff.OrganizationId);
 
             return new LoginResponse(token, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId);

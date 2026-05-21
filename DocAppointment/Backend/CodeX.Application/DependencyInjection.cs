@@ -13,6 +13,8 @@ namespace CodeX.Application
 
             services.AddMediatR(cfg => {
                 cfg.RegisterServicesFromAssembly(assembly);
+                // Add sanitization behavior BEFORE validation
+                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CodeX.Application.Common.Behaviors.SanitizationBehavior<,>));
                 cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(CodeX.Application.Common.Behaviors.ValidationBehavior<,>));
             });
             services.AddAutoMapper(cfg => { }, assembly);

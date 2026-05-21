@@ -1,6 +1,7 @@
 using CodeX.Application;
 using CodeX.Api.Hubs;
 using CodeX.Api.Services;
+using CodeX.Api.Middleware;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -89,6 +90,9 @@ builder.WebHost.ConfigureKestrel(options =>
 builder.Services.AddHostedService<CodeX.Api.BackgroundServices.FollowUpReminderService>();
 
 var app = builder.Build();
+
+// Global exception handling middleware (must be early in pipeline)
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseCors("DefaultPolicy");
 app.UseSwagger();

@@ -31,7 +31,7 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
 
             if (session == null)
             {
-                throw new Exception("Session not found");
+                throw new CodeX.Application.Common.Exceptions.EntityNotFoundException(nameof(Session), request.SessionId);
             }
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(session.Branch?.Timezone);
@@ -51,26 +51,37 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                 {
                     var hasAccess = await _context.Branches
                         .AnyAsync(b => b.Id == existing.BranchId && b.OrganizationId == _currentUserService.OrgId, cancellationToken);
-                    if (!hasAccess) throw new Exception("You do not have access to this queue.");
+                    if (!hasAccess)
+                        throw new CodeX.Application.Common.Exceptions.ForbiddenAccessException(
+                            "DailyQueue",
+                            "You do not have access to this queue."
+                        );
                 }
                 return existing.Id;
             }
 
             if (session.Doctor == null)
             {
-                throw new Exception("Doctor not found for this session");
+                throw new CodeX.Application.Common.Exceptions.EntityNotFoundException(nameof(Doctor), request.DoctorId);
             }
 
             if (session.DoctorId != request.DoctorId)
             {
-                throw new Exception("The selected session does not belong to this doctor.");
+                throw new CodeX.Application.Common.Exceptions.BusinessRuleViolationException(
+                    "The selected session does not belong to this doctor.",
+                    "SESSION_DOCTOR_MISMATCH",
+                    new { SessionId = request.SessionId, DoctorId = request.DoctorId }
+                );
             }
 
             if (!_currentUserService.IsInRole("SuperAdmin"))
             {
                 if (session.Branch == null || session.Branch.OrganizationId != _currentUserService.OrgId)
                 {
-                    throw new Exception("You can only create queues for your own organization.");
+                    throw new CodeX.Application.Common.Exceptions.ForbiddenAccessException(
+                        "Queue",
+                        "You can only create queues for your own organization."
+                    );
                 }
             }
 

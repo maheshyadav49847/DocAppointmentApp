@@ -61,46 +61,55 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 .Include(q => q.Branch)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
 
-            if (queue == null) 
+            if (queue == null)
             {
-                throw new Exception($"Queue not found. Requested ID: {request.QueueId}");
+                throw new CodeX.Application.Common.Exceptions.EntityNotFoundException("DailyQueue", request.QueueId);
             }
 
             if (queue.Branch != null && !queue.Branch.IsActive)
             {
-                throw new Exception("This branch is currently offline and not accepting bookings.");
+                throw new CodeX.Application.Common.Exceptions.BusinessRuleViolationException(
+                    "This branch is currently offline and not accepting bookings.",
+                    "BRANCH_OFFLINE",
+                    new { BranchId = queue.BranchId }
+                );
             }
 
             var tokenCount = await _context.Tokens.CountAsync(t => t.QueueId == queue.Id, cancellationToken);
             if (queue.Session.DefaultCapacity > 0 && tokenCount >= queue.Session.DefaultCapacity)
             {
-                throw new Exception($"Queue is full. Maximum capacity of {queue.Session.DefaultCapacity} reached.");
+                throw new CodeX.Application.Common.Exceptions.ConflictException(
+                    $"Queue is full. Maximum capacity of {queue.Session.DefaultCapacity} reached.",
+                    "QUEUE_FULL",
+                    new { Capacity = queue.Session.DefaultCapacity, Current = tokenCount }
+                );
             }
 
             var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone);
 
-            // 1. Find Patient
             var patient = await _context.Patients
                 .FirstOrDefaultAsync(p => p.Phone == normalizedPhone, cancellationToken);
 
-            // 2. Duplicate Check (If patient exists)
             if (patient != null)
             {
                 var hasActiveToken = await _context.Tokens
-                    .AnyAsync(t => t.QueueId == request.QueueId && 
-                                   t.PatientId == patient.Id && 
-                                   (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called), 
+                    .AnyAsync(t => t.QueueId == request.QueueId &&
+                                   t.PatientId == patient.Id &&
+                                   (t.Status == CodeX.Domain.Enums.TokenStatus.Pending || t.Status == CodeX.Domain.Enums.TokenStatus.Called),
                                    cancellationToken);
 
                 if (hasActiveToken)
                 {
-                    throw new Exception("This patient already has an active token in this session.");
+                    throw new CodeX.Application.Common.Exceptions.ConflictException(
+                        "This patient already has an active token in this session.",
+                        "DUPLICATE_ACTIVE_TOKEN",
+                        new { PatientId = patient.Id, QueueId = queue.Id }
+                    );
                 }
             }
             else
             {
-                // Create new patient
-                patient = new Patient
+                patient = new CodeX.Domain.Entities.Patient
                 {
                     Name = request.PatientName,
                     Phone = normalizedPhone
@@ -108,7 +117,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 _context.Patients.Add(patient);
             }
 
-            Token? token = null;
+            CodeX.Domain.Entities.Token? token = null;
             var saved = false;
             for (var attempt = 0; attempt < 3; attempt++)
             {
@@ -116,12 +125,12 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                     .Where(t => t.QueueId == queue.Id)
                     .MaxAsync(t => (int?)t.TokenNumber, cancellationToken)) ?? 0) + 1;
 
-                token = new Token
+                token = new CodeX.Domain.Entities.Token
                 {
                     QueueId = queue.Id,
                     Patient = patient,
                     TokenNumber = nextTokenNumber,
-                    Status = TokenStatus.Pending,
+                    Status = CodeX.Domain.Enums.TokenStatus.Pending,
                     Source = request.Source,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -142,20 +151,21 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
             if (!saved || token == null)
             {
-                throw new Exception("Failed to allocate a unique token number. Please retry.");
+                throw new CodeX.Application.Common.Exceptions.InvalidOperationException(
+                    "Failed to allocate a unique token number. Please retry.",
+                    "TOKEN_ALLOCATION_FAILED"
+                );
             }
 
-            // Calculate predictive wait time (assuming 10 mins per waiting patient ahead of this token)
             var patientsAhead = await _context.Tokens
-                .Where(t => t.QueueId == queue.Id && (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called) && t.TokenNumber < token.TokenNumber)
+                .Where(t => t.QueueId == queue.Id && (t.Status == CodeX.Domain.Enums.TokenStatus.Pending || t.Status == CodeX.Domain.Enums.TokenStatus.Called) && t.TokenNumber < token.TokenNumber)
                 .CountAsync(cancellationToken);
             var estimatedWaitMinutes = patientsAhead * 10;
-            if (estimatedWaitMinutes == 0) estimatedWaitMinutes = 5; // Minimum buffer
+            if (estimatedWaitMinutes == 0) estimatedWaitMinutes = 5;
 
-            // 4. Notifications (Fire and forget to keep UI fast)
-            _ = Task.Run(async () => 
+            _ = Task.Run(async () =>
             {
-                try 
+                try
                 {
                     await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
                     await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
@@ -178,9 +188,9 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 }
             });
 
-            _ = Task.Run(async () => 
+            _ = Task.Run(async () =>
             {
-                try 
+                try
                 {
                     await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
                 }

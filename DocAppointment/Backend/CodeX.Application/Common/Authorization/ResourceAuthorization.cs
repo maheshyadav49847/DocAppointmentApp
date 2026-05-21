@@ -1,5 +1,4 @@
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 
 namespace CodeX.Application.Common.Authorization
@@ -9,10 +8,13 @@ namespace CodeX.Application.Common.Authorization
         public static void EnsureOrgOwnership(ICurrentUserService currentUser, Guid orgId)
         {
             if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin))) return;
-            
+
             if (orgId == Guid.Empty || orgId != currentUser.OrgId)
             {
-                throw new UnauthorizedAccessException("You do not have access to this organization's resources.");
+                throw new Exceptions.ForbiddenAccessException(
+                    "Organization",
+                    "You do not have access to this organization's resources."
+                );
             }
         }
 
@@ -20,26 +22,31 @@ namespace CodeX.Application.Common.Authorization
         {
             if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin))) return;
 
-            // If user is OrgAdmin, they just need to own the org
-            // But if they are BranchAdmin or Receptionist, they must match the branch
-            if (currentUser.IsInRole(nameof(StaffRole.BranchAdmin)) || 
+            if (currentUser.IsInRole(nameof(StaffRole.BranchAdmin)) ||
                 currentUser.IsInRole(nameof(StaffRole.Receptionist)))
             {
                 if (currentUser.BranchId != branchId)
                 {
-                    throw new UnauthorizedAccessException("You do not have access to this branch.");
+                    throw new Exceptions.ForbiddenAccessException(
+                        "Branch",
+                        "You do not have access to this branch."
+                    );
                 }
             }
         }
 
         public static void EnsureAdminRole(ICurrentUserService currentUser)
         {
-            if (!currentUser.IsInRole(nameof(StaffRole.OrgAdmin)) && 
-                !currentUser.IsInRole(nameof(StaffRole.BranchAdmin)) && 
+            if (!currentUser.IsInRole(nameof(StaffRole.OrgAdmin)) &&
+                !currentUser.IsInRole(nameof(StaffRole.BranchAdmin)) &&
                 !currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
             {
-                throw new UnauthorizedAccessException("Administrative privileges required.");
+                throw new Exceptions.ForbiddenAccessException(
+                    "Admin Resource",
+                    "Administrative privileges required."
+                );
             }
         }
     }
 }
+
