@@ -5,7 +5,7 @@ import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
   History, CalendarPlus, Send, X, ArrowLeft, Building2, Edit, Check,
   Trash2, Download, Plus, FileText, Bell, BellOff, CheckCircle, ClipboardList,
-  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2, ArrowRight, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall
+  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2, ArrowRight, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone
 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
@@ -430,11 +430,11 @@ const PatientsList: React.FC = () => {
               <button className="btn-back-icon" onClick={() => setSelectedPatient(null)} title="Back to Directory">
                 <ArrowLeft size={18} />
               </button>
-              <div className="ehr-avatar-lg color-f8fafc-fs-1-4-flex-items-center-justify-center">{selectedPatient.name.charAt(0)}</div>
+              <div className="ehr-avatar-lg">{selectedPatient.name.charAt(0)}</div>
               <div className="ehr-patient-info">
                 <div className="ehr-patient-title-row">
                   <h2 className="ehr-patient-name">{selectedPatient.name}</h2>
-                  <span className="ehr-code-badge items-center-color-a855f7-fs-0-65">
+                  <span className="ehr-code-badge items-center-icon-purple-fs-0-65">
                     <Hash size={10} /> {patientCode}
                   </span>
                   <button className="btn-icon-ghost" onClick={() => setIsEditingProfile(true)} title="Edit Profile">
@@ -442,32 +442,32 @@ const PatientsList: React.FC = () => {
                   </button>
                 </div>
                 <div className="ehr-vitals-inline">
-                  <span className="vital-text flex-items-center-color-60a5fa">
-                    <User size={12} /> {selectedPatient.gender || 'No Gender'}
+                  <span className="vital-text flex-items-center-icon-blue-light">
+                    <User size={12} className="icon-blue mr-1" /> {selectedPatient.gender || 'No Gender'}
                   </span>
                   <span className="vital-dot">•</span>
-                  <span className="vital-text flex-items-center-color-34d399">
-                    <CalendarIcon size={12} /> {selectedPatient.age > 0 ? `${selectedPatient.age} Yrs` : 'No Age'}
+                  <span className="vital-text flex-items-center-icon-emerald">
+                    <CalendarIcon size={12} className="icon-amber mr-1" /> {selectedPatient.age > 0 ? `${selectedPatient.age} Yrs` : 'No Age'}
                   </span>
                   {selectedPatient.bloodGroup && (
                     <>
                       <span className="vital-dot">•</span>
-                      <span className="vital-text blood-group flex-items-center-color-f87171">
-                        <Droplets size={12} /> {selectedPatient.bloodGroup}
+                      <span className="vital-text blood-group flex-items-center-icon-f87171">
+                        <Droplets size={12} className="icon-red mr-1" /> {selectedPatient.bloodGroup}
                       </span>
                     </>
                   )}
                   {selectedPatient.height && (
                     <>
                       <span className="vital-dot">•</span>
-                      <span className="vital-text flex-items-center-color-fbbf24">
+                      <span className="vital-text flex-items-center-icon-amber">
                         <Ruler size={12} /> {selectedPatient.height} cm
                       </span>
                     </>
                   )}
                   {selectedPatient.preExistingConditions && selectedPatient.preExistingConditions.split(',').map((t: string) => (
-                    <span key={t} className="chronic-tag-sm items-center-color-ef4444-fs-0-7">
-                      <Activity size={10} /> {t.trim()}
+                    <span key={t} className="chronic-tag-sm items-center-icon-red-fs-0-7">
+                      <Activity size={10} className="icon-red mr-1" /> {t.trim()}
                     </span>
                   ))}
                 </div>
@@ -486,14 +486,14 @@ const PatientsList: React.FC = () => {
               <div className="panel-header">
                 <div className="panel-title flex-items-center">
                   <Activity size={18} className="text-accent" />
-                  <h3 className="fs-1-1-color-f8fafc">{editingVisitId ? 'Edit Consultation' : 'Active Consultation'}</h3>
+                  <h3 className="fs-1-1-icon-f8fafc">{editingVisitId ? 'Edit Consultation' : 'Active Consultation'}</h3>
                 </div>
               </div>
 
               <div className="consult-form flex">
                 <div className="form-group">
                   <label className="form-label flex-items-center-1">
-                    <Stethoscope size={14} className="mr-6-color-0ea5e9" /> Consulting Doctor
+                    <Stethoscope size={14} className="mr-1-5 icon-sky" /> Consulting Doctor
                   </label>
                   <select className="form-select" value={visitDoctorId} onChange={e => setVisitDoctorId(e.target.value)}>
                     <option value="">— Select Doctor —</option>
@@ -506,14 +506,14 @@ const PatientsList: React.FC = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label flex-items-center-1">
-                      <Activity size={14} className="mr-6-color-ef4444" /> Symptoms / Complaints
+                      <Activity size={14} className="mr-1-5 icon-red" /> Symptoms / Complaints
                     </label>
                     <textarea className="form-textarea" placeholder="What is the patient experiencing?" rows={2}
                       value={visitSymptoms} onChange={e => setVisitSymptoms(e.target.value)} />
                   </div>
                   <div className="form-group">
                     <label className="form-label flex-items-center-1">
-                      <ClipboardList size={14} className="mr-6-color-a855f7" /> Diagnosis
+                      <ClipboardList size={14} className="mr-1-5 icon-purple" /> Diagnosis
                     </label>
                     <textarea className="form-textarea" placeholder="Clinical diagnosis..." rows={2}
                       value={visitDiagnosis} onChange={e => setVisitDiagnosis(e.target.value)} />
@@ -523,10 +523,10 @@ const PatientsList: React.FC = () => {
                 <div className="vitals-section">
                   <div className="section-header flex-justify-space-between-items-center">
                     <h4 className="fs-0-95-color-var-accent-color-flex-items-center">
-                      <Activity size={16} /> Clinical Vitals
+                      <Activity size={16} className="mr-1-5 icon-red" /> Clinical Vitals
                     </h4>
                     {selectedPatient?.height && visitWeight && (
-                      <div className="fs-0-85-color-38bdf8">
+                      <div className="fs-0-85-icon-38bdf8">
                         BMI: {(parseFloat(visitWeight) / Math.pow(selectedPatient.height / 100, 2)).toFixed(1)}
                       </div>
                     )}
@@ -565,7 +565,7 @@ const PatientsList: React.FC = () => {
 
                 <div className="form-group">
                   <label className="form-label flex-items-center-1">
-                    <HeartPulse size={14} className="mr-6-color-34d399" /> Advice & Treatment Plan
+                    <HeartPulse size={14} className="mr-1-5 icon-emerald" /> Advice & Treatment Plan
                   </label>
                   <textarea className="form-textarea" placeholder="Instructions, diet, rest..." rows={2}
                     value={visitAdvice} onChange={e => setVisitAdvice(e.target.value)} />
@@ -573,16 +573,16 @@ const PatientsList: React.FC = () => {
 
                 <div className="form-group">
                   <label className="form-label flex-items-center-1">
-                    <Edit2 size={14} className="mr-6-color-fbbf24" /> Private Notes (Doctor Only)
+                    <Edit2 size={14} className="mr-1-5 icon-amber" /> Private Notes (Doctor Only)
                   </label>
                   <input type="text" className="form-input" placeholder="Confidential observations..." 
                     value={visitInternalNotes} onChange={e => setVisitInternalNotes(e.target.value)} />
                 </div>
 
                 <div className="form-group custom-style-1">
-                  <label className="form-label custom-style-2"><Upload size={14} className="mr-6"/>Attach Documents for this Visit</label>
+                  <label className="form-label custom-style-2"><Upload size={14} className="mr-1-5 icon-cyan" />Attach Documents for this Visit</label>
                   
-                  <div className="flex-items-center-2">
+                  <div className="attach-docs-row">
                     <select className="form-select custom-style-3" value={stagingCategory} onChange={e => setStagingCategory(e.target.value)}>
                       <option value="Lab Report">Lab Report</option>
                       <option value="X-Ray">X-Ray</option>
@@ -606,17 +606,17 @@ const PatientsList: React.FC = () => {
                         if (input) input.value = '';
                       }
                     }}>
-                      <Plus size={14} /> Add
+                      <Plus size={14} className="icon-emerald mr-1" /> Add
                     </button>
                   </div>
 
                   {(visitFiles.length > 0 || existingAttachments.length > 0) && (
                     <div className="flex-1">
                       {existingAttachments.map((item: any) => (
-                        <div key={item.id} className="flex-items-center-justify-space-between-1">
-                          <div className="fs-0-8-flex-items-center">
-                            <span className="color-var-accent-color">[{item.category}]</span>
-                            <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" className="color-var-text-secondary">{item.fileName}</a>
+                        <div key={item.id} className="doc-item-row">
+                          <div className="doc-item-info">
+                            <span className="doc-item-cat">[{item.category}]</span>
+                            <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" className="doc-item-name">{item.fileName}</a>
                           </div>
                           <button className="btn-del-icon custom-style-5" onClick={async () => {
                              if (confirm('Delete this attachment permanently?')) {
@@ -628,20 +628,20 @@ const PatientsList: React.FC = () => {
                                } catch { notify.danger('Error', 'Failed to delete attachment.'); }
                              }
                           }}>
-                            <Trash2 size={12} />
+                            <Trash2 size={12} className="icon-red mr-1" />
                           </button>
                         </div>
                       ))}
                       {visitFiles.map((item, index) => (
-                        <div key={index} className="flex-items-center-justify-space-between-1">
-                          <div className="fs-0-8-flex-items-center">
-                            <span className="color-var-accent-color">[{item.category}]</span>
-                            <span className="color-var-text-secondary-1">{item.file.name}</span>
+                        <div key={index} className="doc-item-row">
+                          <div className="doc-item-info">
+                            <span className="doc-item-cat">[{item.category}]</span>
+                            <span className="doc-item-name">{item.file.name}</span>
                           </div>
                           <button className="btn-del-icon custom-style-5" onClick={() => {
                             setVisitFiles(visitFiles.filter((_, i) => i !== index));
                           }}>
-                            <Trash2 size={12} />
+                            <Trash2 size={12} className="icon-red mr-1" />
                           </button>
                         </div>
                       ))}
@@ -652,46 +652,36 @@ const PatientsList: React.FC = () => {
                 <div className="prescription-section">
                   <div className="section-header custom-style-6">
                     <h4 className="fs-0-95-color-var-accent-color-flex-items-center">
-                      <HeartPulse size={16} /> Prescription
+                      <HeartPulse size={16} className="mr-1-5 icon-rose" /> Prescription
                     </h4>
                   </div>
 
-                  <div className="quick-prescribe-box custom-style-7">
-                    <div className="fs-0-7-color-var-text-secondary-flex-items-center">
-                      <Activity size={12} /> Quick Prescribe
-                    </div>
-                    <div className="med-chip-container custom-style-8">
-                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Paracetamol 650mg', dosage: '1-0-1' }])}>+ Paracetamol</div>
-                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Amoxicillin 500mg', dosage: '1-0-1 x 5 Days' }])}>+ Amoxicillin</div>
-                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Pantoprazole 40mg', dosage: '1-0-0 Before Food' }])}>+ Pantoprazole</div>
-                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Cough Syrup', dosage: '2 tsp x 3 times' }])}>+ Cough Syrup</div>
-                    </div>
-                  </div>
+
 
                   <div className="rx-list flex-2">
                     {visitMedicines.length > 0 && (
-                      <div className="rx-header flex-fs-0-75-color-var-text-secondary">
-                        <div className="flex-items-center-3"><Activity size={14} /> Medicine Name</div>
-                        <div className="flex-items-center-4"><Clock size={14} /> Dosage / Freq</div>
-                        <div className="custom-style-9"></div>
+                      <div className="rx-header">
+                        <div className="rx-col-2"><Activity size={14} className="icon-cyan mr-1-5" /> Medicine Name</div>
+                        <div className="rx-col-1"><Clock size={14} className="icon-purple mr-1-5" /> Dosage / Freq</div>
+                        <div className="rx-col-action"></div>
                       </div>
                     )}
                     {visitMedicines.length === 0 ? (
                       <div className="rx-empty custom-style-10">
                         <Droplets size={24} color="var(--text-secondary)" className="custom-style-11" />
-                        <div className="color-94a3b8-fs-0-85">No medicines prescribed yet.</div>
-                        <div className="color-64748b-fs-0-75-mt-4">Select from quick prescribe above or add a custom medicine.</div>
+                        <div className="icon-slate-fs-0-85">No medicines prescribed yet.</div>
+                        <div className="icon-64748b-fs-0-75-mt-4">Click "Add Custom Medicine" below to get started.</div>
                       </div>
                     ) : (
                       visitMedicines.map((m, i) => (
                         <div key={i} className="rx-row flex-items-center-5">
-                          <div className="custom-style-12"></div>
-                          <input className="form-input rx-input" type="text" placeholder="e.g. Paracetamol 650mg custom-style-13"
+                          <div className="row-marker"></div>
+                          <input className="form-input rx-input rx-col-2" type="text" placeholder="e.g. Paracetamol 650mg"
                             value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
-                          <input className="form-input rx-input" type="text" placeholder="e.g. 1-0-1 After Food custom-style-14"
+                          <input className="form-input rx-input rx-col-1" type="text" placeholder="e.g. 1-0-1 After Food"
                             value={m.dosage} onChange={e => { const u = [...visitMedicines]; u[i].dosage = e.target.value; setVisitMedicines(u); }} />
-                          <button className="btn-del-icon" title="Remove Medicine flex-justify-center-items-center-color-var-danger" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
-                            <Trash2 size={16} />
+                          <button className="btn-del-icon flex-center-items-center-danger" title="Remove Medicine" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
+                            <Trash2 size={16} className="icon-red" />
                           </button>
                         </div>
                       ))
@@ -699,18 +689,16 @@ const PatientsList: React.FC = () => {
                   </div>
                   
                   <button 
-                    className="mt-12-color-var-accent-color-flex-justify-center-items-center" 
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; e.currentTarget.style.borderStyle = 'solid'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.05)'; e.currentTarget.style.borderStyle = 'dashed'; }}
+                    className="btn-add-custom-med" 
                     onClick={() => setVisitMedicines([...visitMedicines, { medicineName: '', dosage: '' }])}
                   >
-                    <Plus size={16} /> Add Custom Medicine
+                    <Plus size={16} className="icon-sky mr-1-5" /> Add Custom Medicine
                   </button>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label flex-items-center-1">
-                    <CalendarIcon size={14} className="mr-6-color-f472b6" /> Next Follow-up Date (Optional)
+                    <CalendarIcon size={14} className="mr-1-5 icon-pink" /> Next Follow-up Date (Optional)
                   </label>
                   <input type="date" className="form-input custom-style-15"
                     value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} />
@@ -719,7 +707,7 @@ const PatientsList: React.FC = () => {
                 {visitFollowUpDate && (
                   <div className="form-group slide-down instruction-box-premium">
                     <label className="form-label color-var-accent-color-flex-items-center">
-                      <MessageSquare size={14} className="mr-6-color-60a5fa" /> Patient Instructions (Sent via WhatsApp)
+                      <MessageSquare size={14} className="mr-1-5 icon-blue-light" /> Patient Instructions (Sent via WhatsApp)
                     </label>
                     <textarea 
                       className="form-textarea" 
@@ -753,10 +741,10 @@ const PatientsList: React.FC = () => {
                   setEditingVisitId(null);
                   setExistingAttachments([]);
                 }}>
-                  Cancel
+                  <X size={16} className="mr-1-5" /> Cancel
                 </button>
                 <button id="btn-save-consult" className="btn-save-consult" onClick={handleSaveConsultation} disabled={isSavingVisit || !visitDoctorId}>
-                  {isSavingVisit ? <span className="spinner-sm" /> : <Save size={16} />}
+                  {isSavingVisit ? <span className="spinner-sm" /> : <Save size={16} className="mr-1-5" />}
                   {isSavingVisit ? 'Saving Record...' : editingVisitId ? 'Update Consultation Record' : 'Save Consultation Record'}
                   <span className="shortcut-hint">Ctrl+Enter</span>
                 </button>
@@ -789,7 +777,7 @@ const PatientsList: React.FC = () => {
                           <div key={v.id} className="ct-item">
                             <div className="ct-date">{formatDate(v.visitDate)}</div>
                             <div className="ct-card">
-                              <div className="ct-header flex-justify-space-between-items-flex-start">
+                              <div className="ct-header flex-justify-space-between-items-fs">
                                 <span>Dr. {v.doctorName} {v.tokenId && <span className="ct-badge">Queue</span>}</span>
                                 {index === 0 && (
                                   <button className="btn-icon-ghost custom-style-19" onClick={() => handleEditVisit(v)} title="Edit Consultation">
@@ -797,41 +785,45 @@ const PatientsList: React.FC = () => {
                                   </button>
                                 )}
                               </div>
-                              <div className="ct-text flex-items-flex-start"><ClipboardList size={14} className="color-a855f7-mt-2" /> <span><strong className="color-e2e8f0">Diagnosis:</strong> {v.diagnosis || '--'}</span></div>
-                              <div className="ct-text flex-items-flex-start"><Activity size={14} className="color-ef4444-mt-2" /> <span><strong className="color-e2e8f0">Symptoms:</strong> {v.symptoms || '--'}</span></div>
-                              {v.advice && <div className="ct-text flex-items-flex-start"><HeartPulse size={14} className="color-34d399-mt-2" /> <span><strong className="color-e2e8f0">Treatment Plan:</strong> {v.advice}</span></div>}
-                              {v.internalNotes && <div className="ct-text flex-items-flex-start-color-var-accent-color"><Edit2 size={14} className="color-fbbf24-mt-2" /> <span><strong className="color-e2e8f0">Private Note:</strong> {v.internalNotes}</span></div>}
+                              <div className="ct-text flex-items-fs-gap-6"><ClipboardList size={14} className="icon-purple mt-2px mr-1-5" /> <span><strong className="text-slate-200">Diagnosis:</strong> {v.diagnosis || '--'}</span></div>
+                              <div className="ct-text flex-items-fs-gap-6"><Activity size={14} className="icon-red mt-2px mr-1-5" /> <span><strong className="text-slate-200">Symptoms:</strong> {v.symptoms || '--'}</span></div>
+                              {v.advice && <div className="ct-text flex-items-fs-gap-6"><HeartPulse size={14} className="icon-emerald mt-2px mr-1-5" /> <span><strong className="text-slate-200">Treatment Plan:</strong> {v.advice}</span></div>}
+                              {v.internalNotes && <div className="ct-text flex-items-fs-gap-6 color-var-accent-color"><Edit2 size={14} className="icon-amber mt-2px mr-1-5" /> <span><strong className="text-slate-200">Private Note:</strong> {v.internalNotes}</span></div>}
                               {(v.height || v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
-                                <div className="ct-text flex-mt-4">
-                                  <div className="fs-0-75-color-var-accent-color-flex-items-center"><Activity size={12} /> VITALS</div>
-                                  {v.height && <span className="fs-0-75">HT: {v.height}cm</span>}
-                                  {v.weight && <span className="fs-0-75">WT: {v.weight}kg</span>}
-                                  {v.height && v.weight && <span className="fs-0-75">BMI: {(parseFloat(v.weight) / Math.pow(parseFloat(v.height) / 100, 2)).toFixed(1)}</span>}
-                                  {v.heartRate && <span className="fs-0-75">HR: {v.heartRate}</span>}
-                                  {v.bloodPressure && <span className="fs-0-75">BP: {v.bloodPressure}</span>}
-                                  {v.oxygenLevel && <span className="fs-0-75">SpO2: {v.oxygenLevel}%</span>}
-                                  {v.temperature && <span className="fs-0-75">Temp: {v.temperature}°F</span>}
-                                  {v.respiratoryRate && <span className="fs-0-75">RR: {v.respiratoryRate}</span>}
-                                  {v.bloodSugar && <span className="fs-0-75">Sugar: {v.bloodSugar}</span>}
+                                <div className="ct-rx rx-history-card">
+                                  <div className="rx-history-header">
+                                    <Activity size={12} className="icon-red mr-1" /> VITALS
+                                  </div>
+                                  <div className="flex-wrap-gap-8">
+                                    {v.height && <span className="vital-pill vital-pill-cyan">HT: {v.height}cm</span>}
+                                    {v.weight && <span className="vital-pill vital-pill-emerald">WT: {v.weight}kg</span>}
+                                    {v.height && v.weight && <span className="vital-pill vital-pill-lime">BMI: {(parseFloat(v.weight) / Math.pow(parseFloat(v.height) / 100, 2)).toFixed(1)}</span>}
+                                    {v.heartRate && <span className="vital-pill vital-pill-rose">HR: {v.heartRate} bpm</span>}
+                                    {v.bloodPressure && <span className="vital-pill vital-pill-violet">BP: {v.bloodPressure}</span>}
+                                    {v.oxygenLevel && <span className="vital-pill vital-pill-sky">SpO2: {v.oxygenLevel}%</span>}
+                                    {v.temperature && <span className="vital-pill vital-pill-amber">Temp: {v.temperature}°F</span>}
+                                    {v.respiratoryRate && <span className="vital-pill vital-pill-teal">RR: {v.respiratoryRate}</span>}
+                                    {v.bloodSugar && <span className="vital-pill vital-pill-pink">Sugar: {v.bloodSugar}</span>}
+                                  </div>
                                 </div>
                               )}
                               {v.followUpDate && (
-                                <div className="ct-text mt-4">
-                                  <div className="flex-items-center-6"><CalendarIcon size={14} className="color-f472b6" /> <strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
-                                  {v.followUpInstructions && <div className="mt-4-fs-0-78-color-var-text-secondary-flex-items-flex-start"><MessageSquare size={12} className="color-60a5fa-mt-2" /> <span>{v.followUpInstructions}</span></div>}
+                                <div className="ct-text history-fup-card">
+                                  <div className="flex-items-center-gap-6"><CalendarIcon size={14} className="icon-pink mr-1-5" /> <strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
+                                  {v.followUpInstructions && <div className="history-fup-text"><MessageSquare size={12} className="icon-blue-light mt-2px flex-shrink-0 mr-1-5" /> <span>{v.followUpInstructions}</span></div>}
                                 </div>
                               )}
                               {v.medicines?.length > 0 && (
                                 <div className="ct-rx mt-8">
-                                  <div className="fs-0-75-color-38bdf8-flex-items-center"><HeartPulse size={12} /> Prescribed Medicines</div>
-                                  {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-color-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="color-94a3b8">{m.dosage}</span></div>)}
+                                  <div className="fs-0-75-icon-38bdf8-flex-items-center"><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
+                                  {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-icon-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="icon-slate">{m.dosage}</span></div>)}
                                 </div>
                               )}
                               {v.attachments?.length > 0 && (
-                                <div className="ct-attachments mt-8-flex">
+                                <div className="ct-attachments history-attachments-wrap">
                                   {v.attachments.map((a:any) => (
                                     <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                       className="items-center-fs-0-75-color-f8fafc">
+                                       className="items-center-fs-0-75-icon-f8fafc">
                                       <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
                                     </a>
                                   ))}
@@ -851,8 +843,8 @@ const PatientsList: React.FC = () => {
                                 <div className="ct-date">Archive</div>
                                 <div className="ct-card">
                                   <div className="ct-header">Independent Reports</div>
-                                  <div className="ct-text fs-0-8-color-var-text-secondary">These documents were uploaded separately from any consultation.</div>
-                                  <div className="ct-attachments mt-8-flex">
+                                  <div className="ct-text history-attachments-text">These documents were uploaded separately from any consultation.</div>
+                                  <div className="ct-attachments history-attachments-wrap">
                                     {unlinkedAttachments.map((a:any) => (
                                       <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
                                          className="items-center-fs-0-75-color-var-accent-color">
@@ -891,7 +883,7 @@ const PatientsList: React.FC = () => {
             </div>
             <button className="btn-primary"
               onClick={() => setIsAddModalOpen(true)}>
-              <UserPlus size={15} /> New Patient
+              <UserPlus size={15} className="mr-1-5" /> New Patient
             </button>
           </div>
 
@@ -923,19 +915,19 @@ const PatientsList: React.FC = () => {
                       </div>
                     </div>
                     <div className="ep-subtext">
-                      <span className="color-60a5fa-flex-items-center">
-                        <User size={12} /> {p.gender || 'Unknown'}
+                      <span className="icon-blue-light-flex-items-center">
+                        <User size={12} className="icon-blue mr-1" /> {p.gender || 'Unknown'}
                       </span>
                       <span className="ep-dot">•</span>
-                      <span className="color-34d399-flex-items-center">
-                        <CalendarIcon size={12} /> {p.age > 0 ? `${p.age} Yrs` : 'N/A'}
+                      <span className="icon-emerald-flex-items-center">
+                        <CalendarIcon size={12} className="icon-amber mr-1" /> {p.age > 0 ? `${p.age} Yrs` : 'N/A'}
                       </span>
                       <span className="ep-dot">•</span>
-                      <span className="color-f87171-flex-items-center">
-                        <Droplets size={12} /> {p.bloodGroup || '--'}
+                      <span className="icon-f87171-flex-items-center">
+                        <Droplets size={12} className="icon-red mr-1" /> {p.bloodGroup || '--'}
                       </span>
                       <span className="ep-dot">•</span>
-                      <span className="color-fbbf24-flex-items-center">
+                      <span className="icon-amber-flex-items-center">
                         <Ruler size={12} /> {p.height ? `${p.height} cm` : '--'}
                       </span>
                     </div>
@@ -945,7 +937,7 @@ const PatientsList: React.FC = () => {
                 <div className="ep-details-grid">
                   {/* 1. Patient ID (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-a855f7"><Hash size={14} /></div>
+                    <div className="ep-detail-icon icon-purple"><Hash size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Patient ID</span>
                       <span className="ep-d-val">{p.patientCode || 'PT-' + p.id.substring(0, 6).toUpperCase()}</span>
@@ -954,7 +946,7 @@ const PatientsList: React.FC = () => {
 
                   {/* 2. Contact (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-60a5fa"><Phone size={14} /></div>
+                    <div className="ep-detail-icon icon-blue-light"><Phone size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Contact</span>
                       <span className="ep-d-val">{p.phone || 'N/A'}</span>
@@ -963,7 +955,7 @@ const PatientsList: React.FC = () => {
 
                   {/* 3. Address (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-14b8a6"><FileText size={14} /></div>
+                    <div className="ep-detail-icon icon-14b8a6"><FileText size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Address</span>
                       <span className="ep-d-val">{p.address || '--'}</span>
@@ -972,7 +964,7 @@ const PatientsList: React.FC = () => {
 
                   {/* 4. Last Diagnosis (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-a855f7"><ClipboardList size={14} /></div>
+                    <div className="ep-detail-icon icon-purple"><ClipboardList size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Last Diagnosis</span>
                       <span className="ep-d-val">{p.lastDiagnosis || '--'}</span>
@@ -981,7 +973,7 @@ const PatientsList: React.FC = () => {
 
                   {/* 4.5. Last Symptom (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-ef4444"><Activity size={14} /></div>
+                    <div className="ep-detail-icon icon-red"><Activity size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Last Symptom</span>
                       <span className="ep-d-val">{p.lastSymptoms || '--'}</span>
@@ -990,7 +982,7 @@ const PatientsList: React.FC = () => {
 
                   {/* 5. Total Visits (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon color-34d399"><FileText size={14} /></div>
+                    <div className="ep-detail-icon icon-emerald"><FileText size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Visits</span>
                       <span className="ep-d-val">{p.totalVisits || 0} Total</span>
@@ -1000,7 +992,7 @@ const PatientsList: React.FC = () => {
                   {/* 6. Next Visit (Half) */}
                   {p.nextVisit && (
                     <div className="ep-detail-item">
-                      <div className="ep-detail-icon color-f472b6-1"><CalendarIcon size={14} /></div>
+                      <div className="ep-detail-icon icon-pink-1"><CalendarIcon size={14} /></div>
                       <div className="ep-detail-text">
                         <span className="ep-d-label">Next Visit</span>
                         <span className="ep-d-val">{formatDate(p.nextVisit)}</span>
@@ -1011,7 +1003,7 @@ const PatientsList: React.FC = () => {
                   {/* Remaining Items */}
                   {(p.emergencyContactName || p.emergencyContactPhone) && (
                     <div className="ep-detail-item">
-                      <div className="ep-detail-icon color-f43f5e"><Phone size={14} /></div>
+                      <div className="ep-detail-icon icon-rose"><Phone size={14} /></div>
                       <div className="ep-detail-text">
                         <span className="ep-d-label">Emergency</span>
                         <span className="ep-d-val">{p.emergencyContactName ? `${p.emergencyContactName} - ` : ''}{p.emergencyContactPhone || ''}</span>
@@ -1020,7 +1012,7 @@ const PatientsList: React.FC = () => {
                   )}
                   {p.preExistingConditions && (
                     <div className="ep-detail-item">
-                      <div className="ep-detail-icon color-ef4444"><Activity size={14} /></div>
+                      <div className="ep-detail-icon icon-red"><Activity size={14} /></div>
                       <div className="ep-detail-text">
                         <span className="ep-d-label">Pre-existing</span>
                         <span className="ep-d-val">{p.preExistingConditions.split(',').map((t:any) => t.trim()).join(', ')}</span>
@@ -1031,10 +1023,10 @@ const PatientsList: React.FC = () => {
 
                 <div className="ep-footer">
                   <div className="ep-last-visit flex-items-center-1">
-                    <History size={14} className="mr-6-1" /> Last Visit: <span className="ml-4">{p.lastVisit ? formatDate(p.lastVisit) : 'None'}</span>
+                    <History size={14} className="icon-slate mr-1-5" /> Last Visit: <span className="ml-1-5">{p.lastVisit ? formatDate(p.lastVisit) : 'None'}</span>
                   </div>
                   <button className="ep-consult-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setWorkspaceTab('history'); }}>
-                    <Stethoscope size={16} /> Consult
+                    <Stethoscope size={16} className="icon-sky mr-1-5" /> Consult
                   </button>
                 </div>
               </div>
@@ -1067,7 +1059,7 @@ const PatientsList: React.FC = () => {
               <span className="wa-hint">Sent via WhatsApp bridge instantly.</span>
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setMessagingPatient(null)}><X size={14} /> Cancel</button>
+              <button className="btn-cancel" onClick={() => setMessagingPatient(null)}><X size={14} className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSendMessage}
                 disabled={isSending || !messageText.trim()}>
                 {isSending ? <span className="spinner-sm" /> : <Send size={14} />}
@@ -1082,39 +1074,46 @@ const PatientsList: React.FC = () => {
       {isEditingProfile && selectedPatient && (
         <Modal title="Edit Patient Profile" icon={<Edit size={20} color="var(--accent-color)" />}
           onClose={() => setIsEditingProfile(false)} maxWidth="540px">
-          <div className="modal-body custom-style-21">
+          <div className="modal-body">
+            <p className="color-var-text-secondary-fs-0-9">
+              Update patient information.
+            </p>
+
             <div className="form-group">
-              <label className="form-label flex-items-center-1">
-                <User size={14} className="mr-6-color-3b82f6" /> Full Name <span className="color-var-danger">*</span>
+              <label className="form-label flex-items-center">
+                <User size={14} className="mr-1-5 icon-blue" /> Full Name <span className="color-var-danger">*</span>
               </label>
               <input className="form-input" type="text" placeholder="e.g. John Doe"
                 value={editName} onChange={e => setEditName(e.target.value)} />
             </div>
+
             <div className="form-group">
-              <label className="form-label flex-items-center-1">
-                <Phone size={14} className="mr-6-color-10b981" /> Phone <span className="color-var-danger">*</span>
+              <label className="form-label flex-items-center">
+                <Smartphone size={14} className="mr-1-5 icon-green" /> WhatsApp Number <span className="color-var-danger">*</span>
               </label>
-              <input className="form-input" type="text" placeholder="+91..."
+              <input className="form-input" type="tel" placeholder="+1 (555) 000-0000"
                 value={editPhone} onChange={e => setEditPhone(e.target.value)} />
             </div>
+
             <div className="form-group">
-              <label className="form-label flex-items-center-1">
-                <MapPin size={14} className="mr-6-color-8b5cf6" /> Address
+              <label className="form-label flex-items-center">
+                <MapPin size={14} className="mr-1-5 icon-violet" /> Address
               </label>
               <input className="form-input" type="text" placeholder="Full address"
                 value={editAddress} onChange={e => setEditAddress(e.target.value)} />
             </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label flex-items-center-1">
-                  <CalendarIcon size={14} className="mr-6-color-f59e0b" /> Age
+                <label className="form-label flex-items-center">
+                  <CalendarIcon size={14} className="mr-1-5 icon-amber" /> Age
                 </label>
                 <input className="form-input" type="number" min="0" placeholder="e.g. 34"
                   value={editAge} onChange={e => setEditAge(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label flex-items-center-1">
-                  <Users size={14} className="mr-6-color-ec4899" /> Gender
+                <label className="form-label flex-items-center">
+                  <Users size={14} className="mr-1-5 icon-pink-dark" /> Gender
                 </label>
                 <select className="form-select" value={editGender} onChange={e => setEditGender(e.target.value)}>
                   <option value="">Select</option>
@@ -1124,17 +1123,18 @@ const PatientsList: React.FC = () => {
                 </select>
               </div>
             </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label flex-items-center-1">
-                  <Ruler size={14} className="mr-6-color-6366f1" /> Height (cm)
+                <label className="form-label flex-items-center">
+                  <Ruler size={14} className="mr-1-5 icon-indigo" /> Height (cm)
                 </label>
                 <input className="form-input" type="number" min="0" placeholder="e.g. 175"
                   value={editHeight} onChange={e => setEditHeight(e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label flex-items-center-1">
-                  <Droplets size={14} className="mr-6-color-ef4444" /> Blood Group
+                  <Droplets size={14} className="mr-1-5 icon-red" /> Blood Group
                 </label>
                 <input className="form-input" type="text" placeholder="e.g. O+"
                   value={editBloodGroup} onChange={e => setEditBloodGroup(e.target.value)} />
@@ -1143,14 +1143,14 @@ const PatientsList: React.FC = () => {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label flex-items-center-1">
-                  <PhoneCall size={14} className="mr-6-color-f43f5e" /> Emg. Contact Name
+                  <PhoneCall size={14} className="mr-1-5 icon-rose" /> Emg. Contact Name
                 </label>
                 <input className="form-input" type="text" placeholder="e.g. Jane Doe"
                   value={editEmergencyContactName} onChange={e => setEditEmergencyContactName(e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label flex-items-center-1">
-                  <PhoneCall size={14} className="mr-6-color-f43f5e" /> Emg. Contact Phone
+                  <PhoneCall size={14} className="mr-1-5 icon-rose" /> Emg. Contact Phone
                 </label>
                 <input className="form-input" type="tel" placeholder="e.g. 9876543210"
                   value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(e.target.value)} />
@@ -1158,13 +1158,13 @@ const PatientsList: React.FC = () => {
             </div>
             <div className="form-group">
               <label className="form-label flex-items-center-1">
-                <Activity size={14} className="mr-6-color-f97316" /> Pre-existing Diseases (comma-separated)
+                <Activity size={14} className="mr-1-5 icon-orange" /> Pre-existing Diseases (comma-separated)
               </label>
               <input className="form-input" type="text" placeholder="e.g. Diabetes, Hypertension"
                 value={editPreExistingConditions} onChange={e => setEditPreExistingConditions(e.target.value)} />
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setIsEditingProfile(false)}><X size={14} /> Cancel</button>
+              <button className="btn-cancel" onClick={() => setIsEditingProfile(false)}><X size={14} className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSaveProfile} disabled={isSavingProfile}>
                 {isSavingProfile ? <span className="spinner-sm" /> : <Check size={14} />}
                 {isSavingProfile ? 'Saving...' : 'Save Changes'}
@@ -1202,7 +1202,7 @@ const PatientsList: React.FC = () => {
             <div className="modal-actions">
               <button className="btn-cancel"
                 onClick={() => { setIsUploadingAttachment(false); setUploadFiles([]); }}>
-                <X size={14} /> Cancel
+                <X size={14} className="mr-1" /> Cancel
               </button>
               <button className="btn-submit" onClick={handleUploadAttachment}
                 disabled={isSavingAttachment || uploadFiles.length === 0}>
