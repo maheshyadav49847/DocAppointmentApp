@@ -19,7 +19,12 @@ namespace CodeX.Domain.Entities
         public string? Age { get; set; }
         public string? Gender { get; set; }
         public string? BloodGroup { get; set; }
-        public string? ChronicTags { get; set; }
+        public string? PreExistingConditions { get; set; }
+        public decimal? Height { get; set; } // Stored in cm, rarely changes for adults
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactPhone { get; set; }
 
         // Navigation Properties
         public virtual ICollection<Token> Tokens { get; set; } = new List<Token>();

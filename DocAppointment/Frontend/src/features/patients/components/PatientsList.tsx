@@ -5,7 +5,7 @@ import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
   History, CalendarPlus, Send, X, ArrowLeft, Building2, Edit, Check,
   Trash2, Download, Plus, FileText, Bell, BellOff, CheckCircle, ClipboardList,
-  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2
+  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2, ArrowRight, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall
 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
@@ -14,6 +14,7 @@ import { branchService } from '../../../services/branchService';
 import { notify } from '../../../stores/notificationStore';
 import api from '../../../services/api';
 import './PatientsList.css';
+import AddPatientModal from './AddPatientModal';
 
 interface Medicine { medicineName: string; dosage: string; }
 
@@ -35,11 +36,22 @@ const PatientsList: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editEmergencyContact, setEditEmergencyContact] = useState('');
   const [editAge, setEditAge] = useState('');
   const [editGender, setEditGender] = useState('');
   const [editBloodGroup, setEditBloodGroup] = useState('');
-  const [editChronicTags, setEditChronicTags] = useState('');
+  const [editPreExistingConditions, setEditPreExistingConditions] = useState('');
+  const [editHeight, setEditHeight] = useState('');
+  const [editEmergencyContactName, setEditEmergencyContactName] = useState('');
+  const [editEmergencyContactPhone, setEditEmergencyContactPhone] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddingPatient, setIsAddingPatient] = useState(false);
 
   // Active Consultation State (Doctor's Main View)
   const [visitDoctorId, setVisitDoctorId] = useState('');
@@ -49,6 +61,13 @@ const PatientsList: React.FC = () => {
   const [visitInternalNotes, setVisitInternalNotes] = useState('');
   const [visitFollowUpDate, setVisitFollowUpDate] = useState('');
   const [visitFollowUpInstructions, setVisitFollowUpInstructions] = useState('');
+  const [visitWeight, setVisitWeight] = useState('');
+  const [visitHeartRate, setVisitHeartRate] = useState('');
+  const [visitBloodPressure, setVisitBloodPressure] = useState('');
+  const [visitOxygenLevel, setVisitOxygenLevel] = useState('');
+  const [visitTemperature, setVisitTemperature] = useState('');
+  const [visitRespiratoryRate, setVisitRespiratoryRate] = useState('');
+  const [visitBloodSugar, setVisitBloodSugar] = useState('');
   const [visitMedicines, setVisitMedicines] = useState<Medicine[]>([]);
   const [visitFiles, setVisitFiles] = useState<{file: File, category: string}[]>([]);
   const [stagingFile, setStagingFile] = useState<File | null>(null);
@@ -68,10 +87,18 @@ const PatientsList: React.FC = () => {
 
   useEffect(() => {
     if (selectedPatient && isEditingProfile) {
+      setEditName(selectedPatient.name || '');
+      setEditPhone(selectedPatient.phone || '');
+      setEditEmail(selectedPatient.email || '');
+      setEditAddress(selectedPatient.address || '');
+      setEditEmergencyContact(selectedPatient.emergencyContact || '');
       setEditAge(selectedPatient.age || '');
       setEditGender(selectedPatient.gender || '');
       setEditBloodGroup(selectedPatient.bloodGroup || '');
-      setEditChronicTags(selectedPatient.chronicTags || '');
+      setEditPreExistingConditions(selectedPatient.preExistingConditions || '');
+      setEditHeight(selectedPatient.height != null ? selectedPatient.height.toString() : '');
+      setEditEmergencyContactName(selectedPatient.emergencyContactName || '');
+      setEditEmergencyContactPhone(selectedPatient.emergencyContactPhone || '');
     }
   }, [selectedPatient, isEditingProfile]);
 
@@ -83,6 +110,13 @@ const PatientsList: React.FC = () => {
     setVisitInternalNotes('');
     setVisitFollowUpDate('');
     setVisitFollowUpInstructions('');
+    setVisitWeight('');
+    setVisitHeartRate('');
+    setVisitBloodPressure('');
+    setVisitOxygenLevel('');
+    setVisitTemperature('');
+    setVisitRespiratoryRate('');
+    setVisitBloodSugar('');
     setVisitMedicines([]);
     setVisitFiles([]);
   }, [selectedPatient]);
@@ -174,7 +208,9 @@ const PatientsList: React.FC = () => {
     setIsSavingProfile(true);
     try {
       const r = await api.put(`/patientclinical/${selectedPatient.id}`, {
-        age: editAge, gender: editGender, bloodGroup: editBloodGroup, chronicTags: editChronicTags,
+        name: editName, phone: editPhone, email: editEmail, address: editAddress,
+        emergencyContactName: editEmergencyContactName, emergencyContactPhone: editEmergencyContactPhone,
+        age: editAge, gender: editGender, bloodGroup: editBloodGroup, preExistingConditions: editPreExistingConditions, height: editHeight ? parseFloat(editHeight) : null
       });
       setSelectedPatient((prev: any) => ({ ...prev, ...r.data }));
       queryClient.invalidateQueries({ queryKey: ['patients'] });
@@ -184,33 +220,49 @@ const PatientsList: React.FC = () => {
     finally { setIsSavingProfile(false); }
   };
 
+  const handleAddPatient = async (data: any) => {
+    setIsAddingPatient(true);
+    try {
+      await api.post('/patients', data);
+      notify.success('Success', 'Patient added successfully.');
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      setIsAddModalOpen(false);
+    } catch (err: any) {
+      const msg = typeof err?.response?.data === 'string' ? err.response.data : 'Failed to add patient.';
+      notify.danger('Error', msg);
+    } finally {
+      setIsAddingPatient(false);
+    }
+  };
+
   const handleSaveConsultation = async () => {
     if (!selectedPatient || !visitDoctorId) { notify.warning('Required', 'Please select a doctor.'); return; }
     setIsSavingVisit(true);
     try {
       let visitId: string;
+      const payload = {
+        doctorId: visitDoctorId,
+        symptoms: visitSymptoms,
+        diagnosis: visitDiagnosis,
+        advice: visitAdvice,
+        internalNotes: visitInternalNotes,
+        followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
+        followUpInstructions: visitFollowUpInstructions || null,
+        weight: visitWeight ? parseFloat(visitWeight) : null,
+        heartRate: visitHeartRate ? parseInt(visitHeartRate, 10) : null,
+        bloodPressure: visitBloodPressure || null,
+        oxygenLevel: visitOxygenLevel ? parseFloat(visitOxygenLevel) : null,
+        temperature: visitTemperature ? parseFloat(visitTemperature) : null,
+        respiratoryRate: visitRespiratoryRate ? parseInt(visitRespiratoryRate, 10) : null,
+        bloodSugar: visitBloodSugar ? parseFloat(visitBloodSugar) : null,
+        medicines: visitMedicines,
+      };
+
       if (editingVisitId) {
-        await api.put(`/patientclinical/visits/${editingVisitId}`, {
-          symptoms: visitSymptoms,
-          diagnosis: visitDiagnosis,
-          advice: visitAdvice,
-          internalNotes: visitInternalNotes,
-          followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
-          followUpInstructions: visitFollowUpInstructions || null,
-          medicines: visitMedicines,
-        });
+        await api.put(`/patientclinical/visits/${editingVisitId}`, payload);
         visitId = editingVisitId;
       } else {
-        const res = await api.post(`/patientclinical/${selectedPatient.id}/visits`, {
-          doctorId: visitDoctorId,
-          symptoms: visitSymptoms,
-          diagnosis: visitDiagnosis,
-          advice: visitAdvice,
-          internalNotes: visitInternalNotes,
-          followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
-          followUpInstructions: visitFollowUpInstructions || null,
-          medicines: visitMedicines,
-        });
+        const res = await api.post(`/patientclinical/${selectedPatient.id}/visits`, payload);
         visitId = res.data.id;
       }
       
@@ -235,6 +287,7 @@ const PatientsList: React.FC = () => {
 
       queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
       queryClient.invalidateQueries({ queryKey: ['followups', selectedPatient.id] });
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
       notify.success('Saved', 'Consultation notes saved successfully.');
       
       // Clear form
@@ -244,6 +297,13 @@ const PatientsList: React.FC = () => {
       setVisitInternalNotes('');
       setVisitFollowUpDate('');
       setVisitFollowUpInstructions('');
+      setVisitWeight('');
+      setVisitHeartRate('');
+      setVisitBloodPressure('');
+      setVisitOxygenLevel('');
+      setVisitTemperature('');
+      setVisitRespiratoryRate('');
+      setVisitBloodSugar('');
       setVisitMedicines([]);
       setVisitFiles([]);
       setStagingFile(null);
@@ -264,6 +324,13 @@ const PatientsList: React.FC = () => {
     setVisitInternalNotes(visit.internalNotes || '');
     setVisitFollowUpDate(visit.followUpDate ? visit.followUpDate.substring(0, 10) : '');
     setVisitFollowUpInstructions(visit.followUpInstructions || '');
+    setVisitWeight(visit.weight != null ? visit.weight.toString() : '');
+    setVisitHeartRate(visit.heartRate != null ? visit.heartRate.toString() : '');
+    setVisitBloodPressure(visit.bloodPressure || '');
+    setVisitOxygenLevel(visit.oxygenLevel != null ? visit.oxygenLevel.toString() : '');
+    setVisitTemperature(visit.temperature != null ? visit.temperature.toString() : '');
+    setVisitRespiratoryRate(visit.respiratoryRate != null ? visit.respiratoryRate.toString() : '');
+    setVisitBloodSugar(visit.bloodSugar != null ? visit.bloodSugar.toString() : '');
     setVisitMedicines(visit.medicines ? visit.medicines.map((m: any) => ({ medicineName: m.medicineName, dosage: m.dosage })) : []);
     setExistingAttachments(visit.attachments || []);
     setVisitFiles([]);
@@ -358,32 +425,50 @@ const PatientsList: React.FC = () => {
         <div className="doctor-workspace">
 
           {/* ── Patient Banner (Compact) ─────────────────────────────────── */}
-          <div className="ehr-banner-compact">
+          <div className="plain-panel flex-items-center-justify-space-between">
             <div className="ehr-banner-left">
               <button className="btn-back-icon" onClick={() => setSelectedPatient(null)} title="Back to Directory">
                 <ArrowLeft size={18} />
               </button>
-              <div className="ehr-avatar-sm">{selectedPatient.name.charAt(0)}</div>
+              <div className="ehr-avatar-lg color-f8fafc-fs-1-4-flex-items-center-justify-center">{selectedPatient.name.charAt(0)}</div>
               <div className="ehr-patient-info">
                 <div className="ehr-patient-title-row">
                   <h2 className="ehr-patient-name">{selectedPatient.name}</h2>
-                  <span className="ehr-code-badge">{patientCode}</span>
+                  <span className="ehr-code-badge items-center-color-a855f7-fs-0-65">
+                    <Hash size={10} /> {patientCode}
+                  </span>
                   <button className="btn-icon-ghost" onClick={() => setIsEditingProfile(true)} title="Edit Profile">
                     <Edit size={14} />
                   </button>
                 </div>
                 <div className="ehr-vitals-inline">
-                  <span className="vital-text">{selectedPatient.gender || 'No Gender'}</span>
+                  <span className="vital-text flex-items-center-color-60a5fa">
+                    <User size={12} /> {selectedPatient.gender || 'No Gender'}
+                  </span>
                   <span className="vital-dot">•</span>
-                  <span className="vital-text">{selectedPatient.age || 'No Age'}</span>
+                  <span className="vital-text flex-items-center-color-34d399">
+                    <CalendarIcon size={12} /> {selectedPatient.age > 0 ? `${selectedPatient.age} Yrs` : 'No Age'}
+                  </span>
                   {selectedPatient.bloodGroup && (
                     <>
                       <span className="vital-dot">•</span>
-                      <span className="vital-text blood-group"><Droplets size={10} /> {selectedPatient.bloodGroup}</span>
+                      <span className="vital-text blood-group flex-items-center-color-f87171">
+                        <Droplets size={12} /> {selectedPatient.bloodGroup}
+                      </span>
                     </>
                   )}
-                  {selectedPatient.chronicTags && selectedPatient.chronicTags.split(',').map((t: string) => (
-                    <span key={t} className="chronic-tag-sm">{t.trim()}</span>
+                  {selectedPatient.height && (
+                    <>
+                      <span className="vital-dot">•</span>
+                      <span className="vital-text flex-items-center-color-fbbf24">
+                        <Ruler size={12} /> {selectedPatient.height} cm
+                      </span>
+                    </>
+                  )}
+                  {selectedPatient.preExistingConditions && selectedPatient.preExistingConditions.split(',').map((t: string) => (
+                    <span key={t} className="chronic-tag-sm items-center-color-ef4444-fs-0-7">
+                      <Activity size={10} /> {t.trim()}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -397,17 +482,19 @@ const PatientsList: React.FC = () => {
           <div className="workspace-grid">
             
             {/* LEFT: Active Consultation Form */}
-            <div className="workspace-main panel-glass">
+            <div className="workspace-main plain-panel">
               <div className="panel-header">
-                <div className="panel-title">
+                <div className="panel-title flex-items-center">
                   <Activity size={18} className="text-accent" />
-                  <h3>{editingVisitId ? 'Edit Consultation' : 'Active Consultation'}</h3>
+                  <h3 className="fs-1-1-color-f8fafc">{editingVisitId ? 'Edit Consultation' : 'Active Consultation'}</h3>
                 </div>
               </div>
 
-              <div className="consult-form">
+              <div className="consult-form flex">
                 <div className="form-group">
-                  <label className="form-label">Consulting Doctor</label>
+                  <label className="form-label flex-items-center-1">
+                    <Stethoscope size={14} className="mr-6-color-0ea5e9" /> Consulting Doctor
+                  </label>
                   <select className="form-select" value={visitDoctorId} onChange={e => setVisitDoctorId(e.target.value)}>
                     <option value="">— Select Doctor —</option>
                     {doctors?.map((d: any) => (
@@ -418,34 +505,85 @@ const PatientsList: React.FC = () => {
                 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Symptoms / Complaints</label>
+                    <label className="form-label flex-items-center-1">
+                      <Activity size={14} className="mr-6-color-ef4444" /> Symptoms / Complaints
+                    </label>
                     <textarea className="form-textarea" placeholder="What is the patient experiencing?" rows={2}
                       value={visitSymptoms} onChange={e => setVisitSymptoms(e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Diagnosis</label>
+                    <label className="form-label flex-items-center-1">
+                      <ClipboardList size={14} className="mr-6-color-a855f7" /> Diagnosis
+                    </label>
                     <textarea className="form-textarea" placeholder="Clinical diagnosis..." rows={2}
                       value={visitDiagnosis} onChange={e => setVisitDiagnosis(e.target.value)} />
                   </div>
                 </div>
 
+                <div className="vitals-section">
+                  <div className="section-header flex-justify-space-between-items-center">
+                    <h4 className="fs-0-95-color-var-accent-color-flex-items-center">
+                      <Activity size={16} /> Clinical Vitals
+                    </h4>
+                    {selectedPatient?.height && visitWeight && (
+                      <div className="fs-0-85-color-38bdf8">
+                        BMI: {(parseFloat(visitWeight) / Math.pow(selectedPatient.height / 100, 2)).toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="vitals-grid">
+                    <div className="vital-group">
+                      <label className="vital-label">Weight (kg)</label>
+                      <input type="number" min="0" className="vital-input" placeholder="70" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">Heart Rate</label>
+                      <input type="number" min="0" className="vital-input" placeholder="72" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">BP (mmHg)</label>
+                      <input type="text" className="vital-input" placeholder="120/80" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">SpO2 (%)</label>
+                      <input type="number" min="0" className="vital-input" placeholder="98" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">Temp (°F)</label>
+                      <input type="number" min="0" className="vital-input" placeholder="98.6" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">Resp. Rate</label>
+                      <input type="number" min="0" className="vital-input" placeholder="16" value={visitRespiratoryRate} onChange={e => setVisitRespiratoryRate(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">Blood Sugar</label>
+                      <input type="number" min="0" className="vital-input" placeholder="110" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="form-group">
-                  <label className="form-label">Advice & Treatment Plan</label>
+                  <label className="form-label flex-items-center-1">
+                    <HeartPulse size={14} className="mr-6-color-34d399" /> Advice & Treatment Plan
+                  </label>
                   <textarea className="form-textarea" placeholder="Instructions, diet, rest..." rows={2}
                     value={visitAdvice} onChange={e => setVisitAdvice(e.target.value)} />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Private Notes (Doctor Only)</label>
-                  <input type="text" className="form-input notes-field" placeholder="Confidential observations..." 
+                  <label className="form-label flex-items-center-1">
+                    <Edit2 size={14} className="mr-6-color-fbbf24" /> Private Notes (Doctor Only)
+                  </label>
+                  <input type="text" className="form-input" placeholder="Confidential observations..." 
                     value={visitInternalNotes} onChange={e => setVisitInternalNotes(e.target.value)} />
                 </div>
 
-                <div className="form-group" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <label className="form-label" style={{ marginBottom: '12px' }}><Upload size={14} style={{ marginRight: '6px' }}/>Attach Documents for this Visit</label>
+                <div className="form-group custom-style-1">
+                  <label className="form-label custom-style-2"><Upload size={14} className="mr-6"/>Attach Documents for this Visit</label>
                   
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
-                    <select className="form-select" style={{ width: '140px' }} value={stagingCategory} onChange={e => setStagingCategory(e.target.value)}>
+                  <div className="flex-items-center-2">
+                    <select className="form-select custom-style-3" value={stagingCategory} onChange={e => setStagingCategory(e.target.value)}>
                       <option value="Lab Report">Lab Report</option>
                       <option value="X-Ray">X-Ray</option>
                       <option value="MRI Scan">MRI Scan</option>
@@ -454,8 +592,7 @@ const PatientsList: React.FC = () => {
                     </select>
                     <input 
                       type="file" 
-                      className="form-input" 
-                      style={{ flex: 1, minWidth: '200px' }}
+                      className="form-input custom-style-4"
                       onChange={e => {
                         if (e.target.files?.[0]) setStagingFile(e.target.files[0]);
                       }}
@@ -474,14 +611,14 @@ const PatientsList: React.FC = () => {
                   </div>
 
                   {(visitFiles.length > 0 || existingAttachments.length > 0) && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div className="flex-1">
                       {existingAttachments.map((item: any) => (
-                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(14, 165, 233, 0.05)', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
-                          <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>[{item.category}]</span>
-                            <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>{item.fileName}</a>
+                        <div key={item.id} className="flex-items-center-justify-space-between-1">
+                          <div className="fs-0-8-flex-items-center">
+                            <span className="color-var-accent-color">[{item.category}]</span>
+                            <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" className="color-var-text-secondary">{item.fileName}</a>
                           </div>
-                          <button className="btn-del-icon" style={{ padding: '4px' }} onClick={async () => {
+                          <button className="btn-del-icon custom-style-5" onClick={async () => {
                              if (confirm('Delete this attachment permanently?')) {
                                try {
                                  await api.delete(`/patientclinical/attachments/${item.id}`);
@@ -496,12 +633,12 @@ const PatientsList: React.FC = () => {
                         </div>
                       ))}
                       {visitFiles.map((item, index) => (
-                        <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(14, 165, 233, 0.05)', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(14, 165, 233, 0.1)' }}>
-                          <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: 'var(--accent-color)', fontWeight: 600 }}>[{item.category}]</span>
-                            <span style={{ color: 'var(--text-secondary)' }}>{item.file.name}</span>
+                        <div key={index} className="flex-items-center-justify-space-between-1">
+                          <div className="fs-0-8-flex-items-center">
+                            <span className="color-var-accent-color">[{item.category}]</span>
+                            <span className="color-var-text-secondary-1">{item.file.name}</span>
                           </div>
-                          <button className="btn-del-icon" style={{ padding: '4px' }} onClick={() => {
+                          <button className="btn-del-icon custom-style-5" onClick={() => {
                             setVisitFiles(visitFiles.filter((_, i) => i !== index));
                           }}>
                             <Trash2 size={12} />
@@ -513,48 +650,77 @@ const PatientsList: React.FC = () => {
                 </div>
 
                 <div className="prescription-section">
-                  <div className="section-header">
-                    <h4><HeartPulse size={15} className="text-accent" /> Prescription</h4>
-                    <button className="btn-add-sm" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: '', dosage: '' }])}>
-                      <Plus size={12} /> Add Custom
-                    </button>
+                  <div className="section-header custom-style-6">
+                    <h4 className="fs-0-95-color-var-accent-color-flex-items-center">
+                      <HeartPulse size={16} /> Prescription
+                    </h4>
                   </div>
 
-                  <div className="med-chip-container">
-                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Paracetamol 650mg', dosage: '1-0-1' }])}>+ Paracetamol</div>
-                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Amoxicillin 500mg', dosage: '1-0-1 x 5 Days' }])}>+ Amoxicillin</div>
-                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Pantoprazole 40mg', dosage: '1-0-0 Before Food' }])}>+ Pantoprazole</div>
-                    <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Cough Syrup', dosage: '2 tsp x 3 times' }])}>+ Cough Syrup</div>
+                  <div className="quick-prescribe-box custom-style-7">
+                    <div className="fs-0-7-color-var-text-secondary-flex-items-center">
+                      <Activity size={12} /> Quick Prescribe
+                    </div>
+                    <div className="med-chip-container custom-style-8">
+                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Paracetamol 650mg', dosage: '1-0-1' }])}>+ Paracetamol</div>
+                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Amoxicillin 500mg', dosage: '1-0-1 x 5 Days' }])}>+ Amoxicillin</div>
+                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Pantoprazole 40mg', dosage: '1-0-0 Before Food' }])}>+ Pantoprazole</div>
+                      <div className="med-chip" onClick={() => setVisitMedicines([...visitMedicines, { medicineName: 'Cough Syrup', dosage: '2 tsp x 3 times' }])}>+ Cough Syrup</div>
+                    </div>
                   </div>
 
-                  <div className="rx-list">
+                  <div className="rx-list flex-2">
+                    {visitMedicines.length > 0 && (
+                      <div className="rx-header flex-fs-0-75-color-var-text-secondary">
+                        <div className="flex-items-center-3"><Activity size={14} /> Medicine Name</div>
+                        <div className="flex-items-center-4"><Clock size={14} /> Dosage / Freq</div>
+                        <div className="custom-style-9"></div>
+                      </div>
+                    )}
                     {visitMedicines.length === 0 ? (
-                      <div className="rx-empty">No medicines prescribed yet. Use quick-add chips above or add custom.</div>
+                      <div className="rx-empty custom-style-10">
+                        <Droplets size={24} color="var(--text-secondary)" className="custom-style-11" />
+                        <div className="color-94a3b8-fs-0-85">No medicines prescribed yet.</div>
+                        <div className="color-64748b-fs-0-75-mt-4">Select from quick prescribe above or add a custom medicine.</div>
+                      </div>
                     ) : (
                       visitMedicines.map((m, i) => (
-                        <div key={i} className="rx-row">
-                          <input className="form-input rx-name" type="text" placeholder="Medicine Name (e.g. Paracetamol 650mg)"
+                        <div key={i} className="rx-row flex-items-center-5">
+                          <div className="custom-style-12"></div>
+                          <input className="form-input rx-input" type="text" placeholder="e.g. Paracetamol 650mg custom-style-13"
                             value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
-                          <input className="form-input rx-dosage" type="text" placeholder="Dosage (e.g. 1-0-1 x 3 Days)"
+                          <input className="form-input rx-input" type="text" placeholder="e.g. 1-0-1 After Food custom-style-14"
                             value={m.dosage} onChange={e => { const u = [...visitMedicines]; u[i].dosage = e.target.value; setVisitMedicines(u); }} />
-                          <button className="btn-del-icon" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
-                            <Trash2 size={14} />
+                          <button className="btn-del-icon" title="Remove Medicine flex-justify-center-items-center-color-var-danger" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       ))
                     )}
                   </div>
+                  
+                  <button 
+                    className="mt-12-color-var-accent-color-flex-justify-center-items-center" 
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; e.currentTarget.style.borderStyle = 'solid'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.05)'; e.currentTarget.style.borderStyle = 'dashed'; }}
+                    onClick={() => setVisitMedicines([...visitMedicines, { medicineName: '', dosage: '' }])}
+                  >
+                    <Plus size={16} /> Add Custom Medicine
+                  </button>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Next Follow-up Date (Optional)</label>
-                  <input type="date" className="form-input" style={{ width: '200px' }}
+                  <label className="form-label flex-items-center-1">
+                    <CalendarIcon size={14} className="mr-6-color-f472b6" /> Next Follow-up Date (Optional)
+                  </label>
+                  <input type="date" className="form-input custom-style-15"
                     value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} />
                 </div>
 
                 {visitFollowUpDate && (
                   <div className="form-group slide-down instruction-box-premium">
-                    <label className="form-label" style={{ color: 'var(--accent-color)' }}>📝 Patient Instructions (Sent via WhatsApp)</label>
+                    <label className="form-label color-var-accent-color-flex-items-center">
+                      <MessageSquare size={14} className="mr-6-color-60a5fa" /> Patient Instructions (Sent via WhatsApp)
+                    </label>
                     <textarea 
                       className="form-textarea" 
                       placeholder="e.g. Bring old reports, come fasting..."
@@ -572,7 +738,7 @@ const PatientsList: React.FC = () => {
 
               </div>
 
-              <div className="panel-footer" style={{ display: 'flex', gap: '12px' }}>
+              <div className="panel-footer">
                 <button className="btn-cancel-consult" onClick={() => {
                   setVisitSymptoms('');
                   setVisitDiagnosis('');
@@ -598,7 +764,7 @@ const PatientsList: React.FC = () => {
             </div>
 
             {/* RIGHT: History & Sidebar */}
-            <div className="workspace-sidebar panel-glass">
+            <div className="workspace-sidebar plain-panel">
               <div className="sidebar-tabs">
                 <button className="sb-tab active">
                   History {clinicalVisits?.length > 0 && <span>({clinicalVisits.length})</span>}
@@ -610,10 +776,10 @@ const PatientsList: React.FC = () => {
                 {workspaceTab === 'history' && (
                   <div className="history-pane">
                     {isVisitsLoading ? (
-                      <div className="compact-timeline" style={{ paddingTop: '10px' }}>
+                      <div className="compact-timeline custom-style-16">
                         <div className="skeleton-box skeleton-block"></div>
-                        <div className="skeleton-box skeleton-block" style={{ opacity: 0.6 }}></div>
-                        <div className="skeleton-box skeleton-block" style={{ opacity: 0.3 }}></div>
+                        <div className="skeleton-box skeleton-block custom-style-17"></div>
+                        <div className="skeleton-box skeleton-block custom-style-18"></div>
                       </div>
                     ) : !clinicalVisits?.length ? (
                       <div className="ehr-state-sm">No past visits found.</div>
@@ -623,35 +789,50 @@ const PatientsList: React.FC = () => {
                           <div key={v.id} className="ct-item">
                             <div className="ct-date">{formatDate(v.visitDate)}</div>
                             <div className="ct-card">
-                              <div className="ct-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <div className="ct-header flex-justify-space-between-items-flex-start">
                                 <span>Dr. {v.doctorName} {v.tokenId && <span className="ct-badge">Queue</span>}</span>
                                 {index === 0 && (
-                                  <button className="btn-icon-ghost" style={{ padding: '4px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }} onClick={() => handleEditVisit(v)} title="Edit Consultation">
+                                  <button className="btn-icon-ghost custom-style-19" onClick={() => handleEditVisit(v)} title="Edit Consultation">
                                     <Edit2 size={12} />
                                   </button>
                                 )}
                               </div>
-                              {v.diagnosis && <div className="ct-text"><strong>Dx:</strong> {v.diagnosis}</div>}
-                              {v.symptoms && <div className="ct-text"><strong>Sx:</strong> {v.symptoms}</div>}
-                              {v.advice && <div className="ct-text"><strong>Advice/Plan:</strong> {v.advice}</div>}
-                              {v.internalNotes && <div className="ct-text" style={{ color: 'var(--accent-color)' }}><strong>Private Note:</strong> {v.internalNotes}</div>}
+                              <div className="ct-text flex-items-flex-start"><ClipboardList size={14} className="color-a855f7-mt-2" /> <span><strong className="color-e2e8f0">Diagnosis:</strong> {v.diagnosis || '--'}</span></div>
+                              <div className="ct-text flex-items-flex-start"><Activity size={14} className="color-ef4444-mt-2" /> <span><strong className="color-e2e8f0">Symptoms:</strong> {v.symptoms || '--'}</span></div>
+                              {v.advice && <div className="ct-text flex-items-flex-start"><HeartPulse size={14} className="color-34d399-mt-2" /> <span><strong className="color-e2e8f0">Treatment Plan:</strong> {v.advice}</span></div>}
+                              {v.internalNotes && <div className="ct-text flex-items-flex-start-color-var-accent-color"><Edit2 size={14} className="color-fbbf24-mt-2" /> <span><strong className="color-e2e8f0">Private Note:</strong> {v.internalNotes}</span></div>}
+                              {(v.height || v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
+                                <div className="ct-text flex-mt-4">
+                                  <div className="fs-0-75-color-var-accent-color-flex-items-center"><Activity size={12} /> VITALS</div>
+                                  {v.height && <span className="fs-0-75">HT: {v.height}cm</span>}
+                                  {v.weight && <span className="fs-0-75">WT: {v.weight}kg</span>}
+                                  {v.height && v.weight && <span className="fs-0-75">BMI: {(parseFloat(v.weight) / Math.pow(parseFloat(v.height) / 100, 2)).toFixed(1)}</span>}
+                                  {v.heartRate && <span className="fs-0-75">HR: {v.heartRate}</span>}
+                                  {v.bloodPressure && <span className="fs-0-75">BP: {v.bloodPressure}</span>}
+                                  {v.oxygenLevel && <span className="fs-0-75">SpO2: {v.oxygenLevel}%</span>}
+                                  {v.temperature && <span className="fs-0-75">Temp: {v.temperature}°F</span>}
+                                  {v.respiratoryRate && <span className="fs-0-75">RR: {v.respiratoryRate}</span>}
+                                  {v.bloodSugar && <span className="fs-0-75">Sugar: {v.bloodSugar}</span>}
+                                </div>
+                              )}
                               {v.followUpDate && (
-                                <div className="ct-text" style={{ background: 'rgba(255,255,255,0.05)', padding: '8px 10px', borderRadius: '6px', marginTop: '4px' }}>
-                                  <div><strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
-                                  {v.followUpInstructions && <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>📝 {v.followUpInstructions}</div>}
+                                <div className="ct-text mt-4">
+                                  <div className="flex-items-center-6"><CalendarIcon size={14} className="color-f472b6" /> <strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
+                                  {v.followUpInstructions && <div className="mt-4-fs-0-78-color-var-text-secondary-flex-items-flex-start"><MessageSquare size={12} className="color-60a5fa-mt-2" /> <span>{v.followUpInstructions}</span></div>}
                                 </div>
                               )}
                               {v.medicines?.length > 0 && (
-                                <div className="ct-rx">
-                                  {v.medicines.map((m:any) => <div key={m.id}>• {m.medicineName} ({m.dosage})</div>)}
+                                <div className="ct-rx mt-8">
+                                  <div className="fs-0-75-color-38bdf8-flex-items-center"><HeartPulse size={12} /> Prescribed Medicines</div>
+                                  {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-color-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="color-94a3b8">{m.dosage}</span></div>)}
                                 </div>
                               )}
                               {v.attachments?.length > 0 && (
-                                <div className="ct-attachments" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <div className="ct-attachments mt-8-flex">
                                   {v.attachments.map((a:any) => (
                                     <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                       style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.2)', color: 'var(--accent-color)', fontWeight: 600, transition: '0.2s' }}>
-                                      <FileText size={12} style={{ marginRight: '6px' }} /> [{a.category}] {a.fileName}
+                                       className="items-center-fs-0-75-color-f8fafc">
+                                      <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
                                     </a>
                                   ))}
                                 </div>
@@ -670,12 +851,12 @@ const PatientsList: React.FC = () => {
                                 <div className="ct-date">Archive</div>
                                 <div className="ct-card">
                                   <div className="ct-header">Independent Reports</div>
-                                  <div className="ct-text" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>These documents were uploaded separately from any consultation.</div>
-                                  <div className="ct-attachments" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  <div className="ct-text fs-0-8-color-var-text-secondary">These documents were uploaded separately from any consultation.</div>
+                                  <div className="ct-attachments mt-8-flex">
                                     {unlinkedAttachments.map((a:any) => (
                                       <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                         style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', background: 'rgba(14, 165, 233, 0.1)', border: '1px solid rgba(14, 165, 233, 0.2)', color: 'var(--accent-color)', fontWeight: 600, transition: '0.2s' }}>
-                                        <FileText size={12} style={{ marginRight: '6px' }} /> [{a.category}] {a.fileName}
+                                         className="items-center-fs-0-75-color-var-accent-color">
+                                        <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
                                       </a>
                                     ))}
                                   </div>
@@ -699,7 +880,7 @@ const PatientsList: React.FC = () => {
            PATIENT DIRECTORY TABLE
         ════════════════════════════════════════════════════════ */
         <div className="glass-card patients-card-body">
-          <div className="patients-header-actions">
+          <div className="patients-header-actions flex-justify-flex-end-items-center">
             <div className="search-input-wrapper">
               <div className="search-input-container">
                 <Search size={15} className="search-icon-pos" />
@@ -709,7 +890,7 @@ const PatientsList: React.FC = () => {
               </div>
             </div>
             <button className="btn-primary"
-              onClick={() => navigate('/dashboard?action=book')}>
+              onClick={() => setIsAddModalOpen(true)}>
               <UserPlus size={15} /> New Patient
             </button>
           </div>
@@ -718,44 +899,143 @@ const PatientsList: React.FC = () => {
 
           <div className="patients-bento-grid">
             {isLoading ? (
-              <div className="empty-table-wrapper" style={{ gridColumn: '1 / -1' }}>
+              <div className="empty-table-wrapper custom-style-20">
                 <div className="spinner-ring" /><span>Loading...</span>
               </div>
             ) : filteredPatients.length === 0 ? (
-              <div className="empty-table-wrapper" style={{ gridColumn: '1 / -1' }}>
+              <div className="empty-table-wrapper custom-style-20">
                 <Users size={32} /><span>No patients found.</span>
               </div>
             ) : filteredPatients.map((p: any) => (
-              <div key={p.id} className="patient-bento-card">
-                <div className="pb-header">
-                  <div className="pb-avatar">{p.name.charAt(0)}</div>
-                  <span className="pb-id">{p.patientCode || 'PT-' + p.id.substring(0, 6).toUpperCase()}</span>
-                </div>
+              <div key={p.id} className="elegant-patient-card" onClick={() => { setSelectedPatient(p); setWorkspaceTab('history'); }}>
+                {/* Hover Line */}
                 
-                <div className="pb-info">
-                  <div className="pb-name">{p.name}</div>
-                  <div className="pb-phone"><Phone size={11} /> {p.phone}</div>
-                  <div className="pb-stats-row">
-                    {p.age > 0 && <span className="pb-pill">{p.age} Yrs</span>}
-                    {p.gender && <span className={`pb-pill gender`}>{p.gender.charAt(0)}</span>}
-                    {p.bloodGroup && <span className="pb-pill blood">{p.bloodGroup}</span>}
+                <div className="ep-header">
+                  <div className="ep-avatar">
+                    {p.name.charAt(0)}
+                  </div>
+                  <div className="ep-info">
+                    <div className="ep-name-row">
+                      <h3 className="ep-name">{p.name}</h3>
+                      <div className="ep-status-badge" style={!p.lastVisit ? { background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.2)' } : {}}>
+                        <span style={{width: '6px', height: '6px', borderRadius: '50%', backgroundColor: p.lastVisit ? '#34d399' : '#60a5fa'}}></span>
+                        {p.lastVisit ? 'Active' : 'New'}
+                      </div>
+                    </div>
+                    <div className="ep-subtext">
+                      <span className="color-60a5fa-flex-items-center">
+                        <User size={12} /> {p.gender || 'Unknown'}
+                      </span>
+                      <span className="ep-dot">•</span>
+                      <span className="color-34d399-flex-items-center">
+                        <CalendarIcon size={12} /> {p.age > 0 ? `${p.age} Yrs` : 'N/A'}
+                      </span>
+                      <span className="ep-dot">•</span>
+                      <span className="color-f87171-flex-items-center">
+                        <Droplets size={12} /> {p.bloodGroup || '--'}
+                      </span>
+                      <span className="ep-dot">•</span>
+                      <span className="color-fbbf24-flex-items-center">
+                        <Ruler size={12} /> {p.height ? `${p.height} cm` : '--'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pb-footer">
-                  <div className="pb-time">
-                    {p.lastVisit ? `Last Visit: ${formatDate(p.lastVisit)}` : `Reg: ${formatDate(p.createdAt)}`}
+                <div className="ep-details-grid">
+                  {/* 1. Patient ID (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-a855f7"><Hash size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Patient ID</span>
+                      <span className="ep-d-val">{p.patientCode || 'PT-' + p.id.substring(0, 6).toUpperCase()}</span>
+                    </div>
                   </div>
-                  <div className="actions-wrapper">
-                    <button className="action-btn-ghost" data-tooltip="WhatsApp"
-                      onClick={() => { setMessagingPatient(p); setMessageText(''); }}>
-                      <MessageSquare size={14} />
-                    </button>
-                    <button className="pb-action" data-tooltip="Consult"
-                      onClick={() => { setSelectedPatient(p); setWorkspaceTab('history'); }}>
-                      Consult
-                    </button>
+
+                  {/* 2. Contact (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-60a5fa"><Phone size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Contact</span>
+                      <span className="ep-d-val">{p.phone || 'N/A'}</span>
+                    </div>
                   </div>
+
+                  {/* 3. Address (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-14b8a6"><FileText size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Address</span>
+                      <span className="ep-d-val">{p.address || '--'}</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Last Diagnosis (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-a855f7"><ClipboardList size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Last Diagnosis</span>
+                      <span className="ep-d-val">{p.lastDiagnosis || '--'}</span>
+                    </div>
+                  </div>
+
+                  {/* 4.5. Last Symptom (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-ef4444"><Activity size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Last Symptom</span>
+                      <span className="ep-d-val">{p.lastSymptoms || '--'}</span>
+                    </div>
+                  </div>
+
+                  {/* 5. Total Visits (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon color-34d399"><FileText size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Visits</span>
+                      <span className="ep-d-val">{p.totalVisits || 0} Total</span>
+                    </div>
+                  </div>
+
+                  {/* 6. Next Visit (Half) */}
+                  {p.nextVisit && (
+                    <div className="ep-detail-item">
+                      <div className="ep-detail-icon color-f472b6-1"><CalendarIcon size={14} /></div>
+                      <div className="ep-detail-text">
+                        <span className="ep-d-label">Next Visit</span>
+                        <span className="ep-d-val">{formatDate(p.nextVisit)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Remaining Items */}
+                  {(p.emergencyContactName || p.emergencyContactPhone) && (
+                    <div className="ep-detail-item">
+                      <div className="ep-detail-icon color-f43f5e"><Phone size={14} /></div>
+                      <div className="ep-detail-text">
+                        <span className="ep-d-label">Emergency</span>
+                        <span className="ep-d-val">{p.emergencyContactName ? `${p.emergencyContactName} - ` : ''}{p.emergencyContactPhone || ''}</span>
+                      </div>
+                    </div>
+                  )}
+                  {p.preExistingConditions && (
+                    <div className="ep-detail-item">
+                      <div className="ep-detail-icon color-ef4444"><Activity size={14} /></div>
+                      <div className="ep-detail-text">
+                        <span className="ep-d-label">Pre-existing</span>
+                        <span className="ep-d-val">{p.preExistingConditions.split(',').map((t:any) => t.trim()).join(', ')}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="ep-footer">
+                  <div className="ep-last-visit flex-items-center-1">
+                    <History size={14} className="mr-6-1" /> Last Visit: <span className="ml-4">{p.lastVisit ? formatDate(p.lastVisit) : 'None'}</span>
+                  </div>
+                  <button className="ep-consult-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setWorkspaceTab('history'); }}>
+                    <Stethoscope size={16} /> Consult
+                  </button>
                 </div>
               </div>
             ))}
@@ -801,16 +1081,41 @@ const PatientsList: React.FC = () => {
       {/* Edit Profile Modal */}
       {isEditingProfile && selectedPatient && (
         <Modal title="Edit Patient Profile" icon={<Edit size={20} color="var(--accent-color)" />}
-          onClose={() => setIsEditingProfile(false)} maxWidth="480px">
-          <div className="modal-body">
+          onClose={() => setIsEditingProfile(false)} maxWidth="540px">
+          <div className="modal-body custom-style-21">
+            <div className="form-group">
+              <label className="form-label flex-items-center-1">
+                <User size={14} className="mr-6-color-3b82f6" /> Full Name <span className="color-var-danger">*</span>
+              </label>
+              <input className="form-input" type="text" placeholder="e.g. John Doe"
+                value={editName} onChange={e => setEditName(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label flex-items-center-1">
+                <Phone size={14} className="mr-6-color-10b981" /> Phone <span className="color-var-danger">*</span>
+              </label>
+              <input className="form-input" type="text" placeholder="+91..."
+                value={editPhone} onChange={e => setEditPhone(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label flex-items-center-1">
+                <MapPin size={14} className="mr-6-color-8b5cf6" /> Address
+              </label>
+              <input className="form-input" type="text" placeholder="Full address"
+                value={editAddress} onChange={e => setEditAddress(e.target.value)} />
+            </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Age</label>
-                <input className="form-input" type="text" placeholder="e.g. 34 Years"
+                <label className="form-label flex-items-center-1">
+                  <CalendarIcon size={14} className="mr-6-color-f59e0b" /> Age
+                </label>
+                <input className="form-input" type="number" min="0" placeholder="e.g. 34"
                   value={editAge} onChange={e => setEditAge(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">Gender</label>
+                <label className="form-label flex-items-center-1">
+                  <Users size={14} className="mr-6-color-ec4899" /> Gender
+                </label>
                 <select className="form-select" value={editGender} onChange={e => setEditGender(e.target.value)}>
                   <option value="">Select</option>
                   <option value="Male">Male</option>
@@ -819,15 +1124,44 @@ const PatientsList: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Blood Group</label>
-              <input className="form-input" type="text" placeholder="e.g. O+"
-                value={editBloodGroup} onChange={e => setEditBloodGroup(e.target.value)} />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label flex-items-center-1">
+                  <Ruler size={14} className="mr-6-color-6366f1" /> Height (cm)
+                </label>
+                <input className="form-input" type="number" min="0" placeholder="e.g. 175"
+                  value={editHeight} onChange={e => setEditHeight(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label flex-items-center-1">
+                  <Droplets size={14} className="mr-6-color-ef4444" /> Blood Group
+                </label>
+                <input className="form-input" type="text" placeholder="e.g. O+"
+                  value={editBloodGroup} onChange={e => setEditBloodGroup(e.target.value)} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label flex-items-center-1">
+                  <PhoneCall size={14} className="mr-6-color-f43f5e" /> Emg. Contact Name
+                </label>
+                <input className="form-input" type="text" placeholder="e.g. Jane Doe"
+                  value={editEmergencyContactName} onChange={e => setEditEmergencyContactName(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label flex-items-center-1">
+                  <PhoneCall size={14} className="mr-6-color-f43f5e" /> Emg. Contact Phone
+                </label>
+                <input className="form-input" type="tel" placeholder="e.g. 9876543210"
+                  value={editEmergencyContactPhone} onChange={e => setEditEmergencyContactPhone(e.target.value)} />
+              </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Chronic Conditions (comma-separated)</label>
+              <label className="form-label flex-items-center-1">
+                <Activity size={14} className="mr-6-color-f97316" /> Pre-existing Diseases (comma-separated)
+              </label>
               <input className="form-input" type="text" placeholder="e.g. Diabetes, Hypertension"
-                value={editChronicTags} onChange={e => setEditChronicTags(e.target.value)} />
+                value={editPreExistingConditions} onChange={e => setEditPreExistingConditions(e.target.value)} />
             </div>
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setIsEditingProfile(false)}><X size={14} /> Cancel</button>
@@ -860,7 +1194,7 @@ const PatientsList: React.FC = () => {
               <input type="file" className="file-input-styled" accept=".pdf,.png,.jpg,.jpeg" multiple
                 onChange={e => { if (e.target.files) setUploadFiles(Array.from(e.target.files)); }} />
               {uploadFiles.length > 0 && (
-                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--accent-color)' }}>
+                <div className="mt-8-fs-0-8-color-var-accent-color">
                   {uploadFiles.length} file(s) selected
                 </div>
               )}
@@ -879,6 +1213,14 @@ const PatientsList: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Add Patient Modal */}
+      <AddPatientModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddPatient}
+        isLoading={isAddingPatient}
+      />
     </div>
   );
 };

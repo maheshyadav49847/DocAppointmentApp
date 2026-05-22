@@ -7,8 +7,9 @@ export const useQueueHub = (branchId: string | null) => {
   useEffect(() => {
     if (!branchId) return;
 
+    const hubUrl = import.meta.env.VITE_HUB_URL || 'http://localhost:5001/queueHub';
     const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl(import.meta.env.VITE_HUB_URL, {
+      .withUrl(hubUrl, {
         withCredentials: true
       })
       .withAutomaticReconnect()

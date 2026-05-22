@@ -29,10 +29,17 @@ namespace CodeX.Api.Controllers
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
             if (patient == null) return NotFound("Patient not found.");
 
+            if (!string.IsNullOrWhiteSpace(dto.Name)) patient.Name = dto.Name;
+            if (dto.Phone != null) patient.Phone = dto.Phone;
+            if (dto.Email != null) patient.Email = dto.Email;
+            if (dto.Address != null) patient.Address = dto.Address;
+            if (dto.EmergencyContactName != null) patient.EmergencyContactName = dto.EmergencyContactName;
+            if (dto.EmergencyContactPhone != null) patient.EmergencyContactPhone = dto.EmergencyContactPhone;
             patient.Age = dto.Age;
             patient.Gender = dto.Gender;
             patient.BloodGroup = dto.BloodGroup;
-            patient.ChronicTags = dto.ChronicTags;
+            patient.PreExistingConditions = dto.PreExistingConditions;
+            patient.Height = dto.Height;
             patient.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(default);
@@ -62,6 +69,14 @@ namespace CodeX.Api.Controllers
                     v.Diagnosis,
                     v.Advice,
                     v.InternalNotes,
+                    v.Patient.Height,
+                    v.Weight,
+                    v.HeartRate,
+                    v.BloodPressure,
+                    v.OxygenLevel,
+                    v.Temperature,
+                    v.RespiratoryRate,
+                    v.BloodSugar,
                     v.FollowUpDate,
                     FollowUpInstructions = _context.FollowUps.Where(f => f.PatientVisitId == v.Id && !f.IsDeleted).Select(f => f.Instructions).FirstOrDefault(),
                     Medicines = v.Medicines.Select(m => new { m.Id, m.MedicineName, m.Dosage }),
@@ -88,6 +103,13 @@ namespace CodeX.Api.Controllers
                     Diagnosis = dto.Diagnosis,
                     Advice = dto.Advice,
                     InternalNotes = dto.InternalNotes,
+                    Weight = dto.Weight,
+                    HeartRate = dto.HeartRate,
+                    BloodPressure = dto.BloodPressure,
+                    OxygenLevel = dto.OxygenLevel,
+                    Temperature = dto.Temperature,
+                    RespiratoryRate = dto.RespiratoryRate,
+                    BloodSugar = dto.BloodSugar,
                     FollowUpDate = dto.FollowUpDate
                 };
 
@@ -136,6 +158,13 @@ namespace CodeX.Api.Controllers
             visit.Diagnosis = dto.Diagnosis;
             visit.Advice = dto.Advice;
             visit.InternalNotes = dto.InternalNotes;
+            visit.Weight = dto.Weight;
+            visit.HeartRate = dto.HeartRate;
+            visit.BloodPressure = dto.BloodPressure;
+            visit.OxygenLevel = dto.OxygenLevel;
+            visit.Temperature = dto.Temperature;
+            visit.RespiratoryRate = dto.RespiratoryRate;
+            visit.BloodSugar = dto.BloodSugar;
             visit.FollowUpDate = dto.FollowUpDate;
             visit.UpdatedAt = DateTime.UtcNow;
 
@@ -362,10 +391,17 @@ namespace CodeX.Api.Controllers
     // DTOs
     public class UpdateProfileDto
     {
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactPhone { get; set; }
         public string? Age { get; set; }
         public string? Gender { get; set; }
         public string? BloodGroup { get; set; }
-        public string? ChronicTags { get; set; }
+        public string? PreExistingConditions { get; set; }
+        public decimal? Height { get; set; }
     }
 
     public class AddVisitDto
@@ -376,6 +412,13 @@ namespace CodeX.Api.Controllers
         public string? Diagnosis { get; set; }
         public string? Advice { get; set; }
         public string? InternalNotes { get; set; }
+        public decimal? Weight { get; set; }
+        public int? HeartRate { get; set; }
+        public string? BloodPressure { get; set; }
+        public decimal? OxygenLevel { get; set; }
+        public decimal? Temperature { get; set; }
+        public int? RespiratoryRate { get; set; }
+        public decimal? BloodSugar { get; set; }
         public DateTime? FollowUpDate { get; set; }
         public string? FollowUpInstructions { get; set; }
         public List<MedicineDto>? Medicines { get; set; }
@@ -387,6 +430,13 @@ namespace CodeX.Api.Controllers
         public string? Diagnosis { get; set; }
         public string? Advice { get; set; }
         public string? InternalNotes { get; set; }
+        public decimal? Weight { get; set; }
+        public int? HeartRate { get; set; }
+        public string? BloodPressure { get; set; }
+        public decimal? OxygenLevel { get; set; }
+        public decimal? Temperature { get; set; }
+        public int? RespiratoryRate { get; set; }
+        public decimal? BloodSugar { get; set; }
         public DateTime? FollowUpDate { get; set; }
         public string? FollowUpInstructions { get; set; }
         public List<MedicineDto>? Medicines { get; set; }

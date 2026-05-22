@@ -16,6 +16,15 @@ namespace CodeX.Domain.Entities
         public string? InternalNotes { get; set; }
         public DateTime? FollowUpDate { get; set; }
 
+        // Vitals
+        public decimal? Weight { get; set; } // kg
+        public int? HeartRate { get; set; } // bpm
+        public string? BloodPressure { get; set; } // e.g. "120/80"
+        public decimal? OxygenLevel { get; set; } // % SpO2
+        public decimal? Temperature { get; set; } // °F
+        public int? RespiratoryRate { get; set; } // breaths/min
+        public decimal? BloodSugar { get; set; } // mg/dL
+
         // Navigation Properties
         public virtual Patient Patient { get; set; } = null!;
         public virtual Doctor Doctor { get; set; } = null!;

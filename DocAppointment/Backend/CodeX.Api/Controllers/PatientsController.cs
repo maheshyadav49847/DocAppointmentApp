@@ -25,7 +25,7 @@ namespace CodeX.Api.Controllers
 
             if (branchId.HasValue && branchId.Value != Guid.Empty)
             {
-                query = query.Where(p => p.Tokens.Any(t => t.Queue.BranchId == branchId.Value));
+                query = query.Where(p => !p.Tokens.Any() || p.Tokens.Any(t => t.Queue.BranchId == branchId.Value));
             }
 
             var patients = await query
@@ -40,21 +40,87 @@ namespace CodeX.Api.Controllers
                     p.Age,
                     p.Gender,
                     p.BloodGroup,
-                    p.ChronicTags,
-                    LastVisit = p.Tokens
-                        .Where(t => t.Queue.QueueDate < DateTime.UtcNow.Date || t.Status == CodeX.Domain.Enums.TokenStatus.Completed)
-                        .OrderByDescending(t => t.Queue.QueueDate)
-                        .Select(t => (DateTime?)t.Queue.QueueDate)
+                    p.PreExistingConditions,
+                    LastVisit = p.Visits
+                        .OrderByDescending(v => v.VisitDate)
+                        .Select(v => (DateTime?)v.VisitDate)
                         .FirstOrDefault(),
+                    Email = p.Email,
+                    Address = p.Address,
+                    EmergencyContactName = p.EmergencyContactName,
+                    EmergencyContactPhone = p.EmergencyContactPhone,
                     NextVisit = p.Tokens
                         .Where(t => t.Queue.QueueDate >= DateTime.UtcNow.Date && t.Status != CodeX.Domain.Enums.TokenStatus.Completed && t.Status != CodeX.Domain.Enums.TokenStatus.Cancelled)
                         .OrderBy(t => t.Queue.QueueDate)
                         .Select(t => (DateTime?)t.Queue.QueueDate)
+                        .FirstOrDefault(),
+                    Height = p.Height,
+                    TotalVisits = p.Visits.Count,
+                    TotalAttachments = p.Attachments.Count,
+                    LastDiagnosis = p.Visits
+                        .OrderByDescending(v => v.VisitDate)
+                        .Select(v => v.Diagnosis)
+                        .FirstOrDefault(),
+                    LastSymptoms = p.Visits
+                        .OrderByDescending(v => v.VisitDate)
+                        .Select(v => v.Symptoms)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
 
             return Ok(patients);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddPatient([FromBody] AddPatientDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                return BadRequest("Name and Phone are required.");
+            }
+
+            var existingPatient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == dto.Phone);
+            if (existingPatient != null)
+            {
+                return BadRequest("A patient with this phone number already exists.");
+            }
+
+            var patient = new Patient
+            {
+                Name = dto.Name,
+                Phone = dto.Phone,
+                Age = dto.Age,
+                Gender = dto.Gender,
+                BloodGroup = dto.BloodGroup,
+                PreExistingConditions = dto.PreExistingConditions,
+                Height = dto.Height,
+                Email = dto.Email,
+                Address = dto.Address,
+                EmergencyContactName = dto.EmergencyContactName,
+                EmergencyContactPhone = dto.EmergencyContactPhone,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Patients.Add(patient);
+            await _context.SaveChangesAsync(new System.Threading.CancellationToken());
+
+            return Ok(new {
+                patient.Id,
+                patient.PatientCode,
+                patient.Name,
+                patient.Phone,
+                patient.Age,
+                patient.Gender,
+                patient.BloodGroup,
+                patient.PreExistingConditions,
+                patient.Height,
+                patient.Email,
+                patient.Address,
+                patient.EmergencyContactName,
+                patient.EmergencyContactPhone,
+                patient.CreatedAt
+            });
         }
 
         [HttpGet("{id}/history")]
@@ -81,5 +147,20 @@ namespace CodeX.Api.Controllers
 
             return Ok(history);
         }
+    }
+
+    public class AddPatientDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string? Age { get; set; }
+        public string? Gender { get; set; }
+        public string? BloodGroup { get; set; }
+        public string? PreExistingConditions { get; set; }
+        public decimal? Height { get; set; }
+        public string? Email { get; set; }
+        public string? Address { get; set; }
+        public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactPhone { get; set; }
     }
 }
