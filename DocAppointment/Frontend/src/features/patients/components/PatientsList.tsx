@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
-  History, CalendarPlus, Send, X, ArrowLeft, Building2, Edit, Check,
-  Trash2, Download, Plus, FileText, Bell, BellOff, CheckCircle, ClipboardList,
-  Droplets, HeartPulse, Upload, ChevronRight, Activity, Save, Edit2, ArrowRight, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone
+  History, Send, X, ArrowLeft, Building2, Edit, Check,
+  Trash2, Plus, FileText, ClipboardList,
+  Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone
 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
@@ -19,7 +19,7 @@ import AddPatientModal from './AddPatientModal';
 interface Medicine { medicineName: string; dosage: string; }
 
 const PatientsList: React.FC = () => {
-  const navigate = useNavigate();
+  
   const queryClient = useQueryClient();
   const { orgId, branchId: currentBranchId } = useAuthStore();
 
@@ -172,13 +172,13 @@ const PatientsList: React.FC = () => {
     enabled: !!selectedPatient,
   });
 
-  const { data: attachments, isLoading: isAttachmentsLoading } = useQuery({
+  const { data: attachments } = useQuery({
     queryKey: ['attachments', selectedPatient?.id],
     queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/attachments`); return r.data; },
     enabled: !!selectedPatient,
   });
 
-  const { data: followups, isLoading: isFollowupsLoading } = useQuery({
+  useQuery({
     queryKey: ['followups', selectedPatient?.id],
     queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/followups`); return r.data; },
     enabled: !!selectedPatient,
@@ -370,6 +370,7 @@ const PatientsList: React.FC = () => {
     } finally { setIsSavingAttachment(false); }
   };
 
+  /*
   const handleDeleteAttachment = async (id: string) => {
     if (!window.confirm('Delete this file?')) return;
     try {
@@ -387,6 +388,7 @@ const PatientsList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['followups', selectedPatient.id] });
     } catch { notify.danger('Error', 'Failed to update reminder.'); }
   };
+  */
 
   const formatDate = (d: string, opts?: Intl.DateTimeFormatOptions) =>
     new Date(d).toLocaleDateString('en-IN', opts || { day: 'numeric', month: 'short', year: 'numeric' });
@@ -700,7 +702,7 @@ const PatientsList: React.FC = () => {
                   <label className="form-label flex-items-center-1">
                     <CalendarIcon size={14} className="mr-1-5 icon-pink" /> Next Follow-up Date (Optional)
                   </label>
-                  <input type="date" className="form-input custom-style-15"
+                  <input type="date" className="form-input input-date-sm"
                     value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} />
                 </div>
 
