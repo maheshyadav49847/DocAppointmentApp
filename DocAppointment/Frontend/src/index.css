@@ -108,6 +108,29 @@ h4 {
   filter: brightness(1.1);
 }
 
+.btn-outline-primary {
+  background: transparent !important;
+  color: var(--accent-color) !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-outline-primary:hover {
+  background: rgba(14, 165, 233, 0.1) !important;
+  border-color: var(--accent-color) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2) !important;
+}
+
 .start-btn {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);

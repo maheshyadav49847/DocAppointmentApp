@@ -5,8 +5,8 @@ import { doctorService } from '../../../services/doctorService';
 import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../stores/authStore';
 import { 
-  Plus, User, Stethoscope, Trash2, Edit, Eye, X, AlertTriangle, 
-  Hash, ClipboardList, CheckCircle2, ShieldCheck, MapPin, Users, Search, Star, MessageSquare, Building2
+  User, Stethoscope, Trash2, Edit, X, AlertTriangle, 
+  Hash, ClipboardList, CheckCircle2, ShieldCheck, Users, Search, Star, MessageSquare, Building2, UserPlus
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { notify } from '../../../stores/notificationStore';
@@ -30,7 +30,6 @@ const DoctorsList: React.FC = () => {
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewDoctor, setViewDoctor] = useState<any>(null);
   const [editingDoctor, setEditingDoctor] = useState<any>(null);
   const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
   const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', registrationNumber: '', branchIds: [] as string[] });
@@ -184,9 +183,9 @@ const DoctorsList: React.FC = () => {
 
           <button 
             onClick={() => setIsModalOpen(true)} 
-            className="btn-primary add-doctor-btn full-width-mobile" 
+            className="btn-outline-primary add-doctor-btn full-width-mobile" 
           >
-            <Plus size={20} strokeWidth={3} /> Add New Doctor
+            <UserPlus size={18} className="mr-1-5" /> New Doctor
           </button>
         </div>
 
@@ -203,15 +202,27 @@ const DoctorsList: React.FC = () => {
         ) : (
           <div className="grid-doctors">
             {filteredDoctors.map((doc: any) => (
-              <div key={doc.id} className="glass-card doctor-card">
+              <div 
+                key={doc.id} 
+                className="glass-card doctor-card"
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
+                  setEditingDoctor({ 
+                    ...doc, 
+                    branchIds: normalizedIds,
+                    BranchIds: normalizedIds 
+                  });
+                }}
+              >
                 <div className="doctor-header">
-                  <div className="doctor-avatar-wrapper">
-                    <User size={28} color="var(--accent-color)" />
+                  <div className="doctor-avatar-wrapper avatar-pink">
+                    <User size={28} className="icon-pink" />
                   </div>
                   <div className="doctor-title-box">
                     <h3 className="doctor-name">{doc.name}</h3>
                     <div className="doctor-spec-wrapper">
-                      <Stethoscope size={14} />
+                      <Stethoscope size={14} className="icon-emerald" />
                       {doc.specialization}
                     </div>
                   </div>
@@ -219,11 +230,11 @@ const DoctorsList: React.FC = () => {
 
                 <div className="doctor-details-list">
                   <div className="doctor-detail-item">
-                    <ShieldCheck size={14} />
+                    <ShieldCheck size={14} className="icon-violet" />
                     <span>Reg: {doc.registrationNumber || 'N/A'}</span>
                   </div>
                   <div className="doctor-detail-item">
-                    <Building2 size={14} />
+                    <Building2 size={14} className="icon-amber" />
                     <span className="doctor-branch-text">{doc.branchName || 'Not Assigned'}</span>
                   </div>
                 </div>
@@ -232,21 +243,16 @@ const DoctorsList: React.FC = () => {
                   <div className="doctor-actions-row">
                     <button 
                       data-tooltip="Feedback: View patient ratings and comments"
-                      onClick={() => setViewRatingsDoctorId(doc)} 
+                      onClick={(e) => { e.stopPropagation(); setViewRatingsDoctorId(doc); }} 
                       className="action-btn btn-feedback"
                     >
                       <Star size={16} fill="#FACC15" color="#FACC15" />
                     </button>
-                    <button 
-                      data-tooltip="View: See full professional profile"
-                      onClick={() => setViewDoctor(doc)} 
-                      className="action-btn btn-view"
-                    >
-                      <Eye size={16} />
-                    </button>
+
                     <button 
                       data-tooltip="Edit: Modify professional details"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
                         setEditingDoctor({ 
                           ...doc, 
@@ -256,15 +262,15 @@ const DoctorsList: React.FC = () => {
                       }} 
                       className="action-btn btn-edit"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} color="#3b82f6" />
                     </button>
                     {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Delete: Remove professional profile"
-                        onClick={() => setDeletingDoctorId(doc.id)} 
+                        onClick={(e) => { e.stopPropagation(); setDeletingDoctorId(doc.id); }} 
                         className="action-btn btn-delete"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} color="#ef4444" />
                       </button>
                     )}
                   </div>
@@ -283,13 +289,13 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} />
+            <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} required />
+            <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} required />
+            <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} />
             
             <div className="branches-assign-section">
               <label className="field-label">
-                <Building2 size={16} /> Assign to Branches
+                <Building2 size={16} className="icon-amber" /> Assign to Branches
               </label>
               {!branches ? (
                 <div className="branches-loading-box">
@@ -319,8 +325,8 @@ const DoctorsList: React.FC = () => {
             </div>
 
             <div className="modal-footer">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel"><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary btn-submit-action">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel"><X size={16} color="#f43f5e" /> Cancel</button>
+              <button type="submit" className="btn-outline-primary btn-submit-action">
                 <CheckCircle2 size={18} /> {createDoctorMutation.isPending ? 'Adding...' : 'Add Doctor'}
               </button>
             </div>
@@ -336,13 +342,13 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16}/>} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16}/>} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16}/>} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} />
+            <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} required />
+            <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} required />
+            <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} />
             
             <div className="branches-assign-section">
               <label className="field-label">
-                <Building2 size={16} /> Assign to Branches
+                <Building2 size={16} className="icon-amber" /> Assign to Branches
               </label>
               {!branches ? (
                 <div className="branches-loading-box">
@@ -372,8 +378,8 @@ const DoctorsList: React.FC = () => {
             </div>
 
             <div className="modal-footer">
-              <button type="button" onClick={() => setEditingDoctor(null)} className="btn-cancel"><X size={16} /> Cancel</button>
-              <button type="submit" className="btn-primary btn-submit-action">
+              <button type="button" onClick={() => setEditingDoctor(null)} className="btn-cancel"><X size={16} color="#f43f5e" /> Cancel</button>
+              <button type="submit" className="btn-outline-primary btn-submit-action">
                 <CheckCircle2 size={18} /> {updateDoctorMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -389,7 +395,7 @@ const DoctorsList: React.FC = () => {
             </div>
             <p className="delete-text">Are you sure you want to remove this professional? This action cannot be undone.</p>
             <div className="modal-footer">
-              <button data-tooltip="Keep this profile" onClick={() => setDeletingDoctorId(null)} className="btn-cancel"><X size={16}/> No, Keep</button>
+              <button data-tooltip="Keep this profile" onClick={() => setDeletingDoctorId(null)} className="btn-cancel"><X size={16} color="#f43f5e" /> No, Keep</button>
               <button 
                 data-tooltip="Permanently delete this professional"
                 onClick={confirmDelete}
@@ -402,36 +408,7 @@ const DoctorsList: React.FC = () => {
         </Modal>
       )}
 
-      {viewDoctor && (
-        <Modal title="Doctor Profile" onClose={() => setViewDoctor(null)} icon={<User size={24} color="var(--accent-color)" />}>
-          <div className="profile-view-body">
-            <div className="profile-avatar-large">
-              <User size={40} />
-            </div>
-            <h2 className="profile-name">{viewDoctor.name}</h2>
-            <div className="profile-spec-row">
-              <Stethoscope size={18} />
-              {viewDoctor.specialization}
-            </div>
-            <div className="profile-info-box">
-              <div className="info-item">
-                <div className="info-label">
-                  <ShieldCheck size={14} /> Registration Number
-                </div>
-                <p className="info-value">{viewDoctor.registrationNumber || 'N/A'}</p>
-              </div>
-              <div className="info-item">
-                <div className="info-label">
-                  <MapPin size={14} /> Branch Status
-                </div>
-                <p className="status-active">
-                  <CheckCircle2 size={14} /> Active Professional
-                </p>
-              </div>
-            </div>
-          </div>
-        </Modal>
-      )}
+
 
       {viewRatingsDoctorId && (
         <Modal onClose={() => setViewRatingsDoctorId(null)} title={`Feedback: Dr. ${viewRatingsDoctorId?.name}`}>

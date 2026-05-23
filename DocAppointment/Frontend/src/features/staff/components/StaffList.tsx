@@ -57,7 +57,7 @@ const StaffFormFields: React.FC<{
       <div className="staff-form-row">
         <div>
           <label className="staff-form-label">
-            <UserCog size={15} /> First Name
+            <UserCog size={15} color="#ec4899" /> First Name
           </label>
           <input
             type="text"
@@ -84,7 +84,7 @@ const StaffFormFields: React.FC<{
       <div className="staff-form-row">
         <div>
           <label data-tooltip="Login email for the staff member" className="staff-form-label">
-            <Mail size={15} /> Email Address
+            <Mail size={15} color="#0ea5e9" /> Email Address
           </label>
           <input
             type="email"
@@ -96,7 +96,7 @@ const StaffFormFields: React.FC<{
         </div>
         <div>
           <label data-tooltip="Unique identifier for internal tracking" className="staff-form-label">
-            <Hash size={15} /> Employee ID
+            <Hash size={15} color="#8b5cf6" /> Employee ID
           </label>
           <input
             type="text"
@@ -110,7 +110,7 @@ const StaffFormFields: React.FC<{
 
       <div className="staff-form-group">
         <label data-tooltip="WhatsApp number for password resets" className="staff-form-label">
-          <Phone size={15} /> Phone Number (WhatsApp)
+          <Phone size={15} color="#10b981" /> Phone Number (WhatsApp)
         </label>
         <input
           type="tel"
@@ -121,32 +121,34 @@ const StaffFormFields: React.FC<{
         />
       </div>
 
-      <div className="staff-form-group-large">
-        <label data-tooltip="Secure password for portal access" className="staff-form-label">
-          <Lock size={15} /> {isEdit ? 'New Password (leave blank to keep current)' : 'Password'}
-        </label>
-        <div className="password-input-wrapper">
-          <input
-            className="password-input"
-            type={showPass ? 'text' : 'password'}
-            value={data.password}
-            onChange={e => onChange({ ...data, password: e.target.value })}
-            placeholder={isEdit ? '••••••••' : 'Min 6 characters'}
-            required={!isEdit}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPass(p => !p)}
-            className="password-toggle-btn"
-          >
-            {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
+      {!isEdit && (
+        <div className="staff-form-group-large">
+          <label data-tooltip="Secure password for portal access" className="staff-form-label">
+            <Lock size={15} color="#f43f5e" /> Password
+          </label>
+          <div className="password-input-wrapper">
+            <input
+              className="password-input"
+              type={showPass ? 'text' : 'password'}
+              value={data.password}
+              onChange={e => onChange({ ...data, password: e.target.value })}
+              placeholder="Min 6 characters"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass(p => !p)}
+              className="password-toggle-btn"
+            >
+              {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="staff-form-group mb-10">
         <label data-tooltip="Define access level and permissions" className="staff-form-label staff-role-label">
-          <Shield size={15} /> Assign Role
+          <Shield size={15} color="#f59e0b" /> Assign Role & Permissions
         </label>
         <div className="role-select-list">
           {ROLES.filter(role => {
@@ -388,7 +390,7 @@ const StaffList: React.FC = () => {
             <button 
               data-tooltip="Add a new member to the administrative team"
               onClick={() => { setIsAddOpen(true); setErrorMsg(null); setNewStaff({ email: '', password: '', role: 3, phoneNumber: '', firstName: '', lastName: '', employeeId: '' }); }} 
-              className="btn-primary add-staff-btn full-width-mobile" 
+              className="btn-outline-primary add-staff-btn full-width-mobile" 
               disabled={!selectedBranchId}
             >
               <Plus size={20} strokeWidth={3} /> Add Member
@@ -419,7 +421,12 @@ const StaffList: React.FC = () => {
         ) : (
           <div className="grid-staff">
             {filteredStaff.map((member: any) => (
-              <div key={member.id} className="staff-card">
+              <div 
+                key={member.id} 
+                className="staff-card"
+                style={{ cursor: 'pointer' }}
+                onClick={() => openEdit(member)}
+              >
                 {/* Header: Avatar + Info + Actions */}
                 <div className="staff-card-header">
                   <div className="staff-info-wrapper">
@@ -440,18 +447,18 @@ const StaffList: React.FC = () => {
                   <div className="staff-card-actions">
                     <button 
                       data-tooltip="Edit Member"
-                      onClick={() => openEdit(member)} 
+                      onClick={(e) => { e.stopPropagation(); openEdit(member); }} 
                       className="action-btn edit-btn"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} color="#3b82f6" />
                     </button>
                     {(['orgadmin', 'branchadmin', 'superadmin'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Remove Access"
-                        onClick={() => setDeletingId(member.id)} 
+                        onClick={(e) => { e.stopPropagation(); setDeletingId(member.id); }} 
                         className="action-btn delete-btn"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} color="#ef4444" />
                       </button>
                     )}
                   </div>
@@ -472,10 +479,10 @@ const StaffList: React.FC = () => {
                 {/* Footer: Meta Info */}
                 <div className="staff-meta-footer">
                   <div className="meta-item">
-                    <Hash size={12} /> ID: {member.employeeId || '---'}
+                    <Hash size={12} color="#8b5cf6" /> ID: {member.employeeId || '---'}
                   </div>
                   <div className="meta-item">
-                    <Calendar size={12} /> Since {new Date(member.createdAt).getFullYear()}
+                    <Calendar size={12} color="#0ea5e9" /> Since {new Date(member.createdAt).getFullYear()}
                   </div>
                 </div>
               </div>
@@ -501,9 +508,9 @@ const StaffList: React.FC = () => {
                 onClick={() => setIsAddOpen(false)} 
                 className="btn-cancel"
               >
-                <X size={16} /> Cancel
+                <X size={16} color="#f43f5e" /> Cancel
               </button>
-              <button data-tooltip="Grant administrative permissions" type="submit" className="btn-primary btn-submit" disabled={createMutation.isPending}>
+              <button data-tooltip="Grant administrative permissions" type="submit" className="btn-outline-primary btn-submit" disabled={createMutation.isPending}>
                 <CheckCircle2 size={18} /> {createMutation.isPending ? 'Creating...' : 'Create Account'}
               </button>
             </div>
@@ -528,9 +535,9 @@ const StaffList: React.FC = () => {
                 onClick={() => setEditingStaff(null)} 
                 className="btn-cancel"
               >
-                <X size={16} /> Cancel
+                <X size={16} color="#f43f5e" /> Cancel
               </button>
-              <button data-tooltip="Update staff access and role" type="submit" className="btn-primary btn-submit" disabled={updateMutation.isPending}>
+              <button data-tooltip="Update staff access and role" type="submit" className="btn-outline-primary btn-submit" disabled={updateMutation.isPending}>
                 <CheckCircle2 size={18} /> {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -554,7 +561,7 @@ const StaffList: React.FC = () => {
                 onClick={() => setDeletingId(null)} 
                 className="btn-cancel"
               >
-                <X size={16} /> Cancel
+                <X size={16} color="#f43f5e" /> Cancel
               </button>
               <button data-tooltip="Permanently revoke all access" onClick={() => deleteMutation.mutate(deletingId!)} className="btn-primary btn-delete-final flex-15" disabled={deleteMutation.isPending}>
                 <Trash2 size={18} /> {deleteMutation.isPending ? 'Removing...' : 'Yes, Remove'}

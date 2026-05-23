@@ -172,38 +172,26 @@
 
 .session-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .session-action-btn {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
 }
 
-.btn-edit-session:hover {
-    background: rgba(56, 189, 248, 0.1);
-    color: var(--accent-color);
-}
+.btn-edit-session { border: 1px solid rgba(59, 130, 246, 0.3) !important; color: #3b82f6; }
+.btn-edit-session:hover { background: rgba(59, 130, 246, 0.1) !important; border-color: rgba(59, 130, 246, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
 
-.btn-delete-session {
-    background: rgba(239, 68, 68, 0.03);
-    border: 1px solid rgba(239, 68, 68, 0.1);
-    color: rgba(239, 68, 68, 0.5);
-}
-
-.btn-delete-session:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--danger);
-}
+.btn-delete-session { border: 1px solid rgba(239, 68, 68, 0.3) !important; color: var(--danger); }
+.btn-delete-session:hover { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); }
 
 .session-data-grid {
     display: grid;
@@ -338,9 +326,9 @@
 
 .btn-cancel-session {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: transparent !important;
+    border: 1px solid rgba(244, 63, 94, 0.3) !important;
+    color: #f43f5e !important;
     padding: 10px 20px;
     border-radius: 10px;
     cursor: pointer;
@@ -354,7 +342,10 @@
 }
 
 .btn-cancel-session:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(244, 63, 94, 0.1) !important;
+    border-color: rgba(244, 63, 94, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
 
 .btn-submit-session {

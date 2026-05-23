@@ -170,7 +170,7 @@ const BranchesPage: React.FC = () => {
             <button
               data-tooltip="Register a new hospital location"
               onClick={() => setIsModalOpen(true)}
-              className="btn-primary"
+              className="btn-outline-primary"
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
                 borderRadius: '10px', fontWeight: 700, boxShadow: '0 4px 15px var(--accent-glow)'

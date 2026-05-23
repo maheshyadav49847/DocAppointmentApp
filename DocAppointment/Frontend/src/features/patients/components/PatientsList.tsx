@@ -574,8 +574,12 @@ const PatientsList: React.FC = () => {
                       <input type="number" min="0" className="vital-input" placeholder="70" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} />
                     </div>
                     <div className="vital-group">
-                      <label className="vital-label">Heart Rate</label>
-                      <input type="number" min="0" className="vital-input" placeholder="72" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} />
+                      <label className="vital-label">Temp (°F)</label>
+                      <input type="number" min="0" className="vital-input" placeholder="98.6" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} />
+                    </div>
+                    <div className="vital-group">
+                      <label className="vital-label">Blood Sugar</label>
+                      <input type="number" min="0" className="vital-input" placeholder="110" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} />
                     </div>
                     <div className="vital-group">
                       <label className="vital-label">BP (mmHg)</label>
@@ -586,16 +590,12 @@ const PatientsList: React.FC = () => {
                       <input type="number" min="0" className="vital-input" placeholder="98" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} />
                     </div>
                     <div className="vital-group">
-                      <label className="vital-label">Temp (°F)</label>
-                      <input type="number" min="0" className="vital-input" placeholder="98.6" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} />
+                      <label className="vital-label">Heart Rate</label>
+                      <input type="number" min="0" className="vital-input" placeholder="72" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} />
                     </div>
                     <div className="vital-group">
                       <label className="vital-label">Resp. Rate</label>
                       <input type="number" min="0" className="vital-input" placeholder="16" value={visitRespiratoryRate} onChange={e => setVisitRespiratoryRate(e.target.value)} />
-                    </div>
-                    <div className="vital-group">
-                      <label className="vital-label">Blood Sugar</label>
-                      <input type="number" min="0" className="vital-input" placeholder="110" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} />
                     </div>
                   </div>
                 </div>
@@ -778,7 +778,7 @@ const PatientsList: React.FC = () => {
                   setEditingVisitId(null);
                   setExistingAttachments([]);
                 }}>
-                  <X size={16} className="mr-1-5" /> Cancel
+                  <X size={16} color="#f43f5e" className="mr-1-5" /> Cancel
                 </button>
                 <button id="btn-save-consult" className="btn-save-consult" onClick={handleSaveConsultation} disabled={isSavingVisit || !visitDoctorId}>
                   {isSavingVisit ? <span className="spinner-sm" /> : <Save size={16} className="mr-1-5" />}
@@ -826,50 +826,49 @@ const PatientsList: React.FC = () => {
                               <div className="ct-text flex-items-fs-gap-6 mb-2"><Activity size={14} className="icon-red mt-2px mr-1-5" /> <span><strong className="text-slate-200">Symptoms:</strong> {v.symptoms || '--'}</span></div>
                               {v.advice && <div className="ct-text flex-items-fs-gap-6 mb-2"><HeartPulse size={14} className="icon-emerald mt-2px mr-1-5" /> <span><strong className="text-slate-200">Treatment Plan:</strong> {v.advice}</span></div>}
 
-                              {(v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
-                                <div className="ct-rx rx-history-card" style={{ marginBottom: '8px' }}>
-                                  <div className="rx-history-header">
-                                    <Activity size={12} className="icon-red mr-1" /> CLINICAL VITALS
-                                  </div>
-                                  <div className="vitals-modern-grid">
-                                    {/* Row 1: Weight, BP, Heart Rate, Oxygen */}
-                                    <div className={`vital-box vital-box-emerald ${!v.weight ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Weight</span>
-                                      <span className="vital-box-value">{v.weight ? `${v.weight} kg` : '--'}</span>
-                                    </div>
-                                    <div className={`vital-box vital-box-violet ${!v.bloodPressure ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">BP</span>
-                                      <span className="vital-box-value">{v.bloodPressure ? v.bloodPressure : '--'}</span>
-                                    </div>
-                                    <div className={`vital-box vital-box-rose ${!v.heartRate ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Heart Rate</span>
-                                      <span className="vital-box-value">{v.heartRate ? `${v.heartRate} bpm` : '--'}</span>
-                                    </div>
-                                    <div className={`vital-box vital-box-sky ${!v.oxygenLevel ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Oxygen</span>
-                                      <span className="vital-box-value">{v.oxygenLevel ? `${v.oxygenLevel}%` : '--'}</span>
-                                    </div>
-
-                                    {/* Row 2: Temperature, Respiratory Rate, Blood Sugar */}
-                                    <div className={`vital-box vital-box-amber ${!v.temperature ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Temp</span>
-                                      <span className="vital-box-value">{v.temperature ? `${v.temperature}°F` : '--'}</span>
-                                    </div>
-                                    <div className={`vital-box vital-box-teal ${!v.respiratoryRate ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Resp. Rate</span>
-                                      <span className="vital-box-value">{v.respiratoryRate ? `${v.respiratoryRate}/min` : '--'}</span>
-                                    </div>
-                                    <div className={`vital-box vital-box-pink ${!v.bloodSugar ? 'vital-empty' : ''}`}>
-                                      <span className="vital-box-label">Blood Sugar</span>
-                                      <span className="vital-box-value">{v.bloodSugar ? `${v.bloodSugar}` : '--'}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
                               <details className="ct-details">
                                 <summary className="ct-summary">View Details</summary>
                                 <div className="ct-details-content">
+                                  {(v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
+                                    <div className="ct-rx rx-history-card" style={{ marginBottom: '12px' }}>
+                                      <div className="rx-history-header">
+                                        <Activity size={12} className="icon-red mr-1" /> CLINICAL VITALS
+                                      </div>
+                                      <div className="vitals-modern-grid">
+                                        {/* Row 1: Weight, Temp, Blood Sugar, BP */}
+                                        <div className={`vital-box vital-box-emerald ${!v.weight ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Weight</span>
+                                          <span className="vital-box-value">{v.weight ? `${v.weight} kg` : '--'}</span>
+                                        </div>
+                                        <div className={`vital-box vital-box-amber ${!v.temperature ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Temp</span>
+                                          <span className="vital-box-value">{v.temperature ? `${v.temperature}°F` : '--'}</span>
+                                        </div>
+                                        <div className={`vital-box vital-box-pink ${!v.bloodSugar ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Blood Sugar</span>
+                                          <span className="vital-box-value">{v.bloodSugar ? `${v.bloodSugar}` : '--'}</span>
+                                        </div>
+                                        <div className={`vital-box vital-box-violet ${!v.bloodPressure ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">BP</span>
+                                          <span className="vital-box-value">{v.bloodPressure ? v.bloodPressure : '--'}</span>
+                                        </div>
+
+                                        {/* Row 2: Oxygen, Heart Rate, Resp. Rate */}
+                                        <div className={`vital-box vital-box-sky ${!v.oxygenLevel ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Oxygen</span>
+                                          <span className="vital-box-value">{v.oxygenLevel ? `${v.oxygenLevel}%` : '--'}</span>
+                                        </div>
+                                        <div className={`vital-box vital-box-rose ${!v.heartRate ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Heart Rate</span>
+                                          <span className="vital-box-value">{v.heartRate ? `${v.heartRate} bpm` : '--'}</span>
+                                        </div>
+                                        <div className={`vital-box vital-box-teal ${!v.respiratoryRate ? 'vital-empty' : ''}`}>
+                                          <span className="vital-box-label">Resp. Rate</span>
+                                          <span className="vital-box-value">{v.respiratoryRate ? `${v.respiratoryRate}/min` : '--'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                   {v.internalNotes && <div className="ct-text flex-items-fs-gap-6 color-var-accent-color"><Edit2 size={14} className="icon-amber mt-2px mr-1-5" /> <span><strong className="text-slate-200">Private Note:</strong> {v.internalNotes}</span></div>}
                                   {v.followUpDate && (
                                     <div className="ct-text history-fup-card">
@@ -983,7 +982,7 @@ const PatientsList: React.FC = () => {
                   className="search-input-field" />
               </div>
             </div>
-            <button className="btn-primary"
+            <button className="btn-outline-primary"
               onClick={() => setIsAddModalOpen(true)}>
               <UserPlus size={15} className="mr-1-5" /> New Patient
             </button>
@@ -1210,7 +1209,7 @@ const PatientsList: React.FC = () => {
               <span className="wa-hint">Sent via WhatsApp bridge instantly.</span>
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setMessagingPatient(null)}><X size={14} className="mr-1" /> Cancel</button>
+              <button className="btn-cancel" onClick={() => setMessagingPatient(null)}><X size={14} color="#f43f5e" className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSendMessage}
                 disabled={isSending || !messageText.trim()}>
                 {isSending ? <span className="spinner-sm" /> : <Send size={14} />}
@@ -1315,7 +1314,7 @@ const PatientsList: React.FC = () => {
                 value={editPreExistingConditions} onChange={e => setEditPreExistingConditions(e.target.value)} />
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={handleCloseEditModal}><X size={14} className="mr-1" /> Cancel</button>
+              <button className="btn-cancel" onClick={handleCloseEditModal}><X size={14} color="#f43f5e" className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSaveProfile} disabled={isSavingProfile}>
                 {isSavingProfile ? <span className="spinner-sm" /> : <Check size={14} />}
                 {isSavingProfile ? 'Saving...' : 'Save Changes'}
@@ -1353,7 +1352,7 @@ const PatientsList: React.FC = () => {
             <div className="modal-actions">
               <button className="btn-cancel"
                 onClick={() => { setIsUploadingAttachment(false); setUploadFiles([]); }}>
-                <X size={14} className="mr-1" /> Cancel
+                <X size={14} color="#f43f5e" className="mr-1" /> Cancel
               </button>
               <button className="btn-submit" onClick={handleUploadAttachment}
                 disabled={isSavingAttachment || uploadFiles.length === 0}>

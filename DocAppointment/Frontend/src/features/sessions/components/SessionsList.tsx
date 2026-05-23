@@ -60,27 +60,27 @@ const SessionFormFields: React.FC<{ data: any; onChange: (v: any) => void }> = (
 
       <div className="form-field-group">
         <label data-tooltip="Identify this shift (e.g. Evening Clinic, Emergency)" className="form-label">
-          <ListOrdered size={16} /> Session Name
+          <ListOrdered size={16} color="#0ea5e9" /> Session Name
         </label>
         <input type="text" value={data.sessionName} onChange={(e) => onChange({...data, sessionName: e.target.value})} placeholder="e.g. Morning OPD" required />
       </div>
       <div className="form-input-row grid-stats">
         <div>
           <label data-tooltip="Start time of the session" className="form-label">
-            <Clock size={16} /> Start Time
+            <Clock size={16} color="#10b981" /> Start Time
           </label>
           <input type="time" value={data.startTime.substring(0, 5)} onChange={(e) => onChange({...data, startTime: e.target.value})} required />
         </div>
         <div>
           <label data-tooltip="End time of the session" className="form-label">
-            <Clock size={16} /> End Time
+            <Clock size={16} color="#10b981" /> End Time
           </label>
           <input type="time" value={data.endTime.substring(0, 5)} onChange={(e) => onChange({...data, endTime: e.target.value})} required />
         </div>
       </div>
       <div className="form-field-group mb-25">
         <label data-tooltip="Maximum number of tokens allowed per session" className="form-label">
-          <Hash size={16} /> Token Capacity
+          <Hash size={16} color="#8b5cf6" /> Token Capacity
         </label>
         <input type="number" value={data.defaultCapacity} onChange={(e) => onChange({...data, defaultCapacity: parseInt(e.target.value)})} required />
       </div>
@@ -235,7 +235,7 @@ const SessionsList: React.FC = () => {
             <button 
               data-tooltip="Define a new time slot or shift for this doctor"
               onClick={() => setIsModalOpen(true)} 
-              className="btn-primary add-session-btn full-width-mobile" 
+              className="btn-outline-primary add-session-btn full-width-mobile" 
             >
               <Plus size={20} strokeWidth={3} /> Add New Shift
             </button>
@@ -261,7 +261,12 @@ const SessionsList: React.FC = () => {
         ) : (
           <div className="grid-sessions">
             {sessions?.map((session: any) => (
-              <div key={session.id} className="glass-card session-card">
+              <div 
+                key={session.id} 
+                className="glass-card session-card"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setEditingSession(session)}
+              >
                 <div className="session-header">
                   <div>
                     <h3 className="session-name">{session.sessionName}</h3>
@@ -274,18 +279,18 @@ const SessionsList: React.FC = () => {
                   <div className="session-actions">
                     <button 
                       data-tooltip="Edit Shift"
-                      onClick={() => setEditingSession(session)}
+                      onClick={(e) => { e.stopPropagation(); setEditingSession(session); }}
                       className="session-action-btn btn-edit-session"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} color="#3b82f6" />
                     </button>
                     {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
                       <button 
                         data-tooltip="Delete Shift"
-                        onClick={() => setDeletingSessionId(session.id)}
+                        onClick={(e) => { e.stopPropagation(); setDeletingSessionId(session.id); }}
                         className="session-action-btn btn-delete-session"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} color="#ef4444" />
                       </button>
                     )}
                   </div>
@@ -322,8 +327,8 @@ const SessionsList: React.FC = () => {
           <form onSubmit={handleAddSession}>
             <SessionFormFields data={newSession} onChange={setNewSession} />
             <div className="modal-footer-row">
-              <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel-session"><X size={16} /> Cancel</button>
-              <button data-tooltip="Save and create new shift" type="submit" className="btn-primary btn-submit-session">
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel-session"><X size={16} color="#f43f5e" /> Cancel</button>
+              <button data-tooltip="Save and create new shift" type="submit" className="btn-outline-primary btn-submit-session">
                 <CheckCircle2 size={18} /> {createSessionMutation.isPending ? 'Saving...' : 'Add Session'}
               </button>
             </div>
@@ -336,8 +341,8 @@ const SessionsList: React.FC = () => {
           <form onSubmit={handleUpdateSession}>
             <SessionFormFields data={editingSession} onChange={setEditingSession} />
             <div className="modal-footer-row">
-              <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingSession(null)} className="btn-cancel-session"><X size={16} /> Cancel</button>
-              <button data-tooltip="Commit updates to this shift" type="submit" className="btn-primary btn-submit-session">
+              <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingSession(null)} className="btn-cancel-session"><X size={16} color="#f43f5e" /> Cancel</button>
+              <button data-tooltip="Commit updates to this shift" type="submit" className="btn-outline-primary btn-submit-session">
                 <CheckCircle2 size={18} /> {updateSessionMutation.isPending ? 'Updating...' : 'Update Session'}
               </button>
             </div>
@@ -353,7 +358,7 @@ const SessionsList: React.FC = () => {
             </div>
             <p className="delete-alert-text">Are you sure you want to delete this shift? This will prevent new bookings for this slot.</p>
             <div className="modal-footer-row">
-              <button data-tooltip="Keep this session" onClick={() => setDeletingSessionId(null)} className="btn-cancel-session"><X size={16} /> Cancel</button>
+              <button data-tooltip="Keep this session" onClick={() => setDeletingSessionId(null)} className="btn-cancel-session"><X size={16} color="#f43f5e" /> Cancel</button>
               <button 
                 data-tooltip="Permanently delete this shift"
                 onClick={confirmDelete}
