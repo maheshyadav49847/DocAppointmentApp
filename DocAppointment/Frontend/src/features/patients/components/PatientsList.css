@@ -585,7 +585,7 @@
   margin-top: 6px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
   padding: 10px 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px;
 }
-.ct-rx div { font-size: 0.75rem; color: #38bdf8; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.ct-rx > div:not(.vitals-modern-grid) { font-size: 0.75rem; color: #38bdf8; font-weight: 500; display: flex; align-items: center; gap: 6px; }
 
 /* ── Premium Skeleton Loaders & Animations ── */
 @keyframes skeletonPulse {
@@ -1012,3 +1012,391 @@
 .ep-status-dot.dot-new {
   background-color: #60a5fa;
 }
+
+/* Professional Enterprise Pagination */
+.pro-pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-color, #334155);
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+.pro-pagination-info {
+  font-size: 0.875rem; /* 14px */
+  color: var(--text-muted, #94a3b8);
+}
+
+.pro-font-medium {
+  font-weight: 500;
+  color: var(--text-color, #f8fafc);
+}
+
+.pro-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.pro-limit-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pro-limit-label {
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.pro-limit-select {
+  background-color: var(--surface-color, #1e293b);
+  border: 1px solid var(--border-color, #334155);
+  color: var(--text-color, #f8fafc);
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+.pro-limit-select:focus {
+  border-color: var(--accent-color, #3b82f6);
+}
+
+.pro-pagination-nav {
+  display: inline-flex;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #334155);
+  background-color: var(--surface-color, #1e293b);
+  overflow: hidden;
+}
+
+.pro-pagination-btn,
+.pro-pagination-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color, #334155);
+  color: var(--text-muted, #94a3b8);
+  min-width: 36px;
+  height: 36px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  padding: 0 0.5rem;
+}
+
+.pro-pagination-btn:last-child {
+  border-right: none;
+}
+
+.pro-pagination-btn:hover:not(:disabled),
+.pro-pagination-page:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-color, #f8fafc);
+}
+
+.pro-pagination-page.active {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-color, #ffffff);
+  font-weight: 600;
+}
+
+.pro-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+
+/* History Details Accordion */
+.ct-details { margin-top: 4px; }
+.ct-summary { font-size: 0.75rem; font-weight: 600; color: #38bdf8; cursor: pointer; list-style: none; display: inline-flex; align-items: center; padding: 4px 8px; background: rgba(56, 189, 248, 0.1); border-radius: 6px; transition: background 0.2s; }
+.ct-summary:hover { background: rgba(56, 189, 248, 0.2); }
+.ct-summary::-webkit-details-marker { display: none; }
+.ct-details-content { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+
+
+
+/* History Vitals Grid */
+.history-vitals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; padding: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; margin-top: 8px; }
+.history-vital-item { display: flex; flex-direction: column; gap: 2px; }
+.history-vital-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+.history-vital-value { font-size: 0.85rem; font-weight: 600; color: #f8fafc; }
+
+
+
+/* Modern Vitals Grid Boxes — 2 rows × 4 columns */
+.vitals-modern-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 8px; }
+.vital-box { padding: 6px 3px; border-radius: 7px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; min-width: 0; overflow: hidden; }
+.vital-box-label { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; opacity: 0.85; letter-spacing: 0.3px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.vital-box-value { font-size: 0.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+.vital-box-cyan { background: rgba(6, 182, 212, 0.1); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.2); }
+.vital-box-emerald { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.vital-box-lime { background: rgba(132, 204, 22, 0.1); color: #84cc16; border: 1px solid rgba(132, 204, 22, 0.2); }
+.vital-box-rose { background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); }
+.vital-box-violet { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2); }
+.vital-box-sky { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.2); }
+.vital-box-amber { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+.vital-box-teal { background: rgba(20, 184, 166, 0.1); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.2); }
+.vital-box-pink { background: rgba(217, 70, 239, 0.12); color: #e879f9; border: 1px solid rgba(217, 70, 239, 0.3); }
+
+.vital-empty {
+  opacity: 0.55;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* History Vitals Card & Header */
+.rx-history-card {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
+}
+.rx-history-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* History misc helper classes */
+.flex-justify-space-between-items-fs {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.flex-items-fs-gap-6 {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.mb-2 { margin-bottom: 8px; }
+.mt-8 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.mt-2px { margin-top: 2px; }
+.mr-1 { margin-right: 4px; }
+.mr-1-5 { margin-right: 6px; }
+.mr-6 { margin-right: 6px; }
+.ml-1 { margin-left: 4px; }
+.flex-shrink-0 { flex-shrink: 0; }
+.text-slate-200 { color: #e2e8f0; }
+.fs-0-8 { font-size: 0.8rem; }
+.text-muted { color: #94a3b8; }
+
+/* History follow-up styling */
+.history-fup-card {
+  background: rgba(236, 72, 153, 0.05);
+  border: 1px solid rgba(236, 72, 153, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.history-fup-text {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding-left: 20px;
+}
+.flex-items-center-gap-6 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.history-attachments-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.history-attachments-text {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+/* History Timeline helper class overrides */
+.color-var-accent-color { color: var(--accent-color); }
+
+/* Icon color helpers */
+.icon-blue { color: #60a5fa; }
+.icon-blue-light { color: #93c5fd; }
+.icon-red { color: #ef4444; }
+.icon-emerald { color: #10b981; }
+.icon-amber { color: #fbbf24; }
+.icon-purple { color: #a855f7; }
+.icon-rose { color: #f43f5e; }
+.icon-sky { color: #0ea5e9; }
+.icon-cyan { color: #06b6d4; }
+.icon-pink { color: #ec4899; }
+.icon-slate { color: #94a3b8; }
+.icon-14b8a6 { color: #14b8a6; }
+
+/* Misc classes used in the component */
+.items-center-icon-purple-fs-0-65 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.65rem;
+}
+.flex-items-center-icon-blue-light {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.flex-items-center-icon-emerald {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.flex-items-center-icon-f87171 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.flex-items-center-icon-amber {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.items-center-icon-red-fs-0-7 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+}
+.fs-1-1-icon-f8fafc {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
+}
+.fs-0-85-icon-38bdf8 {
+  font-size: 0.85rem;
+  color: #38bdf8;
+  font-weight: 700;
+}
+.icon-slate-fs-0-85 {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.icon-64748b-fs-0-75-mt-4 {
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+.fs-0-75-icon-38bdf8-flex-items-center {
+  font-size: 0.75rem;
+  color: #38bdf8;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.fs-0-8-icon-e2e8f0-flex-justify-space-between {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.items-center-fs-0-75-icon-f8fafc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #f8fafc;
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color 0.2s;
+}
+.items-center-fs-0-75-icon-f8fafc:hover {
+  color: var(--accent-color);
+}
+.items-center-fs-0-75-color-var-accent-color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--accent-color);
+  text-decoration: none;
+  padding: 4px 0;
+}
+.icon-blue-light-flex-items-center,
+.icon-emerald-flex-items-center,
+.icon-f87171-flex-items-center,
+.icon-amber-flex-items-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Patient card styles */
+.flex-justify-flex-end-items-center {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* History Pagination */
+.btn-outline-sm {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.btn-outline-sm:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.3);
+  color: var(--accent-color);
+}
+.btn-outline-sm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* EHR Empty state */
+.ehr-state-sm {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* Custom style overrides for timeline */
+.custom-style-16 { padding: 20px; }
+.custom-style-17 { opacity: 0.7; }
+.custom-style-18 { opacity: 0.4; }
+.custom-style-19 { padding: 4px; }
+.custom-style-20 { padding: 40px 0; }
+

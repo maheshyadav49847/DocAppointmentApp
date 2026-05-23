@@ -53,6 +53,12 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<ChatSession>()
                 .HasIndex(x => new { x.PhoneNumber, x.BranchId })
                 .IsUnique();
+
+            // Indexes for Search Performance
+            modelBuilder.Entity<Patient>()
+                .HasIndex(p => p.Phone);
+            modelBuilder.Entity<Patient>()
+                .HasIndex(p => p.Name);
         }
     }
 }

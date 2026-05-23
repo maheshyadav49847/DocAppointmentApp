@@ -48,14 +48,20 @@ namespace CodeX.Api.Controllers
 
         // 2. Fetch all visits for a patient (including medicines and doctor details)
         [HttpGet("{id}/visits")]
-        public async Task<IActionResult> GetPatientVisits(Guid id)
+        public async Task<IActionResult> GetPatientVisits(Guid id, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
-            var visits = await _context.PatientVisits
+            var query = _context.PatientVisits
                 .Include(v => v.Doctor)
                 .Include(v => v.Medicines)
                 .Include(v => v.Attachments)
-                .Where(v => v.PatientId == id)
+                .Where(v => v.PatientId == id);
+
+            var totalCount = await query.CountAsync();
+
+            var visits = await query
                 .OrderByDescending(v => v.VisitDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .Select(v => new
                 {
                     v.Id,
@@ -84,7 +90,15 @@ namespace CodeX.Api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(visits);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)limit);
+
+            return Ok(new
+            {
+                data = visits,
+                totalCount,
+                totalPages,
+                currentPage = page
+            });
         }
 
         // 3. Add manual visit entry
@@ -298,15 +312,29 @@ namespace CodeX.Api.Controllers
 
         // 7. Get all attachments for a patient
         [HttpGet("{id}/attachments")]
-        public async Task<IActionResult> GetAttachments(Guid id)
+        public async Task<IActionResult> GetAttachments(Guid id, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
-            var attachments = await _context.PatientAttachments
-                .Where(a => a.PatientId == id)
+            var query = _context.PatientAttachments
+                .Where(a => a.PatientId == id);
+
+            var totalCount = await query.CountAsync();
+
+            var attachments = await query
                 .OrderByDescending(a => a.UploadDate)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .Select(a => new { a.Id, a.FileName, a.Category, a.FileUrl, a.UploadDate })
                 .ToListAsync();
 
-            return Ok(attachments);
+            var totalPages = (int)Math.Ceiling(totalCount / (double)limit);
+
+            return Ok(new
+            {
+                data = attachments,
+                totalCount,
+                totalPages,
+                currentPage = page
+            });
         }
 
         // 8. Get patient followups

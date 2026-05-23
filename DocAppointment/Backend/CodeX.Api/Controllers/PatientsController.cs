@@ -19,7 +19,11 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPatients([FromQuery] Guid? branchId)
+        public async Task<IActionResult> GetPatients(
+            [FromQuery] Guid? branchId,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
         {
             IQueryable<Patient> query = _context.Patients;
 
@@ -28,8 +32,19 @@ namespace CodeX.Api.Controllers
                 query = query.Where(p => !p.Tokens.Any() || p.Tokens.Any(t => t.Queue.BranchId == branchId.Value));
             }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.ToLower();
+                query = query.Where(p => p.Name.ToLower().Contains(searchTerm) || p.Phone.Contains(searchTerm));
+            }
+
+            var totalCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling((double)totalCount / limit);
+
             var patients = await query
                 .OrderByDescending(p => p.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
                 .Select(p => new
                 {
                     p.Id,
@@ -68,7 +83,13 @@ namespace CodeX.Api.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(patients);
+            return Ok(new
+            {
+                data = patients,
+                totalCount = totalCount,
+                totalPages = totalPages,
+                currentPage = page
+            });
         }
 
         [HttpPost]
