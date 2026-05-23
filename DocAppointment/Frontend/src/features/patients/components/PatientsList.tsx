@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+
 import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
   History, Send, X, ArrowLeft, Building2, Edit, Check,
@@ -36,11 +36,11 @@ const PatientsList: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingFromCard, setIsEditingFromCard] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editAddress, setEditAddress] = useState('');
-  const [editEmergencyContact, setEditEmergencyContact] = useState('');
   const [editAge, setEditAge] = useState('');
   const [editGender, setEditGender] = useState('');
   const [editBloodGroup, setEditBloodGroup] = useState('');
@@ -91,7 +91,7 @@ const PatientsList: React.FC = () => {
       setEditPhone(selectedPatient.phone || '');
       setEditEmail(selectedPatient.email || '');
       setEditAddress(selectedPatient.address || '');
-      setEditEmergencyContact(selectedPatient.emergencyContact || '');
+      
       setEditAge(selectedPatient.age || '');
       setEditGender(selectedPatient.gender || '');
       setEditBloodGroup(selectedPatient.bloodGroup || '');
@@ -203,6 +203,14 @@ const PatientsList: React.FC = () => {
     finally { setIsSending(false); }
   };
 
+  const handleCloseEditModal = () => {
+    setIsEditingProfile(false);
+    if (isEditingFromCard) {
+      setSelectedPatient(null);
+      setIsEditingFromCard(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!selectedPatient) return;
     setIsSavingProfile(true);
@@ -215,7 +223,7 @@ const PatientsList: React.FC = () => {
       setSelectedPatient((prev: any) => ({ ...prev, ...r.data }));
       queryClient.invalidateQueries({ queryKey: ['patients'] });
       notify.success('Saved', 'Patient profile updated.');
-      setIsEditingProfile(false);
+      handleCloseEditModal();
     } catch { notify.danger('Error', 'Failed to update profile.'); }
     finally { setIsSavingProfile(false); }
   };
@@ -439,7 +447,7 @@ const PatientsList: React.FC = () => {
                   <span className="ehr-code-badge items-center-icon-purple-fs-0-65">
                     <Hash size={10} /> {patientCode}
                   </span>
-                  <button className="btn-icon-ghost" onClick={() => setIsEditingProfile(true)} title="Edit Profile">
+                  <button className="btn-icon-ghost" onClick={() => { setIsEditingProfile(true); setIsEditingFromCard(false); }} title="Edit Profile">
                     <Edit size={14} />
                   </button>
                 </div>
@@ -911,8 +919,8 @@ const PatientsList: React.FC = () => {
                   <div className="ep-info">
                     <div className="ep-name-row">
                       <h3 className="ep-name">{p.name}</h3>
-                      <div className="ep-status-badge" style={!p.lastVisit ? { background: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.2)' } : {}}>
-                        <span style={{width: '6px', height: '6px', borderRadius: '50%', backgroundColor: p.lastVisit ? '#34d399' : '#60a5fa'}}></span>
+                      <div className={`ep-status-badge ${!p.lastVisit ? 'status-new' : ''}`}>
+                        <span className={`ep-status-dot ${p.lastVisit ? 'dot-active' : 'dot-new'}`}></span>
                         {p.lastVisit ? 'Active' : 'New'}
                       </div>
                     </div>
@@ -1027,9 +1035,14 @@ const PatientsList: React.FC = () => {
                   <div className="ep-last-visit flex-items-center-1">
                     <History size={14} className="icon-slate mr-1-5" /> Last Visit: <span className="ml-1-5">{p.lastVisit ? formatDate(p.lastVisit) : 'None'}</span>
                   </div>
-                  <button className="ep-consult-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setWorkspaceTab('history'); }}>
-                    <Stethoscope size={16} className="icon-sky mr-1-5" /> Consult
-                  </button>
+                  <div className="ep-footer-actions">
+                    <button className="ep-edit-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setIsEditingProfile(true); setIsEditingFromCard(true); }}>
+                      <Edit size={16} className="mr-1-5" /> Edit Profile
+                    </button>
+                    <button className="ep-consult-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setWorkspaceTab('history'); }}>
+                      <Stethoscope size={16} className="icon-sky mr-1-5" /> Consult
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1075,7 +1088,7 @@ const PatientsList: React.FC = () => {
       {/* Edit Profile Modal */}
       {isEditingProfile && selectedPatient && (
         <Modal title="Edit Patient Profile" icon={<Edit size={20} color="var(--accent-color)" />}
-          onClose={() => setIsEditingProfile(false)} maxWidth="540px">
+          onClose={handleCloseEditModal} maxWidth="540px">
           <div className="modal-body">
             <p className="color-var-text-secondary-fs-0-9">
               Update patient information.
@@ -1166,7 +1179,7 @@ const PatientsList: React.FC = () => {
                 value={editPreExistingConditions} onChange={e => setEditPreExistingConditions(e.target.value)} />
             </div>
             <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setIsEditingProfile(false)}><X size={14} className="mr-1" /> Cancel</button>
+              <button className="btn-cancel" onClick={handleCloseEditModal}><X size={14} className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSaveProfile} disabled={isSavingProfile}>
                 {isSavingProfile ? <span className="spinner-sm" /> : <Check size={14} />}
                 {isSavingProfile ? 'Saving...' : 'Save Changes'}
