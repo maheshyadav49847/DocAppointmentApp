@@ -5,7 +5,8 @@ import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
   History, Send, X, ArrowLeft, Building2, Edit, Check,
   Trash2, Plus, FileText, ClipboardList,
-  Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone
+  Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
@@ -25,6 +26,22 @@ const PatientsList: React.FC = () => {
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>(currentBranchId || 'all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedBranchId, limit]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
   // Doctor Workspace Tabs (Right Sidebar)
@@ -156,27 +173,39 @@ const PatientsList: React.FC = () => {
     }
   }, [doctors, visitDoctorId]);
 
-  const { data: patients, isLoading } = useQuery({
-    queryKey: ['patients', selectedBranchId],
+  const { data: patientsData, isLoading } = useQuery({
+    queryKey: ['patients', selectedBranchId, page, limit, debouncedSearchQuery],
     queryFn: async () => {
       const r = await api.get('/patients', {
-        params: { branchId: selectedBranchId !== 'all' ? selectedBranchId : undefined },
+        params: { 
+          branchId: selectedBranchId !== 'all' ? selectedBranchId : undefined,
+          page,
+          limit,
+          search: debouncedSearchQuery || undefined
+        },
       });
       return r.data;
     },
   });
 
-  const { data: clinicalVisits, isLoading: isVisitsLoading } = useQuery({
-    queryKey: ['clinicalVisits', selectedPatient?.id],
-    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/visits`); return r.data; },
-    enabled: !!selectedPatient,
-  });
+  const patients = patientsData?.data || [];
+  const totalPages = patientsData?.totalPages || 1;
+  const totalCount = patientsData?.totalCount || 0;
 
-  const { data: attachments } = useQuery({
-    queryKey: ['attachments', selectedPatient?.id],
-    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/attachments`); return r.data; },
+  const { data: clinicalVisitsData, isLoading: isVisitsLoading } = useQuery({
+    queryKey: ['clinicalVisits', selectedPatient?.id, historyPage],
+    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/visits?page=${historyPage}&limit=5`); return r.data; },
     enabled: !!selectedPatient,
   });
+  const clinicalVisits = clinicalVisitsData?.data || [];
+  const totalHistoryPages = clinicalVisitsData?.totalPages || 1;
+
+  const { data: attachmentsData } = useQuery({
+    queryKey: ['attachments', selectedPatient?.id],
+    queryFn: async () => { const r = await api.get(`/patientclinical/${selectedPatient.id}/attachments?limit=100`); return r.data; },
+    enabled: !!selectedPatient,
+  });
+  const attachments = attachmentsData?.data || [];
 
   useQuery({
     queryKey: ['followups', selectedPatient?.id],
@@ -184,9 +213,7 @@ const PatientsList: React.FC = () => {
     enabled: !!selectedPatient,
   });
 
-  const filteredPatients = patients?.filter((p: any) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.phone.includes(searchQuery)
-  ) || [];
+  const filteredPatients = patients || [];
 
   const getFileBaseUrl = () => (api.defaults.baseURL || '').replace(/\/api\/?$/, '');
 
@@ -765,13 +792,13 @@ const PatientsList: React.FC = () => {
             <div className="workspace-sidebar plain-panel">
               <div className="sidebar-tabs">
                 <button className="sb-tab active">
-                  History {clinicalVisits?.length > 0 && <span>({clinicalVisits.length})</span>}
+                  History {clinicalVisitsData?.totalCount > 0 && <span>({clinicalVisitsData.totalCount})</span>}
                 </button>
               </div>
 
               <div className="sidebar-content">
                 
-                {workspaceTab === 'history' && (
+{workspaceTab === 'history' && (
                   <div className="history-pane">
                     {isVisitsLoading ? (
                       <div className="compact-timeline custom-style-16">
@@ -779,11 +806,11 @@ const PatientsList: React.FC = () => {
                         <div className="skeleton-box skeleton-block custom-style-17"></div>
                         <div className="skeleton-box skeleton-block custom-style-18"></div>
                       </div>
-                    ) : !clinicalVisits?.length ? (
+                    ) : !clinicalVisitsData?.data?.length ? (
                       <div className="ehr-state-sm">No past visits found.</div>
                     ) : (
                       <div className="compact-timeline">
-                        {clinicalVisits.map((v: any, index: number) => (
+                        {clinicalVisitsData.data.map((v: any, index: number) => (
                           <div key={v.id} className="ct-item">
                             <div className="ct-date">{formatDate(v.visitDate)}</div>
                             <div className="ct-card">
@@ -795,53 +822,104 @@ const PatientsList: React.FC = () => {
                                   </button>
                                 )}
                               </div>
-                              <div className="ct-text flex-items-fs-gap-6"><ClipboardList size={14} className="icon-purple mt-2px mr-1-5" /> <span><strong className="text-slate-200">Diagnosis:</strong> {v.diagnosis || '--'}</span></div>
-                              <div className="ct-text flex-items-fs-gap-6"><Activity size={14} className="icon-red mt-2px mr-1-5" /> <span><strong className="text-slate-200">Symptoms:</strong> {v.symptoms || '--'}</span></div>
-                              {v.advice && <div className="ct-text flex-items-fs-gap-6"><HeartPulse size={14} className="icon-emerald mt-2px mr-1-5" /> <span><strong className="text-slate-200">Treatment Plan:</strong> {v.advice}</span></div>}
-                              {v.internalNotes && <div className="ct-text flex-items-fs-gap-6 color-var-accent-color"><Edit2 size={14} className="icon-amber mt-2px mr-1-5" /> <span><strong className="text-slate-200">Private Note:</strong> {v.internalNotes}</span></div>}
-                              {(v.height || v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
-                                <div className="ct-rx rx-history-card">
+                              <div className="ct-text flex-items-fs-gap-6 mb-2"><ClipboardList size={14} className="icon-purple mt-2px mr-1-5" /> <span><strong className="text-slate-200">Diagnosis:</strong> {v.diagnosis || '--'}</span></div>
+                              <div className="ct-text flex-items-fs-gap-6 mb-2"><Activity size={14} className="icon-red mt-2px mr-1-5" /> <span><strong className="text-slate-200">Symptoms:</strong> {v.symptoms || '--'}</span></div>
+                              {v.advice && <div className="ct-text flex-items-fs-gap-6 mb-2"><HeartPulse size={14} className="icon-emerald mt-2px mr-1-5" /> <span><strong className="text-slate-200">Treatment Plan:</strong> {v.advice}</span></div>}
+
+                              {(v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
+                                <div className="ct-rx rx-history-card" style={{ marginBottom: '8px' }}>
                                   <div className="rx-history-header">
-                                    <Activity size={12} className="icon-red mr-1" /> VITALS
+                                    <Activity size={12} className="icon-red mr-1" /> CLINICAL VITALS
                                   </div>
-                                  <div className="flex-wrap-gap-8">
-                                    {v.height && <span className="vital-pill vital-pill-cyan">HT: {v.height}cm</span>}
-                                    {v.weight && <span className="vital-pill vital-pill-emerald">WT: {v.weight}kg</span>}
-                                    {v.height && v.weight && <span className="vital-pill vital-pill-lime">BMI: {(parseFloat(v.weight) / Math.pow(parseFloat(v.height) / 100, 2)).toFixed(1)}</span>}
-                                    {v.heartRate && <span className="vital-pill vital-pill-rose">HR: {v.heartRate} bpm</span>}
-                                    {v.bloodPressure && <span className="vital-pill vital-pill-violet">BP: {v.bloodPressure}</span>}
-                                    {v.oxygenLevel && <span className="vital-pill vital-pill-sky">SpO2: {v.oxygenLevel}%</span>}
-                                    {v.temperature && <span className="vital-pill vital-pill-amber">Temp: {v.temperature}°F</span>}
-                                    {v.respiratoryRate && <span className="vital-pill vital-pill-teal">RR: {v.respiratoryRate}</span>}
-                                    {v.bloodSugar && <span className="vital-pill vital-pill-pink">Sugar: {v.bloodSugar}</span>}
+                                  <div className="vitals-modern-grid">
+                                    {/* Row 1: Weight, BP, Heart Rate, Oxygen */}
+                                    <div className={`vital-box vital-box-emerald ${!v.weight ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Weight</span>
+                                      <span className="vital-box-value">{v.weight ? `${v.weight} kg` : '--'}</span>
+                                    </div>
+                                    <div className={`vital-box vital-box-violet ${!v.bloodPressure ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">BP</span>
+                                      <span className="vital-box-value">{v.bloodPressure ? v.bloodPressure : '--'}</span>
+                                    </div>
+                                    <div className={`vital-box vital-box-rose ${!v.heartRate ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Heart Rate</span>
+                                      <span className="vital-box-value">{v.heartRate ? `${v.heartRate} bpm` : '--'}</span>
+                                    </div>
+                                    <div className={`vital-box vital-box-sky ${!v.oxygenLevel ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Oxygen</span>
+                                      <span className="vital-box-value">{v.oxygenLevel ? `${v.oxygenLevel}%` : '--'}</span>
+                                    </div>
+
+                                    {/* Row 2: Temperature, Respiratory Rate, Blood Sugar */}
+                                    <div className={`vital-box vital-box-amber ${!v.temperature ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Temp</span>
+                                      <span className="vital-box-value">{v.temperature ? `${v.temperature}°F` : '--'}</span>
+                                    </div>
+                                    <div className={`vital-box vital-box-teal ${!v.respiratoryRate ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Resp. Rate</span>
+                                      <span className="vital-box-value">{v.respiratoryRate ? `${v.respiratoryRate}/min` : '--'}</span>
+                                    </div>
+                                    <div className={`vital-box vital-box-pink ${!v.bloodSugar ? 'vital-empty' : ''}`}>
+                                      <span className="vital-box-label">Blood Sugar</span>
+                                      <span className="vital-box-value">{v.bloodSugar ? `${v.bloodSugar}` : '--'}</span>
+                                    </div>
                                   </div>
                                 </div>
                               )}
-                              {v.followUpDate && (
-                                <div className="ct-text history-fup-card">
-                                  <div className="flex-items-center-gap-6"><CalendarIcon size={14} className="icon-pink mr-1-5" /> <strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
-                                  {v.followUpInstructions && <div className="history-fup-text"><MessageSquare size={12} className="icon-blue-light mt-2px flex-shrink-0 mr-1-5" /> <span>{v.followUpInstructions}</span></div>}
+
+                              <details className="ct-details">
+                                <summary className="ct-summary">View Details</summary>
+                                <div className="ct-details-content">
+                                  {v.internalNotes && <div className="ct-text flex-items-fs-gap-6 color-var-accent-color"><Edit2 size={14} className="icon-amber mt-2px mr-1-5" /> <span><strong className="text-slate-200">Private Note:</strong> {v.internalNotes}</span></div>}
+                                  {v.followUpDate && (
+                                    <div className="ct-text history-fup-card">
+                                      <div className="flex-items-center-gap-6"><CalendarIcon size={14} className="icon-pink mr-1-5" /> <strong>Next Follow-up:</strong> {formatDate(v.followUpDate)}</div>
+                                      {v.followUpInstructions && <div className="history-fup-text"><MessageSquare size={12} className="icon-blue-light mt-2px flex-shrink-0 mr-1-5" /> <span>{v.followUpInstructions}</span></div>}
+                                    </div>
+                                  )}
+                                  {v.medicines?.length > 0 && (
+                                    <div className="ct-rx mt-8">
+                                      <div className="fs-0-75-icon-38bdf8-flex-items-center"><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
+                                      {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-icon-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="icon-slate">{m.dosage}</span></div>)}
+                                    </div>
+                                  )}
+                                  {v.attachments?.length > 0 && (
+                                    <div className="ct-attachments history-attachments-wrap">
+                                      {v.attachments.map((a:any) => (
+                                        <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
+                                           className="items-center-fs-0-75-icon-f8fafc">
+                                          <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                              {v.medicines?.length > 0 && (
-                                <div className="ct-rx mt-8">
-                                  <div className="fs-0-75-icon-38bdf8-flex-items-center"><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
-                                  {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-icon-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="icon-slate">{m.dosage}</span></div>)}
-                                </div>
-                              )}
-                              {v.attachments?.length > 0 && (
-                                <div className="ct-attachments history-attachments-wrap">
-                                  {v.attachments.map((a:any) => (
-                                    <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                       className="items-center-fs-0-75-icon-f8fafc">
-                                      <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
+                              </details>
                             </div>
                           </div>
                         ))}
+                        
+                        {/* History Pagination */}
+                        {totalHistoryPages > 1 && (
+                          <div className="history-pagination mt-4 mb-4 flex-justify-space-between-items-center">
+                            <button 
+                              className="btn-outline-sm" 
+                              disabled={historyPage === 1}
+                              onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                            >
+                              <ChevronLeft size={14} className="mr-1" /> Prev
+                            </button>
+                            <span className="text-muted fs-0-8">Page {historyPage} of {totalHistoryPages}</span>
+                            <button 
+                              className="btn-outline-sm" 
+                              disabled={historyPage === totalHistoryPages}
+                              onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
+                            >
+                              Next <ChevronRight size={14} className="ml-1" />
+                            </button>
+                          </div>
+                        )}
+
                         {/* Render Unlinked Attachments */}
                         {(() => {
                           const linkedAttachmentIds = new Set(clinicalVisits?.flatMap((v:any) => v.attachments?.map((a:any) => a.id) || []));
@@ -883,6 +961,20 @@ const PatientsList: React.FC = () => {
         ════════════════════════════════════════════════════════ */
         <div className="glass-card patients-card-body">
           <div className="patients-header-actions flex-justify-flex-end-items-center">
+            <div className="pro-limit-selector" style={{ marginRight: 'auto' }}>
+              <span className="pro-limit-label">Rows:</span>
+              <select 
+                className="pro-limit-select"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
             <div className="search-input-wrapper">
               <div className="search-input-container">
                 <Search size={15} className="search-icon-pos" />
@@ -1047,6 +1139,50 @@ const PatientsList: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalCount > 0 && (
+            <div className="pro-pagination-container">
+              <div className="pro-pagination-info">
+                Showing <span className="pro-font-medium">{(page - 1) * limit + 1}</span> to <span className="pro-font-medium">{Math.min(page * limit, totalCount)}</span> of <span className="pro-font-medium">{totalCount}</span> results
+              </div>
+              
+              <div className="pro-pagination-actions">
+                {totalPages > 1 && (
+                  <nav className="pro-pagination-nav" aria-label="Pagination">
+                    <button 
+                      className="pro-pagination-btn" 
+                      disabled={page === 1}
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      title="Previous"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+                      <button
+                        key={num}
+                        className={`pro-pagination-page ${page === num ? 'active' : ''}`}
+                        onClick={() => setPage(num)}
+                      >
+                        {num}
+                      </button>
+                    ))}
+
+                    <button 
+                      className="pro-pagination-btn" 
+                      disabled={page === totalPages}
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      title="Next"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </nav>
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
