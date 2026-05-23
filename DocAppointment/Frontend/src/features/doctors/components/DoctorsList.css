@@ -123,12 +123,22 @@
     width: 55px;
     height: 55px;
     border-radius: 15px;
-    background: var(--accent-glow);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--accent-color);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+.avatar-pink {
+    background: rgba(236, 72, 153, 0.1);
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.icon-pink { color: #ec4899; }
+.icon-emerald { color: #10b981; margin-right: 6px; }
+.icon-violet { color: #8b5cf6; margin-right: 6px; }
+.icon-amber { color: #f59e0b; margin-right: 6px; }
 
 .doctor-title-box {
     flex: 1;
@@ -171,44 +181,41 @@
 
 .doctor-actions-footer {
     display: flex;
-    gap: 8px;
+    justify-content: flex-end;
     padding-top: 15px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: auto;
 }
 
 .doctor-actions-row {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
-    width: 100%;
+    width: auto;
 }
 
 .action-btn {
-    flex: 1;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: transparent;
 }
 
-.btn-feedback { background: rgba(250, 204, 21, 0.1); color: #FACC15; }
-.btn-feedback:hover { background: rgba(250, 204, 21, 0.2); }
+.btn-feedback { border: 1px solid rgba(250, 204, 21, 0.3) !important; color: #FACC15; }
+.btn-feedback:hover { background: rgba(250, 204, 21, 0.1) !important; border-color: rgba(250, 204, 21, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(250, 204, 21, 0.15); }
 
-.btn-view { background: rgba(56, 189, 248, 0.1); color: var(--accent-color); }
-.btn-view:hover { background: rgba(56, 189, 248, 0.2); }
+.btn-view { border: 1px solid rgba(56, 189, 248, 0.3) !important; color: var(--accent-color); }
+.btn-view:hover { background: rgba(56, 189, 248, 0.1) !important; border-color: rgba(56, 189, 248, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15); }
 
-.btn-edit { background: rgba(255, 255, 255, 0.1); color: white; }
-.btn-edit:hover { background: rgba(255, 255, 255, 0.15); }
+.btn-edit { border: 1px solid rgba(59, 130, 246, 0.3) !important; color: #3b82f6; }
+.btn-edit:hover { background: rgba(59, 130, 246, 0.1) !important; border-color: rgba(59, 130, 246, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
 
-.btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-.btn-delete:hover { background: rgba(239, 68, 68, 0.2); }
+.btn-delete { border: 1px solid rgba(239, 68, 68, 0.3) !important; color: var(--danger); }
+.btn-delete:hover { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); }
 
 /* Form Styles */
 .error-alert {
@@ -305,9 +312,9 @@
 
 .btn-cancel {
     flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: transparent !important;
+    border: 1px solid rgba(244, 63, 94, 0.3) !important;
+    color: #f43f5e !important;
     padding: 10px 20px;
     border-radius: 10px;
     cursor: pointer;
@@ -321,7 +328,10 @@
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(244, 63, 94, 0.1) !important;
+    border-color: rgba(244, 63, 94, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
 
 .btn-submit-action {

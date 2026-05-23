@@ -48,14 +48,14 @@ const Modal: React.FC<ModalProps> = ({ title, children, onClose, icon, maxWidth 
             right: '20px', 
             background: 'none', 
             border: 'none', 
-            color: 'var(--text-secondary)', 
+            color: '#f43f5e', 
             cursor: 'pointer',
             padding: '5px',
             borderRadius: '8px',
             transition: 'all 0.2s'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)', e.currentTarget.style.color = 'white')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'none', e.currentTarget.style.color = 'var(--text-secondary)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
         >
           <X size={20} />
         </button>
