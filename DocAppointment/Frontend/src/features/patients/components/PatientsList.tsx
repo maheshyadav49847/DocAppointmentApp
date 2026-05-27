@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -6,7 +6,7 @@ import {
   History, Send, X, ArrowLeft, Building2, Edit, Check,
   Trash2, Plus, FileText, ClipboardList,
   Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Printer
 } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import Modal from '../../../components/Modal';
@@ -16,11 +16,22 @@ import { notify } from '../../../stores/notificationStore';
 import api from '../../../services/api';
 import './PatientsList.css';
 import AddPatientModal from './AddPatientModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-interface Medicine { medicineName: string; dosage: string; }
+interface Medicine {
+  medicineName: string;
+  medicineType?: string;
+  doseQty?: string;
+  doseSchedule?: string;
+  foodTiming?: string;
+  courseDuration?: string;
+  clinicalInstructions?: string;
+  dosage: string;
+}
 
 const PatientsList: React.FC = () => {
-  
+
   const queryClient = useQueryClient();
   const { orgId, branchId: currentBranchId } = useAuthStore();
 
@@ -59,6 +70,12 @@ const PatientsList: React.FC = () => {
   const [editEmail, setEditEmail] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editAge, setEditAge] = useState('');
+
+  // Printing state
+  const [isPrintingRx, setIsPrintingRx] = useState(false);
+  const [printingVisit, setPrintingVisit] = useState<any>(null);
+  const printRef = React.useRef<HTMLDivElement>(null);
+
   const [editGender, setEditGender] = useState('');
   const [editBloodGroup, setEditBloodGroup] = useState('');
   const [editPreExistingConditions, setEditPreExistingConditions] = useState('');
@@ -86,10 +103,11 @@ const PatientsList: React.FC = () => {
   const [visitRespiratoryRate, setVisitRespiratoryRate] = useState('');
   const [visitBloodSugar, setVisitBloodSugar] = useState('');
   const [visitMedicines, setVisitMedicines] = useState<Medicine[]>([]);
-  const [visitFiles, setVisitFiles] = useState<{file: File, category: string}[]>([]);
+  const [visitFiles, setVisitFiles] = useState<{ file: File, category: string }[]>([]);
   const [stagingFile, setStagingFile] = useState<File | null>(null);
   const [stagingCategory, setStagingCategory] = useState('Lab Report');
   const [isSavingVisit, setIsSavingVisit] = useState(false);
+  const isSavingRef = useRef(false);
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
 
@@ -108,7 +126,7 @@ const PatientsList: React.FC = () => {
       setEditPhone(selectedPatient.phone || '');
       setEditEmail(selectedPatient.email || '');
       setEditAddress(selectedPatient.address || '');
-      
+
       setEditAge(selectedPatient.age || '');
       setEditGender(selectedPatient.gender || '');
       setEditBloodGroup(selectedPatient.bloodGroup || '');
@@ -136,6 +154,8 @@ const PatientsList: React.FC = () => {
     setVisitBloodSugar('');
     setVisitMedicines([]);
     setVisitFiles([]);
+    setEditingVisitId(null);
+    setExistingAttachments([]);
   }, [selectedPatient]);
 
   // Premium UX: Keyboard-First Navigation (Ctrl+Enter to save)
@@ -177,7 +197,7 @@ const PatientsList: React.FC = () => {
     queryKey: ['patients', selectedBranchId, page, limit, debouncedSearchQuery],
     queryFn: async () => {
       const r = await api.get('/patients', {
-        params: { 
+        params: {
           branchId: selectedBranchId !== 'all' ? selectedBranchId : undefined,
           page,
           limit,
@@ -206,6 +226,17 @@ const PatientsList: React.FC = () => {
     enabled: !!selectedPatient,
   });
   const attachments = attachmentsData?.data || [];
+
+  const { data: tokenStatus = { hasToken: false, status: 'None' } } = useQuery({
+    queryKey: ['hasTokenToday', selectedPatient?.id],
+    queryFn: async () => {
+      const res = await api.get(`/patientclinical/${selectedPatient.id}/has-token-today`);
+      return res.data;
+    },
+    enabled: !!selectedPatient
+  });
+
+  const isConsultAllowed = tokenStatus?.hasToken && tokenStatus?.status === 'Called';
 
   useQuery({
     queryKey: ['followups', selectedPatient?.id],
@@ -271,10 +302,15 @@ const PatientsList: React.FC = () => {
   };
 
   const handleSaveConsultation = async () => {
+    if (isSavingRef.current) return;
     if (!selectedPatient || !visitDoctorId) { notify.warning('Required', 'Please select a doctor.'); return; }
+
+    isSavingRef.current = true;
     setIsSavingVisit(true);
+
     try {
       let visitId: string;
+      
       const payload = {
         doctorId: visitDoctorId,
         symptoms: visitSymptoms,
@@ -290,7 +326,16 @@ const PatientsList: React.FC = () => {
         temperature: visitTemperature ? parseFloat(visitTemperature) : null,
         respiratoryRate: visitRespiratoryRate ? parseInt(visitRespiratoryRate, 10) : null,
         bloodSugar: visitBloodSugar ? parseFloat(visitBloodSugar) : null,
-        medicines: visitMedicines,
+        medicines: visitMedicines.map((m: any) => ({
+          medicineName: m.medicineName,
+          dosage: m.dosage || '',
+          medicineType: m.medicineType,
+          doseQty: m.doseQty,
+          doseSchedule: m.doseSchedule,
+          foodTiming: m.foodTiming,
+          courseDuration: m.courseDuration,
+          clinicalInstructions: m.clinicalInstructions
+        })),
       };
 
       if (editingVisitId) {
@@ -300,7 +345,7 @@ const PatientsList: React.FC = () => {
         const res = await api.post(`/patientclinical/${selectedPatient.id}/visits`, payload);
         visitId = res.data.id;
       }
-      
+
       // Upload attached documents for this visit
       if (visitFiles.length > 0) {
         for (const item of visitFiles) {
@@ -312,19 +357,12 @@ const PatientsList: React.FC = () => {
         }
         queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
       }
-      
-      if (!editingVisitId && visitFollowUpDate) {
-        // Follow-ups are automatically updated by PUT /visits endpoint if editing
-        // But for POST, the backend also automatically adds it if we sent followUpDate
-        // Actually backend POST adds it automatically. We don't need this extra POST unless we want to force it?
-        // Let's remove the redundant POST to followups since the AddPatientVisit API already does it!
-      }
 
       queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
       queryClient.invalidateQueries({ queryKey: ['followups', selectedPatient.id] });
       queryClient.invalidateQueries({ queryKey: ['patients'] });
       notify.success('Saved', 'Consultation notes saved successfully.');
-      
+
       // Clear form
       setVisitSymptoms('');
       setVisitDiagnosis('');
@@ -346,8 +384,14 @@ const PatientsList: React.FC = () => {
       setEditingVisitId(null);
       setExistingAttachments([]);
       setWorkspaceTab('history');
-    } catch { notify.danger('Error', 'Failed to save consultation.'); }
-    finally { setIsSavingVisit(false); }
+    } catch (err: any) { 
+      const msg = typeof err?.response?.data === 'string' ? err.response.data : 'Failed to save consultation.';
+      notify.danger('Action Blocked', msg);
+    }
+    finally { 
+      isSavingRef.current = false;
+      setIsSavingVisit(false); 
+    }
   };
 
   const handleEditVisit = (visit: any) => {
@@ -366,12 +410,21 @@ const PatientsList: React.FC = () => {
     setVisitTemperature(visit.temperature != null ? visit.temperature.toString() : '');
     setVisitRespiratoryRate(visit.respiratoryRate != null ? visit.respiratoryRate.toString() : '');
     setVisitBloodSugar(visit.bloodSugar != null ? visit.bloodSugar.toString() : '');
-    setVisitMedicines(visit.medicines ? visit.medicines.map((m: any) => ({ medicineName: m.medicineName, dosage: m.dosage })) : []);
+    setVisitMedicines(visit.medicines ? visit.medicines.map((m: any) => ({
+      medicineName: m.medicineName || '',
+      medicineType: m.medicineType || '',
+      doseQty: m.doseQty || '',
+      doseSchedule: m.doseSchedule || '',
+      foodTiming: m.foodTiming || '',
+      courseDuration: m.courseDuration || '',
+      clinicalInstructions: m.clinicalInstructions || '',
+      dosage: m.dosage || ''
+    })) : []);
     setExistingAttachments(visit.attachments || []);
     setVisitFiles([]);
     setStagingFile(null);
     setStagingCategory('Lab Report');
-    
+
     // Scroll to form
     const formElement = document.querySelector('.consult-form');
     if (formElement) {
@@ -379,9 +432,38 @@ const PatientsList: React.FC = () => {
     }
   };
 
+  const handlePrintPrescription = async (visit: any) => {
+    setPrintingVisit(visit);
+    setIsPrintingRx(true);
+    // Give state time to render the hidden template
+    setTimeout(async () => {
+      if (!printRef.current) {
+        setIsPrintingRx(false);
+        return;
+      }
+      try {
+        const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Prescription_${selectedPatient?.name}_${new Date(visit.visitDate).toLocaleDateString()}.pdf`);
+      } catch (err) {
+        console.error("Print Error: ", err);
+        notify.danger('Error', 'Failed to generate PDF');
+      } finally {
+        setIsPrintingRx(false);
+        setPrintingVisit(null);
+      }
+    }, 500);
+  };
+
   const handleUploadAttachment = async () => {
     if (!selectedPatient || uploadFiles.length === 0) { notify.warning('Required', 'Please select at least one file.'); return; }
-    
+
     // Check sizes
     if (uploadFiles.some(f => f.size > 10 * 1024 * 1024)) {
       notify.warning('Too Large', 'Each file must be under 10MB.');
@@ -461,6 +543,7 @@ const PatientsList: React.FC = () => {
         ════════════════════════════════════════════════════════ */
         <div className="doctor-workspace">
 
+
           {/* ── Patient Banner (Compact) ─────────────────────────────────── */}
           <div className="plain-panel flex-items-center-justify-space-between">
             <div className="ehr-banner-left">
@@ -511,13 +594,13 @@ const PatientsList: React.FC = () => {
               </div>
             </div>
             <div className="ehr-banner-right">
-                {/* Reserved for future right-aligned banner items */}
+              {/* Reserved for future right-aligned banner items */}
             </div>
           </div>
 
           {/* ── Split Layout ─────────────────────── */}
           <div className="workspace-grid">
-            
+
             {/* LEFT: Active Consultation Form */}
             <div className="workspace-main plain-panel">
               <div className="panel-header">
@@ -539,7 +622,7 @@ const PatientsList: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label flex-items-center-1">
@@ -612,13 +695,13 @@ const PatientsList: React.FC = () => {
                   <label className="form-label flex-items-center-1">
                     <Edit2 size={14} className="mr-1-5 icon-amber" /> Private Notes (Doctor Only)
                   </label>
-                  <input type="text" className="form-input" placeholder="Confidential observations..." 
+                  <input type="text" className="form-input" placeholder="Confidential observations..."
                     value={visitInternalNotes} onChange={e => setVisitInternalNotes(e.target.value)} />
                 </div>
 
                 <div className="form-group custom-style-1">
                   <label className="form-label custom-style-2"><Upload size={14} className="mr-1-5 icon-cyan" />Attach Documents for this Visit</label>
-                  
+
                   <div className="attach-docs-row">
                     <select className="form-select custom-style-3" value={stagingCategory} onChange={e => setStagingCategory(e.target.value)}>
                       <option value="Lab Report">Lab Report</option>
@@ -627,8 +710,8 @@ const PatientsList: React.FC = () => {
                       <option value="Prescription">Prescription</option>
                       <option value="Other">Other</option>
                     </select>
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       className="form-input custom-style-4"
                       onChange={e => {
                         if (e.target.files?.[0]) setStagingFile(e.target.files[0]);
@@ -656,14 +739,14 @@ const PatientsList: React.FC = () => {
                             <a href={`${getFileBaseUrl()}${item.fileUrl}`} target="_blank" rel="noreferrer" className="doc-item-name">{item.fileName}</a>
                           </div>
                           <button className="btn-del-icon custom-style-5" onClick={async () => {
-                             if (confirm('Delete this attachment permanently?')) {
-                               try {
-                                 await api.delete(`/patientclinical/attachments/${item.id}`);
-                                 setExistingAttachments(existingAttachments.filter((a) => a.id !== item.id));
-                                 queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
-                                 queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
-                               } catch { notify.danger('Error', 'Failed to delete attachment.'); }
-                             }
+                            if (confirm('Delete this attachment permanently?')) {
+                              try {
+                                await api.delete(`/patientclinical/attachments/${item.id}`);
+                                setExistingAttachments(existingAttachments.filter((a) => a.id !== item.id));
+                                queryClient.invalidateQueries({ queryKey: ['clinicalVisits', selectedPatient.id] });
+                                queryClient.invalidateQueries({ queryKey: ['attachments', selectedPatient.id] });
+                              } catch { notify.danger('Error', 'Failed to delete attachment.'); }
+                            }
                           }}>
                             <Trash2 size={12} className="icon-red mr-1" />
                           </button>
@@ -711,23 +794,81 @@ const PatientsList: React.FC = () => {
                       </div>
                     ) : (
                       visitMedicines.map((m, i) => (
-                        <div key={i} className="rx-row flex-items-center-5">
-                          <div className="row-marker"></div>
-                          <input className="form-input rx-input rx-col-2" type="text" placeholder="e.g. Paracetamol 650mg"
-                            value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
-                          <input className="form-input rx-input rx-col-1" type="text" placeholder="e.g. 1-0-1 After Food"
-                            value={m.dosage} onChange={e => { const u = [...visitMedicines]; u[i].dosage = e.target.value; setVisitMedicines(u); }} />
-                          <button className="btn-del-icon flex-center-items-center-danger" title="Remove Medicine" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
-                            <Trash2 size={16} className="icon-red" />
-                          </button>
+                        <div key={i} className="rx-detailed-row" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#38bdf8', display: 'flex', alignItems: 'center' }}>
+                              <Activity size={14} className="mr-1-5" /> Medicine #{i + 1}
+                            </div>
+                            <button className="btn-del-icon flex-center-items-center-danger" title="Remove Medicine" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
+                              <Trash2 size={16} className="icon-red" />
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Droplets size={12} className="mr-1 icon-emerald" /> Type</label>
+                              <select className="form-input" value={m.medicineType || ''} onChange={e => { const u = [...visitMedicines]; u[i].medicineType = e.target.value; setVisitMedicines(u); }}>
+                                <option value="">Select Type</option>
+                                <option value="Tab">Tablet (Tab)</option>
+                                <option value="Cap">Capsule (Cap)</option>
+                                <option value="Syp">Syrup (Syp)</option>
+                                <option value="Inj">Injection (Inj)</option>
+                                <option value="Drop">Drops</option>
+                                <option value="Oint">Ointment (Oint)</option>
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><HeartPulse size={12} className="mr-1 icon-rose" /> Medicine Name</label>
+                              <input className="form-input" type="text" placeholder="e.g. Paracetamol" value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
+                            </div>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Hash size={12} className="mr-1 icon-blue-light" /> Dose Qty</label>
+                              <input className="form-input" type="text" placeholder="e.g. 1, 5ml" value={m.doseQty || ''} onChange={e => { const u = [...visitMedicines]; u[i].doseQty = e.target.value; setVisitMedicines(u); }} />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Clock size={12} className="mr-1 icon-amber" /> Schedule</label>
+                              <select className="form-input" value={m.doseSchedule || ''} onChange={e => { const u = [...visitMedicines]; u[i].doseSchedule = e.target.value; setVisitMedicines(u); }}>
+                                <option value="">Select Schedule</option>
+                                <option value="1-0-1">1-0-1 (Morning-Night)</option>
+                                <option value="1-1-1">1-1-1 (Three times)</option>
+                                <option value="1-0-0">1-0-0 (Morning)</option>
+                                <option value="0-0-1">0-0-1 (Night)</option>
+                                <option value="SOS">SOS (As needed)</option>
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Activity size={12} className="mr-1 icon-purple" /> Food Timing</label>
+                              <select className="form-input" value={m.foodTiming || ''} onChange={e => { const u = [...visitMedicines]; u[i].foodTiming = e.target.value; setVisitMedicines(u); }}>
+                                <option value="">Select Timing</option>
+                                <option value="After Food">After Food</option>
+                                <option value="Before Food">Before Food</option>
+                                <option value="Empty Stomach">Empty Stomach</option>
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ gap: '4px' }}>
+                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><CalendarIcon size={12} className="mr-1 icon-sky" /> Duration</label>
+                              <input className="form-input" type="text" placeholder="e.g. 5 Days" value={m.courseDuration || ''} onChange={e => { const u = [...visitMedicines]; u[i].courseDuration = e.target.value; setVisitMedicines(u); }} />
+                            </div>
+                          </div>
+
+                          <div className="form-group" style={{ gap: '4px' }}>
+                            <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><MessageSquare size={12} className="mr-1 icon-slate" /> Clinical Instructions (Optional)</label>
+                            <input className="form-input" type="text" placeholder="e.g. Take with warm water" value={m.clinicalInstructions || ''} onChange={e => { const u = [...visitMedicines]; u[i].clinicalInstructions = e.target.value; setVisitMedicines(u); }} />
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
-                  
-                  <button 
-                    className="btn-add-custom-med" 
-                    onClick={() => setVisitMedicines([...visitMedicines, { medicineName: '', dosage: '' }])}
+
+                  <button
+                    className="btn-add-custom-med"
+                    onClick={() => setVisitMedicines([...visitMedicines, {
+                      medicineName: '', medicineType: '', doseQty: '', doseSchedule: '',
+                      foodTiming: '', courseDuration: '', clinicalInstructions: '', dosage: ''
+                    }])}
                   >
                     <Plus size={16} className="icon-sky mr-1-5" /> Add Custom Medicine
                   </button>
@@ -746,12 +887,12 @@ const PatientsList: React.FC = () => {
                     <label className="form-label color-var-accent-color-flex-items-center">
                       <MessageSquare size={14} className="mr-1-5 icon-blue-light" /> Patient Instructions (Sent via WhatsApp)
                     </label>
-                    <textarea 
-                      className="form-textarea" 
+                    <textarea
+                      className="form-textarea"
                       placeholder="e.g. Bring old reports, come fasting..."
                       rows={2}
-                      value={visitFollowUpInstructions} 
-                      onChange={e => setVisitFollowUpInstructions(e.target.value)} 
+                      value={visitFollowUpInstructions}
+                      onChange={e => setVisitFollowUpInstructions(e.target.value)}
                     />
                     <div className="quick-instruction-chips">
                       <span className="qi-chip" onClick={() => setVisitFollowUpInstructions(prev => (prev ? prev + ', ' : '') + 'Bring all previous reports')}>+ Old Reports</span>
@@ -780,7 +921,13 @@ const PatientsList: React.FC = () => {
                 }}>
                   <X size={16} color="#f43f5e" className="mr-1-5" /> Cancel
                 </button>
-                <button id="btn-save-consult" className="btn-save-consult" onClick={handleSaveConsultation} disabled={isSavingVisit || !visitDoctorId}>
+                <button 
+                  id="btn-save-consult" 
+                  className="btn-save-consult" 
+                  onClick={handleSaveConsultation} 
+                  disabled={isSavingVisit || !visitDoctorId || (!isConsultAllowed && !editingVisitId)}
+                  title={(!isConsultAllowed && !editingVisitId) ? "Patient must be 'Called' from the Queue to create a new consultation" : ""}
+                >
                   {isSavingVisit ? <span className="spinner-sm" /> : <Save size={16} className="mr-1-5" />}
                   {isSavingVisit ? 'Saving Record...' : editingVisitId ? 'Update Consultation Record' : 'Save Consultation Record'}
                   <span className="shortcut-hint">Ctrl+Enter</span>
@@ -797,8 +944,8 @@ const PatientsList: React.FC = () => {
               </div>
 
               <div className="sidebar-content">
-                
-{workspaceTab === 'history' && (
+
+                {workspaceTab === 'history' && (
                   <div className="history-pane">
                     {isVisitsLoading ? (
                       <div className="compact-timeline custom-style-16">
@@ -812,10 +959,10 @@ const PatientsList: React.FC = () => {
                       <div className="compact-timeline">
                         {clinicalVisitsData.data.map((v: any, index: number) => (
                           <div key={v.id} className="ct-item">
-                            <div className="ct-date">{formatDate(v.visitDate)}</div>
+                            <div className="ct-date">{formatDate(v.visitDate, { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</div>
                             <div className="ct-card">
                               <div className="ct-header flex-justify-space-between-items-fs">
-                                <span>Dr. {v.doctorName} {v.tokenId && <span className="ct-badge">Queue</span>}</span>
+                                <span>Dr. {v.doctorName}</span>
                                 {index === 0 && (
                                   <button className="btn-icon-ghost custom-style-19" onClick={() => handleEditVisit(v)} title="Edit Consultation">
                                     <Edit2 size={12} />
@@ -878,15 +1025,20 @@ const PatientsList: React.FC = () => {
                                   )}
                                   {v.medicines?.length > 0 && (
                                     <div className="ct-rx mt-8">
-                                      <div className="fs-0-75-icon-38bdf8-flex-items-center"><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
-                                      {v.medicines.map((m:any) => <div key={m.id} className="fs-0-8-icon-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="icon-slate">{m.dosage}</span></div>)}
+                                      <div className="fs-0-75-icon-38bdf8-flex-items-center" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
+                                        <button className="btn-print-rx" onClick={(e) => { e.stopPropagation(); handlePrintPrescription(v); }} disabled={isPrintingRx && printingVisit?.id === v.id}>
+                                          <Printer size={14} /> {isPrintingRx && printingVisit?.id === v.id ? 'Wait...' : 'Print Rx'}
+                                        </button>
+                                      </div>
+                                      {v.medicines.map((m: any) => <div key={m.id} className="fs-0-8-icon-e2e8f0-flex-justify-space-between"><span>• {m.medicineName}</span> <span className="icon-slate">{m.dosage}</span></div>)}
                                     </div>
                                   )}
                                   {v.attachments?.length > 0 && (
                                     <div className="ct-attachments history-attachments-wrap">
-                                      {v.attachments.map((a:any) => (
-                                        <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                           className="items-center-fs-0-75-icon-f8fafc">
+                                      {v.attachments.map((a: any) => (
+                                        <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer"
+                                          className="items-center-fs-0-75-icon-f8fafc">
                                           <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
                                         </a>
                                       ))}
@@ -897,20 +1049,20 @@ const PatientsList: React.FC = () => {
                             </div>
                           </div>
                         ))}
-                        
+
                         {/* History Pagination */}
                         {totalHistoryPages > 1 && (
                           <div className="history-pagination mt-4 mb-4 flex-justify-space-between-items-center">
-                            <button 
-                              className="btn-outline-sm" 
+                            <button
+                              className="btn-outline-sm"
                               disabled={historyPage === 1}
                               onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
                             >
                               <ChevronLeft size={14} className="mr-1" /> Prev
                             </button>
                             <span className="text-muted fs-0-8">Page {historyPage} of {totalHistoryPages}</span>
-                            <button 
-                              className="btn-outline-sm" 
+                            <button
+                              className="btn-outline-sm"
                               disabled={historyPage === totalHistoryPages}
                               onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
                             >
@@ -921,9 +1073,9 @@ const PatientsList: React.FC = () => {
 
                         {/* Render Unlinked Attachments */}
                         {(() => {
-                          const linkedAttachmentIds = new Set(clinicalVisits?.flatMap((v:any) => v.attachments?.map((a:any) => a.id) || []));
-                          const unlinkedAttachments = attachments?.filter((a:any) => !linkedAttachmentIds.has(a.id));
-                          
+                          const linkedAttachmentIds = new Set(clinicalVisits?.flatMap((v: any) => v.attachments?.map((a: any) => a.id) || []));
+                          const unlinkedAttachments = attachments?.filter((a: any) => !linkedAttachmentIds.has(a.id));
+
                           if (unlinkedAttachments && unlinkedAttachments.length > 0) {
                             return (
                               <div className="ct-item">
@@ -932,9 +1084,9 @@ const PatientsList: React.FC = () => {
                                   <div className="ct-header">Independent Reports</div>
                                   <div className="ct-text history-attachments-text">These documents were uploaded separately from any consultation.</div>
                                   <div className="ct-attachments history-attachments-wrap">
-                                    {unlinkedAttachments.map((a:any) => (
-                                      <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer" 
-                                         className="items-center-fs-0-75-color-var-accent-color">
+                                    {unlinkedAttachments.map((a: any) => (
+                                      <a key={a.id} href={`${getFileBaseUrl()}${a.fileUrl}`} target="_blank" rel="noreferrer"
+                                        className="items-center-fs-0-75-color-var-accent-color">
                                         <FileText size={12} className="mr-6" /> [{a.category}] {a.fileName}
                                       </a>
                                     ))}
@@ -962,7 +1114,7 @@ const PatientsList: React.FC = () => {
           <div className="patients-header-actions flex-justify-flex-end-items-center">
             <div className="pro-limit-selector" style={{ marginRight: 'auto' }}>
               <span className="pro-limit-label">Rows:</span>
-              <select 
+              <select
                 className="pro-limit-select"
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
@@ -1002,7 +1154,7 @@ const PatientsList: React.FC = () => {
             ) : filteredPatients.map((p: any) => (
               <div key={p.id} className="elegant-patient-card" onClick={() => { setSelectedPatient(p); setWorkspaceTab('history'); }}>
                 {/* Hover Line */}
-                
+
                 <div className="ep-header">
                   <div className="ep-avatar">
                     {p.name.charAt(0)}
@@ -1063,74 +1215,50 @@ const PatientsList: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 4. Last Diagnosis (Half) */}
+                  {/* 4. Emergency (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon icon-purple"><ClipboardList size={14} /></div>
+                    <div className="ep-detail-icon icon-rose"><Phone size={14} /></div>
                     <div className="ep-detail-text">
-                      <span className="ep-d-label">Last Diagnosis</span>
-                      <span className="ep-d-val">{p.lastDiagnosis || '--'}</span>
-                    </div>
-                  </div>
-
-                  {/* 4.5. Last Symptom (Half) */}
-                  <div className="ep-detail-item">
-                    <div className="ep-detail-icon icon-red"><Activity size={14} /></div>
-                    <div className="ep-detail-text">
-                      <span className="ep-d-label">Last Symptom</span>
-                      <span className="ep-d-val">{p.lastSymptoms || '--'}</span>
+                      <span className="ep-d-label">Emergency</span>
+                      <span className="ep-d-val">{(p.emergencyContactPhone) ? `${p.emergencyContactPhone || ''}` : '--'}</span>
                     </div>
                   </div>
 
                   {/* 5. Total Visits (Half) */}
                   <div className="ep-detail-item">
-                    <div className="ep-detail-icon icon-emerald"><FileText size={14} /></div>
+                    <div className="ep-detail-icon icon-emerald"><History size={14} /></div>
                     <div className="ep-detail-text">
                       <span className="ep-d-label">Visits</span>
                       <span className="ep-d-val">{p.totalVisits || 0} Total</span>
                     </div>
                   </div>
-
-                  {/* 6. Next Visit (Half) */}
-                  {p.nextVisit && (
-                    <div className="ep-detail-item">
-                      <div className="ep-detail-icon icon-pink-1"><CalendarIcon size={14} /></div>
-                      <div className="ep-detail-text">
-                        <span className="ep-d-label">Next Visit</span>
-                        <span className="ep-d-val">{formatDate(p.nextVisit)}</span>
-                      </div>
+                  {/* 6. Last Visit (Half) */}
+                  <div className="ep-detail-item">
+                    <div className="ep-detail-icon icon-slate"><CalendarIcon size={14} /></div>
+                    <div className="ep-detail-text">
+                      <span className="ep-d-label">Last Visit</span>
+                      <span className="ep-d-val">{p.lastVisit ? formatDate(p.lastVisit) : '--'}</span>
                     </div>
-                  )}
-
-                  {/* Remaining Items */}
-                  {(p.emergencyContactName || p.emergencyContactPhone) && (
-                    <div className="ep-detail-item">
-                      <div className="ep-detail-icon icon-rose"><Phone size={14} /></div>
-                      <div className="ep-detail-text">
-                        <span className="ep-d-label">Emergency</span>
-                        <span className="ep-d-val">{p.emergencyContactName ? `${p.emergencyContactName} - ` : ''}{p.emergencyContactPhone || ''}</span>
-                      </div>
-                    </div>
-                  )}
-                  {p.preExistingConditions && (
-                    <div className="ep-detail-item">
-                      <div className="ep-detail-icon icon-red"><Activity size={14} /></div>
-                      <div className="ep-detail-text">
-                        <span className="ep-d-label">Pre-existing</span>
-                        <span className="ep-d-val">{p.preExistingConditions.split(',').map((t:any) => t.trim()).join(', ')}</span>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="ep-footer">
-                  <div className="ep-last-visit flex-items-center-1">
-                    <History size={14} className="icon-slate mr-1-5" /> Last Visit: <span className="ml-1-5">{p.lastVisit ? formatDate(p.lastVisit) : 'None'}</span>
-                  </div>
                   <div className="ep-footer-actions">
                     <button className="ep-edit-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setIsEditingProfile(true); setIsEditingFromCard(true); }}>
                       <Edit size={16} className="mr-1-5" /> Edit Profile
                     </button>
-                    <button className="ep-consult-btn" onClick={(e) => { e.stopPropagation(); setSelectedPatient(p); setWorkspaceTab('history'); }}>
+                    <button
+                      className="ep-consult-btn"
+                      disabled={!p.address || !p.gender || !p.age || p.age <= 0}
+                      title={(!p.address || !p.gender || !p.age || p.age <= 0) ? "Please complete profile (Address,Gender & Age) to Consult" : "Start Consultation"}
+                      style={(!p.address || !p.gender || !p.age || p.age <= 0) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (p.address && p.gender && p.age > 0) {
+                          setSelectedPatient(p);
+                          setWorkspaceTab('history');
+                        }
+                      }}>
                       <Stethoscope size={16} className="icon-sky mr-1-5" /> Consult
                     </button>
                   </div>
@@ -1145,19 +1273,19 @@ const PatientsList: React.FC = () => {
               <div className="pro-pagination-info">
                 Showing <span className="pro-font-medium">{(page - 1) * limit + 1}</span> to <span className="pro-font-medium">{Math.min(page * limit, totalCount)}</span> of <span className="pro-font-medium">{totalCount}</span> results
               </div>
-              
+
               <div className="pro-pagination-actions">
                 {totalPages > 1 && (
                   <nav className="pro-pagination-nav" aria-label="Pagination">
-                    <button 
-                      className="pro-pagination-btn" 
+                    <button
+                      className="pro-pagination-btn"
                       disabled={page === 1}
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       title="Previous"
                     >
                       <ChevronLeft size={16} />
                     </button>
-                    
+
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
                       <button
                         key={num}
@@ -1168,8 +1296,8 @@ const PatientsList: React.FC = () => {
                       </button>
                     ))}
 
-                    <button 
-                      className="pro-pagination-btn" 
+                    <button
+                      className="pro-pagination-btn"
                       disabled={page === totalPages}
                       onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                       title="Next"
@@ -1371,6 +1499,155 @@ const PatientsList: React.FC = () => {
         onSubmit={handleAddPatient}
         isLoading={isAddingPatient}
       />
+
+      {/* Hidden PDF Template for Prescription Printing */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        <div ref={printRef} className="rx-print-template">
+          {printingVisit && (
+            <div className="rx-print-content">
+
+              {/* Header */}
+              <div className="rx-hp-header">
+                <div className="rx-hp-header-left">
+                  <h2 className="rx-hp-dr-name">{printingVisit.doctorName || 'Dr. Consult'}</h2>
+                  <p className="rx-hp-dr-creds">MBBS, MD</p>
+                  <div className="rx-hp-dr-details">
+                    General Physician<br />
+                    Consulting Specialist
+                  </div>
+                </div>
+                <div className="rx-hp-header-center">
+                  <img src="/logo.png" alt="Clinic Logo" style={{ height: '35px', marginBottom: '5px', objectFit: 'contain' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <div className="rx-hp-reg-no">Reg No: MED-12345</div>
+                  <div className="rx-hp-clinic-contact">
+                    Hospital: +91 98765 43210<br />
+                    Email: contact@clinic.com
+                  </div>
+                </div>
+                <div className="rx-hp-header-right">
+                  <h3 className="rx-hp-clinic-name">CODEX<br />MULTI-SPECIALITY CLINIC</h3>
+                  <div className="rx-hp-clinic-address">
+                    123 Health Avenue, Medical City<br />
+                    Sector 45, New Delhi - 110001<br />
+                    Ph: 011-4567890
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient Demographics Bar */}
+              <div className="rx-hp-patient-bar">
+                <div>
+                  {selectedPatient?.patientCode || selectedPatient?.id?.substring(0, 6)} : {selectedPatient?.name} ({selectedPatient?.age}y, {selectedPatient?.gender}) - {selectedPatient?.phone || 'N/A'}
+                </div>
+                <div>
+                  Date : {formatDate(printingVisit.visitDate)}
+                </div>
+              </div>
+
+              {/* Vitals */}
+              {(() => {
+                const vitals = [];
+                // Ordered to match UI exactly
+                if (printingVisit.weight) vitals.push({ label: 'Weight', val: `${printingVisit.weight} kg` });
+                if (printingVisit.temperature) vitals.push({ label: 'Temp', val: `${printingVisit.temperature} °F` });
+                if (printingVisit.bloodSugar) vitals.push({ label: 'Blood Sugar', val: `${printingVisit.bloodSugar}` });
+                if (printingVisit.bloodPressure) vitals.push({ label: 'BP', val: `${printingVisit.bloodPressure} mmHg` });
+                if (printingVisit.height) vitals.push({ label: 'Height', val: `${printingVisit.height} cm` });
+                if (printingVisit.heartRate) vitals.push({ label: 'Pulse', val: `${printingVisit.heartRate} bpm` });
+                if (printingVisit.respiratoryRate) vitals.push({ label: 'Resp. Rate', val: `${printingVisit.respiratoryRate} bpm` });
+                if (printingVisit.oxygenLevel) vitals.push({ label: 'SpO2', val: `${printingVisit.oxygenLevel}%` });
+
+                if (vitals.length === 0) return null;
+
+                const vitalChunks = [];
+                for (let i = 0; i < vitals.length; i += 4) {
+                  vitalChunks.push(vitals.slice(i, i + 4));
+                }
+
+                return (
+                  <div className="rx-hp-vitals" style={{ fontSize: '11px' }}>
+                    {vitalChunks.map((chunk, rowIdx) => (
+                      <div key={rowIdx} style={{ marginBottom: '2px' }}>
+                        {chunk.map((v, i) => (
+                          <span key={i}>
+                            {i > 0 && <span style={{ margin: '0 6px', color: '#94a3b8' }}>|</span>}
+                            <strong>{v.label}:</strong> {v.val}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Complaints & Diagnosis */}
+              <div className="rx-hp-complaints" style={{ fontSize: '11px', marginTop: '6px', marginBottom: '12px' }}>
+                {printingVisit.symptoms && <div style={{ marginBottom: '2px' }}>Complaints: <strong>{printingVisit.symptoms.toUpperCase()}</strong></div>}
+                {printingVisit.diagnosis && <div>Diagnosis: <strong>{printingVisit.diagnosis.toUpperCase()}</strong></div>}
+              </div>
+
+              <div className="rx-hp-rx-symbol">Rx</div>
+
+              {/* Medicines Table */}
+              <div className="rx-hp-table-header">
+                <div className="rx-hp-col-index">#</div>
+                <div className="rx-hp-col-med">Medicine</div>
+                <div className="rx-hp-col-qty">Dose</div>
+                <div className="rx-hp-col-schedule">Schedule</div>
+                <div className="rx-hp-col-timing">Timing</div>
+                <div className="rx-hp-col-duration">Duration</div>
+              </div>
+
+              <div className="rx-hp-med-list">
+                {printingVisit.medicines?.map((m: any, idx: number) => (
+                  <div key={idx} className="rx-hp-med-row">
+                    <div className="rx-hp-col-index">{idx + 1}</div>
+                    <div className="rx-hp-col-med">
+                      <div className="rx-hp-med-name">{m.medicineName}</div>
+                      {m.medicineType && <div className="rx-hp-med-note">Type: {m.medicineType}</div>}
+                      {m.clinicalInstructions && <div className="rx-hp-med-note">Note: {m.clinicalInstructions}</div>}
+                    </div>
+                    <div className="rx-hp-col-qty">{m.doseQty || '-'}</div>
+                    <div className="rx-hp-col-schedule">{m.doseSchedule || '-'}</div>
+                    <div className="rx-hp-col-timing">{m.foodTiming === 'AF' ? 'After Food' : (m.foodTiming === 'BF' ? 'Before Food' : (m.foodTiming || '-'))}</div>
+                    <div className="rx-hp-col-duration">{m.courseDuration || '-'}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Advice */}
+              {printingVisit.advice && (
+                <div className="rx-hp-advice">
+                  <strong>Advice:</strong> {printingVisit.advice}
+                </div>
+              )}
+              {printingVisit.followUpDate && (
+                <div className="rx-hp-advice" style={{ marginTop: '10px' }}>
+                  <strong>Next Visit:</strong> {formatDate(printingVisit.followUpDate)}
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="rx-hp-footer">
+                <div className="rx-hp-qr"></div>
+                <div className="rx-hp-signature">
+                  <div className="rx-hp-sig-img"></div>
+                  <div className="rx-hp-dr-name-bottom">{printingVisit.doctorName || 'Dr. Consult'}</div>
+                </div>
+              </div>
+              <div className="rx-hp-promo-wrapper">
+                <div className="rx-hp-app-promo">
+                  Consult with me online and view your prescriptions anytime on our patient portal.
+                </div>
+                <div className="rx-hp-powered">
+                  Powered by CodeX EMR. www.codex-emr.com
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

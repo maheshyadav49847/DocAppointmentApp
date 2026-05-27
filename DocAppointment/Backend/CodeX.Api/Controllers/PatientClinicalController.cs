@@ -85,7 +85,17 @@ namespace CodeX.Api.Controllers
                     v.BloodSugar,
                     v.FollowUpDate,
                     FollowUpInstructions = _context.FollowUps.Where(f => f.PatientVisitId == v.Id && !f.IsDeleted).Select(f => f.Instructions).FirstOrDefault(),
-                    Medicines = v.Medicines.Select(m => new { m.Id, m.MedicineName, m.Dosage }),
+                    Medicines = v.Medicines.Select(m => new { 
+                        m.Id, 
+                        m.MedicineName, 
+                        m.Dosage, 
+                        m.MedicineType, 
+                        m.DoseQty, 
+                        m.DoseSchedule, 
+                        m.FoodTiming, 
+                        m.CourseDuration, 
+                        m.ClinicalInstructions 
+                    }),
                     Attachments = v.Attachments.Where(a => !a.IsDeleted).Select(a => new { a.Id, a.FileName, a.FileUrl, a.Category, a.UploadDate })
                 })
                 .ToListAsync();
@@ -102,16 +112,109 @@ namespace CodeX.Api.Controllers
         }
 
         // 3. Add manual visit entry
+        [HttpGet("{id}/has-token-today")]
+        public async Task<IActionResult> HasTokenToday(Guid id)
+        {
+            var todayStart = DateTime.UtcNow.Date;
+            var todayEnd = todayStart.AddDays(1);
+            
+            var token = await _context.Tokens
+                .Where(t => t.PatientId == id && t.Queue.QueueDate >= todayStart && t.Queue.QueueDate < todayEnd)
+                .OrderByDescending(t => t.Queue.QueueDate)
+                .FirstOrDefaultAsync();
+
+            if (token == null)
+            {
+                return Ok(new { hasToken = false, status = "None" });
+            }
+
+            return Ok(new { hasToken = true, status = token.Status.ToString() });
+        }
+
         [HttpPost("{id}/visits")]
         public async Task<IActionResult> AddPatientVisit(Guid id, [FromBody] AddVisitDto dto)
         {
             var patientExists = await _context.Patients.AnyAsync(p => p.Id == id);
             if (!patientExists) return NotFound("Patient not found.");
 
+            // Anti-Spam Check: Prevent creating another visit if one was created within the last 10 seconds
+            var tenSecondsAgo = DateTime.UtcNow.AddSeconds(-10);
+            var isSpam = await _context.PatientVisits.AnyAsync(v => v.PatientId == id && v.CreatedAt >= tenSecondsAgo);
+            if (isSpam)
+            {
+                return BadRequest("A consultation was just saved. Please wait a moment or edit the existing record.");
+            }
+
+            var visit = new PatientVisit
+            {
+                PatientId = id,
+                DoctorId = dto.DoctorId,
+                VisitDate = dto.VisitDate ?? DateTime.UtcNow,
+                Symptoms = dto.Symptoms,
+                Diagnosis = dto.Diagnosis,
+                Advice = dto.Advice,
+                InternalNotes = dto.InternalNotes,
+                Weight = dto.Weight,
+                HeartRate = dto.HeartRate,
+                BloodPressure = dto.BloodPressure,
+                OxygenLevel = dto.OxygenLevel,
+                Temperature = dto.Temperature,
+                RespiratoryRate = dto.RespiratoryRate,
+                BloodSugar = dto.BloodSugar,
+                FollowUpDate = dto.FollowUpDate
+            };
+
+            // Auto-assign to an active token if none provided, or validate if provided
+            var today = DateTime.UtcNow.Date;
+
+            var todaysTokens = await _context.Tokens
+                .Include(t => t.Queue)
+                .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
+                .OrderByDescending(t => t.Queue.QueueDate)
+                .ToListAsync();
+
+            if (todaysTokens.Any())
+            {
+                var activeToken = todaysTokens.First();
+                if (activeToken.Status != CodeX.Domain.Enums.TokenStatus.Called)
+                {
+                    return BadRequest($"Cannot save consultation. The patient's token status is '{activeToken.Status}'. They must be 'Called' (in the consulting room) to save a new record.");
+                }
+                
+                if (dto.TokenId.HasValue)
+                {
+                    var existingVisit = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value);
+                    if (existingVisit != null)
+                    {
+                        return BadRequest("A consultation record already exists for this booking token. Please edit the existing record from the history timeline instead of creating a new one.");
+                    }
+                    visit.TokenId = dto.TokenId.Value;
+                }
+                else
+                {
+                    // Find a token that does NOT have a visit yet
+                    var availableToken = todaysTokens.FirstOrDefault(t => !_context.PatientVisits.Any(v => v.TokenId == t.Id));
+                    if (availableToken != null)
+                    {
+                        visit.TokenId = availableToken.Id;
+                    }
+                    else
+                    {
+                        return BadRequest("All queue tokens for this patient today already have consultation records. Please edit the existing records instead of creating a new one.");
+                    }
+                }
+            }
+            else
+            {
+                // If they don't have tokens, block it entirely
+                return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
+            }
+
             var visit = new PatientVisit
                 {
                     PatientId = id,
                     DoctorId = dto.DoctorId,
+                    TokenId = assignedTokenId,
                     VisitDate = dto.VisitDate ?? DateTime.UtcNow,
                     Symptoms = dto.Symptoms,
                     Diagnosis = dto.Diagnosis,
@@ -134,7 +237,13 @@ namespace CodeX.Api.Controllers
                         visit.Medicines.Add(new VisitMedicine
                         {
                             MedicineName = med.MedicineName,
-                            Dosage = med.Dosage
+                            Dosage = med.Dosage,
+                            MedicineType = med.MedicineType,
+                            DoseQty = med.DoseQty,
+                            DoseSchedule = med.DoseSchedule,
+                            FoodTiming = med.FoodTiming,
+                            CourseDuration = med.CourseDuration,
+                            ClinicalInstructions = med.ClinicalInstructions
                         });
                     }
                 }
@@ -197,7 +306,13 @@ namespace CodeX.Api.Controllers
                     {
                         PatientVisitId = visitId,
                         MedicineName = med.MedicineName,
-                        Dosage = med.Dosage
+                        Dosage = med.Dosage,
+                        MedicineType = med.MedicineType,
+                        DoseQty = med.DoseQty,
+                        DoseSchedule = med.DoseSchedule,
+                        FoodTiming = med.FoodTiming,
+                        CourseDuration = med.CourseDuration,
+                        ClinicalInstructions = med.ClinicalInstructions
                     });
                 }
             }
@@ -435,6 +550,7 @@ namespace CodeX.Api.Controllers
     public class AddVisitDto
     {
         public Guid DoctorId { get; set; }
+        public Guid? TokenId { get; set; }
         public DateTime? VisitDate { get; set; }
         public string? Symptoms { get; set; }
         public string? Diagnosis { get; set; }
@@ -474,6 +590,12 @@ namespace CodeX.Api.Controllers
     {
         public string MedicineName { get; set; } = string.Empty;
         public string Dosage { get; set; } = string.Empty;
+        public string? MedicineType { get; set; }
+        public string? DoseQty { get; set; }
+        public string? DoseSchedule { get; set; }
+        public string? FoodTiming { get; set; }
+        public string? CourseDuration { get; set; }
+        public string? ClinicalInstructions { get; set; }
     }
 
     public class AddFollowUpDto

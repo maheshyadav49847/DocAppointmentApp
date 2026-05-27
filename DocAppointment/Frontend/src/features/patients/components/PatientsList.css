@@ -3,6 +3,8 @@
    Theme: #030712 bg · #111827 card · #0ea5e9 accent · Inter font
    ================================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Great+Vibes&display=swap');
+
 .patients-container {
   display: flex;
   flex-direction: column;
@@ -161,14 +163,16 @@
 .ep-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .ep-last-visit {
   font-size: 0.8rem; color: #64748B;
 }
-.ep-last-visit span { color: #FFFFFF; font-weight: 600; }
+.ep-last-visit span { color: #FFFFFF; font-weight: 400; font-size: 0.72rem; }
 
 .ep-consult-btn {
   background: transparent;
@@ -350,7 +354,7 @@
   color: white; font-size: 0.88rem; outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s;
 }
 .form-select:focus, .form-input:focus, .form-textarea:focus { border-color: var(--accent-color); }
-.form-select option { background: #111827; }
+.form-input option, .form-select option { background: #0f172a; color: white; }
 
 /* ── Premium Vitals Inputs ── */
 .vitals-section {
@@ -1427,4 +1431,227 @@
 .custom-style-18 { opacity: 0.4; }
 .custom-style-19 { padding: 4px; }
 .custom-style-20 { padding: 40px 0; }
+
+/*  PDF Print Template Styles (HealthPlix Exact Replica)  */
+.rx-print-template {
+  background-color: #ffffff;
+  color: #000000;
+  width: 794px; /* A4 width */
+  min-height: 1123px; /* A4 height */
+  padding: 30px 40px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  box-sizing: border-box;
+  position: relative;
+}
+.rx-print-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.rx-hp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.rx-hp-header-left {
+  width: 35%;
+}
+.rx-hp-dr-name {
+  color: #d32f2f;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  margin: 0 0 2px 0;
+}
+.rx-hp-dr-creds {
+  color: #1976d2;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 0 5px 0;
+}
+.rx-hp-dr-details {
+  color: #1976d2;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.rx-hp-header-center {
+  width: 30%;
+  text-align: center;
+}
+.rx-hp-reg-no {
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 5px 0;
+}
+.rx-hp-clinic-contact {
+  color: #1976d2;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.rx-hp-header-right {
+  width: 35%;
+  text-align: right;
+}
+.rx-hp-clinic-name {
+  color: #0d47a1;
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'Times New Roman', serif;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+}
+.rx-hp-clinic-address {
+  color: #1976d2;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.rx-hp-patient-bar {
+  border-top: 3px solid #673ab7; /* Distinctive purple line */
+  border-bottom: 1px solid #ccc;
+  padding: 6px 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.rx-hp-vitals {
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+.rx-hp-vitals strong {
+  font-weight: 700;
+}
+.rx-hp-complaints {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.rx-hp-complaints strong {
+  font-size: inherit;
+  font-weight: 700;
+}
+.rx-hp-rx-symbol {
+  font-size: 28px;
+  font-family: serif;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.rx-hp-table-header {
+  display: flex;
+  background-color: #d1d5db; /* Grey header */
+  padding: 8px 0;
+  font-size: 14px;
+  font-weight: 700;
+  border-top: 1px solid #9ca3af;
+  border-bottom: 1px solid #9ca3af;
+}
+.rx-hp-med-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid #d1d5db;
+  font-size: 12px;
+  background-color: #f8f9fa; /* Light gray background */
+}
+.rx-hp-col-index { width: 5%; text-align: center; font-weight: 700; }
+.rx-hp-col-med { width: 35%; padding-right: 10px; }
+.rx-hp-col-qty { width: 15%; font-weight: 600; }
+.rx-hp-col-schedule { width: 15%; font-weight: 600; }
+.rx-hp-col-timing { width: 15%; font-weight: 600; }
+.rx-hp-col-duration { width: 15%; font-weight: 600; }
+
+.rx-hp-med-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.rx-hp-med-note {
+  font-size: 11px;
+  font-style: italic;
+  color: #4b5563;
+  margin-top: 4px;
+}
+.rx-hp-advice {
+  margin-top: 20px;
+  font-size: 13px;
+}
+.rx-hp-footer {
+  margin-top: 80px;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  font-size: 14px;
+  border-top: 1px dashed #cbd5e1;
+}
+.rx-print-footer-sig {
+  text-align: right;
+}
+.rx-print-footer-sig p { margin: 0; }
+.rx-hp-dr-name-bottom {
+  font-family: 'Dancing Script', cursive;
+  font-size: 28px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+  line-height: 1.2;
+}
+.rx-print-template hr {
+  border: 0;
+  border-top: 1px solid #cbd5e1;
+  margin: 15px 0;
+}
+.rx-hp-promo-wrapper {
+  margin-top: 40px;
+  width: 100%;
+}
+.rx-hp-app-promo {
+  text-align: center;
+  font-size: 9px;
+  color: #64748b;
+  font-style: italic;
+}
+.rx-hp-powered {
+  text-align: center;
+  font-size: 9px;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* Print Button Styling */
+.btn-print-rx {
+  background: transparent;
+  color: #0ea5e9;
+  border: 1.5px solid #0ea5e9;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+.btn-print-rx:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0284c7;
+  border-color: #0284c7;
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1);
+  transform: translateY(-1px);
+}
+.btn-print-rx:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+.btn-print-rx:disabled {
+  color: #94a3b8;
+  border-color: #cbd5e1;
+  cursor: not-allowed;
+  background: transparent;
+}
 
