@@ -4,8 +4,8 @@ import {
   Stethoscope, Clock, Users, CheckCircle2,
   SkipForward, UserCircle, Activity, Info, Power,
   ArrowLeft, ChevronRight, RotateCcw,
-  AlertCircle, AlertTriangle, Search, Edit, Trash2, X, Settings, User, Smartphone, Hash, Zap
-} from 'lucide-react';
+  AlertCircle, AlertTriangle, Search, Edit, Trash2, X, Settings, User, Smartphone, Hash, Zap, Save
+ } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import Modal from '../../../components/Modal';
 import { queueService } from '../../../services/queueService';
@@ -17,7 +17,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import ManualBookingModal from '../../../components/ManualBookingModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notify } from '../../../stores/notificationStore';
-import { Building2 } from 'lucide-react';
+import { Building2  } from 'lucide-react';
 import PageHeader from '../../../components/UI/PageHeader';
 import './QueueDashboard.css';
 
@@ -972,7 +972,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
                 onClick={() => completeMutation.mutate()}
                 disabled={completeMutation.isPending}
                 className="btn-primary complete-next-btn-large"
-                style={{ background: 'var(--success)', color: 'white' }}
+                
               >
                 {completeMutation.isPending ?
                   <Clock size={32} className="animate-spin" /> :
@@ -1290,7 +1290,7 @@ const EditTokenModal = ({ token, isOpen, onClose, onSave }: any) => {
             disabled={!isValid}
             className={`btn-save-modal ${isValid ? 'active' : 'disabled'}`}
           >
-            <CheckCircle2 size={18} /> Save Changes
+            <Save size={18} /> Save Changes
           </button>
         </div>
       </div>

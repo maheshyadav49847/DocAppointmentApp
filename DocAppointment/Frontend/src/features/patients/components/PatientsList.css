@@ -1655,3 +1655,97 @@
   background: transparent;
 }
 
+
+.rx-detailed-row-container {
+    background: rgba(255,255,255,0.02);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.rx-detailed-row-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 8px;
+}
+.rx-detailed-row-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+}
+.rx-detailed-row-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.rx-detailed-row-grid-equal-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.rx-form-group {
+    gap: 4px;
+}
+.rx-form-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+}
+
+
+.rx-history-card-mb {
+    margin-bottom: 12px;
+}
+.fs-0-75-icon-38bdf8-flex-between {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+.flex-align-center {
+    display: flex;
+    align-items: center;
+}
+.mr-auto {
+    margin-right: auto;
+}
+.print-container {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+}
+.print-logo {
+    height: 35px;
+    margin-bottom: 5px;
+    object-fit: contain;
+}
+.print-vitals-font {
+    font-size: 11px;
+}
+.mb-2px {
+    margin-bottom: 2px;
+}
+.print-separator {
+    margin: 0 6px;
+    color: #94a3b8;
+}
+.print-complaints {
+    font-size: 11px;
+    margin-top: 6px;
+    margin-bottom: 12px;
+}
+.print-advice {
+    margin-top: 10px;
+}
+
+
+.ep-consult-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

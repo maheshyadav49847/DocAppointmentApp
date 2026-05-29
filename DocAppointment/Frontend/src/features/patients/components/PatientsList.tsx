@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
-  History, Send, X, ArrowLeft, Building2, Edit, Check,
+  History, Send, X, ArrowLeft, Building2, Edit, 
   Trash2, Plus, FileText, ClipboardList,
   Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone,
   ChevronLeft, ChevronRight, Printer
@@ -794,9 +794,9 @@ const PatientsList: React.FC = () => {
                       </div>
                     ) : (
                       visitMedicines.map((m, i) => (
-                        <div key={i} className="rx-detailed-row" style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '8px' }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#38bdf8', display: 'flex', alignItems: 'center' }}>
+                        <div key={i} className="rx-detailed-row rx-detailed-row-container">
+                          <div className="rx-detailed-row-header">
+                            <div className="rx-detailed-row-title">
                               <Activity size={14} className="mr-1-5" /> Medicine #{i + 1}
                             </div>
                             <button className="btn-del-icon flex-center-items-center-danger" title="Remove Medicine" onClick={() => setVisitMedicines(visitMedicines.filter((_, j) => j !== i))}>
@@ -804,9 +804,9 @@ const PatientsList: React.FC = () => {
                             </button>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Droplets size={12} className="mr-1 icon-emerald" /> Type</label>
+                          <div className="rx-detailed-row-grid-3">
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><Droplets size={12} className="mr-1 icon-emerald" /> Type</label>
                               <select className="form-input" value={m.medicineType || ''} onChange={e => { const u = [...visitMedicines]; u[i].medicineType = e.target.value; setVisitMedicines(u); }}>
                                 <option value="">Select Type</option>
                                 <option value="Tab">Tablet (Tab)</option>
@@ -817,19 +817,19 @@ const PatientsList: React.FC = () => {
                                 <option value="Oint">Ointment (Oint)</option>
                               </select>
                             </div>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><HeartPulse size={12} className="mr-1 icon-rose" /> Medicine Name</label>
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><HeartPulse size={12} className="mr-1 icon-rose" /> Medicine Name</label>
                               <input className="form-input" type="text" placeholder="e.g. Paracetamol" value={m.medicineName} onChange={e => { const u = [...visitMedicines]; u[i].medicineName = e.target.value; setVisitMedicines(u); }} />
                             </div>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Hash size={12} className="mr-1 icon-blue-light" /> Dose Qty</label>
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><Hash size={12} className="mr-1 icon-blue-light" /> Dose Qty</label>
                               <input className="form-input" type="text" placeholder="e.g. 1, 5ml" value={m.doseQty || ''} onChange={e => { const u = [...visitMedicines]; u[i].doseQty = e.target.value; setVisitMedicines(u); }} />
                             </div>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Clock size={12} className="mr-1 icon-amber" /> Schedule</label>
+                          <div className="rx-detailed-row-grid-equal-3">
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><Clock size={12} className="mr-1 icon-amber" /> Schedule</label>
                               <select className="form-input" value={m.doseSchedule || ''} onChange={e => { const u = [...visitMedicines]; u[i].doseSchedule = e.target.value; setVisitMedicines(u); }}>
                                 <option value="">Select Schedule</option>
                                 <option value="1-0-1">1-0-1 (Morning-Night)</option>
@@ -839,8 +839,8 @@ const PatientsList: React.FC = () => {
                                 <option value="SOS">SOS (As needed)</option>
                               </select>
                             </div>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><Activity size={12} className="mr-1 icon-purple" /> Food Timing</label>
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><Activity size={12} className="mr-1 icon-purple" /> Food Timing</label>
                               <select className="form-input" value={m.foodTiming || ''} onChange={e => { const u = [...visitMedicines]; u[i].foodTiming = e.target.value; setVisitMedicines(u); }}>
                                 <option value="">Select Timing</option>
                                 <option value="After Food">After Food</option>
@@ -848,14 +848,14 @@ const PatientsList: React.FC = () => {
                                 <option value="Empty Stomach">Empty Stomach</option>
                               </select>
                             </div>
-                            <div className="form-group" style={{ gap: '4px' }}>
-                              <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><CalendarIcon size={12} className="mr-1 icon-sky" /> Duration</label>
+                            <div className="form-group rx-form-group">
+                              <label className="form-label rx-form-label"><CalendarIcon size={12} className="mr-1 icon-sky" /> Duration</label>
                               <input className="form-input" type="text" placeholder="e.g. 5 Days" value={m.courseDuration || ''} onChange={e => { const u = [...visitMedicines]; u[i].courseDuration = e.target.value; setVisitMedicines(u); }} />
                             </div>
                           </div>
 
-                          <div className="form-group" style={{ gap: '4px' }}>
-                            <label className="form-label" style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'flex', alignItems: 'center' }}><MessageSquare size={12} className="mr-1 icon-slate" /> Clinical Instructions (Optional)</label>
+                          <div className="form-group rx-form-group">
+                            <label className="form-label rx-form-label"><MessageSquare size={12} className="mr-1 icon-slate" /> Clinical Instructions (Optional)</label>
                             <input className="form-input" type="text" placeholder="e.g. Take with warm water" value={m.clinicalInstructions || ''} onChange={e => { const u = [...visitMedicines]; u[i].clinicalInstructions = e.target.value; setVisitMedicines(u); }} />
                           </div>
                         </div>
@@ -977,7 +977,7 @@ const PatientsList: React.FC = () => {
                                 <summary className="ct-summary">View Details</summary>
                                 <div className="ct-details-content">
                                   {(v.weight || v.heartRate || v.bloodPressure || v.oxygenLevel || v.temperature || v.respiratoryRate || v.bloodSugar) && (
-                                    <div className="ct-rx rx-history-card" style={{ marginBottom: '12px' }}>
+                                    <div className="ct-rx rx-history-card rx-history-card-mb">
                                       <div className="rx-history-header">
                                         <Activity size={12} className="icon-red mr-1" /> CLINICAL VITALS
                                       </div>
@@ -1025,8 +1025,8 @@ const PatientsList: React.FC = () => {
                                   )}
                                   {v.medicines?.length > 0 && (
                                     <div className="ct-rx mt-8">
-                                      <div className="fs-0-75-icon-38bdf8-flex-items-center" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center' }}><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
+                                      <div className="fs-0-75-icon-38bdf8-flex-items-center fs-0-75-icon-38bdf8-flex-between" >
+                                        <div className="flex-align-center"><HeartPulse size={12} className="icon-rose mr-1" /> Prescribed Medicines</div>
                                         <button className="btn-print-rx" onClick={(e) => { e.stopPropagation(); handlePrintPrescription(v); }} disabled={isPrintingRx && printingVisit?.id === v.id}>
                                           <Printer size={14} /> {isPrintingRx && printingVisit?.id === v.id ? 'Wait...' : 'Print Rx'}
                                         </button>
@@ -1112,7 +1112,7 @@ const PatientsList: React.FC = () => {
         ════════════════════════════════════════════════════════ */
         <div className="glass-card patients-card-body">
           <div className="patients-header-actions flex-justify-flex-end-items-center">
-            <div className="pro-limit-selector" style={{ marginRight: 'auto' }}>
+            <div className="pro-limit-selector mr-auto">
               <span className="pro-limit-label">Rows:</span>
               <select
                 className="pro-limit-select"
@@ -1251,7 +1251,7 @@ const PatientsList: React.FC = () => {
                       className="ep-consult-btn"
                       disabled={!p.address || !p.gender || !p.age || p.age <= 0}
                       title={(!p.address || !p.gender || !p.age || p.age <= 0) ? "Please complete profile (Address,Gender & Age) to Consult" : "Start Consultation"}
-                      style={(!p.address || !p.gender || !p.age || p.age <= 0) ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                      
                       onClick={(e) => {
                         e.stopPropagation();
                         if (p.address && p.gender && p.age > 0) {
@@ -1444,7 +1444,7 @@ const PatientsList: React.FC = () => {
             <div className="modal-actions">
               <button className="btn-cancel" onClick={handleCloseEditModal}><X size={14} color="#f43f5e" className="mr-1" /> Cancel</button>
               <button className="btn-submit" onClick={handleSaveProfile} disabled={isSavingProfile}>
-                {isSavingProfile ? <span className="spinner-sm" /> : <Check size={14} />}
+                {isSavingProfile ? <span className="spinner-sm" /> : <Save size={18} />}
                 {isSavingProfile ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
@@ -1501,7 +1501,7 @@ const PatientsList: React.FC = () => {
       />
 
       {/* Hidden PDF Template for Prescription Printing */}
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+      <div className="print-container">
         <div ref={printRef} className="rx-print-template">
           {printingVisit && (
             <div className="rx-print-content">
@@ -1517,7 +1517,7 @@ const PatientsList: React.FC = () => {
                   </div>
                 </div>
                 <div className="rx-hp-header-center">
-                  <img src="/logo.png" alt="Clinic Logo" style={{ height: '35px', marginBottom: '5px', objectFit: 'contain' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <img src="/logo.png" alt="Clinic Logo" className="print-logo" onError={(e) => e.currentTarget.style.display = 'none'} />
                   <div className="rx-hp-reg-no">Reg No: MED-12345</div>
                   <div className="rx-hp-clinic-contact">
                     Hospital: +91 98765 43210<br />
@@ -1565,12 +1565,12 @@ const PatientsList: React.FC = () => {
                 }
 
                 return (
-                  <div className="rx-hp-vitals" style={{ fontSize: '11px' }}>
+                  <div className="rx-hp-vitals print-vitals-font">
                     {vitalChunks.map((chunk, rowIdx) => (
-                      <div key={rowIdx} style={{ marginBottom: '2px' }}>
+                      <div key={rowIdx} className="mb-2px">
                         {chunk.map((v, i) => (
                           <span key={i}>
-                            {i > 0 && <span style={{ margin: '0 6px', color: '#94a3b8' }}>|</span>}
+                            {i > 0 && <span className="print-separator">|</span>}
                             <strong>{v.label}:</strong> {v.val}
                           </span>
                         ))}
@@ -1581,8 +1581,8 @@ const PatientsList: React.FC = () => {
               })()}
 
               {/* Complaints & Diagnosis */}
-              <div className="rx-hp-complaints" style={{ fontSize: '11px', marginTop: '6px', marginBottom: '12px' }}>
-                {printingVisit.symptoms && <div style={{ marginBottom: '2px' }}>Complaints: <strong>{printingVisit.symptoms.toUpperCase()}</strong></div>}
+              <div className="rx-hp-complaints print-complaints">
+                {printingVisit.symptoms && <div className="mb-2px">Complaints: <strong>{printingVisit.symptoms.toUpperCase()}</strong></div>}
                 {printingVisit.diagnosis && <div>Diagnosis: <strong>{printingVisit.diagnosis.toUpperCase()}</strong></div>}
               </div>
 
@@ -1622,7 +1622,7 @@ const PatientsList: React.FC = () => {
                 </div>
               )}
               {printingVisit.followUpDate && (
-                <div className="rx-hp-advice" style={{ marginTop: '10px' }}>
+                <div className="rx-hp-advice print-advice">
                   <strong>Next Visit:</strong> {formatDate(printingVisit.followUpDate)}
                 </div>
               )}

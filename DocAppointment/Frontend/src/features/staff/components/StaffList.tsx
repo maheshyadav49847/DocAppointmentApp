@@ -8,7 +8,7 @@ import PageHeader from '../../../components/UI/PageHeader';
 import {
   Users, Plus, Shield, Trash2, Edit, X, AlertTriangle,
   CheckCircle2, Mail, Lock, Eye, EyeOff, ShieldCheck, UserCog, Building2, Calendar, Search, Phone, Hash
-} from 'lucide-react';
+, Save } from 'lucide-react';
 import './StaffList.css';
 
 // ─── Role Config ───────────────────────────────────────────────────────────
@@ -424,7 +424,7 @@ const StaffList: React.FC = () => {
               <div 
                 key={member.id} 
                 className="staff-card"
-                style={{ cursor: 'pointer' }}
+                
                 onClick={() => openEdit(member)}
               >
                 {/* Header: Avatar + Info + Actions */}
@@ -538,7 +538,7 @@ const StaffList: React.FC = () => {
                 <X size={16} color="#f43f5e" /> Cancel
               </button>
               <button data-tooltip="Update staff access and role" type="submit" className="btn-outline-primary btn-submit" disabled={updateMutation.isPending}>
-                <CheckCircle2 size={18} /> {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                <Save size={18} /> {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>

@@ -7,7 +7,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import { 
   User, Stethoscope, Trash2, Edit, X, AlertTriangle, 
   Hash, ClipboardList, CheckCircle2, ShieldCheck, Users, Search, Star, MessageSquare, Building2, UserPlus
-} from 'lucide-react';
+, Save } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { notify } from '../../../stores/notificationStore';
 import { ratingService } from '../../../services/ratingService';
@@ -205,7 +205,6 @@ const DoctorsList: React.FC = () => {
               <div 
                 key={doc.id} 
                 className="glass-card doctor-card"
-                style={{ cursor: 'pointer' }}
                 onClick={() => {
                   const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
                   setEditingDoctor({ 
@@ -380,7 +379,7 @@ const DoctorsList: React.FC = () => {
             <div className="modal-footer">
               <button type="button" onClick={() => setEditingDoctor(null)} className="btn-cancel"><X size={16} color="#f43f5e" /> Cancel</button>
               <button type="submit" className="btn-outline-primary btn-submit-action">
-                <CheckCircle2 size={18} /> {updateDoctorMutation.isPending ? 'Saving...' : 'Save Changes'}
+                <Save size={18} /> {updateDoctorMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </form>
