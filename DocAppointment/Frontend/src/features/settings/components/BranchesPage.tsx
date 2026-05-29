@@ -7,7 +7,7 @@ import { whatsappConfigService } from '../../../services/whatsappConfigService';
 import { notify } from '../../../stores/notificationStore';
 import {
   Building2, MapPin, Smartphone, Plus, Settings, Trash2,
-  Activity, Info, Shield, Link, ArrowRight, Save, X,  Lock, AlertTriangle
+  Activity, Info, Shield, Link, ArrowRight, Save, X, CheckCircle2, Lock, AlertTriangle
 } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import PageHeader from '../../../components/UI/PageHeader';
@@ -150,13 +150,13 @@ const BranchesPage: React.FC = () => {
       <div className="glass-card branch-style-74">
         {/* Action Row */}
         <div className="branch-style-75 flex-mobile-column full-width-mobile">
-            <button
-              data-tooltip="Register a new hospital location"
-              onClick={() => setIsModalOpen(true)}
-              className="btn-outline-primary branch-style-76"
-            >
-              <Plus size={20} /> Add New Branch
-            </button>
+          <button
+            data-tooltip="Register a new hospital location"
+            onClick={() => setIsModalOpen(true)}
+            className="btn-outline-primary branch-style-76"
+          >
+            <Plus size={20} /> Add New Branch
+          </button>
         </div>
 
         <div className="branch-style-77" />
@@ -279,7 +279,7 @@ const BranchesPage: React.FC = () => {
               </label>
               <input
                 type="tel"
-                placeholder="919876543210"
+                placeholder="9198765a43210"
                 value={newBranch.whatsAppNumber}
                 onChange={(e) => setNewBranch({ ...newBranch, whatsAppNumber: e.target.value })}
               />
@@ -377,7 +377,7 @@ const BranchesPage: React.FC = () => {
                 onClick={() => updateBranchMutation.mutate(selectedBranch)}
                 disabled={updateBranchMutation.isPending}
               >
-                {updateBranchMutation.isPending ? 'Saving...' : <><Save size={18} /> Save Changes</>}
+                {updateBranchMutation.isPending ? 'Saving...' : <><CheckCircle2 size={18} /> Save Changes</>}
               </button>
             </div>
           </div>

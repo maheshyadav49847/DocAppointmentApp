@@ -136,7 +136,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <p className="account-info-label">ACCOUNT</p>
               <p className="account-info-email">{email}</p>
             </div>
-            <div className="profile-container">
+            <div className="header-profile-container">
               <NotificationBell />
               
               <div 
