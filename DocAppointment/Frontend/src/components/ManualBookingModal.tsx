@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, PlusCircle, User, Smartphone } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import './ManualBookingModal.css';
 
 interface ManualBookingModalProps {
   isOpen: boolean;
@@ -37,27 +38,18 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
   const isValid = name.trim().length >= 2 && phone.length >= 10;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0, 0, 0, 0.7)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div className="modal-card" style={{ width: '100%', maxWidth: '450px', margin: '0 20px', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+    <div className="modal-overlay">
+      <div className="modal-card modal-content-card">
+        <button onClick={onClose} className="modal-close-btn">
           <X size={24} />
         </button>
 
-        <h2 style={{ marginBottom: '10px' }}>Manual Token Entry</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '25px' }}>Enter patient details to generate a token.</p>
+        <h2 className="modal-title">Manual Token Entry</h2>
+        <p className="modal-subtitle">Enter patient details to generate a token.</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="modal-form-group">
           <div>
-            <label data-tooltip="Full name of the patient for token identification" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <label data-tooltip="Full name of the patient for token identification" className="modal-label">
               <User size={16} /> Patient Name
             </label>
             <input 
@@ -65,12 +57,12 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
               value={name}
               onChange={(e) => { setName(e.target.value); if(errors.name) validate(); }}
               placeholder="e.g. John Doe"
-              style={{ borderColor: errors.name ? 'var(--danger)' : undefined }}
+              className={errors.name ? "input-error" : ""}
             />
-            {errors.name && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px', fontWeight: 600 }}>{errors.name}</p>}
+            {errors.name && <p className="modal-error-text">{errors.name}</p>}
           </div>
           <div>
-            <label data-tooltip="WhatsApp number to send token and queue updates" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <label data-tooltip="WhatsApp number to send token and queue updates" className="modal-label">
               <Smartphone size={16} /> WhatsApp Number
             </label>
             <input 
@@ -82,26 +74,19 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
                 if(errors.phone) validate();
               }}
               placeholder="e.g. 9876543210"
-              style={{ borderColor: errors.phone ? 'var(--danger)' : undefined }}
+              className={errors.phone ? "input-error" : ""}
             />
-            {errors.phone && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px', fontWeight: 600 }}>{errors.phone}</p>}
+            {errors.phone && <p className="modal-error-text">{errors.phone}</p>}
           </div>
           <button 
             data-tooltip="Submit and generate patient token"
             onClick={handleSubmit}
             disabled={!isValid || isLoading}
-            className="btn-primary" 
-            style={{ 
-              width: '100%', marginTop: '10px', 
-              opacity: (isValid && !isLoading) ? 1 : 0.5, 
-              cursor: (isValid && !isLoading) ? 'pointer' : 'not-allowed',
-              background: (isValid && !isLoading) ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
-            }}
+            className="btn-primary modal-submit-btn" 
           >
             {isLoading ? (
               <>
-                <div className="animate-spin" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%' }}></div>
+                <div className="animate-spin modal-spinner"></div>
                 Processing...
               </>
             ) : (
@@ -117,3 +102,4 @@ const ManualBookingModal: React.FC<ManualBookingModalProps> = ({ isOpen, onClose
 };
 
 export default ManualBookingModal;
+

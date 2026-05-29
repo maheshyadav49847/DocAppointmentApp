@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/authStore';
 import { authService } from '../../../services/authService';
 import { LogIn, ShieldCheck, Mail, Lock } from 'lucide-react';
+import './auth.css';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -48,53 +49,28 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div style={{
-      height: '100vh',
-      width: '100vw',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'radial-gradient(circle at top left, #1e293b 0%, #0f172a 100%)',
-      overflow: 'hidden'
-    }}>
+    <div className="auth-page-container">
       {/* Background Decorative Glows */}
-      <div style={{ position: 'absolute', top: '10%', left: '10%', width: '300px', height: '300px', background: 'var(--accent-glow)', filter: 'blur(100px)', opacity: 0.2 }}></div>
-      <div style={{ position: 'absolute', bottom: '10%', right: '10%', width: '300px', height: '300px', background: 'rgba(16, 185, 129, 0.3)', filter: 'blur(100px)', opacity: 0.1 }}></div>
+      <div className="auth-bg-glow-1"></div>
+      <div className="auth-bg-glow-2"></div>
 
-      <div className="glass-card" style={{ width: '400px', padding: '40px', textAlign: 'center' }}>
-        <div style={{ 
-          width: '60px', 
-          height: '60px', 
-          background: 'var(--accent-glow)', 
-          borderRadius: '16px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          margin: '0 auto 20px auto'
-        }}>
+      <div className="glass-card auth-card">
+        <div className="auth-icon-box">
           <ShieldCheck size={32} color="var(--accent-color)" />
         </div>
 
-        <h1 style={{ fontSize: '1.8rem', marginBottom: '10px' }}>Staff Login</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '30px' }}>Enter your credentials to access the dashboard.</p>
+        <h1 className="auth-title">Staff Login</h1>
+        <p className="auth-subtitle">Enter your credentials to access the dashboard.</p>
 
         {error && (
-          <div style={{ 
-            background: 'rgba(239, 68, 68, 0.1)', 
-            color: 'var(--danger)', 
-            padding: '12px', 
-            borderRadius: '8px', 
-            marginBottom: '20px',
-            fontSize: '0.9rem',
-            border: '1px solid rgba(239, 68, 68, 0.2)'
-          }}>
+          <div className="auth-error-box">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate style={{ textAlign: 'left' }}>
-          <div style={{ marginBottom: '20px' }}>
-            <label data-tooltip="Enter your registered hospital email" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <form onSubmit={handleSubmit} noValidate className="auth-form">
+          <div className="auth-form-group">
+            <label data-tooltip="Enter your registered hospital email" className="auth-label">
               <Mail size={16} /> Email Address
             </label>
             <input 
@@ -103,13 +79,13 @@ const LoginPage: React.FC = () => {
               onChange={(e) => { setEmail(e.target.value); setFieldErrors(prev => ({ ...prev, email: '' })); }}
               placeholder="admin@hospital.com"
               required 
-              style={{ borderColor: fieldErrors.email ? 'var(--danger)' : undefined }}
+              className={fieldErrors.email ? "input-error" : ""}
             />
-            {fieldErrors.email && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{fieldErrors.email}</p>}
+            {fieldErrors.email && <p className="auth-error-text">{fieldErrors.email}</p>}
           </div>
 
-          <div style={{ marginBottom: '30px' }}>
-            <label data-tooltip="Your secure account password" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+          <div className="auth-form-group-last">
+            <label data-tooltip="Your secure account password" className="auth-label">
               <Lock size={16} /> Password
             </label>
             <input 
@@ -118,11 +94,11 @@ const LoginPage: React.FC = () => {
               onChange={(e) => { setPassword(e.target.value); setFieldErrors(prev => ({ ...prev, password: '' })); }}
               placeholder="••••••••"
               required 
-              style={{ borderColor: fieldErrors.password ? 'var(--danger)' : undefined }}
+              className={fieldErrors.password ? "input-error" : ""}
             />
-            {fieldErrors.password && <p style={{ color: 'var(--danger)', fontSize: '0.75rem', marginTop: '5px' }}>{fieldErrors.password}</p>}
-            <div style={{ textAlign: 'right', marginTop: '8px' }}>
-              <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--accent-color)', textDecoration: 'none' }}>Forgot password?</Link>
+            {fieldErrors.password && <p className="auth-error-text">{fieldErrors.password}</p>}
+            <div className="auth-forgot-password">
+              <Link to="/forgot-password" className="auth-forgot-password-link">Forgot password?</Link>
             </div>
           </div>
 
@@ -130,15 +106,14 @@ const LoginPage: React.FC = () => {
             data-tooltip="Access your hospital administrative portal"
             type="submit" 
             disabled={loading}
-            className="btn-primary" 
-            style={{ width: '100%', marginTop: '10px' }}
+            className="btn-primary auth-submit-btn" 
           >
             {loading ? 'Authenticating...' : <><LogIn size={20} /> Sign In</>}
           </button>
         </form>
 
-        <p style={{ marginTop: '25px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Don't have an account? <Link to="/register" style={{ color: 'var(--accent-color)', textDecoration: 'none', fontWeight: 700 }}>Sign up your hospital</Link>
+        <p className="auth-footer-text">
+          Don't have an account? <Link to="/register" className="auth-footer-link">Sign up your hospital</Link>
         </p>
       </div>
     </div>
@@ -146,3 +121,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+

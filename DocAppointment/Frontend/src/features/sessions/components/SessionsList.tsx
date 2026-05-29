@@ -6,8 +6,8 @@ import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../stores/authStore';
 import { 
   Plus, Clock, Calendar, User, Trash2, X, 
-  AlertTriangle, Users, Hash, CheckCircle2, ListOrdered, Edit, Building2
-} from 'lucide-react';
+  AlertTriangle, Users, Hash,  ListOrdered, Edit, Building2
+, Save } from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { notify } from '../../../stores/notificationStore';
 import PageHeader from '../../../components/UI/PageHeader';
@@ -264,7 +264,7 @@ const SessionsList: React.FC = () => {
               <div 
                 key={session.id} 
                 className="glass-card session-card"
-                style={{ cursor: 'pointer' }}
+                
                 onClick={() => setEditingSession(session)}
               >
                 <div className="session-header">
@@ -329,7 +329,7 @@ const SessionsList: React.FC = () => {
             <div className="modal-footer-row">
               <button data-tooltip="Discard changes and return" type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel-session"><X size={16} color="#f43f5e" /> Cancel</button>
               <button data-tooltip="Save and create new shift" type="submit" className="btn-outline-primary btn-submit-session">
-                <CheckCircle2 size={18} /> {createSessionMutation.isPending ? 'Saving...' : 'Add Session'}
+                <Save size={18} /> {createSessionMutation.isPending ? 'Saving...' : 'Add Session'}
               </button>
             </div>
           </form>
@@ -343,7 +343,7 @@ const SessionsList: React.FC = () => {
             <div className="modal-footer-row">
               <button data-tooltip="Discard changes and return" type="button" onClick={() => setEditingSession(null)} className="btn-cancel-session"><X size={16} color="#f43f5e" /> Cancel</button>
               <button data-tooltip="Commit updates to this shift" type="submit" className="btn-outline-primary btn-submit-session">
-                <CheckCircle2 size={18} /> {updateSessionMutation.isPending ? 'Updating...' : 'Update Session'}
+                <Save size={18} /> {updateSessionMutation.isPending ? 'Updating...' : 'Update Session'}
               </button>
             </div>
           </form>

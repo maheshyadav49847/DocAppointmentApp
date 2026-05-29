@@ -1,15 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { Bell, CheckCheck, Trash2, X } from 'lucide-react';
 import { useNotificationStore } from '../stores/notificationStore';
-import type { AppNotification, NotificationType } from '../stores/notificationStore';
-
-// ─── Type → colour map ───────────────────────────────────────────────────────
-const TYPE_COLOR: Record<NotificationType, { color: string; bg: string; border: string }> = {
-  success: { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-  info:    { color: '#38bdf8', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.2)' },
-  warning: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
-  danger:  { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.2)'  },
-};
+import type { AppNotification } from '../stores/notificationStore';
+import './NotificationBell.css';
 
 function timeAgo(ts: number): string {
   const diff = Math.floor((Date.now() - ts) / 1000);
@@ -23,55 +16,32 @@ function timeAgo(ts: number): string {
 const NotifRow: React.FC<{ n: AppNotification; onRead: () => void; onRemove: () => void }> = ({
   n, onRead, onRemove,
 }) => {
-  const cfg = TYPE_COLOR[n.type];
   return (
     <div
       onClick={onRead}
-      style={{
-        display: 'flex', gap: '12px', padding: '12px 14px', borderRadius: '10px',
-        background: n.read ? 'transparent' : cfg.bg,
-        border: `1px solid ${n.read ? 'transparent' : cfg.border}`,
-        cursor: 'pointer', transition: 'all 0.2s', position: 'relative',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = cfg.bg)}
-      onMouseLeave={e => (e.currentTarget.style.background = n.read ? 'transparent' : cfg.bg)}
+      className={`notif-row notif-${n.type} ${n.read ? 'read' : 'unread'}`}
     >
       {/* Unread dot */}
       {!n.read && (
-        <span style={{
-          position: 'absolute', top: '10px', right: '36px',
-          width: '7px', height: '7px', borderRadius: '50%',
-          background: cfg.color,
-        }} />
+        <span className="notif-unread-dot" />
       )}
 
       {/* Icon */}
-      <div style={{
-        width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-        background: cfg.bg, border: `1px solid ${cfg.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1.1rem',
-      }}>
+      <div className="notif-icon-box">
         {n.icon}
       </div>
 
       {/* Text */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'white', lineHeight: 1.3 }}>{n.title}</p>
-        <p style={{ margin: '3px 0 5px', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{n.message}</p>
-        <span style={{ fontSize: '0.7rem', color: cfg.color, fontWeight: 600 }}>{timeAgo(n.timestamp)}</span>
+      <div className="notif-text-container">
+        <p className="notif-title">{n.title}</p>
+        <p className="notif-message">{n.message}</p>
+        <span className="notif-time">{timeAgo(n.timestamp)}</span>
       </div>
 
       {/* Remove btn */}
       <button
         onClick={e => { e.stopPropagation(); onRemove(); }}
-        style={{
-          background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)',
-          cursor: 'pointer', padding: '2px', flexShrink: 0, display: 'flex', alignItems: 'flex-start',
-          marginTop: '2px', transition: 'color 0.2s',
-        }}
-        onMouseEnter={e => (e.currentTarget.style.color = 'var(--danger)')}
-        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
+        className="notif-remove-btn"
         title="Dismiss"
       >
         <X size={13} />
@@ -103,30 +73,17 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div ref={panelRef} style={{ position: 'relative' }}>
+    <div ref={panelRef} className="bell-container">
       {/* Bell Button */}
       <button
         data-tooltip="View system notifications"
         onClick={handleOpen}
         title="Notifications"
-        style={{
-          position: 'relative', background: open ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-          border: `1px solid ${open ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)'}`,
-          borderRadius: '12px', width: '40px', height: '40px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 0.2s', color: open ? 'white' : 'var(--text-secondary)',
-        }}
+        className={`bell-btn ${open ? 'open' : ''}`}
       >
         <Bell size={18} />
         {count > 0 && (
-          <span style={{
-            position: 'absolute', top: '-4px', right: '-4px',
-            minWidth: '18px', height: '18px', borderRadius: '9px',
-            background: 'var(--danger)', border: '2px solid #0f172a',
-            fontSize: '0.65rem', fontWeight: 900, color: 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 3px',
-          }}>
+          <span className="bell-badge">
             {count > 9 ? '9+' : count}
           </span>
         )}
@@ -134,47 +91,28 @@ const NotificationBell: React.FC = () => {
 
       {/* Dropdown Panel */}
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 12px)', right: 0,
-          width: '360px', maxWidth: 'calc(100vw - 30px)',
-          background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px', boxShadow: '0 25px 50px rgba(0,0,0,0.7)',
-          zIndex: 10000, overflow: 'hidden',
-          animation: 'fadeIn 0.15s ease-out',
-        }}>
+        <div className="notif-panel">
           {/* Header */}
-          <div style={{
-            padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="notif-header">
+            <div className="notif-header-title">
+              <div className="notif-header-title-inner">
                 <Bell size={16} color="var(--accent-color)" />
-                <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>Notifications</span>
+                <span className="notif-header-text">Notifications</span>
                 {count > 0 && (
-                  <span style={{
-                    padding: '2px 8px', borderRadius: '10px', fontSize: '0.7rem',
-                    fontWeight: 700, background: 'rgba(239,68,68,0.15)', color: 'var(--danger)',
-                  }}>
+                  <span className="notif-header-badge">
                     {count} unread
                   </span>
                 )}
               </div>
             </div>
             
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="notif-actions">
               {count > 0 && (
                 <button
                   data-tooltip="Acknowledge all notifications"
                   onClick={markAllRead}
                   title="Mark all as read"
-                  style={{
-                    background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)',
-                    color: 'var(--accent-color)', borderRadius: '8px', padding: '6px 12px',
-                    cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(56,189,248,0.15)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(56,189,248,0.1)'}
+                  className="notif-action-btn notif-action-mark-read"
                 >
                   <CheckCheck size={13} /> Mark all as read
                 </button>
@@ -184,14 +122,7 @@ const NotificationBell: React.FC = () => {
                   data-tooltip="Delete notification history"
                   onClick={clearAll}
                   title="Clear all notifications"
-                  style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--text-secondary)', borderRadius: '8px', padding: '6px 12px',
-                    cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = 'var(--danger)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+                  className="notif-action-btn notif-action-clear"
                 >
                   <Trash2 size={13} /> Clear all
                 </button>
@@ -200,17 +131,17 @@ const NotificationBell: React.FC = () => {
           </div>
 
           {/* Notification list */}
-          <div style={{ maxHeight: '420px', overflowY: 'auto', padding: '10px' }} className="no-scrollbar">
+          <div className="notif-list-container no-scrollbar">
             {notifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-                <Bell size={36} style={{ opacity: 0.15, marginBottom: '12px', color: 'var(--accent-color)' }} />
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 600 }}>All caught up!</p>
-                <p style={{ margin: '5px 0 0', color: 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}>
+              <div className="notif-empty">
+                <Bell size={36} className="notif-empty-icon" />
+                <p className="notif-empty-title">All caught up!</p>
+                <p className="notif-empty-subtitle">
                   Queue events, bookings, and alerts will appear here.
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="notif-list">
                 {notifications.map(n => (
                   <NotifRow
                     key={n.id}
@@ -225,11 +156,8 @@ const NotificationBell: React.FC = () => {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div style={{
-              padding: '12px 18px', borderTop: '1px solid rgba(255,255,255,0.05)',
-              textAlign: 'center',
-            }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            <div className="notif-footer">
+              <span className="notif-footer-text">
                 {notifications.length} total · Last 50 events kept
               </span>
             </div>

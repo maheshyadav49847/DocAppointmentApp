@@ -572,3 +572,7 @@
 
 .ratings-loading { text-align: center; padding: 20px; }
 
+
+.doctor-card {
+  cursor: pointer;
+}

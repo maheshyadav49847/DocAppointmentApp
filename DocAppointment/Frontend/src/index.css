@@ -1112,3 +1112,12 @@ select {
 .ml-1-5 {
   margin-left: 6px !important;
 }
+.input-error {
+  border-color: var(--danger) !important;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1);
+}

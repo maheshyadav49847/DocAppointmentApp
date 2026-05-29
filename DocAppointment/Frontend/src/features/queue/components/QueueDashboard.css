@@ -1947,3 +1947,9 @@
   }
 }
 
+
+.complete-next-btn-large {
+  background: var(--success) !important;
+  color: white !important;
+  border-color: var(--success) !important;
+}

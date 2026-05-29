@@ -46,6 +46,35 @@ namespace CodeX.Api.Controllers
             return Ok(patient);
         }
 
+        // 1.5 Fetch Patient Overview Profile
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetPatientProfile(Guid id)
+        {
+            var patient = await _context.Patients
+                .Select(p => new
+                {
+                    p.Id,
+                    p.PatientCode,
+                    p.Name,
+                    p.Phone,
+                    p.Email,
+                    p.Address,
+                    p.EmergencyContactName,
+                    p.EmergencyContactPhone,
+                    p.Age,
+                    p.Gender,
+                    p.BloodGroup,
+                    p.PreExistingConditions,
+                    p.Height,
+                    p.CreatedAt,
+                    p.UpdatedAt
+                })
+                .FirstOrDefaultAsync(p => p.Id == id);
+                
+            if (patient == null) return NotFound("Patient not found.");
+            return Ok(patient);
+        }
+
         // 2. Fetch all visits for a patient (including medicines and doctor details)
         [HttpGet("{id}/visits")]
         public async Task<IActionResult> GetPatientVisits(Guid id, [FromQuery] int page = 1, [FromQuery] int limit = 20)
@@ -210,25 +239,6 @@ namespace CodeX.Api.Controllers
                 return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
             }
 
-            var visit = new PatientVisit
-                {
-                    PatientId = id,
-                    DoctorId = dto.DoctorId,
-                    TokenId = assignedTokenId,
-                    VisitDate = dto.VisitDate ?? DateTime.UtcNow,
-                    Symptoms = dto.Symptoms,
-                    Diagnosis = dto.Diagnosis,
-                    Advice = dto.Advice,
-                    InternalNotes = dto.InternalNotes,
-                    Weight = dto.Weight,
-                    HeartRate = dto.HeartRate,
-                    BloodPressure = dto.BloodPressure,
-                    OxygenLevel = dto.OxygenLevel,
-                    Temperature = dto.Temperature,
-                    RespiratoryRate = dto.RespiratoryRate,
-                    BloodSugar = dto.BloodSugar,
-                    FollowUpDate = dto.FollowUpDate
-                };
 
                 if (dto.Medicines != null && dto.Medicines.Any())
                 {
@@ -266,6 +276,65 @@ namespace CodeX.Api.Controllers
 
             await _context.SaveChangesAsync(default);
             return Ok(new { id = visit.Id });
+        }
+
+        // 3.5. Update Vitals (Mobile App Support)
+        [HttpPost("{id}/vitals")]
+        public async Task<IActionResult> AddVitals(Guid id, [FromBody] EditVisitDto dto)
+        {
+            var patientExists = await _context.Patients.AnyAsync(p => p.Id == id);
+            if (!patientExists) return NotFound("Patient not found.");
+
+            // Find today's active visit to append vitals to, or return error
+            var today = DateTime.UtcNow.Date;
+            var todaysVisit = await _context.PatientVisits
+                .Where(v => v.PatientId == id && v.VisitDate >= today && v.VisitDate < today.AddDays(1))
+                .OrderByDescending(v => v.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (todaysVisit == null)
+            {
+                // Let's check if they have a token today, if so we create a blank visit just for vitals
+                var todaysToken = await _context.Tokens
+                    .Include(t => t.Queue)
+                    .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
+                    .OrderByDescending(t => t.Queue.QueueDate)
+                    .FirstOrDefaultAsync();
+
+                if (todaysToken == null)
+                {
+                    return BadRequest("Vitals can only be recorded if the patient has a booking/token today or an active consultation.");
+                }
+
+                // Create a placeholder visit to hold vitals
+                todaysVisit = new PatientVisit
+                {
+                    PatientId = id,
+                    TokenId = todaysToken.Id,
+                    DoctorId = todaysToken.Queue.DoctorId,
+                    VisitDate = DateTime.UtcNow,
+                };
+                _context.PatientVisits.Add(todaysVisit);
+            }
+
+            // Update vitals on the visit
+            if (dto.Weight.HasValue) todaysVisit.Weight = dto.Weight;
+            if (dto.HeartRate.HasValue) todaysVisit.HeartRate = dto.HeartRate;
+            if (!string.IsNullOrWhiteSpace(dto.BloodPressure)) todaysVisit.BloodPressure = dto.BloodPressure;
+            if (dto.OxygenLevel.HasValue) todaysVisit.OxygenLevel = dto.OxygenLevel;
+            if (dto.Temperature.HasValue) todaysVisit.Temperature = dto.Temperature;
+            if (dto.RespiratoryRate.HasValue) todaysVisit.RespiratoryRate = dto.RespiratoryRate;
+            if (dto.BloodSugar.HasValue) todaysVisit.BloodSugar = dto.BloodSugar;
+
+            // Also update height on the patient profile directly since it's an invariant metric
+            if (dto.Height.HasValue)
+            {
+                var patient = await _context.Patients.FindAsync(id);
+                if (patient != null) patient.Height = dto.Height;
+            }
+
+            await _context.SaveChangesAsync(default);
+            return Ok(new { success = true, visitId = todaysVisit.Id });
         }
 
         // 4. Update visit details & medicines
@@ -575,6 +644,7 @@ namespace CodeX.Api.Controllers
         public string? Advice { get; set; }
         public string? InternalNotes { get; set; }
         public decimal? Weight { get; set; }
+        public decimal? Height { get; set; }
         public int? HeartRate { get; set; }
         public string? BloodPressure { get; set; }
         public decimal? OxygenLevel { get; set; }

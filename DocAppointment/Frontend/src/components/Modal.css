@@ -1,0 +1,53 @@
+/* Modal.css */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content-card {
+  width: 100%;
+  margin: 0 20px;
+  padding: 35px;
+  position: relative;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #f43f5e;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.modal-title {
+  margin-bottom: 25px;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-420px { max-width: 420px; }
+.modal-450px { max-width: 450px; }
+.modal-460px { max-width: 460px; }
+.modal-500px { max-width: 500px; }
+.modal-540px { max-width: 540px; }
