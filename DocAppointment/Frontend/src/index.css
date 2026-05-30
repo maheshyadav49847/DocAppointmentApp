@@ -1121,3 +1121,93 @@ select {
   cursor: not-allowed;
   background: rgba(255, 255, 255, 0.1);
 }
+
+/* Recovered CSS */
+.btn-cancel {
+  background: transparent !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  color: #f43f5e !important;
+  transition: all 0.2s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-cancel:hover {
+  background: rgba(244, 63, 94, 0.1) !important;
+  border-color: rgba(244, 63, 94, 0.8) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2) !important;
+}
+
+.btn-danger-outline {
+  background: transparent !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+  color: var(--danger) !important;
+}
+.btn-danger-outline:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2) !important;
+}
+
+.btn-glass-icon {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: var(--text-dimmed) !important;
+}
+.btn-glass-icon:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+  transform: translateY(-2px);
+}
+
+.interactive-card {
+  transition: all 0.3s ease !important;
+}
+.interactive-card:hover {
+  transform: translateY(-5px) !important;
+}
+.interactive-card:not(.active):not(.branch-card-active):not(.glass-panel-active):hover {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 20px var(--accent-glow) !important;
+}
+
+.branch-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(17, 24, 39, 0.4);
+}
+.branch-card-active {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  background: rgba(56, 189, 248, 0.05) !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.1) !important;
+}
+
+.active-context-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: var(--accent-color);
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  box-shadow: 0 0 15px var(--accent-glow);
+  z-index: 10;
+}
+
+.branch-icon-box {
+  width: 50px;
+  height: 50px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dimmed);
+}
+.branch-icon-box-active {
+  background: var(--accent-glow) !important;
+  color: var(--accent-color) !important;
+}

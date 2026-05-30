@@ -1152,7 +1152,7 @@ const PatientsList: React.FC = () => {
                 <Users size={32} /><span>No patients found.</span>
               </div>
             ) : filteredPatients.map((p: any) => (
-              <div key={p.id} className="elegant-patient-card" onClick={() => { setSelectedPatient(p); setWorkspaceTab('history'); }}>
+              <div key={p.id} className="elegant-patient-card" onClick={() => { setSelectedPatient(p); setIsEditingProfile(true); setIsEditingFromCard(true); }}>
                 {/* Hover Line */}
 
                 <div className="ep-header">
