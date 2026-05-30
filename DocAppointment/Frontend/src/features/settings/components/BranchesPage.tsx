@@ -252,7 +252,7 @@ const BranchesPage: React.FC = () => {
           <div className="branch-style-97">
             <div className="input-group">
               <label data-tooltip="Enter the official name of the hospital branch" className="branch-style-98">
-                <Building2 size={16} /> Branch Name
+                <Building2 size={16} color="var(--accent-color)" /> Branch Name
               </label>
               <input
                 type="text"
@@ -263,7 +263,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label data-tooltip="Full physical address for patient navigation" className="branch-style-99">
-                <MapPin size={16} /> Address
+                <MapPin size={16} color="#f43f5e" /> Address
               </label>
               <textarea
                 rows={3}
@@ -275,7 +275,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label data-tooltip="Number used for automated WhatsApp notifications (with country code)" className="branch-style-101">
-                <Smartphone size={16} /> WhatsApp Number
+                <Smartphone size={16} color="#22c55e" /> WhatsApp Number
               </label>
               <input
                 type="tel"
@@ -288,20 +288,18 @@ const BranchesPage: React.FC = () => {
             <div className="branch-style-102">
               <button
                 data-tooltip="Discard changes and return"
-                className="branch-style-103"
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                className="btn-cancel"
                 onClick={() => setIsModalOpen(false)}
               >
-                <X size={18} /> Cancel
+                <X size={18} color="#f43f5e" /> Cancel
               </button>
               <button
                 data-tooltip="Launch this new hospital branch"
-                className="btn-primary branch-style-104"
+                className="btn-outline-primary branch-style-102"
                 disabled={!newBranch.name || createMutation.isPending}
                 onClick={() => createMutation.mutate(newBranch)}
               >
-                {createMutation.isPending ? 'Registering...' : <><Plus size={20} /> Register Branch</>}
+                <CheckCircle2 size={18} color="var(--accent-color)" /> {createMutation.isPending ? 'Registering...' : 'Register Branch'}
               </button>
             </div>
           </div>
@@ -319,7 +317,7 @@ const BranchesPage: React.FC = () => {
           <div className="branch-style-105">
             <div className="input-group">
               <label className="branch-style-106">
-                <Building2 size={16} /> Branch Name
+                <Building2 size={16} color="var(--accent-color)" /> Branch Name
               </label>
               <input
                 type="text"
@@ -329,7 +327,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label className="branch-style-107">
-                <MapPin size={16} /> Address
+                <MapPin size={16} color="#f43f5e" /> Address
               </label>
               <textarea
                 rows={4}
@@ -340,7 +338,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label data-tooltip="Specific WhatsApp number for this branch alerts" className="branch-style-109">
-                <Smartphone size={16} /> Localized WhatsApp Number
+                <Smartphone size={16} color="#22c55e" /> Localized WhatsApp Number
               </label>
               <input
                 type="tel"
@@ -364,20 +362,18 @@ const BranchesPage: React.FC = () => {
             <div className="branch-style-115">
               <button
                 data-tooltip="Discard changes and return"
-                className="branch-style-116"
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                className="btn-cancel"
                 onClick={() => setIsConfigModalOpen(false)}
               >
-                <X size={18} /> Cancel
+                <X size={18} color="#f43f5e" /> Cancel
               </button>
               <button
                 data-tooltip="Save changes for this location"
-                className="btn-primary branch-style-117"
+                className="btn-outline-primary"
                 onClick={() => updateBranchMutation.mutate(selectedBranch)}
                 disabled={updateBranchMutation.isPending}
               >
-                {updateBranchMutation.isPending ? 'Saving...' : <><CheckCircle2 size={18} /> Save Changes</>}
+                <Save size={18} color="var(--accent-color)" /> {updateBranchMutation.isPending ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -395,7 +391,7 @@ const BranchesPage: React.FC = () => {
           <div className="branch-style-118">
             <div className="branch-style-119">
               <p className="branch-style-120">
-                <Info size={16} /> Global Twilio Configuration
+                <Info size={16} color="#0ea5e9" /> Global Twilio Configuration
               </p>
               <p className="branch-style-121">
                 These credentials are used by all hospital branches to send automated WhatsApp notifications.
@@ -404,7 +400,7 @@ const BranchesPage: React.FC = () => {
 
             <div className="input-group">
               <label data-tooltip="Twilio Unique Identifier from your Console" className="branch-style-122">
-                <Shield size={16} /> Account SID
+                <Shield size={16} color="#8b5cf6" /> Account SID
               </label>
               <input
                 type="text"
@@ -415,7 +411,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label data-tooltip="Twilio Private Authentication Token" className="branch-style-123">
-                <Lock size={16} /> Auth Token
+                <Lock size={16} color="#f59e0b" /> Auth Token
               </label>
               <input
                 type="password"
@@ -426,7 +422,7 @@ const BranchesPage: React.FC = () => {
             </div>
             <div className="input-group">
               <label data-tooltip="Twilio sandbox or verified number (e.g. whatsapp:+123...)" className="branch-style-124">
-                <Link size={16} /> Master Outbound Number
+                <Link size={16} color="#22c55e" /> Master Outbound Number
               </label>
               <input
                 type="text"
@@ -439,9 +435,7 @@ const BranchesPage: React.FC = () => {
             <div className="branch-style-125">
               <button
                 data-tooltip="Verify global Twilio credentials"
-                className="branch-style-126"
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'; e.currentTarget.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.2)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.05)'; e.currentTarget.style.boxShadow = 'none'; }}
+                className="btn-cancel"
                 onClick={async () => {
                   try {
                     const res = await whatsappConfigService.testConnection(twilioConfig);
@@ -450,13 +444,14 @@ const BranchesPage: React.FC = () => {
                   } catch { notify.danger('Error', 'Test request failed.'); }
                 }}
               >
-                <Link size={16} /> Test Connection
+                <Link size={16} color="#0ea5e9" /> Test Connection
               </button>
               <button
-                className="btn-primary branch-style-127"
+                className="btn-outline-primary branch-style-127"
                 onClick={() => saveTwilioMutation.mutate(twilioConfig)}
+                disabled={saveTwilioMutation.isPending}
               >
-                <Save size={18} /> Update Credentials
+                <Save size={18} color="var(--accent-color)" /> {saveTwilioMutation.isPending ? 'Updating...' : 'Update Credentials'}
               </button>
             </div>
           </div>
@@ -468,16 +463,16 @@ const BranchesPage: React.FC = () => {
         <Modal title="Confirm Deletion" onClose={() => setDeletingBranchId(null)} icon={<AlertTriangle size={24} color="var(--danger)" />}>
           <div className="branch-style-128">
             <div className="branch-style-129">
-              <AlertTriangle size={30} />
+              <AlertTriangle size={30} color="var(--danger)" />
             </div>
             <p className="branch-style-130">Are you sure you want to remove this branch? All associated sessions and staff access will be affected. This is a soft delete.</p>
             <div className="branch-style-131">
-              <button onClick={() => setDeletingBranchId(null)} className="btn-cancel"><X size={16} /> No, Keep</button>
+              <button onClick={() => setDeletingBranchId(null)} className="btn-cancel"><X size={16} color="#f43f5e" /> No, Keep</button>
               <button
                 onClick={confirmDeleteBranch}
                 className="btn-primary branch-style-132"
               >
-                <Trash2 size={18} /> {deleteBranchMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
+                <Trash2 size={18} color="#fff" /> {deleteBranchMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
               </button>
             </div>
           </div>
