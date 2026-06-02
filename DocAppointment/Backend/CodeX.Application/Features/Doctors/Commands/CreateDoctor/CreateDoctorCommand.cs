@@ -12,6 +12,11 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
         public string? RegistrationNumber { get; init; }
+        public string? Gender { get; init; }
+        public string? Qualification { get; init; }
+        public string? Experience { get; init; }
+        public string? Mobile { get; init; }
+        public string? EmailId { get; init; }
     }
 
     public class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCommand, Guid>
@@ -50,7 +55,12 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
                 OrganizationId = request.OrganizationId,
                 Name = name,
                 Specialization = specialization,
-                RegistrationNumber = regNum
+                RegistrationNumber = regNum,
+                Gender = request.Gender,
+                Qualification = request.Qualification,
+                Experience = request.Experience,
+                Mobile = request.Mobile,
+                EmailId = request.EmailId
             };
 
             if (request.BranchIds.Any())

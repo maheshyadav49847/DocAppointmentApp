@@ -10,5 +10,10 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
         public string? RegistrationNumber { get; set; }
         public string BranchName { get; set; } = string.Empty;
         public List<Guid> BranchIds { get; set; } = new();
+        public string? Gender { get; set; }
+        public string? Qualification { get; set; }
+        public string? Experience { get; set; }
+        public string? Mobile { get; set; }
+        public string? EmailId { get; set; }
     }
 }

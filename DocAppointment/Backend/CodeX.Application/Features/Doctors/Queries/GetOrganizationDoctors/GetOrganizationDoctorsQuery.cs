@@ -30,7 +30,12 @@ namespace CodeX.Application.Features.Doctors.Queries.GetOrganizationDoctors
                 Specialization = d.Specialization,
                 RegistrationNumber = d.RegistrationNumber,
                 BranchName = string.Join(", ", d.Branches.Select(b => b.Name)),
-                BranchIds = d.Branches.Select(b => b.Id).ToList()
+                BranchIds = d.Branches.Select(b => b.Id).ToList(),
+                Gender = d.Gender,
+                Qualification = d.Qualification,
+                Experience = d.Experience,
+                Mobile = d.Mobile,
+                EmailId = d.EmailId
             }).ToList();
         }
     }

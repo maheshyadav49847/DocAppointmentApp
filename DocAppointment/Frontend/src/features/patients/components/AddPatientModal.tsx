@@ -21,11 +21,11 @@ const AddPatientModal: React.FC<AddPatientModalProps> = ({ isOpen, onClose, onSu
   const [address, setAddress] = useState('');
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
-  
-  const [errors, setErrors] = useState<{name?: string, phone?: string}>({});
+
+  const [errors, setErrors] = useState<{ name?: string, phone?: string }>({});
 
   const validate = () => {
-    const newErrors: {name?: string, phone?: string} = {};
+    const newErrors: { name?: string, phone?: string } = {};
     if (name.trim().length < 2) newErrors.name = "Name must be at least 2 characters";
     if (!/^\d{10,15}$/.test(phone)) newErrors.phone = "Enter a valid 10-15 digit phone number";
     setErrors(newErrors);
@@ -46,20 +46,16 @@ const AddPatientModal: React.FC<AddPatientModalProps> = ({ isOpen, onClose, onSu
     <Modal title="Add New Patient" icon={<UserPlus size={20} color="var(--accent-color)" />}
       onClose={onClose} maxWidth="540px">
       <div className="modal-body">
-        <p className="color-var-text-secondary-fs-0-9">
-          Register a new patient into the system.
-        </p>
-
         <div className="form-group">
           <label className="form-label flex-items-center">
             <User size={14} className="mr-1-5 icon-blue" /> Full Name <span className="color-var-danger">*</span>
           </label>
-          <input 
+          <input
             className={`form-input ${errors.name ? 'input-error' : ''}`}
-            type="text" 
+            type="text"
             placeholder="e.g. John Doe"
-            value={name} 
-            onChange={(e) => { setName(e.target.value); if(errors.name) validate(); }}
+            value={name}
+            onChange={(e) => { setName(e.target.value); if (errors.name) validate(); }}
           />
           {errors.name && <p className="color-var-danger-fs-0-75-mt-5">{errors.name}</p>}
         </div>
@@ -68,7 +64,7 @@ const AddPatientModal: React.FC<AddPatientModalProps> = ({ isOpen, onClose, onSu
           <label className="form-label flex-items-center">
             <Smartphone size={14} className="mr-1-5 icon-green" /> WhatsApp Number <span className="color-var-danger">*</span>
           </label>
-          <input 
+          <input
             className={`form-input ${errors.phone ? 'input-error' : ''}`}
             type="tel"
             placeholder="+1 (555) 000-0000"
@@ -76,7 +72,7 @@ const AddPatientModal: React.FC<AddPatientModalProps> = ({ isOpen, onClose, onSu
             onChange={(e) => {
               const val = e.target.value.replace(/\D/g, '').slice(0, 15);
               setPhone(val);
-              if(errors.phone) validate();
+              if (errors.phone) validate();
             }}
           />
           {errors.phone && <p className="color-var-danger-fs-0-75-mt-5">{errors.phone}</p>}

@@ -112,7 +112,9 @@ namespace CodeX.Api.Controllers
                 var jsonContent = new StringContent(System.Text.Json.JsonSerializer.Serialize(new {
                     branchId = dto.BranchId,
                     to = dto.To,
-                    message = dto.Message
+                    message = dto.Message,
+                    fileBase64 = dto.FileBase64,
+                    fileName = dto.FileName
                 }), System.Text.Encoding.UTF8, "application/json");
                 request.Content = jsonContent;
 
@@ -136,5 +138,7 @@ namespace CodeX.Api.Controllers
         public string BranchId { get; set; } = string.Empty;
         public string To { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
+        public string? FileBase64 { get; set; }
+        public string? FileName { get; set; }
     }
 }

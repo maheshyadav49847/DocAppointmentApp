@@ -149,7 +149,7 @@ namespace CodeX.Api.Controllers
             
             var token = await _context.Tokens
                 .Where(t => t.PatientId == id && t.Queue.QueueDate >= todayStart && t.Queue.QueueDate < todayEnd)
-                .OrderByDescending(t => t.Queue.QueueDate)
+                .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync();
 
             if (token == null)
@@ -199,7 +199,7 @@ namespace CodeX.Api.Controllers
             var todaysTokens = await _context.Tokens
                 .Include(t => t.Queue)
                 .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
-                .OrderByDescending(t => t.Queue.QueueDate)
+                .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             if (todaysTokens.Any())

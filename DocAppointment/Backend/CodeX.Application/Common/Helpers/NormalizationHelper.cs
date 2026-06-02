@@ -41,5 +41,13 @@ namespace CodeX.Application.Common.Helpers
 
             return email.Trim().ToLowerInvariant();
         }
+
+        public static string[] GetPhoneVariations(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber)) return new[] { string.Empty };
+            var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            var local = digits.Length > 10 ? digits.Substring(digits.Length - 10) : digits;
+            return new[] { phoneNumber, digits, local, "+" + digits }.Distinct().ToArray();
+        }
     }
 }

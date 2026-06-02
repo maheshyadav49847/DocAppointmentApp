@@ -98,8 +98,6 @@ app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-    
     var origins = builder.Configuration["AllowedOrigins"] ?? "";
     var csp = $"default-src 'self'; frame-ancestors 'none'; connect-src 'self' {origins.Replace(",", " ")};";
     context.Response.Headers.Append("Content-Security-Policy", csp);

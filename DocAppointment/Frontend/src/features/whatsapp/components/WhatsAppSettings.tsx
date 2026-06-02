@@ -28,6 +28,7 @@ interface BridgeStatus {
 interface Branch {
   id: string;
   name: string;
+  whatsAppNumber?: string;
 }
 
 const WhatsAppSettings: React.FC = () => {
@@ -243,7 +244,7 @@ const WhatsAppSettings: React.FC = () => {
                 
                 <div className="qr-container">
                   <iframe 
-                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${selectedBranchId}?apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
+                    src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${selectedBranchId}?expectedNumber=${branches.find(b => b.id === selectedBranchId)?.whatsAppNumber?.replace(/\\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
                     className="qr-iframe"
                     scrolling="no"
                   />

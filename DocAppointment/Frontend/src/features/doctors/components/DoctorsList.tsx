@@ -4,23 +4,24 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doctorService } from '../../../services/doctorService';
 import { branchService } from '../../../services/branchService';
 import { useAuthStore } from '../../../stores/authStore';
-import { 
-  User, Stethoscope, Trash2, Edit, X, AlertTriangle, 
+import {
+  User, Stethoscope, Trash2, Edit, X, AlertTriangle,
   Hash, ClipboardList, CheckCircle2, ShieldCheck, Users, Search, Star, MessageSquare, Building2, UserPlus
-, Save } from 'lucide-react';
+  , Save, Phone, Mail, GraduationCap, Clock
+} from 'lucide-react';
 import Modal from '../../../components/Modal';
 import { notify } from '../../../stores/notificationStore';
 import { ratingService } from '../../../services/ratingService';
 import PageHeader from '../../../components/UI/PageHeader';
 import './DoctorsList.css';
 
-const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onChange: (v: string) => void; tooltip?: string; required?: boolean }> = ({ label, icon, value, onChange, tooltip, required }) => (
+const Field: React.FC<{ label: string; icon: React.ReactNode; value: string; onChange: (v: string) => void; tooltip?: string; required?: boolean, type?: string, pattern?: string, title?: string }> = ({ label, icon, value, onChange, tooltip, required, type = "text", pattern, title }) => (
   <div className="field-group">
     <label data-tooltip={tooltip} className="field-label">
       {icon}
       {label}
     </label>
-    <input type="text" value={value} onChange={(e) => onChange(e.target.value)} required={required} />
+    <input type={type} pattern={pattern} title={title} value={value} onChange={(e) => onChange(e.target.value)} required={required} />
   </div>
 );
 
@@ -32,7 +33,7 @@ const DoctorsList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<any>(null);
   const [deletingDoctorId, setDeletingDoctorId] = useState<string | null>(null);
-  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', registrationNumber: '', branchIds: [] as string[] });
+  const [newDoctor, setNewDoctor] = useState({ name: '', specialization: '', registrationNumber: '', branchIds: [] as string[], gender: '', qualification: '', experience: '', mobile: '', emailId: '' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewRatingsDoctorId, setViewRatingsDoctorId] = useState<any>(null);
@@ -64,7 +65,7 @@ const DoctorsList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
       notify.success('Doctor Added', `Dr. ${variables.name} was added to the organization.`);
       setIsModalOpen(false);
-      setNewDoctor({ name: '', specialization: '', registrationNumber: '', branchIds: [] });
+      setNewDoctor({ name: '', specialization: '', registrationNumber: '', branchIds: [], gender: '', qualification: '', experience: '', mobile: '', emailId: '' });
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || error.message || "Failed to add doctor.";
@@ -105,7 +106,7 @@ const DoctorsList: React.FC = () => {
 
   const filteredDoctors = useMemo(() => {
     if (!doctors) return [];
-    return doctors.filter((doc: any) => 
+    return doctors.filter((doc: any) =>
       doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.specialization.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.registrationNumber?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -161,9 +162,9 @@ const DoctorsList: React.FC = () => {
 
   return (
     <div className="doctors-container">
-      <PageHeader 
-        title="Doctors" 
-        accentTitle="Hub" 
+      <PageHeader
+        title="Doctors"
+        accentTitle="Hub"
         subtitle="Manage medical professionals across all organization branches."
         icon={<Users />}
       />
@@ -172,18 +173,18 @@ const DoctorsList: React.FC = () => {
         <div className="actions-row flex-mobile-column">
           <div className="doctor-search-wrapper full-width-mobile">
             <Search size={18} className="doctor-search-icon" />
-            <input 
-              type="text" 
-              placeholder="Search all professionals..." 
+            <input
+              type="text"
+              placeholder="Search all professionals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="doctor-search-input"
             />
           </div>
 
-          <button 
-            onClick={() => setIsModalOpen(true)} 
-            className="btn-outline-primary add-doctor-btn full-width-mobile" 
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="btn-outline-primary add-doctor-btn full-width-mobile"
           >
             <UserPlus size={18} className="mr-1-5" /> New Doctor
           </button>
@@ -202,15 +203,15 @@ const DoctorsList: React.FC = () => {
         ) : (
           <div className="grid-doctors">
             {filteredDoctors.map((doc: any) => (
-              <div 
-                key={doc.id} 
+              <div
+                key={doc.id}
                 className="glass-card doctor-card"
                 onClick={() => {
                   const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
-                  setEditingDoctor({ 
-                    ...doc, 
+                  setEditingDoctor({
+                    ...doc,
                     branchIds: normalizedIds,
-                    BranchIds: normalizedIds 
+                    BranchIds: normalizedIds
                   });
                 }}
               >
@@ -227,46 +228,73 @@ const DoctorsList: React.FC = () => {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
+                  {doc.gender && (
+                    <span style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899', border: '1px solid rgba(236, 72, 153, 0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <User size={12} /> {doc.gender}
+                    </span>
+                  )}
+                  {doc.qualification && (
+                    <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <GraduationCap size={12} /> {doc.qualification}
+                    </span>
+                  )}
+                  {doc.experience && (
+                    <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12}/> {doc.experience}
+                    </span>
+                  )}
+                  {doc.registrationNumber && (
+                    <span style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6', border: '1px solid rgba(139, 92, 246, 0.2)', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ShieldCheck size={12}/> {doc.registrationNumber}
+                    </span>
+                  )}
+                </div>
+
                 <div className="doctor-details-list">
                   <div className="doctor-detail-item">
-                    <ShieldCheck size={14} className="icon-violet" />
-                    <span>Reg: {doc.registrationNumber || 'N/A'}</span>
+                    <Phone size={14} className="icon-emerald" />
+                    <span>{doc.mobile || 'N/A'}</span>
+                  </div>
+                  <div className="doctor-detail-item">
+                    <Mail size={14} className="icon-violet" />
+                    <span title={doc.emailId || 'N/A'} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.emailId || 'N/A'}</span>
                   </div>
                   <div className="doctor-detail-item">
                     <Building2 size={14} className="icon-amber" />
-                    <span className="doctor-branch-text">{doc.branchName || 'Not Assigned'}</span>
+                    <span className="doctor-branch-text" title={doc.branchName || 'Not Assigned'} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.branchName || 'Not Assigned'}</span>
                   </div>
                 </div>
 
                 <div className="doctor-actions-footer">
                   <div className="doctor-actions-row">
-                    <button 
+                    <button
                       data-tooltip="Feedback: View patient ratings and comments"
-                      onClick={(e) => { e.stopPropagation(); setViewRatingsDoctorId(doc); }} 
+                      onClick={(e) => { e.stopPropagation(); setViewRatingsDoctorId(doc); }}
                       className="action-btn btn-feedback"
                     >
                       <Star size={16} fill="#FACC15" color="#FACC15" />
                     </button>
 
-                    <button 
+                    <button
                       data-tooltip="Edit: Modify professional details"
                       onClick={(e) => {
                         e.stopPropagation();
                         const normalizedIds = (doc.branchIds || doc.BranchIds || []).map((id: any) => id.toString().toLowerCase());
-                        setEditingDoctor({ 
-                          ...doc, 
+                        setEditingDoctor({
+                          ...doc,
                           branchIds: normalizedIds,
-                          BranchIds: normalizedIds 
+                          BranchIds: normalizedIds
                         });
-                      }} 
+                      }}
                       className="action-btn btn-edit"
                     >
                       <Edit size={16} color="#3b82f6" />
                     </button>
                     {(['orgadmin', 'branchadmin', 'superadmin', 'receptionist'].includes(role?.toLowerCase().replace(/\s/g, '') || '')) && (
-                      <button 
+                      <button
                         data-tooltip="Delete: Remove professional profile"
-                        onClick={(e) => { e.stopPropagation(); setDeletingDoctorId(doc.id); }} 
+                        onClick={(e) => { e.stopPropagation(); setDeletingDoctorId(doc.id); }}
                         className="action-btn btn-delete"
                       >
                         <Trash2 size={16} color="#ef4444" />
@@ -288,24 +316,48 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={newDoctor.name} onChange={(v) => setNewDoctor({...newDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={newDoctor.specialization} onChange={(v) => setNewDoctor({...newDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({...newDoctor, registrationNumber: v})} />
-            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={newDoctor.name} onChange={(v) => setNewDoctor({ ...newDoctor, name: v })} required />
+              <div className="field-group">
+                <label className="field-label"><User size={16} className="icon-pink" /> Gender</label>
+                <select className="form-select" value={newDoctor.gender} onChange={(e) => setNewDoctor({ ...newDoctor, gender: e.target.value })}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Qualification" icon={<GraduationCap size={16} className="icon-pink" />} value={newDoctor.qualification} onChange={(v) => setNewDoctor({ ...newDoctor, qualification: v })} />
+              <Field label="Experience (Years)" icon={<Clock size={16} className="icon-amber" />} value={newDoctor.experience} onChange={(v) => setNewDoctor({ ...newDoctor, experience: v })} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={newDoctor.registrationNumber} onChange={(v) => setNewDoctor({ ...newDoctor, registrationNumber: v })} />
+              <Field label="Email" icon={<Mail size={16} className="icon-violet" />} value={newDoctor.emailId} onChange={(v) => setNewDoctor({ ...newDoctor, emailId: v })} type="email" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={newDoctor.specialization} onChange={(v) => setNewDoctor({ ...newDoctor, specialization: v })} required />
+              <Field label="Mobile" icon={<Phone size={16} className="icon-emerald" />} value={newDoctor.mobile} onChange={(v) => setNewDoctor({ ...newDoctor, mobile: v })} type="tel" pattern="[0-9]{10}" title="Must be 10 digits" />
+            </div>
+
             <div className="branches-assign-section">
               <label className="field-label">
                 <Building2 size={16} className="icon-amber" /> Assign to Branches
               </label>
               {!branches ? (
                 <div className="branches-loading-box">
-                   Loading available branches...
+                  Loading available branches...
                 </div>
               ) : branches.length > 0 ? (
                 <div className="branch-checkbox-grid">
                   {branches.map((branch: any) => (
                     <label key={branch.id} className="branch-checkbox-label">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isBranchSelected(branch.id, newDoctor.branchIds)}
                         onChange={() => toggleBranchSelection(branch.id, false)}
                         className="branch-checkbox-input"
@@ -341,10 +393,34 @@ const DoctorsList: React.FC = () => {
                 <AlertTriangle size={16} /> {errorMessage}
               </div>
             )}
-            <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={editingDoctor.name} onChange={(v) => setEditingDoctor({...editingDoctor, name: v})} required />
-            <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({...editingDoctor, specialization: v})} required />
-            <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({...editingDoctor, registrationNumber: v})} />
-            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Full Name" icon={<User size={16} className="icon-pink" />} value={editingDoctor.name} onChange={(v) => setEditingDoctor({ ...editingDoctor, name: v })} required />
+              <div className="field-group">
+                <label className="field-label"><User size={16} className="icon-pink" /> Gender</label>
+                <select className="form-select" value={editingDoctor.gender || ''} onChange={(e) => setEditingDoctor({ ...editingDoctor, gender: e.target.value })}>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Qualification" icon={<GraduationCap size={16} className="icon-pink" />} value={editingDoctor.qualification || ''} onChange={(v) => setEditingDoctor({ ...editingDoctor, qualification: v })} />
+              <Field label="Experience (Years)" icon={<Clock size={16} className="icon-amber" />} value={editingDoctor.experience || ''} onChange={(v) => setEditingDoctor({ ...editingDoctor, experience: v })} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Registration No." icon={<Hash size={16} className="icon-violet" />} value={editingDoctor.registrationNumber || ''} onChange={(v) => setEditingDoctor({ ...editingDoctor, registrationNumber: v })} />
+              <Field label="Email" icon={<Mail size={16} className="icon-violet" />} value={editingDoctor.emailId || ''} onChange={(v) => setEditingDoctor({ ...editingDoctor, emailId: v })} type="email" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <Field label="Specialization" icon={<Stethoscope size={16} className="icon-emerald" />} value={editingDoctor.specialization} onChange={(v) => setEditingDoctor({ ...editingDoctor, specialization: v })} required />
+              <Field label="Mobile" icon={<Phone size={16} className="icon-emerald" />} value={editingDoctor.mobile || ''} onChange={(v) => setEditingDoctor({ ...editingDoctor, mobile: v })} type="tel" pattern="[0-9]{10}" title="Must be 10 digits" />
+            </div>
+
             <div className="branches-assign-section">
               <label className="field-label">
                 <Building2 size={16} className="icon-amber" /> Assign to Branches
@@ -357,8 +433,8 @@ const DoctorsList: React.FC = () => {
                 <div className="branch-checkbox-grid">
                   {branches.map((branch: any) => (
                     <label key={branch.id} className="branch-checkbox-label">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={isBranchSelected(branch.id, editingDoctor.branchIds || [])}
                         onChange={() => toggleBranchSelection(branch.id, true)}
                         className="branch-checkbox-input"
@@ -395,10 +471,10 @@ const DoctorsList: React.FC = () => {
             <p className="delete-text">Are you sure you want to remove this professional? This action cannot be undone.</p>
             <div className="modal-footer">
               <button data-tooltip="Keep this profile" onClick={() => setDeletingDoctorId(null)} className="btn-cancel"><X size={16} color="#f43f5e" /> No, Keep</button>
-              <button 
+              <button
                 data-tooltip="Permanently delete this professional"
                 onClick={confirmDelete}
-                className="btn-primary btn-delete-confirm" 
+                className="btn-primary btn-delete-confirm"
               >
                 <Trash2 size={18} /> {deleteDoctorMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
               </button>
@@ -411,69 +487,69 @@ const DoctorsList: React.FC = () => {
 
       {viewRatingsDoctorId && (
         <Modal onClose={() => setViewRatingsDoctorId(null)} title={`Feedback: Dr. ${viewRatingsDoctorId?.name}`}>
-        {isLoadingRatings ? (
-           <p className="loading-text ratings-loading">Loading ratings...</p>
-        ) : ratingsData ? (
-           <div className="ratings-container">
-             <div className="ratings-summary-header">
+          {isLoadingRatings ? (
+            <p className="loading-text ratings-loading">Loading ratings...</p>
+          ) : ratingsData ? (
+            <div className="ratings-container">
+              <div className="ratings-summary-header">
                 <div className="ratings-avg-box">
-                   <p className="ratings-label-small">AVERAGE RATING</p>
-                   <div className="ratings-avg-row">
-                     <h1 className="ratings-avg-value">{ratingsData.averageScore}</h1>
-                     <Star size={30} fill="#FACC15" color="#FACC15" />
-                   </div>
+                  <p className="ratings-label-small">AVERAGE RATING</p>
+                  <div className="ratings-avg-row">
+                    <h1 className="ratings-avg-value">{ratingsData.averageScore}</h1>
+                    <Star size={30} fill="#FACC15" color="#FACC15" />
+                  </div>
                 </div>
                 <div className="ratings-vertical-divider"></div>
                 <div className="ratings-count-box">
-                   <p className="ratings-label-small">TOTAL REVIEWS</p>
-                   <h1 className="ratings-count-value">{ratingsData.totalRatings}</h1>
+                  <p className="ratings-label-small">TOTAL REVIEWS</p>
+                  <h1 className="ratings-count-value">{ratingsData.totalRatings}</h1>
                 </div>
-             </div>
+              </div>
 
-             <div>
+              <div>
                 <h3 className="reviews-section-title">Recent Feedback</h3>
-                
+
                 {ratingsData.recentRatings.length === 0 ? (
                   <div className="no-reviews-box">
-                     <MessageSquare size={30} className="no-reviews-icon" />
-                     <p className="no-reviews-text">No feedback has been received for this doctor yet.</p>
+                    <MessageSquare size={30} className="no-reviews-icon" />
+                    <p className="no-reviews-text">No feedback has been received for this doctor yet.</p>
                   </div>
                 ) : (
                   <div className="reviews-list-scroll">
                     {ratingsData.recentRatings.map((rating: any) => (
-                       <div key={rating.id} className="review-item-card">
-                         <div className="review-header-row">
-                            <div>
-                               <p className="reviewer-name">{rating.patientName}</p>
-                               <p className="review-date">
-                                 {new Date(rating.createdAt).toLocaleDateString()} at {new Date(rating.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                               </p>
-                            </div>
-                            <div className="review-stars-row">
-                               {[1, 2, 3, 4, 5].map((star) => (
-                                 <Star key={star} size={14} fill={star <= rating.score ? '#FACC15' : 'transparent'} color={star <= rating.score ? '#FACC15' : 'rgba(255,255,255,0.2)'} />
-                               ))}
-                            </div>
-                         </div>
-                         {rating.comment ? (
-                            <p className="review-comment-text">
-                               "{rating.comment}"
+                      <div key={rating.id} className="review-item-card">
+                        <div className="review-header-row">
+                          <div>
+                            <p className="reviewer-name">{rating.patientName}</p>
+                            <p className="review-date">
+                              {new Date(rating.createdAt).toLocaleDateString()} at {new Date(rating.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
-                         ) : (
-                            <p className="review-no-comment">
-                               No comment provided.
-                            </p>
-                         )}
-                       </div>
+                          </div>
+                          <div className="review-stars-row">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star key={star} size={14} fill={star <= rating.score ? '#FACC15' : 'transparent'} color={star <= rating.score ? '#FACC15' : 'rgba(255,255,255,0.2)'} />
+                            ))}
+                          </div>
+                        </div>
+                        {rating.comment ? (
+                          <p className="review-comment-text">
+                            "{rating.comment}"
+                          </p>
+                        ) : (
+                          <p className="review-no-comment">
+                            No comment provided.
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
-             </div>
-           </div>
-        ) : (
-           <p>Failed to load data.</p>
-        )}
-      </Modal>
+              </div>
+            </div>
+          ) : (
+            <p>Failed to load data.</p>
+          )}
+        </Modal>
       )}
     </div>
   );

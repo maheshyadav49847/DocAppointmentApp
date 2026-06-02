@@ -24,13 +24,15 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private readonly ISender _mediator;
         private readonly IWhatsAppService _whatsappService;
         private readonly ISmsService _smsService;
+        private readonly IQueueNotificationService _notificationService;
 
-        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService)
+        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService)
         {
             _context = context;
             _mediator = mediator;
             _whatsappService = whatsappService;
             _smsService = smsService;
+            _notificationService = notificationService;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -60,7 +62,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 {
                     PhoneNumber = fromPhone,
                     BranchId = request.BranchId,
-                    CurrentState = "START"
+                    CurrentState = "START",
+                    Language = string.Empty
                 };
 
                 _context.ChatSessions.Add(session);
@@ -72,34 +75,61 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var body = request.MessageBody.Trim();
             var bodyLower = body.ToLowerInvariant();
 
+            var emergencies = new[] { "heart attack", "chest pain", "emergency", "हार्ट अटैक", "सीने में दर्द", "सांस लेने में तकलीफ" };
+            if (emergencies.Any(e => bodyLower.Contains(e)))
+            {
+                return WhatsAppTranslationHelper.Get(session.Language, "EMERGENCY_ALERT");
+            }
+
             if (bodyLower is "hi" or "reset" or "start" or "menu")
             {
                 ResetSession(session);
             }
-            
-            // Log Incoming Message
-            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received");
-
-            if (bodyLower is "status" or "check")
+            else if (bodyLower is "status" or "check")
             {
                 return await HandleStatus(session, cancellationToken);
             }
-            else if (bodyLower == "cancel")
+            else if (bodyLower is "cancel" or "cancel appointment")
             {
                 return await HandleCancel(session, cancellationToken);
+            }
+            else if (bodyLower == "appointment")
+            {
+                return await HandleAppointmentDetails(session, cancellationToken);
+            }
+            else if (bodyLower == "reschedule")
+            {
+                return await HandleReschedule(session, cancellationToken);
             }
             else if (bodyLower is "rejoin" or "re-join")
             {
                 return await HandleRejoin(session, cancellationToken);
             }
+            else if (bodyLower == "language")
+            {
+                session.CurrentState = "LANGUAGE_SELECTION";
+                session.Language = string.Empty;
+                var bName = await GetHospitalName(session.BranchId, cancellationToken);
+                return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", bName);
+            }
+            else if (bodyLower == "help")
+            {
+                return await HandleHelp(session, cancellationToken);
+            }
+            
+            // Log Incoming Message
+            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received");
 
             var response = session.CurrentState switch
             {
                 "START" => await HandleStart(session, cancellationToken),
+                "LANGUAGE_SELECTION" => await HandleLanguageSelection(session, body, cancellationToken),
                 "AWAITING_NAME" => await HandleRegistration(session, body, cancellationToken),
+                "ACTIVE_APPOINTMENT_MENU" => await HandleActiveAppointmentMenu(session, body, cancellationToken),
                 "SELECT_DOCTOR" => await HandleSelectDoctor(session, bodyLower, cancellationToken),
                 "SELECT_SESSION" => await HandleSelectSession(session, bodyLower, cancellationToken),
                 "CONFIRM" => await HandleConfirm(session, bodyLower, cancellationToken),
+                "CONFIRM_CANCEL" => await HandleConfirmCancel(session, body, cancellationToken),
                 "AWAITING_RATING_SCORE" => await HandleRatingScore(session, bodyLower, cancellationToken),
                 "AWAITING_RATING_COMMENT" => await HandleRatingComment(session, body, cancellationToken),
                 _ => HandleUnknown(session)
@@ -116,23 +146,215 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             session.SelectedSessionId = null;
         }
 
+        private async Task<string> GetHospitalName(Guid? branchId, CancellationToken ct)
+        {
+            if (!branchId.HasValue) return "ABC Clinic";
+            var branch = await _context.Branches.Include(b => b.Organization).FirstOrDefaultAsync(b => b.Id == branchId.Value, ct);
+            return branch?.Organization?.Name ?? branch?.Name ?? "ABC Clinic";
+        }
+
         private static string HandleUnknown(ChatSession session)
         {
             ResetSession(session);
-            return "⚠️ Maaf kijiye, main samajh nahi paya.\n\nKripya shuruwat se menu dekhne ke liye *HI* likhkar bhejein. 🙏";
+            return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT_HELP");
+        }
+
+        private async Task<string> HandleLanguageSelection(ChatSession session, string body, CancellationToken ct)
+        {
+            if (body == "1" || body == "2" || body == "3")
+            {
+                session.Language = body;
+                session.CurrentState = "START";
+                return await HandleStart(session, ct); // Automatically proceed
+            }
+            
+            return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(session.BranchId, ct));
+        }
+
+        private async Task<string> HandleHelp(ChatSession session, CancellationToken ct)
+        {
+            var sb = new StringBuilder();
+            
+            if (session.Language == "1") sb.AppendLine("❓ सहायता केंद्र / Help Menu\n\nउपलब्ध कमांड (Type the word):");
+            else if (session.Language == "2") sb.AppendLine("❓ मदत केंद्र / Help Menu\n\nउपलब्ध कमांड (Type the word):");
+            else sb.AppendLine("❓ Help Menu\n\nAvailable Commands (Type the word):");
+            
+            sb.AppendLine("🏠 *HI* - Main Menu / मुख्य मेन्यू");
+            sb.AppendLine("🌐 *LANGUAGE* - Change Language / भाषा बदलें");
+            
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            if (patient != null && session.BranchId.HasValue)
+            {
+                var activeToken = await _context.Tokens
+                    .Include(t => t.Queue)
+                    .Where(t => t.PatientId == patient.Id &&
+                                t.Queue.BranchId == session.BranchId &&
+                                (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
+                    .FirstOrDefaultAsync(ct);
+
+                if (activeToken != null)
+                {
+                    sb.AppendLine("📊 *STATUS* - Queue Status / कतार नंबर");
+                    sb.AppendLine("📋 *APPOINTMENT* - View Details / विवरण");
+                    sb.AppendLine("🔄 *RESCHEDULE* - Reschedule / समय बदलें");
+                    sb.AppendLine("❌ *CANCEL* - Cancel Booking / रद्द करें");
+                }
+                else 
+                {
+                    var skippedToken = await _context.Tokens
+                        .Include(t => t.Queue)
+                        .Where(t => t.PatientId == patient.Id &&
+                                    t.Queue.BranchId == session.BranchId &&
+                                    t.Status == TokenStatus.Skipped)
+                        .FirstOrDefaultAsync(ct);
+                    
+                    if (skippedToken != null)
+                    {
+                         sb.AppendLine("🔁 *REJOIN* - Rejoin Queue / कतार में जुड़ें");
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private async Task<string> HandleActiveAppointmentMenu(ChatSession session, string body, CancellationToken ct)
+        {
+            return body switch
+            {
+                "1" => await HandleStatus(session, ct),
+                "2" => await HandleAppointmentDetails(session, ct),
+                "3" => await HandleReschedule(session, ct),
+                "4" => await HandleCancel(session, ct),
+                _ => WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT")
+            };
+        }
+
+        private async Task<string> HandleConfirmCancel(ChatSession session, string body, CancellationToken ct)
+        {
+            if (body == "1")
+            {
+                var activeToken = await _context.Tokens
+                    .Include(t => t.Queue)
+                    .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                                t.Queue.BranchId == session.BranchId &&
+                                t.Status == TokenStatus.Pending)
+                    .OrderByDescending(t => t.BookedAt)
+                    .FirstOrDefaultAsync(ct);
+
+                if (activeToken == null)
+                {
+                    ResetSession(session);
+                    return WhatsAppTranslationHelper.Get(session.Language, "NO_ACTIVE_APP");
+                }
+
+                activeToken.Status = TokenStatus.Cancelled;
+                ResetSession(session);
+
+                // Ensure DB is updated before notifying clients
+                await _context.SaveChangesAsync(ct);
+
+                // Notify via SignalR
+                try 
+                {
+                    await _notificationService.NotifyTokenUpdated(activeToken.Queue.BranchId, activeToken.QueueId, activeToken.Queue.CurrentTokenNumber);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+                }
+
+                return WhatsAppTranslationHelper.Get(session.Language, "CANCEL_SUCCESS");
+            }
+            else if (body == "2")
+            {
+                ResetSession(session);
+                return await HandleStart(session, ct);
+            }
+
+            return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
+        }
+
+        private async Task<string> HandleAppointmentDetails(ChatSession session, CancellationToken ct)
+        {
+            var activeToken = await _context.Tokens
+                .Include(t => t.Queue)
+                .ThenInclude(q => q.Doctor)
+                .Include(t => t.Queue.Session)
+                .Include(t => t.Patient)
+                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                            t.Queue.BranchId == session.BranchId &&
+                            (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
+                .OrderByDescending(t => t.BookedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (activeToken == null)
+            {
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_ACTIVE_APP");
+            }
+
+            return WhatsAppTranslationHelper.Get(session.Language, "APPOINTMENT_DETAILS",
+                activeToken.Patient.Name,
+                activeToken.Queue.Doctor?.Name ?? "Unknown",
+                activeToken.TokenNumber.ToString(),
+                activeToken.Queue.Session?.SessionName ?? "Unknown");
+        }
+
+        private async Task<string> HandleReschedule(ChatSession session, CancellationToken ct)
+        {
+            var activeToken = await _context.Tokens
+                .Include(t => t.Queue)
+                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                            t.Queue.BranchId == session.BranchId &&
+                            t.Status == TokenStatus.Pending)
+                .OrderByDescending(t => t.BookedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (activeToken != null)
+            {
+                activeToken.Status = TokenStatus.Cancelled;
+                session.SelectedDoctorId = activeToken.Queue.DoctorId;
+            }
+
+            // Immediately list sessions for the selected doctor
+            if (session.SelectedDoctorId.HasValue)
+            {
+                var sessions = await GetAvailableSessions(session.SelectedDoctorId.Value, session.BranchId, ct);
+                if (!sessions.Any())
+                {
+                    ResetSession(session);
+                    return WhatsAppTranslationHelper.Get(session.Language, "NO_SESSIONS");
+                }
+
+                var builder = new StringBuilder();
+                for (int i = 0; i < sessions.Count; i++)
+                {
+                    builder.AppendLine($"*{i + 1}.* {sessions[i].SessionName} _({sessions[i].StartTime:hh\\:mm} - {sessions[i].EndTime:hh\\:mm})_");
+                }
+                session.CurrentState = "SELECT_SESSION";
+                return WhatsAppTranslationHelper.Get(session.Language, "RESCHEDULE_PROMPT", builder.ToString());
+            }
+
+            ResetSession(session);
+            return await HandleStart(session, ct);
         }
 
         private async Task<string> HandleConfirm(ChatSession session, string body, CancellationToken ct)
         {
-            if (body != "confirm")
+            if (body == "2")
             {
-                return "👉 Appointment pakka karne ke liye kripya *CONFIRM* likhkar bhejein.\n\nYa fir shuruwat se shuru karne ke liye *HI* likhein. ✨";
+                ResetSession(session);
+                return await HandleStart(session, ct);
+            }
+            else if (body != "1")
+            {
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT_HELP");
             }
 
             if (!session.SelectedDoctorId.HasValue || !session.SelectedSessionId.HasValue || !session.BranchId.HasValue)
             {
                 ResetSession(session);
-                return "⏳ Aapka pichla chunaav expire ho gaya hai.\n\nNaya appointment book karne ke liye kripya *HI* likhkar bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_SESSIONS");
             }
 
             var tzBranch = await _context.Branches.FindAsync(new object[] { session.BranchId.Value }, ct);
@@ -151,8 +373,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             if (queue != null && (queue.Status == QueueStatus.Completed || queue.Status == QueueStatus.Cancelled))
             {
                 ResetSession(session);
-                string reason = queue.Status == QueueStatus.Cancelled ? "radd (Cancel) kar diya gaya hai. Doctor uplabdh nahi hain" : "khatam (Complete) ho chuka hai";
-                return $"⚠️ Maaf kijiye, chuna hua session aaj {reason}.\n\nKripya dusre doctor ya session ko chunne ke liye *HI* likhkar bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "SESSION_CANCELLED");
             }
 
             if (queue == null)
@@ -164,7 +385,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 if (masterSession == null || masterSession.Doctor == null)
                 {
                     ResetSession(session);
-                    return "⚠️ Maaf kijiye, chuna hua session abhi active nahi hai.\n\nKripya *HI* likhkar dobara try karein. 🙏";
+                    return WhatsAppTranslationHelper.Get(session.Language, "SESSION_CANCELLED");
                 }
 
                 queue = new DailyQueue
@@ -201,15 +422,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
                 ResetSession(session);
 
-                var response = $"🎉 *APPOINTMENT SAFALTAPOORVAK BOOK HO GAYA!* 🎉\n" +
-                       $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       $"👨‍⚕️ *Doctor:* Dr. {queue.Doctor?.Name}\n" +
-                       $"🕒 *Session:* {queue.Session?.SessionName}\n" +
-                       $"🔢 *Token Number:* #{tokenNum}\n\n" +
-                       $"💡 *Aage Kya Karein?*\n" +
-                       $"• Apna live status dekhne ke liye kisi bhi waqt *STATUS* likhkar bhejein.\n" +
-                       $"• Agar aap nahi aa sakte, toh *CANCEL* likhkar appointment radd kar sakte hain.\n\n" +
-                       $"✨ _Swasth rahein, muskurate rahein!_";
+                var response = WhatsAppTranslationHelper.Get(session.Language, "SUCCESS_BOOKING",
+                    tokenNum.ToString(),
+                    queue.Doctor?.Name ?? "Unknown",
+                    queue.Session?.SessionName ?? "Unknown",
+                    $"{queue.Session?.StartTime:hh\\:mm} - {queue.Session?.EndTime:hh\\:mm}");
 
                 // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
                 await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: tokenId);
@@ -222,70 +439,67 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 var msg = ex.InnerException?.Message ?? ex.Message;
                 if (msg.Contains("already has an active token", StringComparison.OrdinalIgnoreCase))
                 {
-                    return "ℹ️ Aapka pehle se hi is session me ek appointment book hai.\n\nApna live status dekhne ke liye kisi bhi waqt *STATUS* likhkar bhejein. ✨";
+                    return WhatsAppTranslationHelper.Get(session.Language, "ALREADY_BOOKED");
                 }
-                return $"⚠️ Appointment book karne me samasya aayi: {msg}\n\nKripya thodi der baad *HI* likhkar dobara try karein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "BOOKING_ERROR", msg);
             }
         }
 
         private async Task<string> HandleStart(ChatSession session, CancellationToken ct)
         {
-            string hospitalName = "Humare Hospital";
-            string branchName = "Main Branch";
-            if (session.BranchId.HasValue)
+            if (string.IsNullOrWhiteSpace(session.Language))
             {
-                var branch = await _context.Branches
-                    .Include(b => b.Organization)
-                    .FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
-                if (branch != null)
-                {
-                    if (!branch.IsActive)
-                    {
-                        return "⚠️ Maaf kijiye, yeh branch abhi offline hai aur yahan booking band hai. 🙏";
-                    }
-                    hospitalName = branch.Organization?.Name ?? branch.Name;
-                    branchName = branch.Name;
-                }
+                session.CurrentState = "LANGUAGE_SELECTION";
+                var bName = await GetHospitalName(session.BranchId, ct);
+                return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", bName);
             }
 
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            var phoneVars = NormalizationHelper.GetPhoneVariations(session.PhoneNumber);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), ct);
             if (patient == null || string.IsNullOrWhiteSpace(patient.Name))
             {
                 session.CurrentState = "AWAITING_NAME";
-                return $"🏥 *SWAGAT HAI* 🏥\n" +
-                       $"🏢 *{hospitalName.ToUpper()}* ({branchName})\n" +
-                       $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       $"Lagta hai aap humare hospital me pehli baar aaye hain. 😊\n\n" +
-                       $"👉 Kripya apna *Poora Naam* (Full Name) likhkar bhejein taaki hum aapka registration kar sakein:";
+                return WhatsAppTranslationHelper.Get(session.Language, "ASK_NAME");
+            }
+
+            // Check for active appointment
+            var activeToken = await _context.Tokens
+                .Include(t => t.Queue)
+                .ThenInclude(q => q.Doctor)
+                .Where(t => t.PatientId == patient.Id &&
+                            t.Queue.BranchId == session.BranchId &&
+                            (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
+                .OrderByDescending(t => t.BookedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (activeToken != null)
+            {
+                session.CurrentState = "ACTIVE_APPOINTMENT_MENU";
+                return WhatsAppTranslationHelper.Get(session.Language, "ACTIVE_APPOINTMENT",
+                    activeToken.Queue.Doctor?.Name ?? "Unknown",
+                    activeToken.TokenNumber.ToString());
             }
 
             var doctors = await GetAvailableDoctors(session.BranchId, ct);
             if (!doctors.Any())
             {
-                return "⚠️ Is branch me abhi koi doctor available nahi hain. Kripya thodi der baad try karein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_DOCTORS");
             }
 
             var builder = new StringBuilder();
-            builder.AppendLine($"🏥 *{hospitalName.ToUpper()}* ({branchName})");
-            builder.AppendLine($"━━━━━━━━━━━━━━━━━━━━━\n");
-            builder.AppendLine($"👋 Namaste *{patient.Name}*!\n");
-            builder.AppendLine("👉 Kripya appointment book karne ke liye niche diye gaye list me se kisi ek *Doctor ka Number* chunein (Jaise 1 ya 2):\n");
-
             for (int i = 0; i < doctors.Count; i++)
             {
                 builder.AppendLine($"*{i + 1}.* Dr. {doctors[i].Name} _({doctors[i].Specialization})_");
             }
 
-            builder.AppendLine("\n━━━━━━━━━━━━━━━━━━━━━");
-            builder.Append("📌 Apna pehle se book kiya hua number dekhne ke liye *STATUS* likhkar bhejein.");
-
             session.CurrentState = "SELECT_DOCTOR";
-            return builder.ToString();
+            return WhatsAppTranslationHelper.Get(session.Language, "SELECT_DOCTOR", patient.Name, builder.ToString());
         }
 
         private async Task<string> HandleRegistration(ChatSession session, string name, CancellationToken ct)
         {
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            var phoneVars = NormalizationHelper.GetPhoneVariations(session.PhoneNumber);
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), ct);
             if (patient == null)
             {
                 patient = new Patient { Phone = session.PhoneNumber, Name = name.Trim() };
@@ -304,13 +518,13 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         {
             if (!int.TryParse(body, out var index))
             {
-                return "⚠️ Galat chunaav.\n\nKripya upar di gayi list me se sahi *Number* (Jaise 1 ya 2) likhkar bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
             }
 
             var doctors = await GetAvailableDoctors(session.BranchId, ct);
             if (index <= 0 || index > doctors.Count)
             {
-                return "⚠️ Galat chunaav.\n\nKripya upar di gayi list me se sahi *Number* (Jaise 1 ya 2) likhkar bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
             }
 
             var selectedDoctor = doctors[index - 1];
@@ -320,33 +534,30 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             if (!sessions.Any())
             {
                 ResetSession(session);
-                return $"⚠️ Maaf kijiye, *Dr. {selectedDoctor.Name}* ka aaj koi active session nahi hai.\n\nDusre doctor ko chunne ke liye kripya *HI* likhkar bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_SESSIONS");
             }
 
             var builder = new StringBuilder();
-            builder.AppendLine($"👨‍⚕️ Aapne *Dr. {selectedDoctor.Name}* ko chuna hai.\n");
-            builder.AppendLine("👉 Kripya milne ka samay (*Session*) chunne ke liye niche se ek *Number* bhejein:\n");
-
             for (int i = 0; i < sessions.Count; i++)
             {
-                builder.AppendLine($"*{i + 1}.* {sessions[i].SessionName} _({sessions[i].StartTime:hh\\:mm} se {sessions[i].EndTime:hh\\:mm})_");
+                builder.AppendLine($"*{i + 1}.* {sessions[i].SessionName} _({sessions[i].StartTime:hh\\:mm} - {sessions[i].EndTime:hh\\:mm})_");
             }
 
             session.CurrentState = "SELECT_SESSION";
-            return builder.ToString();
+            return WhatsAppTranslationHelper.Get(session.Language, "SELECT_SESSION", selectedDoctor.Name, selectedDoctor.Specialization, builder.ToString());
         }
 
         private async Task<string> HandleSelectSession(ChatSession session, string body, CancellationToken ct)
         {
             if (!int.TryParse(body, out var index) || !session.SelectedDoctorId.HasValue)
             {
-                return "⚠️ Galat chunaav. Kripya sahi *Number* bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
             }
 
             var sessions = await GetAvailableSessions(session.SelectedDoctorId.Value, session.BranchId, ct);
             if (index <= 0 || index > sessions.Count)
             {
-                return "⚠️ Galat chunaav. Kripya sahi *Number* bhejein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
             }
 
             var selectedSession = sessions[index - 1];
@@ -355,18 +566,21 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == session.SelectedDoctorId.Value, ct);
             session.CurrentState = "CONFIRM";
 
-            return $"📋 *APPOINTMENT DETAILS* 📋\n" +
-                   $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                   $"👨‍⚕️ *Doctor:* Dr. {doctor?.Name}\n" +
-                   $"🕒 *Session:* {selectedSession.SessionName}\n\n" +
-                   $"👉 Sab details sahi hone par appointment pakka karne ke liye *CONFIRM* likhkar bhejein. ✅";
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+
+            return WhatsAppTranslationHelper.Get(session.Language, "CONFIRM_DETAILS",
+                patient?.Name ?? "Unknown",
+                doctor?.Name ?? "Unknown",
+                doctor?.Specialization ?? "N/A",
+                selectedSession.SessionName,
+                $"{selectedSession.StartTime:hh\\:mm} - {selectedSession.EndTime:hh\\:mm}");
         }
 
         private async Task<string> HandleRatingScore(ChatSession session, string body, CancellationToken ct)
         {
             if (!int.TryParse(body, out var score) || score < 1 || score > 5 || !session.SelectedSessionId.HasValue)
             {
-                return "⚠️ Kripya 1 se 5 ke beech ek sahi *Rating Number* (Jaise 5) likhkar bhejein. ⭐";
+                return WhatsAppTranslationHelper.Get(session.Language, "RATING_PROMPT");
             }
 
             try
@@ -377,18 +591,13 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     Score = score
                 }, ct);
 
-                string stars = new string('⭐', score);
                 session.CurrentState = "AWAITING_RATING_COMMENT";
-                return $"🙏 *BOHOT BOHOT SHUKRIYA!* 🙏\n" +
-                       $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                       $"Aapne humein diye hain: {stars} ({score}/5)\n\n" +
-                       $"💬 Kya aap humare clinic/doctor ke baare me koi chhota sa sujhaav (feedback) likhna chahenge?\n\n" +
-                       $"👉 Apna sujhaav likhkar bhejein, ya fir is step ko chhodne ke liye *SKIP* likhein. ✨";
+                return WhatsAppTranslationHelper.Get(session.Language, "COMMENT_PROMPT");
             }
             catch (Exception)
             {
                 ResetSession(session);
-                return $"⚠️ Rating save karne me samasya aayi.\n\nKripya thodi der baad *HI* likhkar dobara try karein. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT_HELP");
             }
         }
 
@@ -404,36 +613,23 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             ResetSession(session);
-            return $"💖 *FEEDBACK SAFALTAPOORVAK DARJ HO GAYA!* 💖\n" +
-                   $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                   $"Aapke keemti sujhaav ke liye hum aapke aabhari hain. Isse humein apni seva aur behtar banane me madad milti hai. 😊\n\n" +
-                   $"✨ _Aapka din shubh ho, swasth rahein!_ ✨";
+            return WhatsAppTranslationHelper.Get(session.Language, "FEEDBACK_SUCCESS");
         }
 
         private async Task<string> HandleStatus(ChatSession session, CancellationToken ct)
         {
-            if (!session.BranchId.HasValue)
-            {
-                return "⚠️ Yeh chat abhi branch se link nahi hai.\n\nKripya shuruwat se start karne ke liye *HI* likhkar bhejein. 🙏";
-            }
-
             var activeToken = await _context.Tokens
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
                 .Where(t => t.Patient.Phone == session.PhoneNumber &&
-                            t.Queue.BranchId == session.BranchId.Value &&
+                            t.Queue.BranchId == session.BranchId &&
                             (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                 .OrderByDescending(t => t.BookedAt)
                 .FirstOrDefaultAsync(ct);
 
             if (activeToken == null)
             {
-                return "ℹ️ Aapka is branch me abhi koi appointment book nahi hai.\n\nNaya appointment lene ke liye *HI* likhkar bhejein. ✨";
-            }
-
-            if (activeToken.Status == TokenStatus.Called)
-            {
-                return $"🔔 *AAPKA NUMBER CHAL RAHA HAI!*\n\n*Dr. {activeToken.Queue.Doctor.Name}* ne aapka *Token #{activeToken.TokenNumber}* andar bulaya hai.\n\n👉 Kripya turant doctor ke cabin me aaiye. ✨";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_ACTIVE_APP");
             }
 
             var peopleAhead = await _context.Tokens
@@ -441,70 +637,66 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                                  t.Status == TokenStatus.Pending &&
                                  t.TokenNumber < activeToken.TokenNumber, ct);
 
-            return $"📊 *LIVE APPOINTMENT STATUS* 📊\n" +
-                   $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                   $"👨‍⚕️ *Doctor:* Dr. {activeToken.Queue.Doctor.Name}\n" +
-                   $"🔢 *Aapka Token:* #{activeToken.TokenNumber}\n" +
-                   $"👥 *Aapke aage bache patients:* {peopleAhead}\n\n" +
-                   $"⏱️ *Anumanit Samay:* Lagbhag {peopleAhead * 10} minutes.\n\n" +
-                   $"💡 _Agar aap kisi wajah se nahi aa sakte, toh *CANCEL* likhkar bhejein._";
+            return WhatsAppTranslationHelper.Get(session.Language, "QUEUE_STATUS",
+                activeToken.Queue.Doctor?.Name ?? "Unknown",
+                activeToken.Queue.CurrentTokenNumber.ToString(),
+                activeToken.TokenNumber.ToString(),
+                peopleAhead.ToString(),
+                (peopleAhead * 10).ToString());
         }
 
         private async Task<string> HandleCancel(ChatSession session, CancellationToken ct)
         {
-            if (!session.BranchId.HasValue)
-            {
-                return "⚠️ Yeh chat abhi branch se link nahi hai.\n\nKripya shuruwat se start karne ke liye *HI* likhkar bhejein. 🙏";
-            }
-
             var activeToken = await _context.Tokens
                 .Include(t => t.Queue)
                 .Where(t => t.Patient.Phone == session.PhoneNumber &&
-                            t.Queue.BranchId == session.BranchId.Value &&
+                            t.Queue.BranchId == session.BranchId &&
                             t.Status == TokenStatus.Pending)
                 .OrderByDescending(t => t.BookedAt)
                 .FirstOrDefaultAsync(ct);
 
             if (activeToken == null)
             {
-                return "⚠️ Radd (Cancel) karne ke liye aapka koi active appointment nahi mila. 🙏";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_ACTIVE_APP");
             }
 
-            activeToken.Status = TokenStatus.Cancelled;
-            await _context.SaveChangesAsync(ct);
-
-            return "✅ Aapka appointment safaltapoorvak radd (Cancel) kar diya gaya hai. Swasth rahein! ✨";
+            session.CurrentState = "CONFIRM_CANCEL";
+            return WhatsAppTranslationHelper.Get(session.Language, "CANCEL_PROMPT");
         }
 
         private async Task<string> HandleRejoin(ChatSession session, CancellationToken ct)
         {
-            if (!session.BranchId.HasValue)
-            {
-                return "⚠️ Yeh chat abhi branch se link nahi hai.\n\nKripya *HI* likhkar shuru karein. 🙏";
-            }
-
-            // Find the most recent skipped token for this patient in this branch
             var skippedToken = await _context.Tokens
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
                 .Where(t => t.Patient.Phone == session.PhoneNumber &&
-                            t.Queue.BranchId == session.BranchId.Value &&
+                            t.Queue.BranchId == session.BranchId &&
                             t.Status == TokenStatus.Skipped)
                 .OrderByDescending(t => t.BookedAt)
                 .FirstOrDefaultAsync(ct);
 
             if (skippedToken == null)
             {
-                return "ℹ️ Aapka is branch me koi *Skipped* (missed) appointment nahi mila.\n\nNaya appointment lene ke liye *HI* likhein. ✨";
+                return WhatsAppTranslationHelper.Get(session.Language, "NO_SKIPPED_APP");
             }
 
-            // Re-queue the token
             skippedToken.Status = TokenStatus.Pending;
+            skippedToken.TokenNumber = await _context.Tokens.CountAsync(t => t.QueueId == skippedToken.QueueId, ct) + 1; // Put them at the end of the line
+
+            // Ensure DB is updated before notifying clients
             await _context.SaveChangesAsync(ct);
 
-            return $"✅ *SWAGAT HAI WAPAS!* ✅\n\n" +
-                   $"Aapka *Token #{skippedToken.TokenNumber}* (Dr. {skippedToken.Queue.Doctor.Name}) fir se queue me laga diya gaya hai.\n\n" +
-                   $"👉 Apna live status dekhne ke liye *STATUS* likhein. ✨";
+            // Notify via SignalR
+            try 
+            {
+                await _notificationService.NotifyTokenUpdated(skippedToken.Queue.BranchId, skippedToken.QueueId, skippedToken.Queue.CurrentTokenNumber);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+            }
+
+            return WhatsAppTranslationHelper.Get(session.Language, "REJOIN_SUCCESS", skippedToken.TokenNumber.ToString());
         }
 
         private async Task<List<Doctor>> GetAvailableDoctors(Guid? branchId, CancellationToken ct)

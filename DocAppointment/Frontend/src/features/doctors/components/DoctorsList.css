@@ -42,12 +42,13 @@
     color: white;
     font-size: 0.9rem;
     outline: none;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .doctor-search-input:focus {
     border-color: rgba(56, 189, 248, 0.5);
     background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
 }
 
 .add-doctor-btn {
@@ -58,6 +59,12 @@
     border-radius: 12px;
     font-weight: 700;
     box-shadow: 0 4px 15px var(--accent-glow);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.add-doctor-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--accent-glow);
+    filter: brightness(1.1);
 }
 
 .horizontal-divider {
@@ -103,13 +110,17 @@
     height: 100%;
     min-height: 220px;
     background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
     padding: 20px;
-    transition: transform 0.3s, background 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .doctor-card:hover {
     background: rgba(255, 255, 255, 0.04);
-    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
 .doctor-header {
@@ -135,10 +146,24 @@
     border-color: rgba(236, 72, 153, 0.3);
 }
 
-.icon-pink { color: #ec4899; }
-.icon-emerald { color: #10b981; margin-right: 6px; }
-.icon-violet { color: #8b5cf6; margin-right: 6px; }
-.icon-amber { color: #f59e0b; margin-right: 6px; }
+.icon-pink {
+    color: #ec4899;
+}
+
+.icon-emerald {
+    color: #10b981;
+    margin-right: 6px;
+}
+
+.icon-violet {
+    color: #8b5cf6;
+    margin-right: 6px;
+}
+
+.icon-amber {
+    color: #f59e0b;
+    margin-right: 6px;
+}
 
 .doctor-title-box {
     flex: 1;
@@ -205,17 +230,53 @@
     background: transparent;
 }
 
-.btn-feedback { border: 1px solid rgba(250, 204, 21, 0.3) !important; color: #FACC15; }
-.btn-feedback:hover { background: rgba(250, 204, 21, 0.1) !important; border-color: rgba(250, 204, 21, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(250, 204, 21, 0.15); }
+.btn-feedback {
+    border: 1px solid rgba(250, 204, 21, 0.3) !important;
+    color: #FACC15;
+}
 
-.btn-view { border: 1px solid rgba(56, 189, 248, 0.3) !important; color: var(--accent-color); }
-.btn-view:hover { background: rgba(56, 189, 248, 0.1) !important; border-color: rgba(56, 189, 248, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15); }
+.btn-feedback:hover {
+    background: rgba(250, 204, 21, 0.1) !important;
+    border-color: rgba(250, 204, 21, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.15);
+}
 
-.btn-edit { border: 1px solid rgba(59, 130, 246, 0.3) !important; color: #3b82f6; }
-.btn-edit:hover { background: rgba(59, 130, 246, 0.1) !important; border-color: rgba(59, 130, 246, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15); }
+.btn-view {
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    color: var(--accent-color);
+}
 
-.btn-delete { border: 1px solid rgba(239, 68, 68, 0.3) !important; color: var(--danger); }
-.btn-delete:hover { background: rgba(239, 68, 68, 0.1) !important; border-color: rgba(239, 68, 68, 0.8) !important; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15); }
+.btn-view:hover {
+    background: rgba(56, 189, 248, 0.1) !important;
+    border-color: rgba(56, 189, 248, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+}
+
+.btn-edit {
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    color: #3b82f6;
+}
+
+.btn-edit:hover {
+    background: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgba(59, 130, 246, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.btn-delete {
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: var(--danger);
+}
+
+.btn-delete:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.8) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
 
 /* Form Styles */
 .error-alert {
@@ -570,9 +631,12 @@
     font-style: italic;
 }
 
-.ratings-loading { text-align: center; padding: 20px; }
+.ratings-loading {
+    text-align: center;
+    padding: 20px;
+}
 
 
 .doctor-card {
-  cursor: pointer;
+    cursor: pointer;
 }

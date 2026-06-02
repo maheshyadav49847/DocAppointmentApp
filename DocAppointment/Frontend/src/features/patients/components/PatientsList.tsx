@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   Users, Search, Phone, Calendar as CalendarIcon, UserPlus, MessageSquare,
-  History, Send, X, ArrowLeft, Building2, Edit, 
+  History, Send, X, ArrowLeft, Building2, Edit,
   Trash2, Plus, FileText, ClipboardList,
   Droplets, HeartPulse, Upload, Activity, Save, Edit2, Stethoscope, Clock, User, Hash, Ruler, MapPin, PhoneCall, Smartphone,
   ChevronLeft, ChevronRight, Printer
@@ -86,6 +86,8 @@ const PatientsList: React.FC = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAddingPatient, setIsAddingPatient] = useState(false);
+
+
 
   // Active Consultation State (Doctor's Main View)
   const [visitDoctorId, setVisitDoctorId] = useState('');
@@ -233,7 +235,8 @@ const PatientsList: React.FC = () => {
       const res = await api.get(`/patientclinical/${selectedPatient.id}/has-token-today`);
       return res.data;
     },
-    enabled: !!selectedPatient
+    enabled: !!selectedPatient,
+    refetchInterval: 3000 // Poll every 3 seconds to keep button state updated
   });
 
   const isConsultAllowed = tokenStatus?.hasToken && tokenStatus?.status === 'Called';
@@ -310,7 +313,7 @@ const PatientsList: React.FC = () => {
 
     try {
       let visitId: string;
-      
+
       const payload = {
         doctorId: visitDoctorId,
         symptoms: visitSymptoms,
@@ -363,6 +366,47 @@ const PatientsList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
       notify.success('Saved', 'Consultation notes saved successfully.');
 
+      // Capture data for background PDF generation
+      const visitDataForPdf = {
+        ...payload,
+        id: visitId,
+        visitDate: new Date().toISOString(),
+        doctorName: doctors?.find((d: any) => d.id === visitDoctorId)?.name
+      };
+
+      // Auto-send WhatsApp PDF in background (fire-and-forget)
+      if (selectedPatient.phone) {
+        setTimeout(async () => {
+          try {
+            setPrintingVisit(visitDataForPdf);
+            await new Promise(resolve => setTimeout(resolve, 800)); // give DOM time to render
+            if (printRef.current) {
+              const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
+              const imgData = canvas.toDataURL('image/png');
+              const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+              pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+              
+              const base64Pdf = pdf.output('datauristring').split(',')[1];
+              
+              await api.post('/whatsapp/bridge/send', {
+                branchId: currentBranchId || selectedBranchId,
+                to: selectedPatient.phone,
+                message: "Hello! Here is your prescription for today's consultation.",
+                fileBase64: base64Pdf,
+                fileName: `Prescription_${selectedPatient.name.replace(/\s+/g, '_')}.pdf`
+              });
+              notify.success('WhatsApp', 'Prescription sent automatically.');
+            }
+          } catch (err) {
+            console.error('Failed to auto-send WhatsApp PDF:', err);
+          } finally {
+            setPrintingVisit(null);
+          }
+        }, 100);
+      }
+
       // Clear form
       setVisitSymptoms('');
       setVisitDiagnosis('');
@@ -384,13 +428,13 @@ const PatientsList: React.FC = () => {
       setEditingVisitId(null);
       setExistingAttachments([]);
       setWorkspaceTab('history');
-    } catch (err: any) { 
+    } catch (err: any) {
       const msg = typeof err?.response?.data === 'string' ? err.response.data : 'Failed to save consultation.';
       notify.danger('Action Blocked', msg);
     }
-    finally { 
+    finally {
       isSavingRef.current = false;
-      setIsSavingVisit(false); 
+      setIsSavingVisit(false);
     }
   };
 
@@ -921,10 +965,10 @@ const PatientsList: React.FC = () => {
                 }}>
                   <X size={16} color="#f43f5e" className="mr-1-5" /> Cancel
                 </button>
-                <button 
-                  id="btn-save-consult" 
-                  className="btn-save-consult" 
-                  onClick={handleSaveConsultation} 
+                <button
+                  id="btn-save-consult"
+                  className="btn-save-consult"
+                  onClick={handleSaveConsultation}
                   disabled={isSavingVisit || !visitDoctorId || (!isConsultAllowed && !editingVisitId)}
                   title={(!isConsultAllowed && !editingVisitId) ? "Patient must be 'Called' from the Queue to create a new consultation" : ""}
                 >
@@ -1249,12 +1293,12 @@ const PatientsList: React.FC = () => {
                     </button>
                     <button
                       className="ep-consult-btn"
-                      disabled={!p.address || !p.gender || !p.age || p.age <= 0}
-                      title={(!p.address || !p.gender || !p.age || p.age <= 0) ? "Please complete profile (Address,Gender & Age) to Consult" : "Start Consultation"}
-                      
+                      disabled={!p.address || !p.gender || !p.age || parseInt(p.age) <= 0}
+                      title={(!p.address || !p.gender || !p.age || parseInt(p.age) <= 0) ? "Please complete profile (Address,Gender & Age) to Consult" : "Start Consultation"}
+
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (p.address && p.gender && p.age > 0) {
+                        if (p.address && p.gender && p.age && parseInt(p.age) > 0) {
                           setSelectedPatient(p);
                           setWorkspaceTab('history');
                         }
@@ -1353,9 +1397,6 @@ const PatientsList: React.FC = () => {
         <Modal title="Edit Patient Profile" icon={<Edit size={20} color="var(--accent-color)" />}
           onClose={handleCloseEditModal} maxWidth="540px">
           <div className="modal-body">
-            <p className="color-var-text-secondary-fs-0-9">
-              Update patient information.
-            </p>
 
             <div className="form-group">
               <label className="form-label flex-items-center">
@@ -1507,32 +1548,30 @@ const PatientsList: React.FC = () => {
             <div className="rx-print-content">
 
               {/* Header */}
-              <div className="rx-hp-header">
-                <div className="rx-hp-header-left">
-                  <h2 className="rx-hp-dr-name">{printingVisit.doctorName || 'Dr. Consult'}</h2>
-                  <p className="rx-hp-dr-creds">MBBS, MD</p>
-                  <div className="rx-hp-dr-details">
-                    General Physician<br />
-                    Consulting Specialist
-                  </div>
-                </div>
-                <div className="rx-hp-header-center">
-                  <img src="/logo.png" alt="Clinic Logo" className="print-logo" onError={(e) => e.currentTarget.style.display = 'none'} />
-                  <div className="rx-hp-reg-no">Reg No: MED-12345</div>
-                  <div className="rx-hp-clinic-contact">
-                    Hospital: +91 98765 43210<br />
-                    Email: contact@clinic.com
-                  </div>
-                </div>
-                <div className="rx-hp-header-right">
-                  <h3 className="rx-hp-clinic-name">CODEX<br />MULTI-SPECIALITY CLINIC</h3>
-                  <div className="rx-hp-clinic-address">
-                    123 Health Avenue, Medical City<br />
-                    Sector 45, New Delhi - 110001<br />
-                    Ph: 011-4567890
-                  </div>
-                </div>
-              </div>
+              {(() => {
+                const activeBranch = branches?.find((b: any) => b.id === selectedBranchId) || branches?.[0] || {};
+                const printDoctor = doctors?.find((d: any) => d.id === (printingVisit?.doctorId || visitDoctorId)) || {};
+                return (
+                  <>
+                    <div className="rx-hp-header">
+                      
+                      <div className="flex flex-col items-center border-b-2 pb-4 mb-4 text-center" style={{ borderColor: '#3b82f6' }}>
+                         <h3 className="font-bold text-3xl uppercase tracking-wider mb-2" style={{ color: '#3b82f6' }}>
+                            {activeBranch.name}
+                         </h3>
+                         <div className="text-gray-600 text-sm">
+                           {activeBranch.address} | Ph: {activeBranch.phone || activeBranch.whatsAppNumber}
+                         </div>
+                         <div className="mt-4 px-6 py-2 bg-gray-100 rounded-full inline-block border shadow-sm">
+                            <span className="font-bold text-lg mr-2" style={{ color: '#3b82f6' }}>Dr. {printDoctor.name}</span>
+                            <span className="text-gray-700 font-medium">| {printDoctor.qualification} | Reg: {printDoctor.registrationNumber}</span>
+                         </div>
+                      </div>
+
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Patient Demographics Bar */}
               <div className="rx-hp-patient-bar">
@@ -1624,6 +1663,16 @@ const PatientsList: React.FC = () => {
               {printingVisit.followUpDate && (
                 <div className="rx-hp-advice print-advice">
                   <strong>Next Visit:</strong> {formatDate(printingVisit.followUpDate)}
+                  {printingVisit.followUpInstructions && (
+                    <span style={{ marginLeft: '10px' }}>
+                      <strong>(Patient Instructions:</strong> {printingVisit.followUpInstructions})
+                    </span>
+                  )}
+                </div>
+              )}
+              {!printingVisit.followUpDate && printingVisit.followUpInstructions && (
+                <div className="rx-hp-advice print-advice">
+                  <strong>Patient Instructions:</strong> {printingVisit.followUpInstructions}
                 </div>
               )}
 

@@ -10,5 +10,6 @@ namespace CodeX.Domain.Entities
         public Guid? SelectedDoctorId { get; set; }
         public Guid? SelectedSessionId { get; set; }
         public string? LastMessage { get; set; }
+        public string Language { get; set; } = string.Empty;
     }
 }

@@ -9,6 +9,7 @@ import StaffList from './features/staff/components/StaffList';
 
 import AnalyticsPage from './features/analytics/components/AnalyticsPage';
 import BranchesPage from './features/settings/components/BranchesPage';
+
 import LoginPage from './features/auth/components/LoginPage';
 import RegisterPage from './features/auth/components/RegisterPage';
 import ForgotPasswordPage from './features/auth/components/ForgotPasswordPage';
@@ -95,6 +96,7 @@ function App() {
             <Navigate to={email ? "/dashboard" : "/login"} />
           )
         } />
+
 
         <Route path="/doctors" element={
           email && isAdmin ? (

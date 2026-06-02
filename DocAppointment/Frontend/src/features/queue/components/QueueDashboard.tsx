@@ -811,6 +811,7 @@ const ManageQueue = ({ sessionData, onBack, onManualBooking, isEnding, onEndSess
         if (incomingQueueId === queueId) {
           refetchQueue();
           refetchTokens();
+          queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         }
       };
       const handleEnd = (data: any) => {

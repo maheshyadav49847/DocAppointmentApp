@@ -29,7 +29,12 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
                 Specialization = d.Specialization,
                 RegistrationNumber = d.RegistrationNumber,
                 BranchName = d.Branches.FirstOrDefault(b => b.Id == request.BranchId)?.Name ?? "N/A",
-                BranchIds = d.Branches.Select(b => b.Id).ToList()
+                BranchIds = d.Branches.Select(b => b.Id).ToList(),
+                Gender = d.Gender,
+                Qualification = d.Qualification,
+                Experience = d.Experience,
+                Mobile = d.Mobile,
+                EmailId = d.EmailId
             }).ToList();
         }
     }

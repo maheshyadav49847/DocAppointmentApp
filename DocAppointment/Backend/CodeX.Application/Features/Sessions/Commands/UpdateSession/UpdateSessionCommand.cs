@@ -1,5 +1,6 @@
 using MediatR;
 using CodeX.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
 {
@@ -33,6 +34,19 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
 
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, session.BranchId);
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId); // If changing branch
+
+            var overlappingExists = await _context.Sessions
+                .AnyAsync(s => s.Id != request.Id &&
+                               s.DoctorId == session.DoctorId &&
+                               !s.IsDeleted && s.IsActive &&
+                               (s.IsDaily || request.IsDaily || s.DayOfWeek == request.DayOfWeek) &&
+                               request.StartTime < s.EndTime && request.EndTime > s.StartTime,
+                          cancellationToken);
+
+            if (overlappingExists)
+            {
+                throw new Exception("This doctor already has an overlapping session at this time in another branch or schedule.");
+            }
 
             session.BranchId = request.BranchId;
             session.SessionName = request.SessionName;
