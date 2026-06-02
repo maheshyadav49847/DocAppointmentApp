@@ -59,19 +59,16 @@ namespace CodeX.Application.Features.Queue.Commands.SkipToken
                 // Notify via WhatsApp
                 if (currentToken.Patient != null && !string.IsNullOrEmpty(currentToken.Patient.Phone))
                 {
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        try
-                        {
-                            var skipMsg = $"⚠️ *APPOINTMENT MISSED* ⚠️\n\n" +
-                                         $"Aapka *Token #{currentToken.TokenNumber}* (Dr. {queue.Doctor?.Name}) bulaya gaya tha, par aap wahan nahi pahunche.\n\n" +
-                                         $"Is wajah se humein agla patient bulana pada aur aapka number *SKIP* kar diya gaya hai.\n\n" +
-                                         $"👉 Agar aap clinic pahunch gaye hain aur fir se queue me lagna chahte hain, toh kripya is message ka reply *REJOIN* likhkar bhejein. ✨";
-                            
-                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, skipMsg, queue.BranchId);
-                        }
-                        catch { /* Log and ignore background errors */ }
-                    });
+                        var skipMsg = $"⚠️ *APPOINTMENT MISSED* ⚠️\n\n" +
+                                     $"Aapka *Token #{currentToken.TokenNumber}* (Dr. {queue.Doctor?.Name}) bulaya gaya tha, par aap wahan nahi pahunche.\n\n" +
+                                     $"Is wajah se humein agla patient bulana pada aur aapka number *SKIP* kar diya gaya hai.\n\n" +
+                                     $"👉 Agar aap clinic pahunch gaye hain aur fir se queue me lagna chahte hain, toh kripya is message ka reply *REJOIN* likhkar bhejein. ✨";
+                        
+                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, skipMsg, queue.BranchId);
+                    }
+                    catch { /* Log and ignore background errors */ }
                 }
 
                 // Notify all clients via SignalR

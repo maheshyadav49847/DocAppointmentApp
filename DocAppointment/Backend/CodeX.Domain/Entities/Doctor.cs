@@ -11,6 +11,11 @@ namespace CodeX.Domain.Entities
         public string Specialization { get; set; } = string.Empty;
         public string? RegistrationNumber { get; set; }
         public decimal ConsultationFee { get; set; } = 0;
+        public string? Gender { get; set; }
+        public string? Qualification { get; set; }
+        public string? Experience { get; set; }
+        public string? Mobile { get; set; }
+        public string? EmailId { get; set; }
 
         // Navigation Properties
         public virtual Organization Organization { get; set; } = null!;

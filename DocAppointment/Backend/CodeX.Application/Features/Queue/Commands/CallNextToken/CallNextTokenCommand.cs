@@ -100,69 +100,63 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
             await _context.SaveChangesAsync(cancellationToken);
 
             // Notify via SignalR (Background)
-            _ = Task.Run(async () => 
+            try
             {
-                try
-                {
-                    await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
-                }
-            });
+                await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+            }
 
             // Notify via WhatsApp (Background)
-            _ = Task.Run(async () => 
+            try
             {
-                try
+                if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
                 {
-                    if (nextToken != null && nextToken.Patient != null && !string.IsNullOrEmpty(nextToken.Patient.Phone))
+                    try
                     {
+                        await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                        await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Delivered", tokenId: nextToken.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Failed", error: ex.Message, tokenId: nextToken.Id);
+                        
+                        // SMS Fallback for critical turn alert
                         try
                         {
-                            await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
-                            await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Delivered", tokenId: nextToken.Id);
+                            var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{nextToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
+                            await _smsService.SendSmsAsync(nextToken.Patient.Phone, smsMsg);
+                            await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Sent", tokenId: nextToken.Id);
                         }
-                        catch (Exception ex)
+                        catch (Exception smsEx)
                         {
-                            _ = LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Failed", error: ex.Message, tokenId: nextToken.Id);
-                            
-                            // SMS Fallback for critical turn alert
-                            try
-                            {
-                                var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{nextToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
-                                await _smsService.SendSmsAsync(nextToken.Patient.Phone, smsMsg);
-                                await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Sent", tokenId: nextToken.Id);
-                            }
-                            catch (Exception smsEx)
-                            {
-                                await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Failed", error: smsEx.Message, tokenId: nextToken.Id);
-                            }
-                        }
-                    }
-
-                    // Automated Upcoming Alerts
-                    var upcomingPositions = new[] { 3, 5 };
-                    foreach (var pos in upcomingPositions)
-                    {
-                        var upcomingPatient = queue.Tokens
-                            .Where(t => t.Status == TokenStatus.Pending)
-                            .OrderBy(t => t.TokenNumber)
-                            .Skip(pos - 1)
-                            .FirstOrDefault();
-
-                        if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
-                        {
-                            await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
+                            await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Failed", error: smsEx.Message, tokenId: nextToken.Id);
                         }
                     }
                 }
-                catch (Exception ex)
+
+                // Automated Upcoming Alerts
+                var upcomingPositions = new[] { 3, 5 };
+                foreach (var pos in upcomingPositions)
                 {
-                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+                    var upcomingPatient = queue.Tokens
+                        .Where(t => t.Status == TokenStatus.Pending)
+                        .OrderBy(t => t.TokenNumber)
+                        .Skip(pos - 1)
+                        .FirstOrDefault();
+
+                    if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
+                    {
+                        await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
+                    }
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}");
+            }
 
             return queue.CurrentTokenNumber;
         }

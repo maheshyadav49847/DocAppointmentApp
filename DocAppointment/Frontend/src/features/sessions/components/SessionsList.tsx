@@ -111,9 +111,9 @@ const SessionsList: React.FC = () => {
   });
 
   const { data: sessions, isLoading } = useQuery({
-    queryKey: ['sessions', selectedDoctorId],
-    queryFn: () => sessionService.getSessions(selectedDoctorId),
-    enabled: !!selectedDoctorId
+    queryKey: ['sessions', selectedDoctorId, selectedBranchId],
+    queryFn: () => sessionService.getSessions(selectedDoctorId, selectedBranchId),
+    enabled: !!selectedDoctorId && !!selectedBranchId
   });
 
   const [newSession, setNewSession] = useState({

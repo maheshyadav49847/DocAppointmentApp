@@ -10,6 +10,11 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
         public string? RegistrationNumber { get; init; }
+        public string? Gender { get; init; }
+        public string? Qualification { get; init; }
+        public string? Experience { get; init; }
+        public string? Mobile { get; init; }
+        public string? EmailId { get; init; }
         public List<Guid> BranchIds { get; init; } = new List<Guid>();
     }
 
@@ -49,6 +54,11 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
             doctor.Name = request.Name;
             doctor.Specialization = request.Specialization;
             doctor.RegistrationNumber = request.RegistrationNumber;
+            doctor.Gender = request.Gender;
+            doctor.Qualification = request.Qualification;
+            doctor.Experience = request.Experience;
+            doctor.Mobile = request.Mobile;
+            doctor.EmailId = request.EmailId;
 
             // Update Branch Assignments
             doctor.Branches.Clear();

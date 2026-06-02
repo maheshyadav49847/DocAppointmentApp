@@ -1,6 +1,7 @@
 using MediatR;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Application.Features.Sessions.Commands.CreateSession
 {
@@ -30,6 +31,18 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
         public async Task<Guid> Handle(CreateSessionCommand request, CancellationToken cancellationToken)
         {
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId);
+
+            var overlappingExists = await _context.Sessions
+                .AnyAsync(s => s.DoctorId == request.DoctorId &&
+                               !s.IsDeleted && s.IsActive &&
+                               (s.IsDaily || request.IsDaily || s.DayOfWeek == request.DayOfWeek) &&
+                               request.StartTime < s.EndTime && request.EndTime > s.StartTime,
+                          cancellationToken);
+
+            if (overlappingExists)
+            {
+                throw new Exception("This doctor already has an overlapping session at this time in another branch or schedule.");
+            }
 
             var session = new Session
             {

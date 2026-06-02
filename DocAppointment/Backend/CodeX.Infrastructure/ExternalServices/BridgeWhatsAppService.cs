@@ -1,5 +1,8 @@
 using System.Net.Http.Json;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Common.Helpers;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -10,89 +13,72 @@ namespace CodeX.Infrastructure.ExternalServices
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _config;
         private readonly ILogger<BridgeWhatsAppService> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         private string BridgeBaseUrl => (_config["WhatsApp:BridgeBaseUrl"] ?? throw new Exception("WhatsApp:BridgeBaseUrl is not configured")).TrimEnd('/');
         private string? ApiKey => _config["WhatsApp:BridgeApiKey"];
 
-        public BridgeWhatsAppService(HttpClient httpClient, IConfiguration config, ILogger<BridgeWhatsAppService> logger)
+        public BridgeWhatsAppService(HttpClient httpClient, IConfiguration config, ILogger<BridgeWhatsAppService> logger, IServiceScopeFactory scopeFactory)
         {
             _httpClient = httpClient;
             _config = config;
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
-        public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
+        private async Task<string> GetUserLanguageAsync(string phoneNumber)
         {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                var session = await dbContext.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
+                return session?.Language ?? "1"; // Default to Hindi
+            }
+            catch
+            {
+                return "1";
+            }
+        }
+
+        public async Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
+        {
+            var lang = await GetUserLanguageAsync(phoneNumber);
             var waitTimeMsg = estimatedWaitMinutes.HasValue 
-                ? $"⏱️ *Estimated Wait:* ~{estimatedWaitMinutes.Value} mins\n\n" 
+                ? WhatsAppTranslationHelper.Get(lang, "ESTIMATED_WAIT_MSG", estimatedWaitMinutes.Value) 
                 : "";
                 
-            var message =
-                $"🏥 *APPOINTMENT CONFIRMED* 🏥\n" +
-                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                $"Hello *{patientName}* 🙏,\n\n" +
-                $"Aapka doctor appointment safaltapoorvak book ho gaya hai.\n\n" +
-                $"🔢 *Aapka Token Number:* #{tokenNumber}\n\n" +
-                waitTimeMsg +
-                $"📌 *Zaroori Baatein:*\n" +
-                $"• Kripya samay par clinic pahunchein.\n" +
-                $"• Aapko baar-baar poochna nahi padega, aapka number aane se pehle hum aapko WhatsApp par alert bhej denge.\n\n" +
-                $"✨ _Aapke acche swasthya ke liye humari shubhkaamnayein!_";
-            return SendTextMessage(phoneNumber, message, branchId);
+            var message = WhatsAppTranslationHelper.Get(lang, "BOOKING_CONFIRMED_ALERT", patientName, tokenNumber, waitTimeMsg);
+            await SendTextMessage(phoneNumber, message, branchId);
         }
 
-        public Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
+        public async Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
         {
-            var message =
-                $"👨‍⚕️ *DOCTOR CLINIC ME HAIN* 👨‍⚕️\n" +
-                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                $"Namaste 🙏,\n\n" +
-                $"Aapko batate hue khushi ho rahi hai ki *Dr. {doctorName}* clinic pahunch chuke hain aur check-up shuru ho gaya hai.\n\n" +
-                $"👉 Kripya clinic ke waiting area me tayyar rahein.\n\n" +
-                $"✨ _Humari team aapki sahayata ke liye hamesha tatpar hai._";
-            return SendTextMessage(phoneNumber, message, branchId);
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var message = WhatsAppTranslationHelper.Get(lang, "DOCTOR_ARRIVED_ALERT", doctorName);
+            await SendTextMessage(phoneNumber, message, branchId);
         }
 
-        public Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
+        public async Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
         {
-            var message =
-                $"🔔 *AAPKA NUMBER AA GAYA HAI!* 🔔\n" +
-                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                $"👉 *Token #{tokenNumber}*\n\n" +
-                $"Kripya turant doctor ke consultation room me check-up ke liye andar aaiye. Doctor aapka intezaar kar rahe hain.\n\n" +
-                $"✨ _Swasth rahein, mast rahein!_";
-            return SendTextMessage(phoneNumber, message, branchId);
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var message = WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", tokenNumber);
+            await SendTextMessage(phoneNumber, message, branchId);
         }
 
-        public Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
+        public async Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
         {
-            var message =
-                $"⏳ *AAPKA NUMBER AANE WALA HAI* ⏳\n" +
-                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                $"Namaste 🙏,\n\n" +
-                $"Aapke aage ab sirf *{tokensLeft} patient(s)* bache hain.\n\n" +
-                $"👉 Kripya doctor ke cabin ke paas aakar tayyar rahein. Aapka number agla ho sakta hai!\n\n" +
-                $"✨ _Aapke samay aur dhairya ke liye dhanyawad._";
-            return SendTextMessage(phoneNumber, message, branchId);
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var message = WhatsAppTranslationHelper.Get(lang, "UPCOMING_TURN_ALERT", tokensLeft);
+            await SendTextMessage(phoneNumber, message, branchId);
         }
 
-        public Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
+        public async Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
         {
+            var lang = await GetUserLanguageAsync(phoneNumber);
             var shortRef = $"CX-{tokenId.ToString().Substring(0, 6).ToUpper()}";
-            var message =
-                $"🌟 *AAPKA EXPERIENCE KAISA RAHA?* 🌟\n" +
-                $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                $"Namaste 🙏,\n\n" +
-                $"Aaj *Dr. {doctorName}* se consultation ke liye dhanyawad.\n\n" +
-                $"Kripya is message ke reply me *1 se 5* ke beech koi ek number bhej kar apna anubhav batayein:\n\n" +
-                $"⭐⭐⭐⭐⭐ - *5* (Bahut Accha)\n" +
-                $"⭐⭐⭐⭐ - *4* (Accha)\n" +
-                $"⭐⭐⭐ - *3* (Theek)\n" +
-                $"⭐⭐ - *2* (Sudhaar ki zaroorat)\n" +
-                $"⭐ - *1* (Khaas nahi)\n\n" +
-                $"Aapka feedback humari service ko behtar banane me madad karega. 🙌\n" +
-                $"_Ref: {shortRef}_";
-            return SendTextMessage(phoneNumber, message, branchId);
+            var message = WhatsAppTranslationHelper.Get(lang, "FEEDBACK_REQUEST_ALERT", doctorName, shortRef);
+            await SendTextMessage(phoneNumber, message, branchId);
         }
 
         public Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)

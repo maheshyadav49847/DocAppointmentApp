@@ -17,7 +17,7 @@ const backendWebhookUrl = process.env.BACKEND_WEBHOOK_URL || "http://localhost:5
 const apiKey = process.env.API_KEY || "";
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "50mb" }));
 
 function requireAuth(req, res, next) {
   if (!apiKey) return next();
@@ -87,13 +87,17 @@ async function relayIncomingMessage(branchId, message) {
   }
 }
 
-async function getClient(branchId) {
+async function getClient(branchId, expectedNumber) {
   if (!branchId) {
     return { state: { ready: false, lastQr: null, error: "No branchId supplied", step: "Invalid Request" }, client: null };
   }
 
   if (clients.has(branchId)) {
-    return clients.get(branchId);
+    const entry = clients.get(branchId);
+    if (expectedNumber && !entry.expectedNumber) {
+      entry.expectedNumber = expectedNumber;
+    }
+    return entry;
   }
 
   const entry = {
@@ -105,11 +109,12 @@ async function getClient(branchId) {
       step: "Initializing"
     },
     client: null,
-    saveCreds: null
+    saveCreds: null,
+    expectedNumber: expectedNumber || null
   };
 
   clients.set(branchId, entry);
-  console.log(`[SYSTEM] Creating node for ${branchId}`);
+  console.log(`[SYSTEM] Creating node for ${branchId} with expectedNumber: ${entry.expectedNumber || 'any'}`);
 
   async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(`baileys_auth_info_${branchId}`);
@@ -145,7 +150,7 @@ async function getClient(branchId) {
           setTimeout(connectToWhatsApp, 2000); // Backoff to prevent spamming WhatsApp servers
         } else {
           entry.state.step = "Logged Out";
-          entry.state.error = "Session invalid or logged out";
+          entry.state.error = entry.state.error || "Session invalid or logged out";
           console.log(`[AUTH] ${branchId} session invalid (Status: ${statusCode}). Wiping keys...`);
           
           // Perform synchronous wiping to prevent race conditions with frontend polling
@@ -160,12 +165,35 @@ async function getClient(branchId) {
           clients.delete(branchId);
         }
       } else if (connection === "open") {
+        const loggedInJid = sock.user.id;
+        const loggedInPhone = String(loggedInJid).split(':')[0];
+        
+        const expectedNormalized = entry.expectedNumber ? entry.expectedNumber.replace(/\D/g, '').slice(-10) : null;
+        const loggedInNormalized = loggedInPhone.slice(-10);
+        
+        if (expectedNormalized && loggedInNormalized !== expectedNormalized) {
+          console.log(`[AUTH] Invalid number scanned for ${branchId}! Expected: ${expectedNormalized}, Got: ${loggedInNormalized} (Raw: ${loggedInPhone})`);
+          entry.state.ready = false;
+          entry.state.error = `Security Alert: You scanned with ${loggedInPhone}, but this branch requires ${entry.expectedNumber}. Please logout and use the correct WhatsApp number.`;
+          entry.state.step = "Validation Failed";
+          
+          // Force logout because it's the wrong number
+          setTimeout(async () => {
+            try {
+              await sock.logout();
+            } catch (e) {}
+            fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
+            clients.delete(branchId);
+          }, 2000);
+          return;
+        }
+
         entry.state.ready = true;
         entry.state.lastQr = null;
         entry.state.lastQrAt = null;
         entry.state.error = null;
         entry.state.step = "Operational";
-        console.log(`[READY] ${branchId} is connected`);
+        console.log(`[READY] ${branchId} is connected (Phone: ${loggedInPhone})`);
       }
     });
 
@@ -209,7 +237,7 @@ app.get("/status/test", (_req, res) => {
 });
 
 app.get("/qr/:branchId", requireAuth, async (req, res) => {
-  const { state } = await getClient(req.params.branchId);
+  const { state } = await getClient(req.params.branchId, req.query.expectedNumber);
   if (state.ready) {
     return res.send("<html><body><h2>Node Online</h2></body></html>");
   }
@@ -238,13 +266,13 @@ app.get("/status/:branchId", requireAuth, async (req, res) => {
 });
 
 app.post("/send-message", requireAuth, async (req, res) => {
-  const { branchId, to, message } = req.body ?? {};
+  const { branchId, to, message, fileBase64, fileName } = req.body ?? {};
   console.log(`[OUTGOING] Attempting relay for ${branchId} to ***...`);
   console.log(`[OUTGOING] Message payload received.`);
 
-  if (!branchId || !to || !message) {
+  if (!branchId || !to || (!message && !fileBase64)) {
     console.error("[OUTGOING] Missing parameters");
-    return res.status(400).json({ message: "branchId, to, and message are required." });
+    return res.status(400).json({ message: "branchId, to, and message/file are required." });
   }
 
   try {
@@ -255,7 +283,19 @@ app.post("/send-message", requireAuth, async (req, res) => {
     }
 
     const jid = toChatId(to);
-    await entry.client.sendMessage(jid, { text: String(message) });
+    
+    if (fileBase64) {
+      const buffer = Buffer.from(fileBase64, 'base64');
+      await entry.client.sendMessage(jid, { 
+        document: buffer, 
+        fileName: fileName || 'Document.pdf', 
+        mimetype: 'application/pdf', 
+        caption: message ? String(message) : undefined
+      });
+    } else {
+      await entry.client.sendMessage(jid, { text: String(message) });
+    }
+    
     console.log(`[OUTGOING] Message sent successfully`);
     return res.json({ sent: true });
   } catch (error) {

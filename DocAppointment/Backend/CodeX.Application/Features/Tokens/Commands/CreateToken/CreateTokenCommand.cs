@@ -80,8 +80,9 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone);
 
             // 1. Find Patient
+            var phoneVars = CodeX.Application.Common.Helpers.NormalizationHelper.GetPhoneVariations(request.PatientPhone);
             var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => p.Phone == normalizedPhone, cancellationToken);
+                .FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), cancellationToken);
 
             // 2. Duplicate Check (If patient exists)
             if (patient != null)
@@ -152,43 +153,36 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             var estimatedWaitMinutes = patientsAhead * 10;
             if (estimatedWaitMinutes == 0) estimatedWaitMinutes = 5; // Minimum buffer
 
-            // 4. Notifications (Fire and forget to keep UI fast)
-            _ = Task.Run(async () => 
+            try 
             {
-                try 
-                {
-                    await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
-                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
-                }
-                catch (System.Exception ex)
-                {
-                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}. Attempting SMS Fallback...");
-                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Failed", error: ex.Message, tokenId: token.Id);
-
-                    try
-                    {
-                        var smsMsg = $"Namaste {patient.Name}, Aapka Token #{token.TokenNumber} book ho gaya hai. Dr. {queue.Doctor.Name}. Swasth rahein!";
-                        await _smsService.SendSmsAsync(patient.Phone, smsMsg);
-                        await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Sent", tokenId: token.Id);
-                    }
-                    catch (Exception smsEx)
-                    {
-                        await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Failed", error: smsEx.Message, tokenId: token.Id);
-                    }
-                }
-            });
-
-            _ = Task.Run(async () => 
+                await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
+                await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+            }
+            catch (System.Exception ex)
             {
-                try 
+                Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}. Attempting SMS Fallback...");
+                await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Failed", error: ex.Message, tokenId: token.Id);
+
+                try
                 {
-                    await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+                    var smsMsg = $"Namaste {patient.Name}, Aapka Token #{token.TokenNumber} book ho gaya hai. Dr. {queue.Doctor.Name}. Swasth rahein!";
+                    await _smsService.SendSmsAsync(patient.Phone, smsMsg);
+                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Sent", tokenId: token.Id);
                 }
-                catch (System.Exception ex)
+                catch (Exception smsEx)
                 {
-                    Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Failed", error: smsEx.Message, tokenId: token.Id);
                 }
-            });
+            }
+
+            try 
+            {
+                await _notificationService.NotifyTokenUpdated(queue.BranchId, queue.Id, queue.CurrentTokenNumber);
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
+            }
 
             return token.Id;
         }
