@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+@layer base {
+  :root {
+    --background: 210 40% 98%; /* #f8fafc slate-50 */
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%; /* indigo 600 */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+
+  body {
+    @apply bg-[#f8fafc] text-slate-900 min-h-screen antialiased;
+  }
+}
+
+@layer utilities {
+  .saas-card {
+    @apply bg-white border border-slate-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] rounded-2xl hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300;
+  }
+
+  .saas-input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all shadow-inner;
+  }
+
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-50 hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 text-sm font-bold rounded-xl shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-slate-200 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-danger {
+    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-transparent border border-rose-600 text-rose-600 text-sm font-bold rounded-xl shadow-sm hover:bg-rose-50 hover:border-rose-700 hover:text-rose-700 hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+  }
+}
+
+/* Force thin border globally on all form elements when focused */
+input:focus, 
+select:focus, 
+textarea:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: #4f46e5 !important;
+}
+
+
