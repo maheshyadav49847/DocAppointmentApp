@@ -10,7 +10,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, Plus, Search, ChevronLeft, ChevronRight, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit2, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Building2
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Building2
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
@@ -167,7 +167,7 @@ export default function PatientsPage() {
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
           >
-            <Edit2 className="w-3.5 h-3.5" />
+            <Edit className="w-3.5 h-3.5" />
             Edit
           </button>
           <button
@@ -456,8 +456,7 @@ export default function PatientsPage() {
                           }}
                           className="flex-1 btn-secondary text-xs px-3"
                         >
-                          <Edit2 className="w-4 h-4" />
-                          Edit
+                          <Edit className="w-4 h-4" /> Edit
                         </button>
                         <button
                           onClick={(e) => {
@@ -531,7 +530,7 @@ export default function PatientsPage() {
               <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
-                    {editingPatient ? <Edit2 className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+                    {editingPatient ? <Edit className="w-6 h-6" /> : <Users className="w-6 h-6" />}
                   </div>
                   <div>
                     <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -673,9 +672,9 @@ export default function PatientsPage() {
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="btn-secondary"
+                  className="btn-danger"
                 >
-                  {editingPatient ? 'Close' : 'Cancel'}
+                  <X className="w-4 h-4" /> {editingPatient ? 'Close' : 'Cancel'}
                 </button>
                 <button
                   type="submit"

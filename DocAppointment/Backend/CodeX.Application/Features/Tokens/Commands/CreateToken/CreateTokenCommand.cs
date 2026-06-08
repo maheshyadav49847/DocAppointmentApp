@@ -2,12 +2,15 @@ using System.ComponentModel.DataAnnotations;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 
 namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 {
-    public record CreateTokenCommand : IRequest<Guid>
+    public record CreateTokenResult(Guid TokenId, int TokenNumber, int EstimatedWaitMinutes);
+
+    public record CreateTokenCommand : IRequest<CreateTokenResult>
     {
         [Required]
         public Guid QueueId { get; init; }
@@ -22,21 +25,30 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
         [Required]
         public BookingSource Source { get; init; } = BookingSource.WhatsApp;
+
+        public Guid? PatientId { get; init; }
     }
 
-    public class CreateTokenCommandHandler : IRequestHandler<CreateTokenCommand, Guid>
+    public class CreateTokenCommandHandler : IRequestHandler<CreateTokenCommand, CreateTokenResult>
     {
         private readonly IApplicationDbContext _context;
         private readonly IWhatsAppService _whatsappService;
         private readonly ISmsService _smsService;
         private readonly IQueueNotificationService _notificationService;
+        private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
 
-        public CreateTokenCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService)
+        public CreateTokenCommandHandler(
+            IApplicationDbContext context, 
+            IWhatsAppService whatsappService, 
+            ISmsService smsService, 
+            IQueueNotificationService notificationService,
+            Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory)
         {
             _context = context;
             _whatsappService = whatsappService;
             _smsService = smsService;
             _notificationService = notificationService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -54,7 +66,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             await _context.SaveChangesAsync(default);
         }
 
-        public async Task<Guid> Handle(CreateTokenCommand request, CancellationToken cancellationToken)
+        public async Task<CreateTokenResult> Handle(CreateTokenCommand request, CancellationToken cancellationToken)
         {
             var queue = await _context.DailyQueues
                 .Include(q => q.Session)
@@ -80,12 +92,47 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone);
 
             // 1. Find Patient
-            var phoneVars = CodeX.Application.Common.Helpers.NormalizationHelper.GetPhoneVariations(request.PatientPhone);
-            var patient = await _context.Patients
-                .FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), cancellationToken);
+            Patient? patient = null;
+
+            if (request.PatientId.HasValue)
+            {
+                patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == request.PatientId.Value, cancellationToken);
+                if (patient == null)
+                {
+                    throw new Exception("Selected patient not found in the database.");
+                }
+            }
+            else
+            {
+                var phoneVars = CodeX.Application.Common.Helpers.NormalizationHelper.GetPhoneVariations(request.PatientPhone);
+                patient = await _context.Patients
+                    .FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), cancellationToken);
+
+                if (patient != null)
+                {
+                    // Existing phone but no ID provided - check name mismatch to avoid hijacking another person's record
+                    var similarity = !string.IsNullOrWhiteSpace(patient.Name) && !string.IsNullOrWhiteSpace(request.PatientName) 
+                        && (patient.Name.Contains(request.PatientName, StringComparison.OrdinalIgnoreCase) || request.PatientName.Contains(patient.Name, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (!similarity && !patient.Name.Equals(request.PatientName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new Exception($"Phone number is already registered to '{patient.Name}'. Please select them from the suggestions or use a different number for {request.PatientName}.");
+                    }
+                }
+                else
+                {
+                    // Create new patient
+                    patient = new Patient
+                    {
+                        Name = request.PatientName,
+                        Phone = normalizedPhone
+                    };
+                    _context.Patients.Add(patient);
+                }
+            }
 
             // 2. Duplicate Check (If patient exists)
-            if (patient != null)
+            if (patient.Id != Guid.Empty)
             {
                 var hasActiveToken = await _context.Tokens
                     .AnyAsync(t => t.QueueId == request.QueueId && 
@@ -95,18 +142,8 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
                 if (hasActiveToken)
                 {
-                    throw new Exception("This patient already has an active token in this session.");
+                    throw new Exception($"Patient '{patient.Name}' already has an active booking in this queue.");
                 }
-            }
-            else
-            {
-                // Create new patient
-                patient = new Patient
-                {
-                    Name = request.PatientName,
-                    Phone = normalizedPhone
-                };
-                _context.Patients.Add(patient);
             }
 
             Token? token = null;
@@ -153,27 +190,42 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             var estimatedWaitMinutes = patientsAhead * 10;
             if (estimatedWaitMinutes == 0) estimatedWaitMinutes = 5; // Minimum buffer
 
-            try 
+            // 6. Send Notification in Background (Fire and Forget)
+            _ = Task.Run(async () =>
             {
-                await _whatsappService.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
-                await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}. Attempting SMS Fallback...");
-                await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation", "Failed", error: ex.Message, tokenId: token.Id);
+                using var scope = _serviceScopeFactory.CreateScope();
+                var whatsapp = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                var sms = scope.ServiceProvider.GetRequiredService<ISmsService>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                
+                async Task LogMsg(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
+                {
+                    dbContext.MessageLogs.Add(new CodeX.Domain.Entities.MessageLog { BranchId = branchId, RecipientPhone = phone, MessageType = type, Status = status, ErrorMessage = error, TokenId = tokenId });
+                    await dbContext.SaveChangesAsync(default);
+                }
 
-                try
+                try 
                 {
-                    var smsMsg = $"Namaste {patient.Name}, Aapka Token #{token.TokenNumber} book ho gaya hai. Dr. {queue.Doctor.Name}. Swasth rahein!";
-                    await _smsService.SendSmsAsync(patient.Phone, smsMsg);
-                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Sent", tokenId: token.Id);
+                    await whatsapp.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
+                    await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
                 }
-                catch (Exception smsEx)
+                catch (System.Exception ex)
                 {
-                    await LogMessage(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Failed", error: smsEx.Message, tokenId: token.Id);
+                    Console.WriteLine($"[WHATSAPP_ERROR] {ex.Message}. Attempting SMS Fallback...");
+                    await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Failed", error: ex.Message, tokenId: token.Id);
+
+                    try
+                    {
+                        var smsMsg = $"Namaste {patient.Name}, Aapka Token #{token.TokenNumber} book ho gaya hai. Swasth rahein!";
+                        await sms.SendSmsAsync(patient.Phone, smsMsg);
+                        await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Sent", tokenId: token.Id);
+                    }
+                    catch (Exception smsEx)
+                    {
+                        await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation_SMS", "Failed", error: smsEx.Message, tokenId: token.Id);
+                    }
                 }
-            }
+            });
 
             try 
             {
@@ -184,7 +236,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 Console.WriteLine($"[SIGNALR_ERROR] {ex.Message}");
             }
 
-            return token.Id;
+            return new CreateTokenResult(token.Id, token.TokenNumber, estimatedWaitMinutes);
         }
 
         private static bool IsUniqueTokenConflict(DbUpdateException ex)

@@ -409,7 +409,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             try
             {
-                var tokenId = await _mediator.Send(new CreateTokenCommand
+                var result = await _mediator.Send(new CreateTokenCommand
                 {
                     QueueId = queue.Id,
                     PatientName = patient?.Name ?? "WhatsApp User",
@@ -417,7 +417,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     Source = BookingSource.WhatsApp
                 }, ct);
 
-                var createdToken = await _context.Tokens.FirstOrDefaultAsync(t => t.Id == tokenId, ct);
+                var createdToken = await _context.Tokens.FirstOrDefaultAsync(t => t.Id == result.TokenId, ct);
                 var tokenNum = createdToken?.TokenNumber ?? 0;
 
                 ResetSession(session);
@@ -429,7 +429,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     $"{queue.Session?.StartTime:hh\\:mm} - {queue.Session?.EndTime:hh\\:mm}");
 
                 // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
-                await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: tokenId);
+                await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: result.TokenId);
                 
                 return response;
             }

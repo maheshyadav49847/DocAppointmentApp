@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
   ArrowLeft, RotateCcw, Power, Users, CheckCircle2, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
-  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity
+  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { queueService } from "@/services/queueService"
@@ -21,6 +21,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting')
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingToken, setEditingToken] = useState<any>(null)
 
   const { data: queue, refetch: refetchQueue } = useQuery({
     queryKey: ['queueDetails', queueId],
@@ -81,6 +82,15 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const requeueMutation = useMutation({
     mutationFn: (tokenId: string) => queueService.requeueToken(tokenId),
     onSuccess: () => { refetchQueue(); refetchTokens() }
+  })
+
+  const updateTokenMutation = useMutation({
+    mutationFn: (data: any) => queueService.updateToken(editingToken.id, data),
+    onSuccess: () => {
+      refetchQueue()
+      refetchTokens()
+      setEditingToken(null)
+    }
   })
 
   const endQueueMutation = useMutation({
@@ -235,7 +245,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
         {/* Right Col: Controls */}
         <div className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl border border-slate-200/60 shadow-sm p-6 flex flex-col h-full relative overflow-hidden">
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
           
           <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
             <Settings className="w-5 h-5 text-slate-400" /> Queue Controls
@@ -257,13 +267,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               </button>
             ) : (
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => navigate(`/consult/${queue.currentPatientId}`)}
-                  className="w-full py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all group"
-                >
-                  <Stethoscope className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  <span className="font-bold">Open Consultation Workspace</span>
-                </button>
+
                 <button
                   onClick={() => completeMutation.mutate()}
                   disabled={completeMutation.isPending}
@@ -285,7 +289,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 disabled={skipMutation.isPending || !hasActivePatient}
                 className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
                   <SkipForward className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
                 </div>
                 Skip Turn
@@ -295,7 +299,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 disabled={!hasActivePatient}
                 className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
                   <MessageSquare className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
                 </div>
                 WhatsApp Alert
@@ -421,7 +425,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 font-black flex items-center justify-center border border-indigo-100">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-black flex items-center justify-center border border-indigo-100">
                           {t.tokenNumber}
                         </div>
                         <div>
@@ -456,7 +460,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                             </button>
                           )}
                           {t.status !== 2 && (
-                            <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200" title="Edit Patient">
+                            <button onClick={() => setEditingToken(t)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200" title="Edit Patient">
                               <Edit className="w-4 h-4" />
                             </button>
                           )}
@@ -478,6 +482,57 @@ export default function QueueManager({ sessionData, onBack }: any) {
         branchId={branchId}
         onSuccess={() => { refetchQueue(); refetchTokens() }}
       />
+
+      <AnimatePresence>
+        {editingToken && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingToken(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50"
+            >
+              <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 className="font-bold text-slate-800">Edit Token #{editingToken.tokenNumber}</h3>
+                <button onClick={() => setEditingToken(null)} className="text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-4 h-4"/></button>
+              </div>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  updateTokenMutation.mutate({
+                    patientName: (form.elements.namedItem('patientName') as HTMLInputElement).value,
+                    patientPhone: (form.elements.namedItem('patientPhone') as HTMLInputElement).value
+                  });
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Patient Name</label>
+                  <input name="patientName" defaultValue={editingToken.patientName} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Phone Number</label>
+                  <input name="patientPhone" defaultValue={editingToken.patientPhone} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setEditingToken(null)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                  <button type="submit" disabled={updateTokenMutation.isPending} className="flex-[2] btn-primary">
+                    {updateTokenMutation.isPending ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

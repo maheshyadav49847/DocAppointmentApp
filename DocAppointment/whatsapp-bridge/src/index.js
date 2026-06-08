@@ -123,7 +123,10 @@ async function getClient(branchId, expectedNumber) {
     const sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
-      logger: pino({ level: "warn" })
+      logger: pino({ level: "warn" }),
+      browser: ['DocAppointment', 'Chrome', '121.0.0.0'],
+      syncFullHistory: false,
+      generateHighQualityLinkPreview: false
     });
 
     entry.client = sock;

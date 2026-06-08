@@ -24,13 +24,14 @@ const ROLES = [
 ]
 
 export default function StaffPage() {
-  const { user } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const globalBranchId = user?.branchId
 
   const queryClient = useQueryClient()
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || 'org')
+  const selectedBranchId = activeBranchId || globalBranchId || 'org'
+  const setSelectedBranchId = setActiveBranchId
   const [searchQuery, setSearchQuery] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<any>(null)
@@ -129,7 +130,7 @@ export default function StaffPage() {
         const roleConfig = ROLES.find(r => r.label.toLowerCase() === row.original.role.toLowerCase().replace(/\s/g, '')) || ROLES[0]
         return (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
               {row.original.firstName?.[0]?.toUpperCase() || row.original.email[0].toUpperCase()}
             </div>
             <div>
@@ -336,7 +337,7 @@ export default function StaffPage() {
                     <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md group-hover:scale-105 transition-transform ring-4 ring-indigo-50 shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
                             {member.firstName?.[0]?.toUpperCase() || member.email[0].toUpperCase()}
                           </div>
                           <div>
@@ -539,7 +540,7 @@ export default function StaffPage() {
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); }} className="btn-secondary">Cancel</button>
+                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="staff-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingStaff ? 'Save Changes' : 'Create Account'}

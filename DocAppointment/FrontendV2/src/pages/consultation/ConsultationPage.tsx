@@ -7,7 +7,7 @@ import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import {
   ArrowLeft, Save, Activity, ClipboardList,
-  HeartPulse, Edit2, Trash2,
+  HeartPulse, Edit, Trash2, X,
   FileText, User, Calendar, Droplets, Hash,
   Upload, Plus, Printer, Calendar as CalendarIcon, MessageSquare
 } from "lucide-react"
@@ -33,13 +33,9 @@ export default function ConsultationPage() {
   const { data: patient, isLoading: isPatientLoading } = useQuery({
     queryKey: ["patient", patientId],
     queryFn: async () => {
-      // In this app, we don't have a direct GET /patient/{id} yet, 
-      // but we can just use the GET /patients list and filter, or just use history endpoint.
-      // Wait, let's fetch from the generic patients list for now to get details
-      const r = await api.get("/patients", { params: { search: "" } })
-      const p = r.data?.data?.find((p: any) => p.id === patientId)
-      if (!p) throw new Error("Patient not found")
-      return p
+      const r = await api.get(`/patientclinical/${patientId}`)
+      if (!r.data) throw new Error("Patient not found")
+      return r.data
     },
   })
 
@@ -319,7 +315,7 @@ export default function ConsultationPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shadow-sm">
               {patient?.name?.charAt(0) || "P"}
             </div>
             <div>
@@ -370,9 +366,9 @@ export default function ConsultationPage() {
                   setVisitFiles([])
                   setStagingFile(null)
                 }}
-                className="btn-secondary"
+                className="btn-danger"
               >
-                Cancel Edit
+                <X className="w-4 h-4" /> Cancel Edit
               </button>
             )}
             <button 
@@ -580,7 +576,7 @@ export default function ConsultationPage() {
               </div>
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                  <Edit2 className="w-4 h-4 text-amber-500" /> Private Notes
+                  <Edit className="w-4 h-4 text-amber-500" /> Private Notes
                 </label>
                 <textarea 
                   value={visitInternalNotes}
@@ -679,13 +675,14 @@ export default function ConsultationPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {index === 0 && (
-                            <button
-                              onClick={() => handleEditVisit(visit)}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                              title="Edit Consultation"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                              <button
+                                onClick={() => handleEditVisit(visit)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+                                title="Edit Consultation"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                Edit
+                              </button>
                           )}
                           <button 
                             onClick={() => handlePrintPrescription(visit)}
@@ -776,7 +773,7 @@ export default function ConsultationPage() {
 
                             {visit.internalNotes && (
                               <div className="mt-2 pt-3 border-t border-slate-100">
-                                <span className="text-xs font-bold text-amber-600 flex items-center gap-1"><Edit2 className="w-3 h-3" /> Private Note:</span>
+                                <span className="text-xs font-bold text-amber-600 flex items-center gap-1"><Edit className="w-3 h-3" /> Private Note:</span>
                                 <p className="text-xs text-slate-600 italic mt-1">{visit.internalNotes}</p>
                               </div>
                             )}
@@ -817,7 +814,7 @@ export default function ConsultationPage() {
                   attachments?.map((attachment: any) => (
                     <div key={attachment.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shadow-sm border border-sky-100">
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>

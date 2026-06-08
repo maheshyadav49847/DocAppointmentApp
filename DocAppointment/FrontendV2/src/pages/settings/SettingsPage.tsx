@@ -90,7 +90,7 @@ export default function SettingsPage() {
           </div>
           <div className="p-6 space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold shadow-inner">
+              <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-2xl font-bold shadow-sm">
                 {user?.email?.[0]?.toUpperCase()}
               </div>
               <div>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="pt-4 border-t border-slate-100 flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
                 <Shield className="w-5 h-5 text-slate-500" />
               </div>
               <div>

@@ -31,7 +31,6 @@ const navigation = [
   { name: "Sessions", href: "/sessions", icon: Clock },
   { name: "Staff", href: "/staff", icon: UserCog },
   { name: "Pharmacy", href: "/pharmacy", icon: Pill },
-  { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 

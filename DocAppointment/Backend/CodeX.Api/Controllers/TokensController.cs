@@ -8,7 +8,7 @@ namespace CodeX.Api.Controllers
     public class TokensController : BaseApiController
     {
         [HttpPost]
-        public async Task<ActionResult<Guid>> Create(CreateTokenCommand command)
+        public async Task<ActionResult<CreateTokenResult>> Create(CreateTokenCommand command)
         {
             try
             {

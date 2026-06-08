@@ -164,7 +164,7 @@ export default function AnalyticsPage() {
                   <p className="text-xs font-semibold text-slate-500 mb-1">WHATSAPP DELIVERED</p>
                   <h2 className="text-2xl font-bold text-indigo-600">{analytics?.whatsAppStats.delivered}</h2>
                 </div>
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
                   <UserCheck className="w-5 h-5" />
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default function AnalyticsPage() {
                   <p className="text-xs font-semibold text-slate-500 mb-1">MESSAGES FAILED</p>
                   <h2 className="text-2xl font-bold text-rose-600">{analytics?.whatsAppStats.failed}</h2>
                 </div>
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center text-rose-600">
+                <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600">
                   <Server className="w-5 h-5" />
                 </div>
               </div>

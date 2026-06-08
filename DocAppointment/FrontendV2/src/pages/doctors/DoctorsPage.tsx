@@ -94,7 +94,7 @@ export default function DoctorsPage() {
       header: "Doctor Details",
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
             {row.original.name.charAt(0)}
           </div>
           <div>
@@ -313,7 +313,7 @@ export default function DoctorsPage() {
                   <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-md group-hover:scale-105 transition-transform ring-4 ring-indigo-50 shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
                           {row.original.name.charAt(0)}
                         </div>
                         <div>
@@ -620,9 +620,9 @@ export default function DoctorsPage() {
                 <button
                   type="button"
                   onClick={() => { setIsDrawerOpen(false); setEditingDoctor(null); }}
-                  className="btn-secondary"
+                  className="btn-danger"
                 >
-                  Cancel
+                  <X className="w-4 h-4" /> Cancel
                 </button>
                 <button
                   type="submit"

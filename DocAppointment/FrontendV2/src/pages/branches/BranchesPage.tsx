@@ -8,24 +8,27 @@ import {
   flexRender,
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
-import {
-  Building2, MapPin, Smartphone, Plus, Edit,
-  Trash2, X, Save, Activity, ArrowRight, Search, LayoutGrid, List
+import { 
+  Building2, MapPin, Smartphone, Activity, ArrowRight,
+  Edit, Trash2, Plus, X, Search, ShieldCheck, MessageSquare,
+  LayoutGrid, List, Save
 } from "lucide-react"
 
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
 
 export default function BranchesPage() {
-  const { user, setBranch: setAuthBranch } = useAuthStore()
+  const { user, setBranch: setAuthBranch, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
-  const currentBranchId = user?.branchId
+  const currentBranchId = activeBranchId || user?.branchId
 
   const queryClient = useQueryClient()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingBranch, setEditingBranch] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [whatsappConfigBranch, setWhatsappConfigBranch] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -75,6 +78,7 @@ export default function BranchesPage() {
 
   const handleSwitchBranch = (id: string) => {
     setAuthBranch(id)
+    setActiveBranchId(id)
   }
 
   const filteredBranches = useMemo(() => {
@@ -150,6 +154,13 @@ export default function BranchesPage() {
               title="Edit Facility"
             >
               <Edit className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => { setWhatsappConfigBranch(branch) }}
+              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+              title="WhatsApp Configuration"
+            >
+              <MessageSquare className="w-4 h-4" />
             </button>
             {['orgadmin', 'superadmin'].includes(role) && (
               <button
@@ -347,8 +358,17 @@ export default function BranchesPage() {
                       <button
                         onClick={() => { setEditingBranch(branch); setIsDrawerOpen(true); }}
                         className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                        title="Edit Facility"
                       >
                         <Edit className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => { setWhatsappConfigBranch(branch) }}
+                        className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                        title="WhatsApp Configuration"
+                      >
+                        <MessageSquare className="w-4 h-4" />
                       </button>
 
                       {['orgadmin', 'superadmin'].includes(role) && (
@@ -465,7 +485,7 @@ export default function BranchesPage() {
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); }} className="btn-secondary">Cancel</button>
+                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="branch-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingBranch ? 'Save Changes' : 'Create Facility'}
@@ -475,6 +495,14 @@ export default function BranchesPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* WhatsApp Configuration Modal */}
+      {whatsappConfigBranch && (
+        <WhatsAppConfigModal 
+          branch={whatsappConfigBranch} 
+          onClose={() => setWhatsappConfigBranch(null)} 
+        />
+      )}
     </div>
   )
 }

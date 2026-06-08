@@ -10,7 +10,6 @@ import DoctorsPage from "./pages/doctors/DoctorsPage"
 import PatientsPage from "./pages/patients/PatientsPage"
 import ConsultationPage from "./pages/consultation/ConsultationPage"
 import SessionsPage from "./pages/sessions/SessionsPage"
-import WhatsAppPage from "./pages/whatsapp/WhatsAppPage"
 import SettingsPage from "./pages/settings/SettingsPage"
 import PharmacyPage from "./pages/pharmacy/PharmacyPage"
 import BranchesPage from "./pages/branches/BranchesPage"
@@ -46,7 +45,6 @@ function App() {
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/consult/:patientId" element={<ConsultationPage />} />
           <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/whatsapp" element={<WhatsAppPage />} />
           <Route path="/branches" element={<BranchesPage />} />
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -227,33 +227,13 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
 
   const today = new Date().getDay()
   const todaysSessions = sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || []
-  const activeSess = todaysSessions[0]
-
-  const { data: activeQueue } = useQuery({
-    queryKey: ['activeQueue', doctor.id, activeSess?.id],
-    queryFn: () => queueService.getActiveQueueBySession(doctor.id, activeSess?.id),
-    enabled: !!activeSess?.id,
-    refetchInterval: 5000
-  })
-
-  const sessionKey = `${doctor.id}_${activeSess?.id}`
-  const isProcessing = processingSessions.has(sessionKey)
-
-  const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-  const fallbackQueueId = startedSessions[sessionKey]
-
-  const isLive = !!fallbackQueueId || (!!activeQueue && !!activeQueue.id)
-  const displayQueueId = activeQueue?.id || fallbackQueueId
 
   return (
-    <div className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden flex flex-col h-full ${isLive ? 'border-indigo-200 shadow-md shadow-indigo-100/50' : 'border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300'}`}>
-      {/* Top Banner / Color Strip */}
-      <div className={`h-2 w-full ${isLive ? 'bg-gradient-to-r from-indigo-500 to-violet-500' : 'bg-slate-100'}`}></div>
-
+    <div className={`bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 overflow-hidden flex flex-col h-full`}>
       <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${isLive ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-slate-100 text-slate-600`}>
               {doctor.name.charAt(0)}
             </div>
             <div>
@@ -263,51 +243,84 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="mt-auto flex flex-col gap-3">
+          {todaysSessions.length === 0 ? (
+            <div className="text-sm font-medium text-slate-400 py-4 bg-slate-50/50 rounded-xl text-center border border-dashed border-slate-200">
+              No shifts scheduled today
+            </div>
+          ) : (
+            todaysSessions.map((sess: any) => (
+              <SessionItem 
+                key={sess.id} 
+                doctor={doctor} 
+                session={sess} 
+                processingSessions={processingSessions} 
+                onStart={onStart} 
+                onManage={onManage} 
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SessionItem({ doctor, session, processingSessions, onStart, onManage }: any) {
+  const { data: activeQueue } = useQuery({
+    queryKey: ['activeQueue', doctor.id, session.id],
+    queryFn: () => queueService.getActiveQueueBySession(doctor.id, session.id),
+    enabled: !!session.id,
+    refetchInterval: 5000
+  })
+
+  const sessionKey = `${doctor.id}_${session.id}`
+  const isProcessing = processingSessions.has(sessionKey)
+
+  const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
+  const fallbackQueueId = startedSessions[sessionKey]
+
+  const isLive = !!fallbackQueueId || (!!activeQueue && !!activeQueue.id)
+  const displayQueueId = activeQueue?.id || fallbackQueueId
+
+  return (
+    <div className={`p-4 rounded-xl border transition-colors ${isLive ? 'border-indigo-100 bg-indigo-50/30' : 'border-slate-100 bg-slate-50'}`}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-indigo-500' : 'text-slate-400'}`} />
+              <p className="text-xs font-bold text-slate-700">{session.sessionName}</p>
+            </div>
+            <p className="text-xs text-slate-500 font-medium ml-5">{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</p>
+          </div>
           {isLive && (
-            <span className="flex h-3 w-3 relative">
+            <span className="flex h-3 w-3 relative mr-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
             </span>
           )}
         </div>
 
-        <div className="mt-auto">
-          {todaysSessions.length === 0 ? (
-            <div className="text-sm font-medium text-slate-400 py-4 bg-slate-50/50 rounded-xl text-center border border-dashed border-slate-200">
-              No shifts scheduled today
-            </div>
-          ) : (
-            <div className={`p-4 rounded-xl border transition-colors ${isLive ? 'border-indigo-100 bg-indigo-50/30' : 'border-slate-100 bg-slate-50'}`}>
-              <div className="flex flex-col gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Clock className={`w-3.5 h-3.5 ${isLive ? 'text-indigo-500' : 'text-slate-400'}`} />
-                    <p className="text-xs font-bold text-slate-700">{activeSess.sessionName}</p>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium ml-5">{activeSess.startTime.substring(0, 5)} - {activeSess.endTime.substring(0, 5)}</p>
-                </div>
-
-                {isLive ? (
-                  <button
-                    onClick={() => onManage(doctor, activeSess, displayQueueId)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
-                  >
-                    <Settings className="w-4 h-4" /> Manage Session
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onStart(doctor, activeSess)}
-                    disabled={isProcessing}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
-                  >
-                    {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-500" />}
-                    {isProcessing ? "Starting..." : "Start Session"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        {isLive ? (
+          <button
+            onClick={() => onManage(doctor, session, displayQueueId)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
+          >
+            <Settings className="w-4 h-4" /> Manage Session
+          </button>
+        ) : (
+          <button
+            onClick={() => onStart(doctor, session)}
+            disabled={isProcessing}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
+          >
+            {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-500" />}
+            {isProcessing ? "Starting..." : "Start Session"}
+          </button>
+        )}
       </div>
     </div>
   )

@@ -5,9 +5,10 @@ import QueueManager from "./components/QueueManager"
 import { useAuthStore } from "@/store/authStore"
 
 export default function QueueDashboardPage() {
-  const { user } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const globalBranchId = user?.branchId
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || 'org')
+  const selectedBranchId = activeBranchId || globalBranchId || 'org'
+  const setSelectedBranchId = setActiveBranchId
 
   const [searchParams, setSearchParams] = useSearchParams()
   const viewMode = (searchParams.get('mode') as 'overview' | 'manage') || 'overview'

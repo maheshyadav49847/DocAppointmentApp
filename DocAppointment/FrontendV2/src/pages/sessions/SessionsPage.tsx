@@ -12,14 +12,15 @@ import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 
 export default function SessionsPage() {
-  const { user } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const globalBranchId = user?.branchId
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
 
   const queryClient = useQueryClient()
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || '')
+  const selectedBranchId = activeBranchId || globalBranchId || ''
+  const setSelectedBranchId = setActiveBranchId
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<any>(null)
@@ -353,9 +354,9 @@ export default function SessionsPage() {
                 <button
                   type="button"
                   onClick={() => { setIsDrawerOpen(false); setEditingSession(null); }}
-                  className="btn-secondary"
+                  className="btn-danger"
                 >
-                  Cancel
+                  <X className="w-4 h-4" /> Cancel
                 </button>
                 <button
                   type="submit"
