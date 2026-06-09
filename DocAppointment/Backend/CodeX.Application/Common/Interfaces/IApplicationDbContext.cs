@@ -20,8 +20,10 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<Staff> Staffs { get; }
         DbSet<PatientVisit> PatientVisits { get; }
         DbSet<VisitMedicine> VisitMedicines { get; }
+        DbSet<MedicineMaster> Medicines { get; }
         DbSet<PatientAttachment> PatientAttachments { get; }
         DbSet<FollowUp> FollowUps { get; }
+        DbSet<Notification> Notifications { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
 import AuthLayout from "./layouts/AuthLayout"
 import DashboardLayout from "./layouts/DashboardLayout"
 import LoginPage from "./pages/auth/LoginPage"
@@ -55,6 +56,7 @@ function App() {
         {/* Default route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Toaster position="top-right" />
     </BrowserRouter>
   )
 }

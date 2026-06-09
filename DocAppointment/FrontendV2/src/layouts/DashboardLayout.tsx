@@ -1,26 +1,13 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
-import { 
-  LayoutDashboard, 
-  Users, 
-  Stethoscope, 
-  Pill, 
-  Clock, 
-  Settings, 
-  Menu, 
-  LogOut,
-  Bell,
-  Search,
-  MessageSquare,
-  Activity,
-  X,
-  Building2,
-  UserCog
-} from "lucide-react"
+import { motion } from "framer-motion"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Search, Activity, X, Building2, UserCog } from "lucide-react"
 
 import { useAuthStore } from "@/store/authStore"
 import { authService } from "@/services/authService"
 import { cn } from "@/lib/utils"
+import { useNotificationStore } from "@/store/notificationStore"
+import { initializeSignalR, stopSignalR } from "@/lib/signalr"
 
 const navigation = [
   { name: "Queue (Live)", href: "/", icon: Activity },
@@ -31,13 +18,45 @@ const navigation = [
   { name: "Sessions", href: "/sessions", icon: Clock },
   { name: "Staff", href: "/staff", icon: UserCog },
   { name: "Pharmacy", href: "/pharmacy", icon: Pill },
-  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  
+  const profileRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
-  const { user, clearAuth } = useAuthStore()
+  
+  const { user, token, activeBranchId, clearAuth } = useAuthStore()
+  const { notifications, fetchNotifications, markAsRead, markAllAsRead, clearAll } = useNotificationStore()
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotificationOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const branchId = activeBranchId || user?.branchId;
+    if (token && branchId) {
+      fetchNotifications(branchId);
+      initializeSignalR(token, branchId);
+    }
+    return () => {
+      stopSignalR();
+    }
+  }, [token, activeBranchId, user?.branchId]);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const handleLogout = async () => {
     try {
@@ -139,39 +158,108 @@ export default function DashboardLayout() {
 
           {/* Header Right Content (Profile & Actions) */}
           <div className="flex items-center gap-3 sm:gap-5">
-            <button className="relative p-1.5 text-slate-500 hover:bg-slate-100 rounded-md transition-colors">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-slate-900 rounded-full"></span>
-            </button>
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                className="relative p-1.5 text-slate-500 hover:bg-slate-100 rounded-md transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full"></span>
+                )}
+              </button>
+
+              {/* Dropdown */}
+              {notificationOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900">Notifications</h3>
+                    <div className="flex gap-2">
+                      <button onClick={() => { const bId = activeBranchId || user?.branchId; if(bId) markAllAsRead(bId); }} className="text-xs text-indigo-600 font-medium hover:text-indigo-700">Mark all read</button>
+                      <button onClick={clearAll} className="text-xs text-slate-400 font-medium hover:text-slate-600">Clear</button>
+                    </div>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-slate-500 text-sm">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          onClick={() => markAsRead(n.id)}
+                          className={cn("px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors flex gap-3", !n.isRead ? "bg-indigo-50/30" : "")}
+                        >
+                          <div className={cn("w-2 h-2 mt-1.5 rounded-full shrink-0", !n.isRead ? "bg-indigo-500" : "bg-transparent")} />
+                          <div>
+                            <p className={cn("text-sm", !n.isRead ? "font-semibold text-slate-900" : "font-medium text-slate-700")}>{n.title}</p>
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{n.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">{new Date(n.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Vertical Divider */}
             <div className="hidden sm:block w-px h-5 bg-slate-200" />
 
             {/* Profile Section */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-slate-900">{user?.email?.split('@')[0]}</p>
-                <p className="text-[11px] text-slate-500 capitalize leading-tight">{user?.role}</p>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center font-semibold text-indigo-700 text-sm border border-indigo-200 shrink-0">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
-              </div>
+            <div className="relative" ref={profileRef}>
               <button 
-                onClick={handleLogout}
-                title="Sign Out"
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors sm:ml-1"
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-3 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left"
               >
-                <LogOut className="w-4 h-4" />
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm font-medium text-slate-900">{user?.email?.split('@')[0]}</p>
+                  <p className="text-[11px] text-slate-500 capitalize leading-tight">{user?.role}</p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center font-semibold text-indigo-700 text-sm border border-indigo-200 shrink-0">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
               </button>
+
+              {profileOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-slate-100 sm:hidden">
+                    <p className="text-sm font-bold text-slate-900 truncate">{user?.email?.split('@')[0]}</p>
+                    <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+                  </div>
+                  <Link 
+                    to="/settings"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                  >
+                    <Settings className="w-4 h-4" /> Settings
+                  </Link>
+                  <button 
+                    onClick={() => { setProfileOpen(false); handleLogout(); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" /> Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
         {/* Page Content Scrollable Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="h-full w-full">
+          <motion.div 
+            key={location.pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="h-full w-full"
+          >
             <Outlet />
-          </div>
+          </motion.div>
         </main>
       </div>
     </div>

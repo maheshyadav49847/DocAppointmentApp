@@ -24,7 +24,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
     return () => clearTimeout(timer)
   }, [name, phone, activeField])
 
-  const { data: searchResults, isFetching } = useQuery({
+  const { data: searchResults } = useQuery({
     queryKey: ['patients-search', branchId, debouncedSearch],
     queryFn: () => patientService.getPatients(branchId, 1, 5, debouncedSearch),
     enabled: debouncedSearch.length >= 2 && activeField !== null,

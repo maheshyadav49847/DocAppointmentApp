@@ -5,7 +5,7 @@ import {
   Clock, AlertCircle, SkipForward, MessageSquare, 
   Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X
 } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+// Removed unused import
 import { queueService } from "@/services/queueService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { useAuthStore } from "@/store/authStore"
@@ -14,7 +14,6 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
-  const navigate = useNavigate()
   const { user } = useAuthStore()
   const branchId = user?.branchId
 

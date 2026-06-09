@@ -11,6 +11,7 @@ import {
   FileText, User, Calendar, Droplets, Hash,
   Upload, Plus, Printer, Calendar as CalendarIcon, MessageSquare
 } from "lucide-react"
+import MedicineAutocomplete from "./components/MedicineAutocomplete"
 
 // Types
 interface Medicine {
@@ -306,7 +307,7 @@ export default function ConsultationPage() {
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-slate-50 overflow-hidden">
       
       {/* Top Banner */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between shrink-0 gap-4">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(-1)}
@@ -330,8 +331,8 @@ export default function ConsultationPage() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
+          <div className="flex items-center gap-4 whitespace-nowrap">
             <div className="flex items-center gap-2 mr-4">
               <input 
                 type="checkbox" 
@@ -384,11 +385,11 @@ export default function ConsultationPage() {
       </div>
 
       {/* Main Workspace Workspace */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
         
         {/* LEFT COLUMN: Active Consultation Form */}
-        <div className="w-2/3 flex flex-col border-r border-slate-200 bg-white overflow-y-auto">
-          <div className="p-6 space-y-8">
+        <div className="w-full lg:w-2/3 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white lg:overflow-y-auto shrink-0">
+          <div className="p-4 sm:p-6 space-y-8">
             
             {/* Header & Doctor */}
             <div className="flex items-center justify-between">
@@ -411,7 +412,7 @@ export default function ConsultationPage() {
             </div>
 
             {/* Symptoms & Diagnosis */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <Activity className="w-4 h-4 text-red-500" /> Symptoms / Complaints
@@ -443,7 +444,7 @@ export default function ConsultationPage() {
               <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-500" /> Clinical Vitals
               </h3>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Weight (kg)</label>
                   <input type="number" value={visitWeight} onChange={e=>setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
@@ -478,10 +479,16 @@ export default function ConsultationPage() {
               </h3>
               
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Medicine Name *</label>
-                    <input value={medName} onChange={e=>setMedName(e.target.value)} placeholder="e.g. Paracetamol" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <MedicineAutocomplete 
+                      value={medName} 
+                      onChange={setMedName} 
+                      onSelectMedicine={(med) => {
+                        if (med.type) setMedType(med.type);
+                      }}
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
@@ -498,7 +505,7 @@ export default function ConsultationPage() {
                     <input value={medDosage} onChange={e=>setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Schedule</label>
                     <select value={medSchedule} onChange={e=>setMedSchedule(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
@@ -536,8 +543,8 @@ export default function ConsultationPage() {
                 {visitMedicines.length > 0 && (
                   <div className="mt-4 space-y-2">
                     {visitMedicines.map((med, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                        <div className="flex flex-col gap-1 w-full mr-4">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 rounded-lg border border-slate-200 shadow-sm gap-3">
+                        <div className="flex flex-col gap-1 w-full sm:mr-4">
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-slate-800">{med.medicineName}</span>
                             {med.medicineType && <span className="text-xs text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded">{med.medicineType}</span>}
@@ -550,7 +557,7 @@ export default function ConsultationPage() {
                           </div>
                           {med.clinicalInstructions && <span className="text-xs text-indigo-500">{med.clinicalInstructions}</span>}
                         </div>
-                        <button onClick={() => removeMedicine(idx)} className="text-rose-500 p-2 hover:bg-rose-50 rounded transition-colors shrink-0">
+                        <button onClick={() => removeMedicine(idx)} className="text-rose-500 p-2 hover:bg-rose-50 rounded transition-colors shrink-0 self-end sm:self-auto border border-rose-100 sm:border-transparent">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -561,7 +568,7 @@ export default function ConsultationPage() {
             </div>
 
             {/* Advice & Notes */}
-            <div className="grid grid-cols-2 gap-6 pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 lg:pb-12">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <HeartPulse className="w-4 h-4 text-emerald-500" /> Advice & Treatment Plan
@@ -589,7 +596,7 @@ export default function ConsultationPage() {
             </div>
             
             {/* Follow-up & Attachments */}
-            <div className="grid grid-cols-2 gap-6 pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
               <div className="space-y-4">
                 <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-pink-500" /> Next Follow-Up
@@ -611,17 +618,19 @@ export default function ConsultationPage() {
                   <Upload className="w-4 h-4 text-sky-500" /> Attachments
                 </h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                  <div className="flex gap-2">
-                    <select value={stagingCategory} onChange={e=>setStagingCategory(e.target.value)} className="px-2 py-2 border border-slate-200 rounded-lg text-sm w-1/3">
+                  <div className="flex flex-col gap-3">
+                    <select value={stagingCategory} onChange={e=>setStagingCategory(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm w-full">
                       <option value="Lab Report">Lab Report</option>
                       <option value="X-Ray">X-Ray</option>
                       <option value="MRI Scan">MRI Scan</option>
                       <option value="Other">Other</option>
                     </select>
-                    <input type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                    <button onClick={() => { if (stagingFile) { setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]); setStagingFile(null); } }} className="px-3 bg-transparent border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50">
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2 w-full">
+                      <input type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
+                      <button onClick={() => { if (stagingFile) { setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]); setStagingFile(null); } }} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                   {visitFiles.length > 0 && (
                     <div className="space-y-2 mt-3">
@@ -641,7 +650,7 @@ export default function ConsultationPage() {
         </div>
 
         {/* RIGHT COLUMN: History & Attachments */}
-        <div className="w-1/3 flex flex-col bg-slate-50">
+        <div className="w-full lg:w-1/3 flex flex-col bg-slate-50 lg:overflow-y-auto shrink-0">
           <div className="flex border-b border-slate-200 bg-white">
             <button 
               onClick={() => setActiveTab("history")}

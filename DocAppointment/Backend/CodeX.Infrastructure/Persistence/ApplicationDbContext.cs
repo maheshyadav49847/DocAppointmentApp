@@ -27,8 +27,10 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Staff> Staffs => Set<Staff>();
         public DbSet<PatientVisit> PatientVisits => Set<PatientVisit>();
         public DbSet<VisitMedicine> VisitMedicines => Set<VisitMedicine>();
+        public DbSet<MedicineMaster> Medicines => Set<MedicineMaster>();
         public DbSet<PatientAttachment> PatientAttachments => Set<PatientAttachment>();
         public DbSet<FollowUp> FollowUps => Set<FollowUp>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

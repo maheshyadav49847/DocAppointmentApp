@@ -10,7 +10,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import { 
   Building2, MapPin, Smartphone, Activity, ArrowRight,
-  Edit, Trash2, Plus, X, Search, ShieldCheck, MessageSquare,
+  Edit, Trash2, Plus, X, Search, MessageSquare,
   LayoutGrid, List, Save
 } from "lucide-react"
 
