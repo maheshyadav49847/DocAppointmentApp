@@ -16,11 +16,10 @@ import { branchService } from "@/services/branchService"
 
 
 export default function AnalyticsPage() {
-  const { user } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
   const role = user?.role
-  const globalBranchId = user?.branchId
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || 'org')
+  const selectedBranchId = activeBranchId || 'org'
 
   const dashboardRef = useRef<HTMLDivElement>(null)
 
@@ -79,7 +78,7 @@ export default function AnalyticsPage() {
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
-            onChange={(e) => setSelectedBranchId(e.target.value)}
+            onChange={(e) => setActiveBranchId(e.target.value === 'org' ? null : e.target.value)}
             disabled={isRestricted}
             className="bg-white border border-slate-200 text-sm rounded-md px-4 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm disabled:opacity-50 font-medium"
           >

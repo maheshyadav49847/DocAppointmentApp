@@ -8,7 +8,7 @@ import {
   flexRender,
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
-import { 
+import {
   Building2, MapPin, Smartphone, Activity, ArrowRight,
   Edit, Trash2, Plus, X, Search, MessageSquare,
   LayoutGrid, List, Save
@@ -200,7 +200,8 @@ export default function BranchesPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-              <span className="text-slate-900">Branches</span>
+              <span className="text-slate-900">Manage</span>
+              <span className="text-indigo-600">Branch</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage physical locations and branch-specific configurations.</p>
           </div>
@@ -309,66 +310,76 @@ export default function BranchesPage() {
                 const branch = row.original
                 const isActiveContext = branch.id === currentBranchId
                 return (
-                  <div key={branch.id} className={`bg-white rounded-xl border ${isActiveContext ? 'border-indigo-500 ring-1 ring-indigo-500 shadow-md' : 'border-slate-200 shadow-sm hover:shadow-md'} p-5 transition-all group relative overflow-hidden flex flex-col`}>
+                  <div key={branch.id} className={`bg-white rounded-xl border ${isActiveContext ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-500/10' : 'border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 hover:-translate-y-1'} p-5 transition-all duration-300 group relative overflow-hidden flex flex-col`}>
+
+                    {/* Decorative Background Blob */}
+                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 transition-opacity ${isActiveContext ? 'bg-indigo-400' : 'bg-slate-200 group-hover:bg-indigo-200'}`}></div>
 
                     {isActiveContext && (
-                      <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-lg z-10">
+                      <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-bl-xl shadow-sm z-10">
                         Active Context
                       </div>
                     )}
 
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border ${isActiveContext ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
-                        <Building2 className="w-6 h-6" />
+                    <div className="flex items-start gap-4 mb-5 relative z-10">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-105 ${isActiveContext ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-transparent text-white shadow-md shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600'}`}>
+                        <Building2 className="w-7 h-7" />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900 leading-tight">{branch.name}</h3>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className={`w-2 h-2 rounded-full ${branch.isActive ? 'bg-indigo-500' : 'bg-rose-500'}`} />
-                          <span className="text-xs font-medium text-slate-500">{branch.isActive ? 'Online & Accepting Bookings' : 'Offline'}</span>
+                      <div className="pt-1">
+                        <h3 className="text-lg font-bold text-slate-900 leading-tight">{branch.name}</h3>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="relative flex h-2.5 w-2.5">
+                            {branch.isActive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${branch.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                          </span>
+                          <span className={`text-xs font-semibold ${branch.isActive ? 'text-emerald-600' : 'text-rose-600'}`}>{branch.isActive ? 'Online & Booking' : 'Offline'}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-3 mb-6 flex-1">
-                      <div className="flex items-start gap-3 text-sm text-slate-600">
-                        <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="line-clamp-2">{branch.address || 'No address provided'}</span>
+                    <div className="space-y-4 mb-6 flex-1 relative z-10 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                      <div className="flex items-start gap-3 text-sm text-slate-700">
+                        <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-indigo-500 shrink-0">
+                           <MapPin className="w-4 h-4" />
+                        </div>
+                        <span className="line-clamp-2 mt-1 font-medium">{branch.address || 'No address provided'}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <Smartphone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span>{branch.whatsAppNumber || 'Not configured'}</span>
+                      <div className="flex items-center gap-3 text-sm text-slate-700">
+                        <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-green-500 shrink-0">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <span className="font-medium">{branch.whatsAppNumber || 'Not configured'}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-4 border-t border-slate-100">
+                    <div className="flex items-center gap-2 pt-4 border-t border-slate-100 relative z-10">
                       {!isActiveContext ? (
                         <button
                           onClick={() => handleSwitchBranch(branch.id)}
-                          className="btn-primary flex-1 justify-center"
+                          className="flex-1 bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all"
                         >
-                          <ArrowRight className="w-4 h-4" /> Switch to Context
+                          <ArrowRight className="w-4 h-4" /> Switch
                         </button>
                       ) : (
-                        <div className="flex-1 flex items-center justify-center gap-2 bg-slate-50 text-slate-400 px-3 py-2 rounded-lg text-sm font-semibold cursor-default">
+                        <div className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-bold cursor-default">
                           <Activity className="w-4 h-4" /> Managing Now
                         </div>
                       )}
 
                       <button
                         onClick={() => { setEditingBranch(branch); setIsDrawerOpen(true); }}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
                         title="Edit Facility"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-4.5 h-4.5" />
                       </button>
 
                       <button
                         onClick={() => { setWhatsappConfigBranch(branch) }}
-                        className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                        className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 bg-slate-50 hover:shadow-sm"
                         title="WhatsApp Configuration"
                       >
-                        <MessageSquare className="w-4 h-4" />
+                        <MessageSquare className="w-4.5 h-4.5" />
                       </button>
 
                       {['orgadmin', 'superadmin'].includes(role) && (
@@ -376,9 +387,9 @@ export default function BranchesPage() {
                           onClick={() => {
                             if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)
                           }}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+                          className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 bg-slate-50 hover:shadow-sm"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4.5 h-4.5" />
                         </button>
                       )}
                     </div>
@@ -498,9 +509,9 @@ export default function BranchesPage() {
 
       {/* WhatsApp Configuration Modal */}
       {whatsappConfigBranch && (
-        <WhatsAppConfigModal 
-          branch={whatsappConfigBranch} 
-          onClose={() => setWhatsappConfigBranch(null)} 
+        <WhatsAppConfigModal
+          branch={whatsappConfigBranch}
+          onClose={() => setWhatsappConfigBranch(null)}
         />
       )}
     </div>

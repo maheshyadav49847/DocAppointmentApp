@@ -29,9 +29,9 @@ export default function DoctorsPage() {
     pageSize: 10,
   })
 
-  const { user } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
-  const [selectedBranch, setSelectedBranch] = useState<string>(user?.branchId || 'all')
+  const selectedBranch = activeBranchId || 'all'
   const queryClient = useQueryClient()
 
   const { data: doctors, isLoading, error } = useQuery({
@@ -51,7 +51,7 @@ export default function DoctorsPage() {
   const mutation = useMutation({
     mutationFn: async (data: Omit<Doctor, 'id'>) => {
       if (editingDoctor) {
-        await doctorService.updateDoctor(editingDoctor.id, data)
+        await doctorService.updateDoctor(editingDoctor.id, { ...data, id: editingDoctor.id } as Doctor)
       } else {
         await doctorService.createDoctor(data)
       }
@@ -213,7 +213,7 @@ export default function DoctorsPage() {
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
             <select
               value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
+              onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
               className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
             >
               <option value="all">All Branches</option>
@@ -285,7 +285,7 @@ export default function DoctorsPage() {
 
         {/* Data View */}
         {viewMode === 'grid' ? (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="p-4 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">

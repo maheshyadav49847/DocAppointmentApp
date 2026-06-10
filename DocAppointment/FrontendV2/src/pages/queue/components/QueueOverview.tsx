@@ -98,7 +98,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
-            onChange={(e) => setSelectedBranchId(e.target.value)}
+            onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
             className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
           >
             <option value="org" disabled>Select Facility</option>
@@ -189,7 +189,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
                   <p className="text-slate-500 text-sm">Try adjusting your search query.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                   <AnimatePresence>
                     {filteredDoctors.map((doc: any, index) => (
                       <motion.div
@@ -229,23 +229,27 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
   const todaysSessions = sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || []
 
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 overflow-hidden flex flex-col h-full`}>
-      <div className="p-5 flex-1 flex flex-col">
-        <div className="flex items-start justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg bg-slate-100 text-slate-600`}>
+    <div className={`group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full`}>
+      <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50 relative">
+        <div className="flex items-start justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
               {doctor.name.charAt(0)}
             </div>
             <div>
-              <h4 className="font-bold text-slate-900 leading-tight">{doctor.name}</h4>
-              <span className="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 mt-1 inline-block">
-                {doctor.specialization || "General"}
-              </span>
+              <h4 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{doctor.name}</h4>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
+                  <Stethoscope className="w-3 h-3" /> {doctor.specialization || "General"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-auto flex flex-col gap-3">
+      <div className="p-5 flex-1 flex flex-col bg-white">
+        <div className="flex flex-col gap-3">
           {todaysSessions.length === 0 ? (
             <div className="text-sm font-medium text-slate-400 py-4 bg-slate-50/50 rounded-xl text-center border border-dashed border-slate-200">
               No shifts scheduled today

@@ -2,9 +2,13 @@ import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { authService } from "@/services/authService"
 import { 
-  Mail, Lock, ShieldCheck, KeyRound, 
+  Mail, Lock, ShieldCheck, 
   ArrowLeft, Send, CheckCircle2, Timer, AlertCircle 
 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export default function ForgotPasswordPage() {
   const [identifier, setIdentifier] = useState("")
@@ -106,100 +110,122 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="w-full">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          {step === 'request' ? <KeyRound className="w-8 h-8" /> : <ShieldCheck className="w-8 h-8" />}
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">
-          {step === 'request' ? 'Forgot Password?' : 'Reset Password'}
-        </h1>
-        <p className="text-slate-500 max-w-sm mx-auto">
+      <div className="mb-8 flex flex-col items-start">
+        <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
+          {step === 'request' ? <>Forgot <span className="text-indigo-600">Password?</span></> : <>Reset <span className="text-indigo-600">Password</span></>}
+        </h2>
+        <p className="text-slate-500 mt-2 text-sm">
           {step === 'request' 
-            ? "Enter your email or phone number. We'll automatically send the OTP to your registered device." 
+            ? "Enter your email or phone number. We'll send an OTP to your device." 
             : `Enter the 6-digit OTP sent to your ${identifier.includes('@') ? 'email' : 'mobile'}.`}
         </p>
       </div>
 
       {apiError && (
-        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl flex gap-3 text-rose-700">
+        <div className="bg-red-50/50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 mb-6">
           <AlertCircle className="w-5 h-5 shrink-0" />
-          <p className="text-sm font-medium">{apiError}</p>
+          {apiError}
         </div>
       )}
 
       {step === 'request' ? (
-        <form onSubmit={handleRequest} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-slate-400" /> Email or Phone Number
-            </label>
-            <input
+        <form onSubmit={handleRequest} className="space-y-5">
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
+              <Mail className="h-4 w-4 text-indigo-600" />
+              Email or Phone Number
+            </Label>
+            <Input
               type="text"
               required
-              placeholder="admin@hospital.com or +91..."
+              placeholder="admin@example.com or +91..."
               value={identifier}
               onChange={(e) => { setIdentifier(e.target.value); setErrors(prev => ({ ...prev, identifier: '' })) }}
-              className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 outline-none transition-all ${
-                errors.identifier 
-                  ? 'border-rose-300 focus:ring-rose-200 focus:border-rose-500' 
-                  : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
+              className={`bg-slate-50/50 border-slate-200 text-slate-900 h-12 px-4 rounded-xl placeholder:text-slate-400 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 focus-visible:bg-white transition-all hover:border-slate-300 ${
+                errors.identifier ? 'border-red-300 focus-visible:border-red-500 focus-visible:ring-red-500' : ''
               }`}
             />
-            {errors.identifier && <p className="text-sm text-rose-600 mt-2">{errors.identifier}</p>}
+            {errors.identifier && (
+              <p className="text-xs text-red-500 mt-1.5 font-medium flex items-center gap-1">
+                 <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+                 {errors.identifier}
+              </p>
+            )}
           </div>
 
-          <button
-            type="submit"
+          <Button 
+            type="submit" 
+            variant="outline"
+            className="w-full border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl h-12 text-base mt-4 font-bold shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
             disabled={loading}
-            className="w-full btn-primary justify-center py-3 text-base"
           >
-            {loading ? 'Sending OTP...' : <><Send className="w-5 h-5" /> Request OTP</>}
-          </button>
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-indigo-600/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Sending OTP...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                Request OTP <Send className="w-5 h-5" />
+              </span>
+            )}
+          </Button>
         </form>
       ) : (
-        <form onSubmit={handleReset} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-slate-400" /> Enter OTP
-            </label>
-            <input
+        <form onSubmit={handleReset} className="space-y-5">
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-indigo-600" />
+              Enter OTP
+            </Label>
+            <Input
               type="text"
               required
               maxLength={6}
               placeholder="6-digit code"
               value={otp}
               onChange={(e) => { setOtp(e.target.value); setErrors(prev => ({ ...prev, otp: '' })) }}
-              className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 outline-none transition-all text-center tracking-[0.5em] text-lg font-bold ${
-                errors.otp 
-                  ? 'border-rose-300 focus:ring-rose-200 focus:border-rose-500' 
-                  : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
+              className={`bg-slate-50/50 border-slate-200 text-slate-900 h-12 px-4 rounded-xl placeholder:text-slate-400 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 focus-visible:bg-white transition-all hover:border-slate-300 text-center tracking-[0.5em] text-lg font-bold ${
+                errors.otp ? 'border-red-300 focus-visible:border-red-500 focus-visible:ring-red-500' : ''
               }`}
             />
-            {errors.otp && <p className="text-sm text-rose-600 mt-2 text-center">{errors.otp}</p>}
+            {errors.otp && (
+              <p className="text-xs text-red-500 mt-1.5 font-medium flex items-center justify-center gap-1">
+                 <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+                 {errors.otp}
+              </p>
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-slate-400" /> New Password
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
+              <Lock className="h-4 w-4 text-indigo-600" />
+              New Password
+            </Label>
+            <Input
               type="password"
               required
               placeholder="••••••••"
               value={newPassword}
               onChange={(e) => { setNewPassword(e.target.value); setErrors(prev => ({ ...prev, newPassword: '' })) }}
-              className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 outline-none transition-all ${
-                errors.newPassword 
-                  ? 'border-rose-300 focus:ring-rose-200 focus:border-rose-500' 
-                  : 'border-slate-200 focus:ring-indigo-100 focus:border-indigo-500'
+              className={`bg-slate-50/50 border-slate-200 text-slate-900 h-12 px-4 rounded-xl placeholder:text-slate-400 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 focus-visible:bg-white transition-all hover:border-slate-300 ${
+                errors.newPassword ? 'border-red-300 focus-visible:border-red-500 focus-visible:ring-red-500' : ''
               }`}
             />
-            {errors.newPassword && <p className="text-sm text-rose-600 mt-2">{errors.newPassword}</p>}
+            {errors.newPassword && (
+              <p className="text-xs text-red-500 mt-1.5 font-medium flex items-center gap-1">
+                 <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+                 {errors.newPassword}
+              </p>
+            )}
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center my-2">
             {countdown > 0 ? (
-              <div className="text-sm font-medium text-slate-500 flex items-center gap-2">
+              <div className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
                 <Timer className="w-4 h-4" /> Resend OTP in {countdown}s
               </div>
             ) : (
@@ -207,20 +233,33 @@ export default function ForgotPasswordPage() {
                 type="button" 
                 onClick={() => handleRequest()} 
                 disabled={loading}
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
               >
                 Didn't receive code? Resend OTP
               </button>
             )}
           </div>
 
-          <button
-            type="submit"
+          <Button 
+            type="submit" 
+            variant="outline"
+            className="w-full border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl h-12 text-base mt-4 font-bold shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
             disabled={loading}
-            className="w-full btn-primary justify-center py-3 text-base"
           >
-            {loading ? 'Updating...' : <><CheckCircle2 className="w-5 h-5" /> Reset Password</>}
-          </button>
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-indigo-600/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Updating...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                Reset Password <CheckCircle2 className="w-5 h-5" />
+              </span>
+            )}
+          </Button>
         </form>
       )}
 

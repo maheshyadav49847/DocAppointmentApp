@@ -16,7 +16,7 @@ interface AuthState {
   clearAuth: () => void
   setBranch: (branchId: string) => void
   activeBranchId: string | null
-  setActiveBranchId: (branchId: string) => void
+  setActiveBranchId: (branchId: string | null) => void
 }
 
 export const useAuthStore = create<AuthState>()(

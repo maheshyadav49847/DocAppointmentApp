@@ -20,8 +20,8 @@ import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 
 export default function PatientsPage() {
-  const { user } = useAuthStore()
-  const [selectedBranch, setSelectedBranch] = useState<string>(user?.branchId || 'all')
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const selectedBranch = activeBranchId || 'all'
   const [globalFilter, setGlobalFilter] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -49,7 +49,7 @@ export default function PatientsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Patient>) => {
-      await patientService.updatePatientProfile(editingPatient!.id, data)
+      await patientService.updatePatientProfile(editingPatient!.id, { ...data, id: editingPatient!.id })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
@@ -64,7 +64,7 @@ export default function PatientsPage() {
     const data = {
       name: formData.get('name') as string,
       phone: formData.get('phone') as string,
-      age: parseInt(formData.get('age') as string) || 0,
+      age: formData.get('age') as string,
       gender: formData.get('gender') as string,
       bloodGroup: formData.get('bloodGroup') as string,
       email: formData.get('email') as string,
@@ -131,7 +131,7 @@ export default function PatientsPage() {
             <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 font-medium">
               <span className="flex items-center gap-1"><User className="w-3 h-3 text-slate-400" /> {row.original.gender || 'N/A'}</span>
               <span className="text-slate-300">•</span>
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400" /> {row.original.age > 0 ? `${row.original.age} Yrs` : 'N/A'}</span>
+              <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400" /> {Number(row.original.age) > 0 ? `${row.original.age} Yrs` : 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -229,7 +229,7 @@ export default function PatientsPage() {
             <select
               value={selectedBranch}
               onChange={(e) => {
-                setSelectedBranch(e.target.value)
+                setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
                 setPagination(prev => ({ ...prev, pageIndex: 0 }))
               }}
               className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
@@ -358,7 +358,7 @@ export default function PatientsPage() {
           ) : (
             <>
               {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm animate-pulse">
                       <div className="flex gap-4">
@@ -376,7 +376,7 @@ export default function PatientsPage() {
                   ))}
                 </div>
               ) : patients.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                   {patients.map(patient => (
                     <div key={patient.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                       {/* Header Section */}

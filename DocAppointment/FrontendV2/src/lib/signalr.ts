@@ -7,14 +7,23 @@ let connection: signalR.HubConnection | null = null;
 export const initializeSignalR = async (token: string, branchId: string) => {
   if (connection) return;
 
-  // Assume API is at http://localhost:5031/api, so hub is at /hubs/queue
-  const hubUrl = 'http://localhost:5031/hubs/queue';
+  // Assume API is at http://localhost:5001
+  const hubUrl = 'http://localhost:5001/queueHub';
+
+  const customLogger: signalR.ILogger = {
+    log: (logLevel, message) => {
+      if (message.includes('stopped during negotiation')) return;
+      if (logLevel === signalR.LogLevel.Error) console.error(message);
+      else if (logLevel === signalR.LogLevel.Warning) console.warn(message);
+    }
+  };
 
   connection = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl, {
       accessTokenFactory: () => token
     })
     .withAutomaticReconnect()
+    .configureLogging(customLogger)
     .build();
 
   connection.on('TokenUpdated', (data: { queueId: string, tokenNumber: number }) => {
@@ -51,8 +60,12 @@ export const initializeSignalR = async (token: string, branchId: string) => {
     await connection.start();
     console.log('SignalR Connected.');
     await connection.invoke('JoinBranchGroup', branchId);
-  } catch (err) {
-    console.error('SignalR Connection Error: ', err);
+  } catch (err: any) {
+    if (err?.message?.includes('stopped during negotiation')) {
+      console.warn('SignalR start aborted (likely strict mode double effect).');
+    } else {
+      console.error('SignalR Connection Error: ', err);
+    }
   }
 };
 

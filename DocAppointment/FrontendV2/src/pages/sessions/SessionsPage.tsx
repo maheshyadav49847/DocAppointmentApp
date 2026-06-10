@@ -10,6 +10,7 @@ import { doctorService } from "@/services/doctorService"
 import { sessionService } from "@/services/sessionService"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { toast } from "react-hot-toast"
 
 export default function SessionsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
@@ -24,6 +25,7 @@ export default function SessionsPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<any>(null)
+  const [isDailyForm, setIsDailyForm] = useState(true)
 
   const { data: branches } = useQuery({
     queryKey: ['branches', orgId],
@@ -32,9 +34,9 @@ export default function SessionsPage() {
   })
 
   const { data: doctors } = useQuery({
-    queryKey: ['doctors', selectedBranchId],
+    queryKey: ['doctors', orgId, selectedBranchId],
     queryFn: () => doctorService.getBranchDoctors(selectedBranchId),
-    enabled: !!selectedBranchId
+    enabled: !!selectedBranchId && !!orgId
   })
 
   const { data: sessions, isLoading, error } = useQuery({
@@ -44,24 +46,35 @@ export default function SessionsPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
-      const payload = {
-        ...data,
-        doctorId: selectedDoctorId,
-        branchId: selectedBranchId,
-        startTime: data.startTime.length === 5 ? data.startTime + ":00" : data.startTime,
-        endTime: data.endTime.length === 5 ? data.endTime + ":00" : data.endTime
-      }
-      if (editingSession) {
-        await sessionService.updateSession(editingSession.id, payload)
-      } else {
-        await sessionService.createSession(payload)
-      }
+    mutationFn: async (data: any | any[]) => {
+      const payloads = Array.isArray(data) ? data : [data]
+      
+      const promises = payloads.map(payloadData => {
+        const payload = {
+          ...payloadData,
+          doctorId: selectedDoctorId,
+          branchId: selectedBranchId,
+          startTime: payloadData.startTime.length === 5 ? payloadData.startTime + ":00" : payloadData.startTime,
+          endTime: payloadData.endTime.length === 5 ? payloadData.endTime + ":00" : payloadData.endTime
+        }
+        if (editingSession) {
+          return sessionService.updateSession(editingSession.id, { ...payload, id: editingSession.id })
+        } else {
+          return sessionService.createSession(payload)
+        }
+      })
+      
+      await Promise.all(promises)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', selectedDoctorId, selectedBranchId] })
       setIsDrawerOpen(false)
       setEditingSession(null)
+      toast.success("Sessions saved successfully!")
+    },
+    onError: (error: any) => {
+      const msg = error.response?.data?.message || error.message || "Failed to save session."
+      toast.error(msg)
     }
   })
 
@@ -76,15 +89,35 @@ export default function SessionsPage() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const isDaily = formData.get('isDaily') === 'true'
-    const data = {
+    const dayOfWeek = parseInt(formData.get('dayOfWeek') as string || '1')
+
+    const dataTemplate = {
       sessionName: formData.get('sessionName') as string,
-      dayOfWeek: parseInt(formData.get('dayOfWeek') as string || '1'),
       isDaily,
       startTime: formData.get('startTime') as string,
       endTime: formData.get('endTime') as string,
       defaultCapacity: parseInt(formData.get('defaultCapacity') as string)
     }
-    mutation.mutate(data)
+
+    const otherSessions = sessions?.filter((s: any) => s.id !== editingSession?.id) || []
+
+    if (isDaily) {
+      if (otherSessions.some((s: any) => !s.isDaily)) {
+        toast.error("Doctor already has specific day sessions. Please delete them before creating a daily session.")
+        return
+      }
+      mutation.mutate({ ...dataTemplate, dayOfWeek: 0 })
+    } else {
+      if (otherSessions.some((s: any) => s.isDaily)) {
+        toast.error("Doctor already has a daily session. Please delete it before creating specific day sessions.")
+        return
+      }
+      if (otherSessions.some((s: any) => s.dayOfWeek === dayOfWeek)) {
+        toast.error(`Doctor already has a session on ${days[dayOfWeek]}.`)
+        return
+      }
+      mutation.mutate({ ...dataTemplate, dayOfWeek })
+    }
   }
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -99,8 +132,8 @@ export default function SessionsPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-              <span className="text-slate-900">Session</span>
-              <span className="text-indigo-600">Master</span>
+              <span className="text-slate-900">Manage</span>
+              <span className="text-indigo-600">Sessions</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Configure doctor availability and appointment slots.</p>
           </div>
@@ -114,7 +147,7 @@ export default function SessionsPage() {
               setSelectedBranchId(e.target.value)
               setSelectedDoctorId('')
             }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-amber-500 shadow-sm transition-all hover:border-amber-300"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
           >
             <option value="" disabled>Select Facility</option>
             {branches?.map((b: any) => (
@@ -135,7 +168,7 @@ export default function SessionsPage() {
                 value={selectedDoctorId}
                 onChange={(e) => setSelectedDoctorId(e.target.value)}
                 disabled={!selectedBranchId}
-                className="bg-white border border-slate-200 text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-sm w-full disabled:opacity-50"
+                className="bg-white border border-slate-200 text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full disabled:opacity-50"
               >
                 <option value="">Select Professional...</option>
                 {doctors?.map((doc: any) => (
@@ -146,7 +179,7 @@ export default function SessionsPage() {
           </div>
 
           <button
-            onClick={() => { setEditingSession(null); setIsDrawerOpen(true); }}
+            onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
             disabled={!selectedDoctorId}
             className="btn-primary w-full sm:w-auto"
           >
@@ -158,23 +191,23 @@ export default function SessionsPage() {
         <div className="flex-1 p-6 bg-slate-50/30">
           {!selectedBranchId ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Building2 className="w-8 h-8 text-slate-300" />
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                <Building2 className="w-8 h-8 text-indigo-500" />
               </div>
               <h3 className="text-lg font-semibold text-slate-700">No Facility Selected</h3>
               <p className="text-sm text-slate-500 mt-1 max-w-sm">Please select a facility from the top right dropdown to view schedules.</p>
             </div>
           ) : !selectedDoctorId ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <User className="w-8 h-8 text-slate-300" />
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                <User className="w-8 h-8 text-blue-500" />
               </div>
               <h3 className="text-lg font-semibold text-slate-700">No Doctor Selected</h3>
               <p className="text-sm text-slate-500 mt-1 max-w-sm">Choose a professional from the toolbar to manage their working shifts.</p>
             </div>
           ) : isLoading ? (
             <div className="flex flex-col items-center justify-center h-64">
-              <Activity className="w-8 h-8 text-amber-500 animate-spin mb-4" />
+              <Activity className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
               <p className="text-sm font-medium text-slate-500">Loading schedules...</p>
             </div>
           ) : error ? (
@@ -184,64 +217,82 @@ export default function SessionsPage() {
             </div>
           ) : sessions?.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4">
-                <Calendar className="w-8 h-8 text-amber-300" />
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                <Calendar className="w-8 h-8 text-indigo-500" />
               </div>
               <h3 className="text-lg font-semibold text-slate-700">No Shifts Scheduled</h3>
               <p className="text-sm text-slate-500 mt-1 mb-4">This professional has no active shifts. Click 'Add Shift' to create one.</p>
               <button
-                onClick={() => { setEditingSession(null); setIsDrawerOpen(true); }}
+                onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
                 className="btn-primary"
               >
                 Create First Shift
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
               {sessions.map((session: any) => (
-                <div key={session.id} className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
-
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div>
-                      <h3 className="font-bold text-slate-900">{session.sessionName}</h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs font-semibold text-amber-600 bg-amber-50 w-fit px-2 py-0.5 rounded-full">
-                        <Calendar className="w-3 h-3" />
-                        {session.isDaily ? 'EVERY DAY' : days[session.dayOfWeek].toUpperCase()}
+                <div key={session.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                  {/* Header Section */}
+                  <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50 relative">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
+                    
+                    <div className="flex justify-between items-start relative z-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                          <Calendar className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{session.sessionName}</h3>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
+                              <Calendar className="w-3 h-3" />
+                              {session.isDaily ? 'EVERY DAY' : days[session.dayOfWeek].toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => { setEditingSession(session); setIsDrawerOpen(true); }}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
-                        <button
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this shift?')) {
-                              deleteMutation.mutate(session.id)
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 mt-4 relative z-10">
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Hours</p>
-                      <p className="text-sm font-semibold text-slate-900">{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</p>
+                  {/* Details Grid */}
+                  <div className="p-5 grid grid-cols-2 gap-y-5 gap-x-4 flex-1 bg-white">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0"><Clock className="w-4 h-4" /></div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Hours</p>
+                        <p className="text-xs font-semibold text-slate-700 truncate">{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</p>
+                      </div>
                     </div>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1"><Users className="w-3 h-3" /> Capacity</p>
-                      <p className="text-sm font-semibold text-slate-900">{session.defaultCapacity} <span className="text-xs text-slate-500 font-normal">Tokens</span></p>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-violet-50 text-violet-600 shrink-0"><Users className="w-4 h-4" /></div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Capacity</p>
+                        <p className="text-xs font-semibold text-slate-700 truncate">{session.defaultCapacity} Tokens</p>
+                      </div>
                     </div>
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
+                    <button
+                      onClick={() => { setEditingSession(session); setIsDailyForm(session.isDaily); setIsDrawerOpen(true); }}
+                      className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Edit className="w-4 h-4" /> Edit
+                    </button>
+                    {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
+                      <button
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this shift?')) {
+                            deleteMutation.mutate(session.id)
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -294,14 +345,14 @@ export default function SessionsPage() {
                   {/* Recurrence Toggle */}
                   <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-xl">
                     <label className="cursor-pointer">
-                      <input type="radio" name="isDaily" value="true" defaultChecked={editingSession ? editingSession.isDaily : true} className="peer sr-only" />
-                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-amber-600 peer-checked:shadow-sm">
+                      <input type="radio" name="isDaily" value="true" checked={isDailyForm} onChange={() => setIsDailyForm(true)} className="peer sr-only" />
+                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
                         Daily
                       </div>
                     </label>
                     <label className="cursor-pointer">
-                      <input type="radio" name="isDaily" value="false" defaultChecked={editingSession ? !editingSession.isDaily : false} className="peer sr-only" />
-                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-amber-600 peer-checked:shadow-sm">
+                      <input type="radio" name="isDaily" value="false" checked={!isDailyForm} onChange={() => setIsDailyForm(false)} className="peer sr-only" />
+                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
                         Specific Day
                       </div>
                     </label>
@@ -312,7 +363,7 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <FileText className="w-4 h-4 text-blue-500" /> Session Name
                       </label>
-                      <input required name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <input required name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -320,13 +371,13 @@ export default function SessionsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-green-500" /> Start Time
                         </label>
-                        <input required type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all" />
+                        <input required type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-rose-500" /> End Time
                         </label>
-                        <input required type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all" />
+                        <input required type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                       </div>
                     </div>
 
@@ -334,18 +385,20 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity
                       </label>
-                      <input required type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all" />
+                      <input required type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                       <p className="text-xs text-slate-500 mt-1">Maximum number of patients allowed per session.</p>
                     </div>
 
-                    <div className="day-selector-container">
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Calendar className="w-4 h-4 text-orange-500" /> Day of Week (If not daily)
-                      </label>
-                      <select name="dayOfWeek" defaultValue={editingSession?.dayOfWeek || 1} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all">
-                        {days.map((day, idx) => <option key={idx} value={idx}>{day}</option>)}
-                      </select>
-                    </div>
+                    {!isDailyForm && (
+                      <div className="day-selector-container animate-in fade-in slide-in-from-top-2 duration-300">
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-2">
+                          <Calendar className="w-4 h-4 text-indigo-500" /> Day of Week
+                        </label>
+                        <select name="dayOfWeek" defaultValue={editingSession?.dayOfWeek || 1} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                          {days.map((day, idx) => <option key={idx} value={idx}>{day}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </form>
               </div>

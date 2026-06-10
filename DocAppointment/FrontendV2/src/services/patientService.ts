@@ -7,7 +7,7 @@ export interface Patient {
   phone: string
   email: string
   address: string
-  age: number
+  age: string | number
   gender: string
   bloodGroup: string
   preExistingConditions: string
