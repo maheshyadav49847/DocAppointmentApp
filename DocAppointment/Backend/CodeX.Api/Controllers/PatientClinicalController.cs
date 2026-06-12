@@ -118,7 +118,7 @@ namespace CodeX.Api.Controllers
                         m.Id, 
                         m.MedicineName, 
                         m.Dosage, 
-                        m.MedicineType, 
+                        MedicineType = m.MedicineType != null ? m.MedicineType.Name : null, 
                         m.DoseQty, 
                         m.DoseSchedule, 
                         m.FoodTiming, 
@@ -242,13 +242,35 @@ namespace CodeX.Api.Controllers
 
                 if (dto.Medicines != null && dto.Medicines.Any())
                 {
+                    // Pre-fetch all medicine types
+                    var existingTypes = await _context.MedicineTypes.AsNoTracking().ToDictionaryAsync(t => t.Name.ToLower(), t => t.Id);
+
                     foreach (var med in dto.Medicines)
                     {
+                        Guid? typeId = null;
+                        if (!string.IsNullOrWhiteSpace(med.MedicineType))
+                        {
+                            var typeName = med.MedicineType.Trim();
+                            var lowerTypeName = typeName.ToLower();
+                            if (existingTypes.TryGetValue(lowerTypeName, out var existingId))
+                            {
+                                typeId = existingId;
+                            }
+                            else
+                            {
+                                var newType = new MedicineType { Name = typeName };
+                                await _context.MedicineTypes.AddAsync(newType);
+                                await _context.SaveChangesAsync(default);
+                                typeId = newType.Id;
+                                existingTypes[lowerTypeName] = typeId.Value;
+                            }
+                        }
+
                         visit.Medicines.Add(new VisitMedicine
                         {
                             MedicineName = med.MedicineName,
                             Dosage = med.Dosage,
-                            MedicineType = med.MedicineType,
+                            MedicineTypeId = typeId,
                             DoseQty = med.DoseQty,
                             DoseSchedule = med.DoseSchedule,
                             FoodTiming = med.FoodTiming,
@@ -369,14 +391,35 @@ namespace CodeX.Api.Controllers
 
             if (dto.Medicines != null && dto.Medicines.Any())
             {
+                var existingTypes = await _context.MedicineTypes.AsNoTracking().ToDictionaryAsync(t => t.Name.ToLower(), t => t.Id);
+
                 foreach (var med in dto.Medicines)
                 {
+                    Guid? typeId = null;
+                    if (!string.IsNullOrWhiteSpace(med.MedicineType))
+                    {
+                        var typeName = med.MedicineType.Trim();
+                        var lowerTypeName = typeName.ToLower();
+                        if (existingTypes.TryGetValue(lowerTypeName, out var existingId))
+                        {
+                            typeId = existingId;
+                        }
+                        else
+                        {
+                            var newType = new MedicineType { Name = typeName };
+                            await _context.MedicineTypes.AddAsync(newType);
+                            await _context.SaveChangesAsync(default);
+                            typeId = newType.Id;
+                            existingTypes[lowerTypeName] = typeId.Value;
+                        }
+                    }
+
                     _context.VisitMedicines.Add(new VisitMedicine
                     {
                         PatientVisitId = visitId,
                         MedicineName = med.MedicineName,
                         Dosage = med.Dosage,
-                        MedicineType = med.MedicineType,
+                        MedicineTypeId = typeId,
                         DoseQty = med.DoseQty,
                         DoseSchedule = med.DoseSchedule,
                         FoodTiming = med.FoodTiming,

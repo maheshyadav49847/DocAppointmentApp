@@ -9,7 +9,8 @@ namespace CodeX.Domain.Entities
         
         public string Name { get; set; } = string.Empty;
         public string? GenericName { get; set; }
-        public string? Type { get; set; }
+        public Guid? MedicineTypeId { get; set; }
+        public virtual MedicineType? MedicineType { get; set; }
         public string? Manufacturer { get; set; }
         
         // Navigation

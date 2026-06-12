@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Pill, Edit, X, Save, Activity } from 'lucide-react';
+import { Pill, Edit, X, Save, Activity, Plus, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MedicineDto, CreateMedicineCommand } from '../../../services/medicineService';
+import { medicineService } from '../../../services/medicineService';
 
 interface MedicineModalProps {
   isOpen: boolean;
@@ -14,24 +15,59 @@ export default function MedicineModal({ isOpen, onClose, onSave, medicine }: Med
   const [formData, setFormData] = useState<CreateMedicineCommand>({
     name: '',
     genericName: '',
-    type: '',
+    medicineTypeId: '',
     manufacturer: ''
   });
   const [loading, setLoading] = useState(false);
+  const [medicineTypes, setMedicineTypes] = useState<any[]>([]);
+  const [isAddingType, setIsAddingType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+  const [addingTypeLoading, setAddingTypeLoading] = useState(false);
+
+  const handleAddType = async () => {
+    if (!newTypeName.trim()) {
+      setIsAddingType(false);
+      return;
+    }
+    try {
+      setAddingTypeLoading(true);
+      const newType = await medicineService.createType(newTypeName.trim());
+      setMedicineTypes([...medicineTypes, newType]);
+      setFormData({ ...formData, medicineTypeId: newType.id });
+      setNewTypeName('');
+      setIsAddingType(false);
+    } catch (err) {
+      console.error('Failed to add new type', err);
+    } finally {
+      setAddingTypeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const types = await medicineService.getTypes();
+        setMedicineTypes(types);
+      } catch (err) {
+        console.error('Failed to fetch medicine types', err);
+      }
+    };
+    fetchTypes();
+  }, []);
 
   useEffect(() => {
     if (medicine) {
       setFormData({
         name: medicine.name,
         genericName: medicine.genericName || '',
-        type: medicine.type || '',
+        medicineTypeId: medicine.medicineTypeId || '',
         manufacturer: medicine.manufacturer || ''
       });
     } else {
       setFormData({
         name: '',
         genericName: '',
-        type: '',
+        medicineTypeId: '',
         manufacturer: ''
       });
     }
@@ -42,7 +78,11 @@ export default function MedicineModal({ isOpen, onClose, onSave, medicine }: Med
     if (!formData.name) return;
     try {
       setLoading(true);
-      await onSave(formData);
+      const payload = { ...formData };
+      if (payload.medicineTypeId === '') {
+        delete payload.medicineTypeId;
+      }
+      await onSave(payload);
       onClose();
     } catch (error) {
       console.error(error);
@@ -114,15 +154,59 @@ export default function MedicineModal({ isOpen, onClose, onSave, medicine }: Med
                   />
                 </div>
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                    Type
-                  </label>
-                  <input
-                    value={formData.type}
-                    onChange={e => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Tablet, Syrup, etc."
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                      Type
+                    </label>
+                    {!isAddingType && (
+                      <button 
+                        type="button" 
+                        onClick={() => setIsAddingType(true)}
+                        className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium"
+                      >
+                        <Plus className="w-3 h-3" /> Add New
+                      </button>
+                    )}
+                  </div>
+                  {isAddingType ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={newTypeName}
+                        onChange={e => setNewTypeName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddType(); } }}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                        placeholder="New type name..."
+                        disabled={addingTypeLoading}
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleAddType}
+                        disabled={addingTypeLoading || !newTypeName.trim()}
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 disabled:opacity-50"
+                      >
+                        {addingTypeLoading ? <Activity className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setIsAddingType(false); setNewTypeName(''); }}
+                        className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-100"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.medicineTypeId || ''}
+                      onChange={e => setFormData({ ...formData, medicineTypeId: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                    >
+                      <option value="">Select Type</option>
+                      {medicineTypes.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">

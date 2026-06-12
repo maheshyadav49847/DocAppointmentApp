@@ -3,6 +3,7 @@ using System;
 using CodeX.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeX.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260612072736_AddMedicineTypeTable")]
+    partial class AddMedicineTypeTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1109,8 +1112,9 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<Guid?>("MedicineTypeId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("MedicineType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("PatientVisitId")
                         .HasColumnType("uuid");
@@ -1122,8 +1126,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("MedicineTypeId");
 
                     b.HasIndex("PatientVisitId");
 
@@ -1352,18 +1354,11 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CodeX.Domain.Entities.VisitMedicine", b =>
                 {
-                    b.HasOne("CodeX.Domain.Entities.MedicineType", "MedicineType")
-                        .WithMany()
-                        .HasForeignKey("MedicineTypeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CodeX.Domain.Entities.PatientVisit", "PatientVisit")
                         .WithMany("Medicines")
                         .HasForeignKey("PatientVisitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("MedicineType");
 
                     b.Navigation("PatientVisit");
                 });

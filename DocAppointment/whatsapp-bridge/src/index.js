@@ -144,9 +144,9 @@ async function getClient(branchId, expectedNumber) {
 
       if (connection === "close") {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 428 && statusCode !== 401;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
         entry.state.ready = false;
-        
+
         if (shouldReconnect) {
           entry.state.step = "Reconnecting...";
           console.log(`[WARN] ${branchId} connection closed due to error (Status: ${statusCode}), reconnecting...`);
@@ -155,7 +155,7 @@ async function getClient(branchId, expectedNumber) {
           entry.state.step = "Logged Out";
           entry.state.error = entry.state.error || "Session invalid or logged out";
           console.log(`[AUTH] ${branchId} session invalid (Status: ${statusCode}). Wiping keys...`);
-          
+
           // Perform synchronous wiping to prevent race conditions with frontend polling
           try {
             if (entry.client) {
@@ -170,21 +170,21 @@ async function getClient(branchId, expectedNumber) {
       } else if (connection === "open") {
         const loggedInJid = sock.user.id;
         const loggedInPhone = String(loggedInJid).split(':')[0];
-        
+
         const expectedNormalized = entry.expectedNumber ? entry.expectedNumber.replace(/\D/g, '').slice(-10) : null;
         const loggedInNormalized = loggedInPhone.slice(-10);
-        
+
         if (expectedNormalized && loggedInNormalized !== expectedNormalized) {
           console.log(`[AUTH] Invalid number scanned for ${branchId}! Expected: ${expectedNormalized}, Got: ${loggedInNormalized} (Raw: ${loggedInPhone})`);
           entry.state.ready = false;
           entry.state.error = `Security Alert: You scanned with ${loggedInPhone}, but this branch requires ${entry.expectedNumber}. Please logout and use the correct WhatsApp number.`;
           entry.state.step = "Validation Failed";
-          
+
           // Force logout because it's the wrong number
           setTimeout(async () => {
             try {
               await sock.logout();
-            } catch (e) {}
+            } catch (e) { }
             fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
             clients.delete(branchId);
           }, 2000);
@@ -219,15 +219,15 @@ async function destroyClient(branchId, { logout = false } = {}) {
   const entry = clients.get(branchId);
   if (entry?.client) {
     if (logout) {
-      await entry.client.logout().catch(() => {});
+      await entry.client.logout().catch(() => { });
     }
     entry.client.end(undefined);
   }
-  
+
   if (logout) {
     fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
   }
-  
+
   clients.delete(branchId);
 }
 
@@ -286,19 +286,19 @@ app.post("/send-message", requireAuth, async (req, res) => {
     }
 
     const jid = toChatId(to);
-    
+
     if (fileBase64) {
       const buffer = Buffer.from(fileBase64, 'base64');
-      await entry.client.sendMessage(jid, { 
-        document: buffer, 
-        fileName: fileName || 'Document.pdf', 
-        mimetype: 'application/pdf', 
+      await entry.client.sendMessage(jid, {
+        document: buffer,
+        fileName: fileName || 'Document.pdf',
+        mimetype: 'application/pdf',
         caption: message ? String(message) : undefined
       });
     } else {
       await entry.client.sendMessage(jid, { text: String(message) });
     }
-    
+
     console.log(`[OUTGOING] Message sent successfully`);
     return res.json({ sent: true });
   } catch (error) {

@@ -69,6 +69,14 @@ export default function ConsultationPage() {
     },
   })
 
+  const { data: medicineTypesData } = useQuery({
+    queryKey: ["medicineTypes"],
+    queryFn: async () => {
+      const r = await api.get('/medicines/types')
+      return r.data || []
+    },
+  })
+
   // State
   const [activeTab, setActiveTab] = useState<"history" | "attachments">("history")
   
@@ -492,12 +500,11 @@ export default function ConsultationPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
-                    <select value={medType} onChange={e=>setMedType(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
-                      <option value="Tablet">Tablet</option>
-                      <option value="Syrup">Syrup</option>
-                      <option value="Injection">Injection</option>
-                      <option value="Ointment">Ointment</option>
-                      <option value="Drops">Drops</option>
+                    <select value={medType} onChange={e=>setMedType(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                      <option value="">Select Type</option>
+                      {medicineTypesData?.map((t: any) => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>

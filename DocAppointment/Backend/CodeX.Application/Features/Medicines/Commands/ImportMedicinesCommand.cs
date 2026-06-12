@@ -43,31 +43,80 @@ namespace CodeX.Application.Features.Medicines.Commands
             if (request.Medicines == null || !request.Medicines.Any())
                 return 0;
 
-            // Fetch existing brand names for this organization to avoid duplicates
-            var existingNames = await _context.Medicines.AsNoTracking()
+            // Fetch existing records for this organization to avoid exact duplicates
+            var existingRecords = await _context.Medicines.AsNoTracking()
                 .Where(m => m.OrganizationId == request.OrganizationId)
-                .Select(m => m.Name.ToLower())
+                .Select(m => new { m.Name, m.Manufacturer, m.GenericName, m.MedicineTypeId })
                 .ToListAsync(cancellationToken);
 
-            var existingNamesSet = new HashSet<string>(existingNames);
+            var existingKeysSet = new HashSet<string>();
+            foreach (var r in existingRecords)
+            {
+                var key = $"{r.Name?.ToLower().Trim()}|{r.Manufacturer?.ToLower().Trim()}|{r.GenericName?.ToLower().Trim()}|{r.MedicineTypeId}";
+                existingKeysSet.Add(key);
+            }
+
+            // Fetch existing Medicine Types
+            var existingTypes = await _context.MedicineTypes.AsNoTracking()
+                .ToDictionaryAsync(t => t.Name.ToLower(), t => t.Id, cancellationToken);
 
             var newMedicines = new List<MedicineMaster>();
+            int totalImported = 0;
+            int batchSize = 5000;
 
             foreach (var med in request.Medicines)
             {
                 if (string.IsNullOrWhiteSpace(med.Name)) continue;
 
                 var lowerName = med.Name.Trim().ToLower();
+                var lowerMfg = med.Manufacturer?.Trim().ToLower() ?? "";
+                var lowerGen = med.GenericName?.Trim().ToLower() ?? "";
+
+                // Resolve Type
+                Guid? typeId = null;
+                if (!string.IsNullOrWhiteSpace(med.Type))
+                {
+                    var typeName = med.Type.Trim();
+                    var lowerTypeName = typeName.ToLower();
+                    if (existingTypes.TryGetValue(lowerTypeName, out var id))
+                    {
+                        typeId = id;
+                    }
+                    else
+                    {
+                        var newType = new MedicineType { Name = typeName };
+                        await _context.MedicineTypes.AddAsync(newType, cancellationToken);
+                        await _context.SaveChangesAsync(cancellationToken);
+                        typeId = newType.Id;
+                        existingTypes[lowerTypeName] = typeId.Value;
+                    }
+                }
+
+                // Fallback auto-assign from Name
+                if (typeId == null)
+                {
+                    foreach (var typeKvp in existingTypes.OrderByDescending(t => t.Key.Length))
+                    {
+                        if (lowerName.Contains(typeKvp.Key) || 
+                            (!string.IsNullOrWhiteSpace(med.GenericName) && med.GenericName.ToLower().Contains(typeKvp.Key)))
+                        {
+                            typeId = typeKvp.Value;
+                            break;
+                        }
+                    }
+                }
+
+                var rowKey = $"{lowerName}|{lowerMfg}|{lowerGen}|{typeId}";
 
                 // Duplicate check
-                if (existingNamesSet.Contains(lowerName)) continue;
+                if (existingKeysSet.Contains(rowKey)) continue;
 
                 newMedicines.Add(new MedicineMaster
                 {
                     OrganizationId = request.OrganizationId,
                     Name = med.Name.Trim(),
                     GenericName = string.IsNullOrWhiteSpace(med.GenericName) ? null : med.GenericName.Trim(),
-                    Type = string.IsNullOrWhiteSpace(med.Type) ? null : med.Type.Trim(),
+                    MedicineTypeId = typeId,
                     Manufacturer = string.IsNullOrWhiteSpace(med.Manufacturer) ? null : med.Manufacturer.Trim(),
                     CreatedBy = request.UserId,
                     CreatedAt = DateTime.UtcNow,
@@ -75,16 +124,26 @@ namespace CodeX.Application.Features.Medicines.Commands
                 });
 
                 // Add to set to prevent duplicates within the uploaded CSV itself
-                existingNamesSet.Add(lowerName);
+                existingKeysSet.Add(rowKey);
+
+                if (newMedicines.Count >= batchSize)
+                {
+                    await _context.Medicines.AddRangeAsync(newMedicines, cancellationToken);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    (_context as DbContext)?.ChangeTracker.Clear(); // Free memory
+                    totalImported += newMedicines.Count;
+                    newMedicines.Clear();
+                }
             }
 
             if (newMedicines.Any())
             {
                 await _context.Medicines.AddRangeAsync(newMedicines, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
+                totalImported += newMedicines.Count;
             }
 
-            return newMedicines.Count; // Return number of successfully imported medicines
+            return totalImported; // Return number of successfully imported medicines
         }
     }
 }

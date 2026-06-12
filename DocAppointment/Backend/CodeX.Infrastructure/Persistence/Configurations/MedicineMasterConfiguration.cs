@@ -19,8 +19,6 @@ namespace CodeX.Infrastructure.Persistence.Configurations
             builder.Property(m => m.GenericName)
                 .HasMaxLength(300);
 
-            builder.Property(m => m.Type)
-                .HasMaxLength(100);
 
             builder.Property(m => m.Manufacturer)
                 .HasMaxLength(200);
@@ -30,6 +28,11 @@ namespace CodeX.Infrastructure.Persistence.Configurations
                 .WithMany()
                 .HasForeignKey(m => m.OrganizationId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(m => m.MedicineType)
+                .WithMany()
+                .HasForeignKey(m => m.MedicineTypeId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

@@ -12,7 +12,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.Extensions.DependencyInjection;
 namespace CodeX.Api.Controllers
 {
     [Authorize]
@@ -21,15 +21,17 @@ namespace CodeX.Api.Controllers
     public class MedicinesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public MedicinesController(IMediator mediator)
+        public MedicinesController(IMediator mediator, IServiceScopeFactory serviceScopeFactory)
         {
             _mediator = mediator;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         private Guid GetOrganizationId()
         {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value ?? User.FindFirst("orgId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim) || !Guid.TryParse(orgIdClaim, out var orgId))
             {
                 throw new UnauthorizedAccessException("Organization context not found in token.");
@@ -51,17 +53,34 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMedicines([FromQuery] string? search, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+        public async Task<IActionResult> GetMedicines([FromQuery] string? search, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, [FromQuery] string? sortColumn = null, [FromQuery] string? sortDirection = null)
         {
             var query = new GetMedicinesQuery
             {
                 OrganizationId = GetOrganizationId(),
                 SearchTerm = search,
                 PageNumber = pageNumber,
-                PageSize = pageSize
+                PageSize = pageSize,
+                SortColumn = sortColumn,
+                SortDirection = sortDirection
             };
             var result = await _mediator.Send(query);
             return Ok(result);
+        }
+
+        [HttpGet("types")]
+        public async Task<IActionResult> GetMedicineTypes()
+        {
+            var query = new GetMedicineTypesQuery();
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost("types")]
+        public async Task<IActionResult> CreateMedicineType([FromBody] CreateMedicineTypeCommand command)
+        {
+            var id = await _mediator.Send(command);
+            return Ok(new { id, command.Name });
         }
 
         [HttpGet("{id:guid}")]
@@ -109,6 +128,8 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("import")]
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         public async Task<IActionResult> ImportMedicines(IFormFile file)
         {
             if (file == null || file.Length == 0)
@@ -118,25 +139,51 @@ namespace CodeX.Api.Controllers
 
             try
             {
-                using var reader = new StreamReader(file.OpenReadStream());
-                using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                var tempPath = Path.GetTempFileName();
+                using (var stream = new FileStream(tempPath, FileMode.Create))
                 {
-                    HeaderValidated = null,
-                    MissingFieldFound = null,
-                    IgnoreBlankLines = true
+                    await file.CopyToAsync(stream);
+                }
+
+                var orgId = GetOrganizationId();
+                var userId = GetUserId();
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var reader = new StreamReader(tempPath);
+                        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                        {
+                            HeaderValidated = null,
+                            MissingFieldFound = null,
+                            IgnoreBlankLines = true
+                        });
+
+                        var records = csv.GetRecords<MedicineImportDto>().ToList();
+
+                        var command = new ImportMedicinesCommand
+                        {
+                            OrganizationId = orgId,
+                            UserId = userId,
+                            Medicines = records
+                        };
+
+                        using var scope = _serviceScopeFactory.CreateScope();
+                        var scopedMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                        await scopedMediator.Send(command);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Background import failed: {ex.Message}");
+                    }
+                    finally
+                    {
+                        if (System.IO.File.Exists(tempPath)) System.IO.File.Delete(tempPath);
+                    }
                 });
 
-                var records = csv.GetRecords<MedicineImportDto>().ToList();
-
-                var command = new ImportMedicinesCommand
-                {
-                    OrganizationId = GetOrganizationId(),
-                    UserId = GetUserId(),
-                    Medicines = records
-                };
-
-                var count = await _mediator.Send(command);
-                return Ok(new { message = $"{count} medicines imported successfully" });
+                return Accepted(new { message = $"File uploaded successfully. Processing has started in the background. Please refresh after a few minutes." });
             }
             catch (Exception ex)
             {

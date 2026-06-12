@@ -159,23 +159,23 @@ export default function PatientsPage() {
     {
       id: "actions",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-1">
           <button
             onClick={() => {
               setEditingPatient(row.original)
               setIsDrawerOpen(true)
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="Edit"
           >
-            <Edit className="w-3.5 h-3.5" />
-            Edit
+            <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => navigate(`/consult/${row.original.id}`)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-transparent border border-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+            title="Consult"
           >
-            <Stethoscope className="w-3.5 h-3.5" />
-            Consult
+            <Stethoscope className="w-4 h-4" />
           </button>
         </div>
       )
@@ -244,7 +244,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Main Card */}
-      <div className="saas-card overflow-hidden flex flex-col">
+      <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
 
@@ -305,13 +305,13 @@ export default function PatientsPage() {
         </div>
 
         {/* View Content */}
-        <div className="p-0 sm:p-6 bg-slate-50/50">
+        <div className="p-0 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {viewMode === 'table' ? (
-            <div className="overflow-x-auto bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm">
+            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative">
               <table className="w-full text-left border-collapse">
-                <thead>
+                <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id} className="bg-slate-50 border-b border-slate-200">
+                    <tr key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
                         <th key={header.id} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                           {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}

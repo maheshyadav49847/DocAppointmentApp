@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Pill, Plus, Search, Edit2, Trash2, Activity, UploadCloud, DownloadCloud } from "lucide-react";
+import { Pill, Plus, Search, Edit, Trash2, Activity, UploadCloud, DownloadCloud, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { medicineService, type MedicineDto } from "../../services/medicineService";
 import MedicineModal from "./components/MedicineModal";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import {
   getCoreRowModel,
   flexRender,
 } from "@tanstack/react-table";
-import type { ColumnDef, PaginationState } from "@tanstack/react-table";
+import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table";
 
 export default function PharmacyPage() {
   const queryClient = useQueryClient();
@@ -17,12 +17,14 @@ export default function PharmacyPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<MedicineDto | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   // Prevent accidental page refresh during import
   useEffect(() => {
@@ -47,8 +49,8 @@ export default function PharmacyPage() {
   }, [search]);
 
   const { data: paginatedData, isLoading } = useQuery<any>({
-    queryKey: ['medicines', debouncedSearch, pageIndex, pageSize],
-    queryFn: () => medicineService.getAll(debouncedSearch, pageIndex + 1, pageSize),
+    queryKey: ['medicines', debouncedSearch, pageIndex, pageSize, sorting],
+    queryFn: () => medicineService.getAll(debouncedSearch, pageIndex + 1, pageSize, sorting[0]?.id, sorting[0]?.desc ? 'desc' : 'asc'),
     placeholderData: keepPreviousData,
   });
 
@@ -76,11 +78,19 @@ export default function PharmacyPage() {
   });
 
   const importMutation = useMutation({
-    mutationFn: (file: File) => medicineService.importCsv(file),
-    onSettled: () => setIsImporting(false),
-    onSuccess: () => {
+    mutationFn: (file: File) => medicineService.importCsv(file, (progressEvent: any) => {
+      if (progressEvent.total) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(percentCompleted);
+      }
+    }),
+    onSettled: () => {
+      setIsImporting(false);
+      setUploadProgress(null);
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['medicines'] });
-      alert("Medicines imported successfully!");
+      alert(data?.message || "Medicines imported successfully!");
     },
     onError: (error: any) => {
       alert("Error importing medicines: " + (error?.response?.data || error.message));
@@ -172,20 +182,21 @@ export default function PharmacyPage() {
     {
       id: "actions",
       header: "Actions",
+      enableSorting: false,
       cell: ({ row }) => {
         const med = row.original;
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-1">
             <button
               onClick={() => openEditModal(med)}
-              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
               title="Edit"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit className="w-4 h-4" />
             </button>
             <button
               onClick={() => handleDelete(med.id)}
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
@@ -202,10 +213,16 @@ export default function PharmacyPage() {
     pageCount: paginatedData?.totalPages || -1,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
+    manualSorting: true,
     state: {
-      pagination: { pageIndex, pageSize }
+      pagination: { pageIndex, pageSize },
+      sorting
     },
     onPaginationChange: setPagination,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    },
   });
 
   return (
@@ -224,7 +241,7 @@ export default function PharmacyPage() {
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col">
+      <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
           
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
@@ -274,7 +291,7 @@ export default function PharmacyPage() {
               disabled={isImporting}
             >
               {isImporting ? <Activity className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-              {isImporting ? 'Importing...' : 'Import CSV'}
+              {isImporting ? (uploadProgress !== null ? `Uploading ${uploadProgress}%` : 'Importing...') : 'Import CSV'}
             </button>
 
             <button onClick={openAddModal} className="btn-primary">
@@ -283,7 +300,7 @@ export default function PharmacyPage() {
           </div>
         </div>
 
-        <div className="p-0 sm:p-6 bg-slate-50/50">
+        <div className="p-0 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
@@ -298,14 +315,29 @@ export default function PharmacyPage() {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm">
+            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative">
               <table className="w-full text-left border-collapse">
-                <thead>
+                <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id} className="bg-slate-50 border-b border-slate-200">
+                    <tr key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
-                        <th key={header.id} className={`px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${header.id === 'actions' ? 'text-right' : ''}`}>
-                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        <th key={header.id} className={`group/th px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap bg-slate-50 ${header.id === 'actions' ? 'text-right' : ''}`}>
+                          {header.isPlaceholder ? null : (
+                            <div 
+                              className={`flex items-center gap-2 ${header.column.getCanSort() ? 'cursor-pointer select-none' : ''} ${header.id === 'actions' ? 'justify-end' : ''}`}
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {header.column.getCanSort() && (
+                                <span className="text-slate-400">
+                                  {{
+                                    asc: <ArrowUp className="w-3.5 h-3.5" />,
+                                    desc: <ArrowDown className="w-3.5 h-3.5" />,
+                                  }[header.column.getIsSorted() as string] ?? <ArrowUpDown className="w-3.5 h-3.5 opacity-0 group-hover/th:opacity-50" />}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </th>
                       ))}
                     </tr>

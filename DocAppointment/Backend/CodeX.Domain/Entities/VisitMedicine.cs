@@ -9,7 +9,7 @@ namespace CodeX.Domain.Entities
         public string MedicineName { get; set; } = string.Empty;
         public string Dosage { get; set; } = string.Empty; // e.g. "SOS", "3 Days", "Twice Daily"
         
-        public string? MedicineType { get; set; }
+        public Guid? MedicineTypeId { get; set; }
         public string? DoseQty { get; set; }
         public string? DoseSchedule { get; set; }
         public string? FoodTiming { get; set; }
@@ -18,5 +18,6 @@ namespace CodeX.Domain.Entities
 
         // Navigation Property
         public virtual PatientVisit PatientVisit { get; set; } = null!;
+        public virtual MedicineType? MedicineType { get; set; }
     }
 }

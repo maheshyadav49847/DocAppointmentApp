@@ -1,12 +1,13 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Users, CheckCircle2, Clock, AlertCircle, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard } from "lucide-react"
+import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard } from "lucide-react"
 import { branchService } from "@/services/branchService"
 import { doctorService } from "@/services/doctorService"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
 import { useAuthStore } from "@/store/authStore"
 import { motion, AnimatePresence } from "framer-motion"
+import { useQueueHub } from "@/hooks/useQueueHub"
 
 export default function QueueOverview({ selectedBranchId, setSelectedBranchId, onManage }: any) {
   const { user } = useAuthStore()
@@ -14,6 +15,23 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
   const [searchQuery, setSearchQuery] = useState("")
   const [processingSessions, setProcessingSessions] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
+  const connection = useQueueHub(selectedBranchId === 'org' ? null : selectedBranchId)
+
+  useEffect(() => {
+    if (connection) {
+      const handleUpdate = () => {
+        queryClient.invalidateQueries({ queryKey: ['queueStats', selectedBranchId] })
+        queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      }
+      connection.on('TokenUpdated', handleUpdate)
+      connection.on('QueueEnded', handleUpdate)
+
+      return () => {
+        connection.off('TokenUpdated', handleUpdate)
+        connection.off('QueueEnded', handleUpdate)
+      }
+    }
+  }, [connection, queryClient, selectedBranchId])
 
   const { data: branches } = useQuery({
     queryKey: ['branches', orgId],
@@ -67,9 +85,9 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
 
   const statCards = [
     { label: "Total Patients", value: stats?.totalPatientsToday || 0, icon: Users, color: "text-indigo-600", bg: "bg-indigo-100", border: "border-indigo-200" },
-    { label: "Completed", value: stats?.completedPatients || 0, icon: CheckCircle2, color: "text-indigo-600", bg: "bg-indigo-100", border: "border-indigo-200" },
-    { label: "Skipped", value: stats?.skippedPatients || 0, icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-100", border: "border-rose-200" },
-    { label: "Avg Wait Time", value: `${stats?.avgWaitTimeMinutes || 0}m`, icon: Clock, color: "text-amber-600", bg: "bg-amber-100", border: "border-amber-200" }
+    { label: "Waiting", value: stats?.waitingPatients || 0, icon: Clock, color: "text-rose-600", bg: "bg-rose-100", border: "border-rose-200" },
+    { label: "Completed", value: stats?.completedPatients || 0, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-100", border: "border-emerald-200" },
+    { label: "Avg Wait Time", value: `${stats?.avgWaitTimeMinutes || 0}m`, icon: Activity, color: "text-amber-600", bg: "bg-amber-100", border: "border-amber-200" }
   ]
 
   return (
@@ -256,13 +274,13 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
             </div>
           ) : (
             todaysSessions.map((sess: any) => (
-              <SessionItem 
-                key={sess.id} 
-                doctor={doctor} 
-                session={sess} 
-                processingSessions={processingSessions} 
-                onStart={onStart} 
-                onManage={onManage} 
+              <SessionItem
+                key={sess.id}
+                doctor={doctor}
+                session={sess}
+                processingSessions={processingSessions}
+                onStart={onStart}
+                onManage={onManage}
               />
             ))
           )}

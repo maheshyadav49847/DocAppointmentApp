@@ -5,14 +5,20 @@ export interface MedicineDto {
   name: string;
   genericName?: string;
   type?: string;
+  medicineTypeId?: string;
   manufacturer?: string;
   isActive: boolean;
+}
+
+export interface MedicineTypeDto {
+  id: string;
+  name: string;
 }
 
 export interface CreateMedicineCommand {
   name: string;
   genericName?: string;
-  type?: string;
+  medicineTypeId?: string;
   manufacturer?: string;
 }
 
@@ -30,38 +36,51 @@ export interface PaginatedList<T> {
 }
 
 export const medicineService = {
-  getAll: async (search?: string, pageNumber: number = 1, pageSize: number = 50): Promise<PaginatedList<MedicineDto>> => {
+  getAll: async (search?: string, pageNumber: number = 1, pageSize: number = 50, sortColumn?: string, sortDirection?: string): Promise<PaginatedList<MedicineDto>> => {
     const params: any = { pageNumber, pageSize };
     if (search) params.search = search;
-    const response = await api.get('/api/medicines', { params });
+    if (sortColumn) params.sortColumn = sortColumn;
+    if (sortDirection) params.sortDirection = sortDirection;
+    const response = await api.get('/medicines', { params });
+    return response.data;
+  },
+  getTypes: async (): Promise<MedicineTypeDto[]> => {
+    const response = await api.get('/medicines/types');
+    return response.data;
+  },
+
+  createType: async (name: string): Promise<{ id: string; name: string }> => {
+    const response = await api.post('/medicines/types', { name });
     return response.data;
   },
 
   getById: async (id: string): Promise<MedicineDto> => {
-    const response = await api.get(`/api/medicines/${id}`);
+    const response = await api.get(`/medicines/${id}`);
     return response.data;
   },
 
   create: async (data: CreateMedicineCommand): Promise<string> => {
-    const response = await api.post('/api/medicines', data);
+    const response = await api.post('/medicines', data);
     return response.data;
   },
 
   update: async (id: string, data: UpdateMedicineCommand): Promise<void> => {
-    await api.put(`/api/medicines/${id}`, data);
+    await api.put(`/medicines/${id}`, data);
   },
 
   delete: async (id: string): Promise<void> => {
-    await api.delete(`/api/medicines/${id}`);
+    await api.delete(`/medicines/${id}`);
   },
 
-  importCsv: async (file: File): Promise<void> => {
+  importCsv: async (file: File, onUploadProgress?: (progressEvent: any) => void): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);
-    await api.post('/api/medicines/import', formData, {
+    const response = await api.post('/medicines/import', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'multipart/form-data'
       },
+      onUploadProgress
     });
+    return response.data;
   }
 };

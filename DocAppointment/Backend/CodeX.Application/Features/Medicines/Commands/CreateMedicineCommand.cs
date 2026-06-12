@@ -12,7 +12,7 @@ namespace CodeX.Application.Features.Medicines.Commands
         public Guid OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? GenericName { get; set; }
-        public string? Type { get; set; }
+        public Guid? MedicineTypeId { get; set; }
         public string? Manufacturer { get; set; }
 
     }
@@ -33,7 +33,7 @@ namespace CodeX.Application.Features.Medicines.Commands
                 OrganizationId = request.OrganizationId,
                 Name = request.Name,
                 GenericName = request.GenericName,
-                Type = request.Type,
+                MedicineTypeId = request.MedicineTypeId,
                 Manufacturer = request.Manufacturer,
 
                 IsActive = true

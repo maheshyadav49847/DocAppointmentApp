@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as signalR from '@microsoft/signalr'
+import { useAuthStore } from '@/store/authStore'
 
 export const useQueueHub = (branchId: string | null | undefined) => {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
@@ -7,24 +8,37 @@ export const useQueueHub = (branchId: string | null | undefined) => {
   useEffect(() => {
     if (!branchId) return
 
+    const token = useAuthStore.getState().token
     const hubUrl = import.meta.env.VITE_HUB_URL || 'http://localhost:5001/queueHub'
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
-        withCredentials: true
+        accessTokenFactory: () => token || ''
       })
       .withAutomaticReconnect()
       .build()
 
     setConnection(newConnection)
+
+    return () => {
+      newConnection.stop()
+    }
   }, [branchId])
 
   useEffect(() => {
     if (connection) {
       connection.start()
         .then(() => {
-          connection.invoke('JoinBranchGroup', branchId)
+          console.log(`[QueueHub] Connected! Joining branch group: ${branchId}`)
+          return connection.invoke('JoinBranchGroup', branchId)
         })
-        .catch(err => console.error("SignalR Connection Error: ", err))
+        .then(() => console.log(`[QueueHub] Successfully joined branch group: ${branchId}`))
+        .catch(err => {
+          if (err?.message?.includes('stopped during negotiation')) {
+            console.warn('[QueueHub] Start aborted (strict mode).')
+          } else {
+            console.error("[QueueHub] Connection Error: ", err)
+          }
+        })
     }
   }, [connection, branchId])
 

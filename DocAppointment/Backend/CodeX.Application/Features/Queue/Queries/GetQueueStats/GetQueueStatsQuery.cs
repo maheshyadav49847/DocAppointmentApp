@@ -11,6 +11,7 @@ namespace CodeX.Application.Features.Queue.Queries.GetQueueStats
     {
         public int ActiveDoctors { get; set; }
         public int TotalPatientsToday { get; set; }
+        public int WaitingPatients { get; set; }
         public int CompletedPatients { get; set; }
         public int SkippedPatients { get; set; }
         public int AvgWaitTimeMinutes { get; set; }
@@ -42,6 +43,7 @@ namespace CodeX.Application.Features.Queue.Queries.GetQueueStats
             var totalPatients = tokens.Count;
             var completedPatients = tokens.Count(t => t.Status == TokenStatus.Completed);
             var skippedPatients = tokens.Count(t => t.Status == TokenStatus.Skipped);
+            var waitingPatients = tokens.Count(t => t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called);
 
             // Calculate Avg Wait Time (simplified: time between check-in and call)
             var calledTokens = tokens
@@ -58,6 +60,7 @@ namespace CodeX.Application.Features.Queue.Queries.GetQueueStats
             {
                 ActiveDoctors = activeDoctors,
                 TotalPatientsToday = totalPatients,
+                WaitingPatients = waitingPatients,
                 CompletedPatients = completedPatients,
                 SkippedPatients = skippedPatients,
                 AvgWaitTimeMinutes = (int)Math.Round(avgWaitTime),

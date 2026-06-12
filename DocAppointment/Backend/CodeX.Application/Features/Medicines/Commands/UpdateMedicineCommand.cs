@@ -14,7 +14,7 @@ namespace CodeX.Application.Features.Medicines.Commands
         public Guid OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? GenericName { get; set; }
-        public string? Type { get; set; }
+        public Guid? MedicineTypeId { get; set; }
         public string? Manufacturer { get; set; }
 
     }
@@ -39,7 +39,7 @@ namespace CodeX.Application.Features.Medicines.Commands
 
             entity.Name = request.Name;
             entity.GenericName = request.GenericName;
-            entity.Type = request.Type;
+            entity.MedicineTypeId = request.MedicineTypeId;
             entity.Manufacturer = request.Manufacturer;
 
 

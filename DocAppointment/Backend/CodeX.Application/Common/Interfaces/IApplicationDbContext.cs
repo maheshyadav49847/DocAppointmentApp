@@ -21,6 +21,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<PatientVisit> PatientVisits { get; }
         DbSet<VisitMedicine> VisitMedicines { get; }
         DbSet<MedicineMaster> Medicines { get; }
+        DbSet<MedicineType> MedicineTypes { get; }
         DbSet<PatientAttachment> PatientAttachments { get; }
         DbSet<FollowUp> FollowUps { get; }
         DbSet<Notification> Notifications { get; }

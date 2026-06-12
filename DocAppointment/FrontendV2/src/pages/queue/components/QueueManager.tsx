@@ -14,8 +14,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
-  const { user } = useAuthStore()
-  const branchId = user?.branchId
+  const { user, activeBranchId } = useAuthStore()
 
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting')
   const [search, setSearch] = useState('')
@@ -27,6 +26,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
     queryFn: () => queueService.getQueueDetails(queueId)
   })
 
+  const branchId = activeBranchId || user?.branchId || queue?.branchId || doctor?.branchId
+
   const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
     queryFn: () => queueService.getUpcomingTokens(queueId)
@@ -37,15 +38,19 @@ export default function QueueManager({ sessionData, onBack }: any) {
   useEffect(() => {
     if (connection) {
       const handleUpdate = (data: any) => {
-        const incomingQueueId = data.queueId || data.QueueId
-        if (incomingQueueId === queueId) {
+        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const currentQueueId = String(queueId || "").toLowerCase()
+        console.log(`[QueueManager] TokenUpdated received. Incoming QueueId: ${incomingQueueId}, Current QueueId: ${currentQueueId}`)
+        
+        if (incomingQueueId === currentQueueId) {
+          console.log("[QueueManager] Queue IDs match, refetching tokens...")
           refetchQueue()
           refetchTokens()
         }
       }
       const handleEnd = (data: any) => {
-        const incomingQueueId = data.queueId || data.QueueId
-        if (incomingQueueId === queueId) {
+        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        if (incomingQueueId === String(queueId || "").toLowerCase()) {
           onBack()
         }
       }

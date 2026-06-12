@@ -26,7 +26,9 @@ namespace CodeX.Application.Features.Medicines.Queries
 
         public async Task<MedicineDto> Handle(GetMedicineByIdQuery request, CancellationToken cancellationToken)
         {
-            var m = await _context.Medicines.AsNoTracking()
+            var m = await _context.Medicines
+                .Include(x => x.MedicineType)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.Id && x.OrganizationId == request.OrganizationId, cancellationToken);
 
             if (m == null)
@@ -39,7 +41,8 @@ namespace CodeX.Application.Features.Medicines.Queries
                 Id = m.Id,
                 Name = m.Name,
                 GenericName = m.GenericName,
-                Type = m.Type,
+                Type = m.MedicineType != null ? m.MedicineType.Name : null,
+                MedicineTypeId = m.MedicineTypeId,
                 Manufacturer = m.Manufacturer,
                 IsActive = m.IsActive
             };
