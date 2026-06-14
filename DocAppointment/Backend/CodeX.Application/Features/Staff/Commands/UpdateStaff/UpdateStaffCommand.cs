@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Staff;
 using CodeX.Domain.Enums;
+using Microsoft.Extensions.Configuration;
+using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
 {
@@ -22,11 +24,13 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
     {
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IConfiguration _configuration;
 
-        public UpdateStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
+        public UpdateStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService, IConfiguration configuration)
         {
             _context = context;
             _currentUserService = currentUserService;
+            _configuration = configuration;
         }
 
         public async Task<Unit> Handle(UpdateStaffCommand request, CancellationToken cancellationToken)
@@ -55,7 +59,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
 
             if (!string.IsNullOrWhiteSpace(request.NewPassword))
             {
-                CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.NewPassword);
+                PasswordValidator.Validate(request.NewPassword, _configuration);
                 staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             }
 

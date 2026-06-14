@@ -12,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 namespace CodeX.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class PatientClinicalController : ControllerBase
     {
         private readonly IApplicationDbContext _context;

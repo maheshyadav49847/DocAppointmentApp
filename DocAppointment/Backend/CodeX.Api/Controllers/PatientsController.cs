@@ -1,14 +1,19 @@
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace CodeX.Api.Controllers
 {
+    [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class PatientsController : ControllerBase
     {
         private readonly IApplicationDbContext _context;
@@ -92,6 +97,8 @@ namespace CodeX.Api.Controllers
             });
         }
 
+
+
         [HttpPost]
         public async Task<IActionResult> AddPatient([FromBody] AddPatientDto dto)
         {
@@ -172,13 +179,21 @@ namespace CodeX.Api.Controllers
 
     public class AddPatientDto
     {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Name is required")]
+        [System.ComponentModel.DataAnnotations.MaxLength(255)]
         public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Phone number is required")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^\+?[1-9]\d{1,14}$", ErrorMessage = "Invalid phone number format.")]
         public string Phone { get; set; } = string.Empty;
+        
         public string? Age { get; set; }
         public string? Gender { get; set; }
         public string? BloodGroup { get; set; }
         public string? PreExistingConditions { get; set; }
         public decimal? Height { get; set; }
+
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Invalid email address")]
         public string? Email { get; set; }
         public string? Address { get; set; }
         public string? EmergencyContactName { get; set; }

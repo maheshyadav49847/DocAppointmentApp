@@ -9,7 +9,8 @@ namespace CodeX.Api.Controllers
 {
     [ApiController]
     [Authorize(Roles = "SuperAdmin,OrgAdmin")]
-    [Route("api/whatsapp/config")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/whatsapp/config")]
     public class WhatsAppConfigController : ControllerBase
     {
         private readonly IApplicationDbContext _context;

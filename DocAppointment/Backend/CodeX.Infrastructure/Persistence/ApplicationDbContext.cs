@@ -2,14 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using CodeX.Domain.Entities;
 using System.Reflection;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Common;
+using Microsoft.Extensions.Configuration;
+using CodeX.Infrastructure.Persistence.Converters;
 
 namespace CodeX.Infrastructure.Persistence
 {
     public class ApplicationDbContext : DbContext, IApplicationDbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        private readonly ICurrentUserService _currentUserService;
+        private readonly IConfiguration _configuration;
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, ICurrentUserService currentUserService, IConfiguration configuration)
             : base(options)
         {
+            _currentUserService = currentUserService;
+            _configuration = configuration;
         }
 
         public DbSet<Organization> Organizations => Set<Organization>();
@@ -32,6 +40,61 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<PatientAttachment> PatientAttachments => Set<PatientAttachment>();
         public DbSet<FollowUp> FollowUps => Set<FollowUp>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+        public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<UserSession> UserSessions => Set<UserSession>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<IdempotencyLog> IdempotencyLogs => Set<IdempotencyLog>();
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var userIdStr = _currentUserService.UserId;
+            Guid? userId = null;
+            if (Guid.TryParse(userIdStr, out var parsedId))
+            {
+                userId = parsedId;
+            }
+
+            foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+            {
+                switch (entry.State)
+                {
+                    case EntityState.Added:
+                        entry.Entity.CreatedBy = userId;
+                        entry.Entity.CreatedAt = DateTime.UtcNow;
+                        entry.Entity.IsActive = true;
+                        entry.Entity.IsDeleted = false;
+
+                        if (entry.Entity is IMustHaveTenant tenantEntity && tenantEntity.OrganizationId == Guid.Empty)
+                        {
+                            tenantEntity.OrganizationId = _currentUserService.OrgId;
+                        }
+                        
+                        if (entry.Entity is IMustHaveBranch branchEntity && branchEntity.BranchId == null)
+                        {
+                            branchEntity.BranchId = _currentUserService.BranchId;
+                        }
+                        break;
+
+                    case EntityState.Modified:
+                        entry.Entity.UpdatedBy = userId;
+                        entry.Entity.UpdatedAt = DateTime.UtcNow;
+                        break;
+                        
+                    case EntityState.Deleted:
+                        // Implement Soft Delete
+                        entry.State = EntityState.Modified;
+                        entry.Entity.UpdatedBy = userId;
+                        entry.Entity.UpdatedAt = DateTime.UtcNow;
+                        entry.Entity.IsDeleted = true;
+                        entry.Entity.IsActive = false;
+                        break;
+                }
+            }
+
+            return await base.SaveChangesAsync(cancellationToken);
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,19 +103,23 @@ namespace CodeX.Infrastructure.Persistence
 
             base.OnModelCreating(modelBuilder);
             
-            // Global Filter for Soft Delete
-            modelBuilder.Entity<Organization>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Branch>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Doctor>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Staff>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Session>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Patient>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<Token>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<MessageLog>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<PatientVisit>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<VisitMedicine>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<PatientAttachment>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<FollowUp>().HasQueryFilter(x => !x.IsDeleted);
+            // Apply Global Query Filters dynamically
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+                {
+                    var method = typeof(ApplicationDbContext).GetMethod(nameof(ApplyTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.MakeGenericMethod(entityType.ClrType);
+                    method?.Invoke(this, new object[] { modelBuilder });
+                }
+                else if (typeof(CodeX.Domain.Common.BaseEntity).IsAssignableFrom(entityType.ClrType))
+                {
+                    var method = typeof(ApplicationDbContext).GetMethod(nameof(ApplySoftDeleteFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.MakeGenericMethod(entityType.ClrType);
+                    method?.Invoke(this, new object[] { modelBuilder });
+                }
+            }
+
             modelBuilder.Entity<ChatSession>()
                 .HasIndex(x => new { x.PhoneNumber, x.BranchId })
                 .IsUnique();
@@ -62,6 +129,34 @@ namespace CodeX.Infrastructure.Persistence
                 .HasIndex(p => p.Phone);
             modelBuilder.Entity<Patient>()
                 .HasIndex(p => p.Name);
+
+            // Apply Encryption Converter
+            var encryptionKey = _configuration["EncryptionSettings:Key"];
+            if (!string.IsNullOrEmpty(encryptionKey) && encryptionKey.Length >= 32)
+            {
+                var converter = new EncryptedStringConverter(encryptionKey);
+                
+                modelBuilder.Entity<Patient>()
+                    .Property(p => p.Phone)
+                    .HasConversion(converter);
+                    
+                modelBuilder.Entity<Patient>()
+                    .Property(p => p.AadhaarNumber)
+                    .HasConversion(converter);
+            }
+        }
+
+        private void ApplyTenantFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
+        {
+            // Combines IMustHaveTenant and SoftDelete logic
+            // Since EF Core evaluates Global Query Filters at runtime, we must capture the service resolution dynamically or use a property that returns the value.
+            // Using a lambda that evaluates _currentUserService.OrgId dynamically:
+            builder.Entity<T>().HasQueryFilter(x => x.OrganizationId == _currentUserService.OrgId && !((CodeX.Domain.Common.BaseEntity)(object)x).IsDeleted);
+        }
+
+        private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : CodeX.Domain.Common.BaseEntity
+        {
+            builder.Entity<T>().HasQueryFilter(x => !x.IsDeleted);
         }
     }
 }

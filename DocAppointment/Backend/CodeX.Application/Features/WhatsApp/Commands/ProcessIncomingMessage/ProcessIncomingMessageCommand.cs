@@ -149,7 +149,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private async Task<string> GetHospitalName(Guid? branchId, CancellationToken ct)
         {
             if (!branchId.HasValue) return "ABC Clinic";
-            var branch = await _context.Branches.Include(b => b.Organization).FirstOrDefaultAsync(b => b.Id == branchId.Value, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var branch = await _context.Branches.IgnoreQueryFilters().Include(b => b.Organization).FirstOrDefaultAsync(b => !b.IsDeleted && b.Id == branchId.Value, ct);
             return branch?.Organization?.Name ?? branch?.Name ?? "ABC Clinic";
         }
 
@@ -182,12 +183,15 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             sb.AppendLine("🏠 *HI* - Main Menu / मुख्य मेन्यू");
             sb.AppendLine("🌐 *LANGUAGE* - Change Language / भाषा बदलें");
             
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone == session.PhoneNumber, ct);
             if (patient != null && session.BranchId.HasValue)
             {
+                // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
                 var activeToken = await _context.Tokens
+                    .IgnoreQueryFilters()
                     .Include(t => t.Queue)
-                    .Where(t => t.PatientId == patient.Id &&
+                    .Where(t => !t.IsDeleted && t.PatientId == patient.Id &&
                                 t.Queue.BranchId == session.BranchId &&
                                 (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                     .FirstOrDefaultAsync(ct);
@@ -202,8 +206,9 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 else 
                 {
                     var skippedToken = await _context.Tokens
+                        .IgnoreQueryFilters()
                         .Include(t => t.Queue)
-                        .Where(t => t.PatientId == patient.Id &&
+                        .Where(t => !t.IsDeleted && t.PatientId == patient.Id &&
                                     t.Queue.BranchId == session.BranchId &&
                                     t.Status == TokenStatus.Skipped)
                         .FirstOrDefaultAsync(ct);
@@ -234,9 +239,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         {
             if (body == "1")
             {
+                // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
                 var activeToken = await _context.Tokens
+                    .IgnoreQueryFilters()
                     .Include(t => t.Queue)
-                    .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                    .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                                 t.Queue.BranchId == session.BranchId &&
                                 t.Status == TokenStatus.Pending)
                     .OrderByDescending(t => t.BookedAt)
@@ -277,12 +284,14 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleAppointmentDetails(ChatSession session, CancellationToken ct)
         {
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
                 .Include(t => t.Queue.Session)
                 .Include(t => t.Patient)
-                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                             t.Queue.BranchId == session.BranchId &&
                             (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                 .OrderByDescending(t => t.BookedAt)
@@ -302,9 +311,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleReschedule(ChatSession session, CancellationToken ct)
         {
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
-                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                             t.Queue.BranchId == session.BranchId &&
                             t.Status == TokenStatus.Pending)
                 .OrderByDescending(t => t.BookedAt)
@@ -357,13 +368,16 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "NO_SESSIONS");
             }
 
-            var tzBranch = await _context.Branches.FindAsync(new object[] { session.BranchId.Value }, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var tzBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             var queue = await _context.DailyQueues
+                .IgnoreQueryFilters()
                 .Include(q => q.Doctor)
                 .Include(q => q.Session)
                 .FirstOrDefaultAsync(q =>
+                    !q.IsDeleted &&
                     q.BranchId == session.BranchId.Value &&
                     q.DoctorId == session.SelectedDoctorId &&
                     q.SessionId == session.SelectedSessionId &&
@@ -378,34 +392,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             if (queue == null)
             {
-                var masterSession = await _context.Sessions
-                    .Include(s => s.Doctor)
-                    .FirstOrDefaultAsync(s => s.Id == session.SelectedSessionId.Value, ct);
-
-                if (masterSession == null || masterSession.Doctor == null)
-                {
-                    ResetSession(session);
-                    return WhatsAppTranslationHelper.Get(session.Language, "SESSION_CANCELLED");
-                }
-
-                queue = new DailyQueue
-                {
-                    Id = Guid.NewGuid(),
-                    DoctorId = masterSession.DoctorId,
-                    SessionId = masterSession.Id,
-                    BranchId = session.BranchId.Value,
-                    QueueDate = today,
-                    CurrentTokenNumber = 0,
-                    Status = QueueStatus.Open,
-                    Doctor = masterSession.Doctor,
-                    Session = masterSession
-                };
-
-                _context.DailyQueues.Add(queue);
-                await _context.SaveChangesAsync(ct);
+                ResetSession(session);
+                return WhatsAppTranslationHelper.Get(session.Language, "SESSION_CANCELLED");
             }
 
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone == session.PhoneNumber, ct);
 
             try
             {
@@ -417,7 +409,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     Source = BookingSource.WhatsApp
                 }, ct);
 
-                var createdToken = await _context.Tokens.FirstOrDefaultAsync(t => t.Id == result.TokenId, ct);
+                var createdToken = await _context.Tokens.IgnoreQueryFilters().FirstOrDefaultAsync(t => !t.IsDeleted && t.Id == result.TokenId, ct);
                 var tokenNum = createdToken?.TokenNumber ?? 0;
 
                 ResetSession(session);
@@ -455,7 +447,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             var phoneVars = NormalizationHelper.GetPhoneVariations(session.PhoneNumber);
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && phoneVars.Contains(p.Phone), ct);
             if (patient == null || string.IsNullOrWhiteSpace(patient.Name))
             {
                 session.CurrentState = "AWAITING_NAME";
@@ -463,10 +456,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             // Check for active appointment
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
-                .Where(t => t.PatientId == patient.Id &&
+                .Where(t => !t.IsDeleted && t.PatientId == patient.Id &&
                             t.Queue.BranchId == session.BranchId &&
                             (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                 .OrderByDescending(t => t.BookedAt)
@@ -499,7 +494,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private async Task<string> HandleRegistration(ChatSession session, string name, CancellationToken ct)
         {
             var phoneVars = NormalizationHelper.GetPhoneVariations(session.PhoneNumber);
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => phoneVars.Contains(p.Phone), ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && phoneVars.Contains(p.Phone), ct);
             if (patient == null)
             {
                 patient = new Patient { Phone = session.PhoneNumber, Name = name.Trim() };
@@ -563,10 +559,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var selectedSession = sessions[index - 1];
             session.SelectedSessionId = selectedSession.Id;
 
-            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == session.SelectedDoctorId.Value, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var doctor = await _context.Doctors.IgnoreQueryFilters().FirstOrDefaultAsync(d => !d.IsDeleted && d.Id == session.SelectedDoctorId.Value, ct);
             session.CurrentState = "CONFIRM";
 
-            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == session.PhoneNumber, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone == session.PhoneNumber, ct);
 
             return WhatsAppTranslationHelper.Get(session.Language, "CONFIRM_DETAILS",
                 patient?.Name ?? "Unknown",
@@ -605,7 +603,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         {
             if (!body.Trim().Equals("skip", StringComparison.OrdinalIgnoreCase) && session.SelectedSessionId.HasValue)
             {
-                var rating = await _context.Ratings.FirstOrDefaultAsync(r => r.TokenId == session.SelectedSessionId.Value, ct);
+                // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+                var rating = await _context.Ratings.IgnoreQueryFilters().FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == session.SelectedSessionId.Value, ct);
                 if (rating != null)
                 {
                     rating.Comment = body.Trim();
@@ -618,10 +617,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleStatus(ChatSession session, CancellationToken ct)
         {
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
-                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                             t.Queue.BranchId == session.BranchId &&
                             (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
                 .OrderByDescending(t => t.BookedAt)
@@ -633,7 +634,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             var peopleAhead = await _context.Tokens
-                .CountAsync(t => t.QueueId == activeToken.QueueId &&
+                .IgnoreQueryFilters()
+                .CountAsync(t => !t.IsDeleted && t.QueueId == activeToken.QueueId &&
                                  t.Status == TokenStatus.Pending &&
                                  t.TokenNumber < activeToken.TokenNumber, ct);
 
@@ -647,9 +649,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleCancel(ChatSession session, CancellationToken ct)
         {
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
-                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                             t.Queue.BranchId == session.BranchId &&
                             t.Status == TokenStatus.Pending)
                 .OrderByDescending(t => t.BookedAt)
@@ -666,10 +670,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private async Task<string> HandleRejoin(ChatSession session, CancellationToken ct)
         {
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var skippedToken = await _context.Tokens
+                .IgnoreQueryFilters()
                 .Include(t => t.Queue)
                 .ThenInclude(q => q.Doctor)
-                .Where(t => t.Patient.Phone == session.PhoneNumber &&
+                .Where(t => !t.IsDeleted && t.Patient.Phone == session.PhoneNumber &&
                             t.Queue.BranchId == session.BranchId &&
                             t.Status == TokenStatus.Skipped)
                 .OrderByDescending(t => t.BookedAt)
@@ -681,7 +687,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             skippedToken.Status = TokenStatus.Pending;
-            skippedToken.TokenNumber = await _context.Tokens.CountAsync(t => t.QueueId == skippedToken.QueueId, ct) + 1; // Put them at the end of the line
+            skippedToken.TokenNumber = await _context.Tokens.IgnoreQueryFilters().CountAsync(t => !t.IsDeleted && t.QueueId == skippedToken.QueueId, ct) + 1; // Put them at the end of the line
 
             // Ensure DB is updated before notifying clients
             await _context.SaveChangesAsync(ct);
@@ -702,38 +708,41 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private async Task<List<Doctor>> GetAvailableDoctors(Guid? branchId, CancellationToken ct)
         {
             if (!branchId.HasValue)
-            {
                 return new List<Doctor>();
-            }
 
-            var tzBranch = await _context.Branches.FindAsync(new object[] { branchId.Value }, ct);
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
+            var tzBranch = await _context.Branches
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(b => b.Id == branchId.Value, ct);
+
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
             var activeSessions = await _context.Sessions
+                .IgnoreQueryFilters()
                 .Include(s => s.Doctor)
-                .Where(s => s.BranchId == branchId.Value && s.IsActive && s.Doctor != null && s.Doctor.IsActive &&
+                .Where(s => !s.IsDeleted && s.BranchId == branchId.Value && s.IsActive &&
+                            s.Doctor != null && !s.Doctor.IsDeleted && s.Doctor.IsActive &&
                             (s.IsDaily || s.DayOfWeek == currentDayOfWeek))
                 .ToListAsync(ct);
 
             var todayQueues = await _context.DailyQueues
-                .Where(q => q.BranchId == branchId.Value && q.QueueDate >= today && q.QueueDate < tomorrow)
+                .IgnoreQueryFilters()
+                .Where(q => !q.IsDeleted && q.BranchId == branchId.Value && q.QueueDate >= today && q.QueueDate < tomorrow)
                 .ToListAsync(ct);
 
             var availableDoctors = new List<Doctor>();
             foreach (var session in activeSessions)
             {
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
-                if (q != null && (q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled))
-                {
+                
+                // Only include doctors whose session has been explicitly started (q != null)
+                if (q == null || q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled)
                     continue;
-                }
 
                 if (session.Doctor != null && !availableDoctors.Any(d => d.Id == session.Doctor.Id))
-                {
                     availableDoctors.Add(session.Doctor);
-                }
             }
 
             return availableDoctors.OrderBy(d => d.Name).ToList();
@@ -751,23 +760,26 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var tomorrow = today.AddDays(1);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
+            // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeSessions = await _context.Sessions
-                .Where(s => s.BranchId == branchId.Value && s.DoctorId == doctorId && s.IsActive &&
+                .IgnoreQueryFilters()
+                .Where(s => !s.IsDeleted && s.BranchId == branchId.Value && s.DoctorId == doctorId && s.IsActive &&
                             (s.IsDaily || s.DayOfWeek == currentDayOfWeek))
                 .ToListAsync(ct);
 
             var todayQueues = await _context.DailyQueues
-                .Where(q => q.BranchId == branchId.Value && q.DoctorId == doctorId && q.QueueDate >= today && q.QueueDate < tomorrow)
+                .IgnoreQueryFilters()
+                .Where(q => !q.IsDeleted && q.BranchId == branchId.Value && q.DoctorId == doctorId && q.QueueDate >= today && q.QueueDate < tomorrow)
                 .ToListAsync(ct);
 
             var availableSessions = new List<Session>();
             foreach (var session in activeSessions)
             {
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
-                if (q != null && (q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled))
-                {
+                
+                // Only include sessions that have been explicitly started (q != null)
+                if (q == null || q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled)
                     continue;
-                }
 
                 availableSessions.Add(session);
             }

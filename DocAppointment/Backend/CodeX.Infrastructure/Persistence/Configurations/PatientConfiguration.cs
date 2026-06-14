@@ -9,7 +9,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<Patient> builder)
         {
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Phone).IsRequired().HasMaxLength(20);
+            builder.Property(x => x.Phone).IsRequired().HasMaxLength(50);
             builder.HasIndex(x => x.Phone).IsUnique().HasFilter("\"IsDeleted\" = false");
         }
     }

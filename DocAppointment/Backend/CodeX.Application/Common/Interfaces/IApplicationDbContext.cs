@@ -25,6 +25,12 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<PatientAttachment> PatientAttachments { get; }
         DbSet<FollowUp> FollowUps { get; }
         DbSet<Notification> Notifications { get; }
+        DbSet<SubscriptionPlan> SubscriptionPlans { get; }
+        DbSet<OrganizationSubscription> OrganizationSubscriptions { get; }
+        DbSet<AuditLog> AuditLogs { get; }
+        DbSet<UserSession> UserSessions { get; }
+        DbSet<RefreshToken> RefreshTokens { get; }
+        DbSet<IdempotencyLog> IdempotencyLogs { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

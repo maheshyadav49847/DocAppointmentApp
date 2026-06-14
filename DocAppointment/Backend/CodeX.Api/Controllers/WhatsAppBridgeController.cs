@@ -8,7 +8,8 @@ namespace CodeX.Api.Controllers
 {
     [ApiController]
     [Authorize(Roles = "SuperAdmin,OrgAdmin,Receptionist")]
-    [Route("api/whatsapp/bridge")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/whatsapp/bridge")]
     public class WhatsAppBridgeController : ControllerBase
     {
         private readonly HttpClient _httpClient;

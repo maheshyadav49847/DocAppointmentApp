@@ -4,8 +4,11 @@ using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
 {
-    public class PatientVisit : BaseEntity
+    public class PatientVisit : BaseEntity, IMustHaveTenant
     {
+        public Guid OrganizationId { get; set; }
+
+
         public Guid PatientId { get; set; }
         public Guid? TokenId { get; set; }
         public Guid DoctorId { get; set; }
@@ -33,3 +36,4 @@ namespace CodeX.Domain.Entities
         public virtual ICollection<PatientAttachment> Attachments { get; set; } = new List<PatientAttachment>();
     }
 }
+

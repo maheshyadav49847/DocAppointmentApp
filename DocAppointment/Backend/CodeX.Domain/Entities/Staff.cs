@@ -4,7 +4,7 @@ using CodeX.Domain.Enums;
 
 namespace CodeX.Domain.Entities
 {
-    public class Staff : BaseEntity
+    public class Staff : BaseEntity, IMustHaveTenant
     {
         public Guid OrganizationId { get; set; }
         public Guid? BranchId { get; set; } // Optional for Org Admins
@@ -18,8 +18,16 @@ namespace CodeX.Domain.Entities
         public DateTime? ResetTokenExpiry { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
 
+        // Account Lockout
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LockoutEnd { get; set; }
+
         // Navigation Properties
         public virtual Organization Organization { get; set; } = null!;
         public virtual Branch? Branch { get; set; }
+        
+        public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+        public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     }
 }
+

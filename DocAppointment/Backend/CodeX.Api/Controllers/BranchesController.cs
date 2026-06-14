@@ -50,6 +50,7 @@ namespace CodeX.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [CodeX.Api.Filters.CheckSubscriptionLimit(CodeX.Api.Filters.SubscriptionLimitType.Branches)]
         public async Task<ActionResult<Guid>> Create(Branch branch)
         {
             // Ensure the branch is created for the user's organization

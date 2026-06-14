@@ -8,7 +8,27 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 
+using Asp.Versioning;
+using CodeX.Application.Common.Settings;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Startup Validation (Fail Fast)
+var jwtSettingsConfig = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+if (string.IsNullOrEmpty(jwtSettingsConfig?.Secret) || jwtSettingsConfig.Secret.Length < 32)
+{
+    throw new InvalidOperationException("CRITICAL: JWT Secret is not configured or is less than 32 characters.");
+}
+var allowedOriginsStr = builder.Configuration["AllowedOrigins"];
+if (builder.Environment.IsProduction() && (string.IsNullOrEmpty(allowedOriginsStr) || allowedOriginsStr.Contains("*")))
+{
+    throw new InvalidOperationException("CRITICAL: Wildcard CORS origins (*) are not allowed in Production.");
+}
+
+// Bind Configuration
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.Configure<RazorpaySettings>(builder.Configuration.GetSection("RazorpaySettings"));
+builder.Services.Configure<CodeX.Application.Common.Settings.FileUploadSettings>(builder.Configuration.GetSection("FileUploadSettings"));
 
 // Add services to the container.
 builder.Services.AddApplication();
@@ -22,7 +42,11 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var secretKey = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured.");
+        var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() 
+            ?? throw new InvalidOperationException("JwtSettings is not configured.");
+        var secretKey = jwtSettings.Secret;
+        if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
+            throw new InvalidOperationException("JWT Secret is not configured or is too short.");
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -43,8 +67,10 @@ builder.Services
         };
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false, // Relaxed for deployment stability
-            ValidateAudience = false, // Relaxed for deployment stability
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtSettings.Audience,
             ValidateIssuerSigningKey = true,
             ValidateLifetime = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
@@ -75,9 +101,43 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddHttpClient();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<CodeX.Api.Filters.AuditLogActionFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddHealthChecks();
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("GlobalLimit", context =>
+    {
+        var settings = builder.Configuration.GetSection("RateLimitingSettings").Get<CodeX.Application.Common.Settings.RateLimitingSettings>();
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString(),
+            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = settings?.PermitLimit ?? 100,
+                QueueLimit = settings?.QueueLimit ?? 2,
+                Window = TimeSpan.FromSeconds(settings?.WindowSeconds ?? 60)
+            });
+    });
+});
 
 // Allow up to 15MB multipart uploads (covers 10MB limit with overhead)
 builder.WebHost.ConfigureKestrel(options =>
@@ -103,6 +163,9 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("Content-Security-Policy", csp);
     
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+    var hstsMaxAge = builder.Configuration.GetValue<int>("HstsSettings:MaxAgeDays", 365) * 86400;
+    var includeSubdomains = builder.Configuration.GetValue<bool>("HstsSettings:IncludeSubDomains", true) ? "; includeSubDomains" : "";
+    context.Response.Headers.Append("Strict-Transport-Security", $"max-age={hstsMaxAge}{includeSubdomains}");
 
     // Simple Rate Limiting for Login & Registration
     if (context.Request.Path.StartsWithSegments("/api/auth") || 
@@ -129,10 +192,14 @@ app.Use(async (context, next) =>
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
-app.MapControllers();
+app.UseMiddleware<CodeX.Api.Middlewares.SubscriptionEnforcementMiddleware>();
+
+app.MapHealthChecks("/health");
+
+app.MapControllers().RequireRateLimiting("GlobalLimit");
 app.MapHub<QueueHub>("/queueHub");
-
 
 app.Run();
 

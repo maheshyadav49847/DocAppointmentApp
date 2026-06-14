@@ -4,8 +4,11 @@ using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
 {
-    public class Patient : BaseEntity
+    public class Patient : BaseEntity, IMustHaveTenant
     {
+        public Guid OrganizationId { get; set; }
+
+
         public Patient()
         {
             // Generate a default code for new instances. Existing rows will get updated by DB migration or fallback logic.
@@ -22,6 +25,7 @@ namespace CodeX.Domain.Entities
         public string? PreExistingConditions { get; set; }
         public decimal? Height { get; set; } // Stored in cm, rarely changes for adults
         public string? Email { get; set; }
+        public string? AadhaarNumber { get; set; }
         public string? Address { get; set; }
         public string? EmergencyContactName { get; set; }
         public string? EmergencyContactPhone { get; set; }
@@ -33,3 +37,4 @@ namespace CodeX.Domain.Entities
         public virtual ICollection<FollowUp> FollowUps { get; set; } = new List<FollowUp>();
     }
 }
+

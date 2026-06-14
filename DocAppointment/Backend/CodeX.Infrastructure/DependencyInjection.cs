@@ -35,6 +35,8 @@ namespace CodeX.Infrastructure
 
             services.AddScoped<ISmsService, TwilioSmsService>();
             services.AddScoped<IEmailService, ConsoleEmailService>();
+            services.AddScoped<IPaymentService, CodeX.Infrastructure.Services.RazorpayPaymentService>();
+            services.AddScoped<IFileUploadService, CodeX.Infrastructure.Services.FileUploadService>();
 
             return services;
         }

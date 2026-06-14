@@ -4,8 +4,11 @@ using CodeX.Domain.Enums;
 
 namespace CodeX.Domain.Entities
 {
-    public class Token : BaseEntity
+    public class Token : BaseEntity, IMustHaveTenant
     {
+        public Guid OrganizationId { get; set; }
+
+
         public Guid QueueId { get; set; }
         public Guid PatientId { get; set; }
         public int TokenNumber { get; set; }
@@ -26,3 +29,4 @@ namespace CodeX.Domain.Entities
         public virtual Rating? Rating { get; set; }
     }
 }
+

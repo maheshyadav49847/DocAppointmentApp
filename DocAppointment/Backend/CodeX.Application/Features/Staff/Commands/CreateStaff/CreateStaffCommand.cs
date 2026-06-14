@@ -4,6 +4,8 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Staff;
 using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
+using Microsoft.Extensions.Configuration;
+using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Staff.Commands.CreateStaff
 {
@@ -24,11 +26,13 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
     {
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IConfiguration _configuration;
 
-        public CreateStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
+        public CreateStaffCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService, IConfiguration configuration)
         {
             _context = context;
             _currentUserService = currentUserService;
+            _configuration = configuration;
         }
 
         public async Task<Guid> Handle(CreateStaffCommand request, CancellationToken cancellationToken)
@@ -57,7 +61,7 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
             if (emailExists)
                 throw new Exception($"The email '{email}' is already registered in the system.");
 
-            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.Password);
+            PasswordValidator.Validate(request.Password, _configuration);
 
             var staff = new CodeX.Domain.Entities.Staff
             {

@@ -3,8 +3,11 @@ using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
 {
-    public class FollowUp : BaseEntity
+    public class FollowUp : BaseEntity, IMustHaveTenant
     {
+        public Guid OrganizationId { get; set; }
+
+
         public Guid PatientId { get; set; }
         public Guid? PatientVisitId { get; set; }
         public DateTime FollowUpDate { get; set; }
@@ -16,3 +19,4 @@ namespace CodeX.Domain.Entities
         public virtual Patient Patient { get; set; } = null!;
     }
 }
+

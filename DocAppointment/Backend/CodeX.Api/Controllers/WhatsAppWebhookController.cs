@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace CodeX.Api.Controllers
 {
     [ApiController]
-    [Route("api/whatsapp/webhook")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/whatsapp/webhook")]
     public class WhatsAppWebhookController : ControllerBase
     {
         private readonly IConfiguration _config;

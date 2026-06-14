@@ -15,6 +15,7 @@ import SettingsPage from "./pages/settings/SettingsPage"
 import PharmacyPage from "./pages/pharmacy/PharmacyPage"
 import BranchesPage from "./pages/branches/BranchesPage"
 import StaffPage from "./pages/staff/StaffPage"
+import AuditLogsPage from "./pages/audit-logs/AuditLogsPage"
 import { useAuthStore } from "./store/authStore"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -50,6 +51,7 @@ function App() {
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/pharmacy" element={<PharmacyPage />} />
+          <Route path="/audit-logs" element={<AuditLogsPage />} />
           {/* We will add other routes here in later phases */}
         </Route>
         

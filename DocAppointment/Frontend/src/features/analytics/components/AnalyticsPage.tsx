@@ -21,7 +21,7 @@ import './AnalyticsPage.css';
 const AnalyticsPage: React.FC = () => {
   const { orgId, role, branchId: globalBranchId, setBranch } = useAuthStore();
   const [selectedBranchId, setSelectedBranchId] = useState<string>(globalBranchId || 'org');
-  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'staff' | 'saas'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'staff' | 'saas' | 'data'>('overview');
   const [isExporting, setIsExporting] = useState(false);
   const dashboardRef = React.useRef<HTMLDivElement>(null);
 
@@ -137,7 +137,7 @@ const AnalyticsPage: React.FC = () => {
 
       <div ref={dashboardRef} className="dashboard-content-wrapper">
       <div className="analytics-tabs-container">
-        {(['overview', 'operations', 'staff', ...(isSuperAdmin ? ['saas'] : [])] as const).map(tab => (
+        {(['overview', 'operations', 'staff', 'data', ...(isSuperAdmin ? ['saas'] : [])] as const).map(tab => (
           <button 
             key={tab}
             onClick={() => setActiveTab(tab as any)}
@@ -310,6 +310,32 @@ const AnalyticsPage: React.FC = () => {
                           <div className={`efficiency-bar-fill w-percent-${Math.round(Math.min(100, (staff.tokensGenerated / 40) * 100) / 5) * 5}`} />
                        </div>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'data' && (
+        <div className="glass-card data-report-card">
+          <h3 className="card-title-with-icon"><Database size={20} /> Data-wise Report (Raw Trends)</h3>
+          <div className="table-scroll-wrapper">
+            <table className="staff-table">
+              <thead>
+                <tr className="table-head-row">
+                  <th className="table-header-cell">DATE</th>
+                  <th className="table-header-cell">AVG WAIT TIME (MIN)</th>
+                  <th className="table-header-cell">TOKENS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analytics?.dailyWaitTimeTrends?.map((trend: any, i: number) => (
+                  <tr key={i} className="staff-table-row">
+                    <td className="staff-cell-name">{trend.date}</td>
+                    <td className="staff-cell-data">{trend.avgWaitTime}</td>
+                    <td className="staff-cell-data">{trend.count || '-'}</td>
                   </tr>
                 ))}
               </tbody>

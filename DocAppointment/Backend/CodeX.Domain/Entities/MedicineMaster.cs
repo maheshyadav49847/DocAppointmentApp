@@ -3,7 +3,7 @@ using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
 {
-    public class MedicineMaster : BaseEntity
+    public class MedicineMaster : BaseEntity, IMustHaveTenant
     {
         public Guid OrganizationId { get; set; }
         
@@ -17,3 +17,4 @@ namespace CodeX.Domain.Entities
         public virtual Organization Organization { get; set; } = null!;
     }
 }
+

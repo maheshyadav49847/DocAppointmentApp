@@ -34,7 +34,8 @@ namespace CodeX.Application.Features.Auth.Commands.ForgotPassword
                 CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.Identifier);
 
             var staff = await _context.Staffs
-                .FirstOrDefaultAsync(x => x.Email == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
 
             if (staff == null)
             {

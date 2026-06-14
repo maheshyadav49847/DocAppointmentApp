@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../../../services/authService';
 import { notify } from '../../../stores/notificationStore';
-import { 
-  Building2, Mail, Lock as LockIcon, Globe, ArrowRight, CheckCircle2, 
-  Stethoscope, ShieldCheck, Zap, Phone
+import {
+  Building2, Mail, Lock as LockIcon, Globe, ArrowRight, CheckCircle2,
+  ShieldCheck, Zap, Phone
 } from 'lucide-react';
+import { MyQCareLogo } from '../../../components/MyQCareLogo';
 import './auth.css';
 
 const RegisterPage: React.FC = () => {
@@ -13,7 +14,7 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const [formData, setFormData] = useState({
     orgName: '',
     orgSlug: '',
@@ -27,7 +28,7 @@ const RegisterPage: React.FC = () => {
     const { name, value } = e.target;
     setErrors(prev => ({ ...prev, [name]: '' }));
     setFormError('');
-    
+
     if (name === 'orgSlug') {
       setFormData(prev => ({ ...prev, [name]: value.toLowerCase().replace(/[^a-z0-9-]/g, '') }));
     } else {
@@ -38,7 +39,7 @@ const RegisterPage: React.FC = () => {
   const validateForm = () => {
     const { orgName, orgSlug, adminEmail, adminPassword, confirmPassword, adminPhoneNumber } = formData;
     const newErrors: Record<string, string> = {};
-    
+
     if (orgName.trim().length < 3) {
       newErrors.orgName = 'Organization name should be at least 3 characters.';
     }
@@ -71,7 +72,7 @@ const RegisterPage: React.FC = () => {
     }
 
     setErrors(newErrors);
-    
+
     if (Object.keys(newErrors).length > 0) {
       setFormError('Please fix the errors below.');
       notify.danger('Validation Error', 'Check the highlighted fields.');
@@ -85,7 +86,7 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     setErrors({});
     setFormError('');
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -97,7 +98,7 @@ const RegisterPage: React.FC = () => {
         adminPassword: formData.adminPassword,
         adminPhoneNumber: formData.adminPhoneNumber
       });
-      
+
       notify.success('Registration Successful', 'Your organization has been registered.');
       navigate('/login');
     } catch (error: any) {
@@ -114,20 +115,20 @@ const RegisterPage: React.FC = () => {
       {/* Left Side: Branding/Marketing */}
       <div className="login-brand-side register-brand-side">
         <div className="register-bg-glow"></div>
-        
+
         <div className="register-brand-content">
           <div className="register-logo-container">
             <div className="register-logo-icon">
-              <Stethoscope size={32} strokeWidth={2.5} />
+              <MyQCareLogo size={32} />
             </div>
-            <h1 className="register-logo-text">CodeX <span className="logo-accent">DocApp</span></h1>
+            <h1 className="register-logo-text">MyQCare</h1>
           </div>
 
           <h2 className="register-hero-title">
-            Digitize your hospital in <span className="logo-accent">minutes.</span>
+            Wait Less. <br/><span className="logo-accent">Care More.</span>
           </h2>
           <p className="register-hero-subtitle">
-            The most advanced queue management and analytics platform for modern healthcare providers.
+            The complete clinic OS for seamless appointments, automated queues, and exceptional patient experience.
           </p>
 
           <div className="register-features-list">
@@ -143,7 +144,7 @@ const RegisterPage: React.FC = () => {
         <div className="register-form-container">
           <div className="register-form-header">
             <h3 className="register-form-title">Create Organization</h3>
-            <p className="register-form-subtitle">Enter your details to get started with CodeX.</p>
+            <p className="register-form-subtitle">Enter your details to get started with MQcare.</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="register-form">
@@ -156,11 +157,11 @@ const RegisterPage: React.FC = () => {
               <label data-tooltip="The legal name of your healthcare facility" className="auth-label">
                 <Building2 size={16} /> Organization Name
               </label>
-              <input 
+              <input
                 name="orgName"
-                type="text" 
-                placeholder="e.g. LifeCare Hospital" 
-                required 
+                type="text"
+                placeholder="e.g. LifeCare Hospital"
+                required
                 value={formData.orgName}
                 onChange={handleChange}
                 className={errors.orgName ? "input-error" : ""}
@@ -173,11 +174,11 @@ const RegisterPage: React.FC = () => {
                 <Globe size={16} /> Unique URL Slug
               </label>
               <div className="relative-container">
-                <input 
+                <input
                   name="orgSlug"
-                  type="text" 
-                  placeholder="e.g. lifecare-hospital" 
-                  required 
+                  type="text"
+                  placeholder="e.g. lifecare-hospital"
+                  required
                   value={formData.orgSlug}
                   onChange={handleChange}
                   className={`slug-input ${errors.orgSlug ? 'input-error' : ''}`}
@@ -196,11 +197,11 @@ const RegisterPage: React.FC = () => {
               <label data-tooltip="Primary administrative email address" className="auth-label">
                 <Mail size={16} /> Admin Email
               </label>
-              <input 
+              <input
                 name="adminEmail"
-                type="email" 
-                placeholder="admin@yourhospital.com" 
-                required 
+                type="email"
+                placeholder="admin@yourhospital.com"
+                required
                 value={formData.adminEmail}
                 onChange={handleChange}
                 className={errors.adminEmail ? "input-error" : ""}
@@ -212,11 +213,11 @@ const RegisterPage: React.FC = () => {
               <label data-tooltip="WhatsApp number for administrative alerts and resets" className="auth-label">
                 <Phone size={16} /> Admin WhatsApp Number
               </label>
-              <input 
+              <input
                 name="adminPhoneNumber"
-                type="tel" 
-                placeholder="+91 98765 43210" 
-                required 
+                type="tel"
+                placeholder="+91 98765 43210"
+                required
                 value={formData.adminPhoneNumber}
                 onChange={handleChange}
                 className={errors.adminPhoneNumber ? "input-error" : ""}
@@ -229,11 +230,11 @@ const RegisterPage: React.FC = () => {
                 <label data-tooltip="Create a strong password (min 8 characters)" className="auth-label">
                   <LockIcon size={16} /> Password
                 </label>
-                <input 
+                <input
                   name="adminPassword"
-                  type="password" 
-                  placeholder="••••••••" 
-                  required 
+                  type="password"
+                  placeholder="••••••••"
+                  required
                   value={formData.adminPassword}
                   onChange={handleChange}
                   className={errors.adminPassword ? "input-error" : ""}
@@ -244,11 +245,11 @@ const RegisterPage: React.FC = () => {
                 <label data-tooltip="Re-type password for verification" className="auth-label">
                   <CheckCircle2 size={16} /> Confirm
                 </label>
-                <input 
+                <input
                   name="confirmPassword"
-                  type="password" 
-                  placeholder="••••••••" 
-                  required 
+                  type="password"
+                  placeholder="••••••••"
+                  required
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className={errors.confirmPassword ? "input-error" : ""}
@@ -257,13 +258,13 @@ const RegisterPage: React.FC = () => {
               </div>
             </div>
 
-            <button 
+            <button
               data-tooltip="Launch your digital hospital portal"
-              type="submit" 
-              className="btn-primary register-submit-btn" 
+              type="submit"
+              className="btn-primary register-submit-btn"
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Register Organization'} 
+              {loading ? 'Creating Account...' : 'Register Organization'}
               {!loading && <ArrowRight size={20} />}
             </button>
           </form>

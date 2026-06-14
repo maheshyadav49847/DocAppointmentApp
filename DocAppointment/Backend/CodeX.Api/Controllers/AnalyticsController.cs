@@ -9,7 +9,8 @@ namespace CodeX.Api.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class AnalyticsController : BaseApiController
     {
         private readonly ICurrentUserService _currentUserService;

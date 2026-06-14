@@ -24,6 +24,7 @@ namespace CodeX.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [CodeX.Api.Filters.CheckSubscriptionLimit(CodeX.Api.Filters.SubscriptionLimitType.Doctors)]
         public async Task<ActionResult<Guid>> Create(CreateDoctorCommand command)
         {
             var finalCommand = command with { OrganizationId = _currentUserService.OrgId };

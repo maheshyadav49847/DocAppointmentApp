@@ -2,6 +2,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
+using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Auth.Commands.ResetPassword
 {
@@ -15,10 +17,12 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
     public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand, bool>
     {
         private readonly IApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ResetPasswordCommandHandler(IApplicationDbContext context)
+        public ResetPasswordCommandHandler(IApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<bool> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -29,7 +33,8 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
                 CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.Identifier);
 
             var staff = await _context.Staffs
-                .FirstOrDefaultAsync(x => x.Email == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedIdentifier || x.PhoneNumber == normalizedIdentifier, cancellationToken);
 
             if (staff == null || staff.PasswordResetToken != request.Token || staff.ResetTokenExpiry < DateTime.UtcNow)
             {
@@ -37,7 +42,7 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
             }
 
             // Update password
-            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.NewPassword);
+            PasswordValidator.Validate(request.NewPassword, _configuration);
             staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             
             // Clear token

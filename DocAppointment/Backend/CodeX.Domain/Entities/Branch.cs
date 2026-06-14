@@ -4,7 +4,7 @@ using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
 {
-    public class Branch : BaseEntity
+    public class Branch : BaseEntity, IMustHaveTenant
     {
         public Guid OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -19,3 +19,4 @@ namespace CodeX.Domain.Entities
         public virtual ICollection<DailyQueue>? DailyQueues { get; set; } = new List<DailyQueue>();
     }
 }
+

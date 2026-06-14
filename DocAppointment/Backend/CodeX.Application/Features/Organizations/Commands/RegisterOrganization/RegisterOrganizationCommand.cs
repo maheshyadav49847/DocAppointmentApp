@@ -4,6 +4,8 @@ using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
+using Microsoft.Extensions.Configuration;
+using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 {
@@ -19,10 +21,12 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
     public class RegisterOrganizationCommandHandler : IRequestHandler<RegisterOrganizationCommand, Guid>
     {
         private readonly IApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public RegisterOrganizationCommandHandler(IApplicationDbContext context)
+        public RegisterOrganizationCommandHandler(IApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<Guid> Handle(RegisterOrganizationCommand request, CancellationToken cancellationToken)
@@ -50,7 +54,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
             var lastName = emailParts.Length > 1 ? char.ToUpper(emailParts[1][0]) + emailParts[1].Substring(1) : "User";
 
-            CodeX.Application.Common.Helpers.PasswordPolicyHelper.EnsurePasswordStrength(request.AdminPassword);
+            PasswordValidator.Validate(request.AdminPassword, _configuration);
 
             var admin = new CodeX.Domain.Entities.Staff
             {

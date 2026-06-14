@@ -10,7 +10,7 @@ namespace CodeX.Infrastructure.Persistence.Configurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Name).IsRequired().HasMaxLength(255);
-            builder.Property(x => x.WhatsAppNumber).IsRequired().HasMaxLength(20);
+            builder.Property(x => x.WhatsAppNumber).IsRequired().HasMaxLength(50);
             builder.HasIndex(x => x.WhatsAppNumber).IsUnique().HasFilter("\"IsDeleted\" = false");
 
             builder.HasOne(x => x.Organization)

@@ -53,6 +53,14 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                         .AnyAsync(b => b.Id == existing.BranchId && b.OrganizationId == _currentUserService.OrgId, cancellationToken);
                     if (!hasAccess) throw new Exception("You do not have access to this queue.");
                 }
+
+                if (existing.Status == CodeX.Domain.Enums.QueueStatus.Completed || existing.Status == CodeX.Domain.Enums.QueueStatus.Cancelled)
+                {
+                    existing.Status = CodeX.Domain.Enums.QueueStatus.Open;
+                    existing.ActualEndAt = null;
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
                 return existing.Id;
             }
 
@@ -82,7 +90,7 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                 BranchId = session.BranchId,
                 QueueDate = today,
                 CurrentTokenNumber = 0,
-                Status = 0
+                Status = CodeX.Domain.Enums.QueueStatus.Open
             };
 
             _context.DailyQueues.Add(queue);

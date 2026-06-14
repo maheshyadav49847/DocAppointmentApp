@@ -387,9 +387,9 @@ const PatientsList: React.FC = () => {
               const pdfWidth = pdf.internal.pageSize.getWidth();
               const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
               pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-              
+
               const base64Pdf = pdf.output('datauristring').split(',')[1];
-              
+
               await api.post('/whatsapp/bridge/send', {
                 branchId: currentBranchId || selectedBranchId,
                 to: selectedPatient.phone,
@@ -1554,18 +1554,18 @@ const PatientsList: React.FC = () => {
                 return (
                   <>
                     <div className="rx-hp-header">
-                      
+
                       <div className="flex flex-col items-center border-b-2 pb-4 mb-4 text-center" style={{ borderColor: '#3b82f6' }}>
-                         <h3 className="font-bold text-3xl uppercase tracking-wider mb-2" style={{ color: '#3b82f6' }}>
-                            {activeBranch.name}
-                         </h3>
-                         <div className="text-gray-600 text-sm">
-                           {activeBranch.address} | Ph: {activeBranch.phone || activeBranch.whatsAppNumber}
-                         </div>
-                         <div className="mt-4 px-6 py-2 bg-gray-100 rounded-full inline-block border shadow-sm">
-                            <span className="font-bold text-lg mr-2" style={{ color: '#3b82f6' }}>Dr. {printDoctor.name}</span>
-                            <span className="text-gray-700 font-medium">| {printDoctor.qualification} | Reg: {printDoctor.registrationNumber}</span>
-                         </div>
+                        <h3 className="font-bold text-3xl uppercase tracking-wider mb-2" style={{ color: '#3b82f6' }}>
+                          {activeBranch.name}
+                        </h3>
+                        <div className="text-gray-600 text-sm">
+                          {activeBranch.address} | Ph: {activeBranch.phone || activeBranch.whatsAppNumber}
+                        </div>
+                        <div className="mt-4 px-6 py-2 bg-gray-100 rounded-full inline-block border shadow-sm">
+                          <span className="font-bold text-lg mr-2" style={{ color: '#3b82f6' }}>Dr. {printDoctor.name}</span>
+                          <span className="text-gray-700 font-medium">| {printDoctor.qualification} | Reg: {printDoctor.registrationNumber}</span>
+                        </div>
                       </div>
 
                     </div>
@@ -1689,7 +1689,7 @@ const PatientsList: React.FC = () => {
                   Consult with me online and view your prescriptions anytime on our patient portal.
                 </div>
                 <div className="rx-hp-powered">
-                  Powered by CodeX EMR. www.codex-emr.com
+                  Powered by MyQCare. www.myqcare.com
                 </div>
               </div>
 

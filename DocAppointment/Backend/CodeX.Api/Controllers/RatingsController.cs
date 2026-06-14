@@ -9,7 +9,8 @@ using Microsoft.AspNetCore.Authorization;
 namespace CodeX.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class RatingsController : ControllerBase
     {
         private readonly ISender _mediator;

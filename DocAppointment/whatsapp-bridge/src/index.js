@@ -61,6 +61,12 @@ async function relayIncomingMessage(branchId, message) {
   const body = message.message.conversation || message.message.extendedTextMessage?.text;
   if (!body) return;
 
+  const jidParts = from.split('@');
+  if (jidParts.length === 2) {
+    const idPart = jidParts[0].split(':')[0];
+    from = `${idPart}@${jidParts[1]}`;
+  }
+
   // Convert @s.whatsapp.net or @lid to @c.us for backend compatibility
   const normalizedFrom = from.replace("@s.whatsapp.net", "@c.us").replace("@lid", "@c.us");
 
@@ -118,7 +124,22 @@ async function getClient(branchId, expectedNumber) {
 
   async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(`baileys_auth_info_${branchId}`);
-    entry.saveCreds = saveCreds;
+    
+    const secureSaveCreds = async () => {
+      await saveCreds();
+      try {
+        const folder = `baileys_auth_info_${branchId}`;
+        if (fs.existsSync(folder)) {
+          fs.readdirSync(folder).forEach(file => {
+            fs.chmodSync(`${folder}/${file}`, 0o600);
+          });
+        }
+      } catch (e) {
+        console.error("[SECURITY] Failed to set permissions on auth files", e);
+      }
+    };
+
+    entry.saveCreds = secureSaveCreds;
 
     const sock = makeWASocket({
       auth: state,
@@ -200,7 +221,7 @@ async function getClient(branchId, expectedNumber) {
       }
     });
 
-    sock.ev.on("creds.update", saveCreds);
+    sock.ev.on("creds.update", secureSaveCreds);
 
     sock.ev.on("messages.upsert", (m) => {
       if (m.type === "notify") {
