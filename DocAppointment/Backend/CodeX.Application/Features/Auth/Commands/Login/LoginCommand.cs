@@ -16,7 +16,7 @@ namespace CodeX.Application.Features.Auth.Commands.Login
         public string Password { get; init; } = string.Empty;
     }
 
-    public record LoginResponse(string Token, string RefreshToken, string Email, string Role, Guid OrgId, Guid? BranchId);
+    public record LoginResponse(string Token, string RefreshToken, string Email, string Role, Guid OrgId, Guid? BranchId, Guid? DoctorId = null);
 
     public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponse>
     {
@@ -109,7 +109,7 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new LoginResponse(token, refreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId);
+            return new LoginResponse(token, refreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId, staff.DoctorId);
         }
     }
 }

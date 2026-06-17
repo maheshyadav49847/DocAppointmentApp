@@ -43,7 +43,7 @@ export default function LoginPage() {
       })
       
       setAuth(
-        { email: response.email, role: response.role, orgId: response.orgId, branchId: response.branchId },
+        { email: response.email, role: response.role, orgId: response.orgId, branchId: response.branchId, doctorId: response.doctorId },
         response.token
       )
       

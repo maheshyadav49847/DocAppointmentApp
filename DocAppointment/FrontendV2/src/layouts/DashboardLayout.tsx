@@ -126,9 +126,9 @@ export default function DashboardLayout() {
                 )}
               >
                 <item.icon className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-indigo-400")} />
-                {item.name}
+                {item.name === "Queue (Live)" && user?.role === "Doctor" ? "My Desk" : item.name}
 
-                {item.name === "Queue (Live)" && (
+                {item.name === "Queue (Live)" && user?.role !== "Doctor" && (
                   <span className="ml-auto bg-rose-100 text-rose-600 py-0.5 px-2 rounded-sm text-[10px] font-bold uppercase tracking-wider">
                     Live
                   </span>

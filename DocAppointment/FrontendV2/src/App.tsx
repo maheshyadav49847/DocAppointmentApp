@@ -10,12 +10,14 @@ import AnalyticsPage from "./pages/analytics/AnalyticsPage"
 import DoctorsPage from "./pages/doctors/DoctorsPage"
 import PatientsPage from "./pages/patients/PatientsPage"
 import ConsultationPage from "./pages/consultation/ConsultationPage"
+import DoctorDeskPage from "./pages/consultation/DoctorDeskPage"
 import SessionsPage from "./pages/sessions/SessionsPage"
 import SettingsPage from "./pages/settings/SettingsPage"
 import PharmacyPage from "./pages/pharmacy/PharmacyPage"
 import BranchesPage from "./pages/branches/BranchesPage"
 import StaffPage from "./pages/staff/StaffPage"
 import AuditLogsPage from "./pages/audit-logs/AuditLogsPage"
+import TvDisplayPage from "./pages/display/TvDisplayPage"
 import { useAuthStore } from "./store/authStore"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -36,6 +38,12 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function HomeRoute() {
+  const user = useAuthStore((state) => state.user)
+  if (user?.role === "Doctor") return <DoctorDeskPage />
+  return <QueueDashboardPage />
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -46,8 +54,12 @@ function App() {
           <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
         </Route>
 
+        <Route path="/tv/:branchId" element={<TvDisplayPage />} />
+
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-          <Route path="/" element={<QueueDashboardPage />} />
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/queue" element={<QueueDashboardPage />} />
+          <Route path="/doctor-desk" element={<DoctorDeskPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/doctors" element={<AdminOnlyRoute><DoctorsPage /></AdminOnlyRoute>} />
           <Route path="/patients" element={<PatientsPage />} />

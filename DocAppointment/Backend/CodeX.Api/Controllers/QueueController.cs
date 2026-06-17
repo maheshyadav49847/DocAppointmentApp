@@ -10,9 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CodeX.Api.Controllers
 {
+    [Authorize]
     public class QueueController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
@@ -205,6 +207,57 @@ namespace CodeX.Api.Controllers
             return Ok(upcoming);
         }
 
+        [HttpGet("active/{doctorId}")]
+        public async Task<ActionResult<object>> GetActiveQueue(Guid doctorId)
+        {
+            var query = _context.DailyQueues
+                .Include(q => q.Tokens)
+                .ThenInclude(t => t.Patient)
+                .Include(q => q.Branch)
+                .Where(q => q.DoctorId == doctorId &&
+                            q.Status != QueueStatus.Completed &&
+                            q.Status != QueueStatus.Cancelled);
+
+            if (!_currentUserService.IsInRole("SuperAdmin"))
+            {
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
+                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+            }
+
+            var queues = await query.OrderByDescending(q => q.CreatedAt).Take(5).ToListAsync();
+            
+            var queue = queues.FirstOrDefault(q => 
+            {
+                var tzToday = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(q.Branch?.Timezone);
+                return q.QueueDate >= tzToday && q.QueueDate < tzToday.AddDays(1);
+            });
+
+            if (queue == null) return Ok(null);
+
+            var currentToken = queue.Tokens
+                .Where(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Called)
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefault();
+
+            var waitingCount = queue.Tokens.Count(t => t.Status == TokenStatus.Pending);
+            var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
+            var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
+
+            return Ok(new
+            {
+                id = queue.Id,
+                status = queue.Status,
+                currentTokenNumber = queue.CurrentTokenNumber,
+                doctorId = queue.DoctorId,
+                sessionId = queue.SessionId,
+                waitingCount,
+                completedCount,
+                skippedCount,
+                currentPatientName = currentToken?.Patient?.Name ?? "No one",
+                currentPatientId = currentToken?.PatientId
+            });
+        }
+
         [HttpGet("active/{doctorId}/{sessionId}")]
         public async Task<ActionResult<object>> GetActiveQueueBySession(Guid doctorId, Guid sessionId)
         {
@@ -253,28 +306,83 @@ namespace CodeX.Api.Controllers
             });
         }
 
-        [HttpGet("active/{doctorId}")]
-        public async Task<ActionResult<Guid>> GetActiveQueue(Guid doctorId)
+
+
+        [AllowAnonymous]
+        [HttpGet("branch/{branchId}/active")]
+        public async Task<ActionResult<List<object>>> GetActiveQueuesByBranch(Guid branchId)
         {
-            var query = _context.DailyQueues
-                .Include(q => q.Branch)
-                .Where(q => q.DoctorId == doctorId);
+            // Must bypass ALL global OrgId query filters since this is anonymous
+            var branch = await _context.Branches
+                .IgnoreQueryFilters()
+                .Where(b => b.Id == branchId && !b.IsDeleted)
+                .FirstOrDefaultAsync();
+            if (branch == null) return NotFound();
 
-            if (!_currentUserService.IsInRole("SuperAdmin"))
-            {
-                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
-                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
-            }
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
+            var tomorrow = today.AddDays(1);
 
-            var queues = await query.OrderByDescending(q => q.CreatedAt).Take(5).ToListAsync();
-            var activeQueue = queues.FirstOrDefault(q => 
-            {
-                var tzToday = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(q.Branch?.Timezone);
-                return q.QueueDate >= tzToday && q.QueueDate < tzToday.AddDays(1) && 
-                       q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled;
-            });
- 
-            return activeQueue?.Id ?? Guid.Empty;
+            // Load queues without global filters
+            var queues = await _context.DailyQueues
+                .IgnoreQueryFilters()
+                .Where(q => !q.IsDeleted &&
+                            q.BranchId == branchId &&
+                            q.QueueDate >= today &&
+                            q.QueueDate < tomorrow &&
+                            q.Status != QueueStatus.Completed &&
+                            q.Status != QueueStatus.Cancelled)
+                .OrderBy(q => q.CreatedAt)
+                .ToListAsync();
+
+            if (queues.Count == 0) return Ok(new List<object>());
+
+            // Load related data separately to bypass filters
+            var queueIds = queues.Select(q => q.Id).ToList();
+            var doctorIds = queues.Select(q => q.DoctorId).Distinct().ToList();
+
+            var doctors = await _context.Doctors
+                .IgnoreQueryFilters()
+                .Where(d => doctorIds.Contains(d.Id) && !d.IsDeleted)
+                .ToDictionaryAsync(d => d.Id);
+
+            var tokens = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Include(t => t.Patient)
+                .Where(t => queueIds.Contains(t.QueueId) && !t.IsDeleted)
+                .ToListAsync();
+
+            var tokensByQueue = tokens.GroupBy(t => t.QueueId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = queues.Select(q => {
+                var qTokens = tokensByQueue.GetValueOrDefault(q.Id) ?? new List<Domain.Entities.Token>();
+                doctors.TryGetValue(q.DoctorId, out var doctor);
+
+                var currentToken = qTokens
+                    .Where(t => t.TokenNumber == q.CurrentTokenNumber && t.Status == TokenStatus.Called)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefault();
+
+                var upcoming = qTokens
+                    .Where(t => t.Status == TokenStatus.Pending)
+                    .OrderBy(t => t.TokenNumber)
+                    .Take(5)
+                    .Select(t => t.TokenNumber)
+                    .ToList();
+
+                return new {
+                    id = q.Id,
+                    doctorId = q.DoctorId,
+                    doctorName = doctor?.Name ?? "Unknown",
+                    currentTokenNumber = q.CurrentTokenNumber,
+                    currentPatientName = currentToken?.Patient?.Name ?? "Walk-in",
+                    waitingCount = qTokens.Count(t => t.Status == TokenStatus.Pending),
+                    completedCount = qTokens.Count(t => t.Status == TokenStatus.Completed),
+                    skippedCount = qTokens.Count(t => t.Status == TokenStatus.Skipped),
+                    upcomingTokens = upcoming
+                };
+            }).ToList();
+
+            return Ok(result);
         }
 
         private async Task<bool> CanAccessQueue(Guid queueId)

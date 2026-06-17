@@ -46,10 +46,11 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
 
             var token = _identityService.GenerateJwtToken(
                 staff.Id, 
-                staff.Email, 
+                staff.Email,
                 staff.Role.ToString(), 
                 staff.BranchId, 
-                staff.OrganizationId);
+                staff.OrganizationId,
+                staff.DoctorId);
 
             var newRefreshTokenStr = _identityService.GenerateRefreshToken();
             
@@ -65,7 +66,7 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
             
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new LoginResponse(token, newRefreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId);
+            return new LoginResponse(token, newRefreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId, staff.DoctorId);
         }
     }
 }

@@ -49,7 +49,8 @@ namespace CodeX.Api.Controllers
                     email = response.Email, 
                     role = response.Role, 
                     orgId = response.OrgId, 
-                    branchId = response.BranchId 
+                    branchId = response.BranchId,
+                    doctorId = response.DoctorId
                 });
             }
             catch (Exception ex)
@@ -119,7 +120,8 @@ namespace CodeX.Api.Controllers
                     email = response.Email, 
                     role = response.Role, 
                     orgId = response.OrgId, 
-                    branchId = response.BranchId 
+                    branchId = response.BranchId,
+                    doctorId = response.DoctorId
                 });
             }
             catch (Exception ex)

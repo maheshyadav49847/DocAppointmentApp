@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard } from "lucide-react"
+import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard, MonitorPlay } from "lucide-react"
 import { branchService } from "@/services/branchService"
 import { doctorService } from "@/services/doctorService"
 import { queueService } from "@/services/queueService"
@@ -112,18 +112,32 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-col gap-1.5 sm:items-end">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranchId}
-            onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
-          >
-            <option value="org" disabled>Select Facility</option>
-            {branches?.map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+        <div className="flex items-end gap-3 relative z-10 sm:ml-auto">
+          {selectedBranchId && selectedBranchId !== 'org' && (
+            <a
+              href={`/tv/${selectedBranchId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors border border-indigo-200 shadow-sm"
+              title="Open Queue TV Display in a new tab"
+            >
+              <MonitorPlay className="w-4 h-4" />
+              <span className="hidden sm:inline">Open TV View</span>
+            </a>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
+            >
+              <option value="org" disabled>Select Facility</option>
+              {branches?.map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

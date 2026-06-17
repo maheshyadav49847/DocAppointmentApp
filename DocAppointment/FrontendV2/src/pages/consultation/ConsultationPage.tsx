@@ -10,9 +10,10 @@ import {
   ArrowLeft, Save, Activity, ClipboardList,
   HeartPulse, Edit, Trash2, X,
   FileText, User, Calendar, Droplets, Hash,
-  Upload, Plus, Printer, Calendar as CalendarIcon, MessageSquare
+  Upload, Plus, Printer, Calendar as CalendarIcon, MessageSquare, Pencil
 } from "lucide-react"
 import MedicineAutocomplete from "./components/MedicineAutocomplete"
+import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
 
 // Types
 interface Medicine {
@@ -26,8 +27,14 @@ interface Medicine {
   dosage: string
 }
 
-export default function ConsultationPage() {
-  const { patientId } = useParams()
+interface ConsultationPageProps {
+  patientId?: string;
+  isEmbedded?: boolean;
+}
+
+export default function ConsultationPage({ patientId: propPatientId, isEmbedded = false }: ConsultationPageProps = {}) {
+  const { patientId: urlPatientId } = useParams()
+  const patientId = propPatientId || urlPatientId
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { activeBranchId, user } = useAuthStore()
@@ -118,6 +125,7 @@ export default function ConsultationPage() {
 
   // Edit State
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false)
 
   // Med input state
   const [medName, setMedName] = useState("")
@@ -325,23 +333,34 @@ export default function ConsultationPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col bg-slate-50 overflow-hidden">
+    <div className={`flex flex-col bg-slate-50 overflow-hidden ${isEmbedded ? 'h-full' : 'h-[calc(100vh-4rem)]'}`}>
       
       {/* Top Banner */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between shrink-0 gap-4">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          {!isEmbedded && (
+            <button 
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shadow-sm">
               {patient?.name?.charAt(0) || "P"}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">{patient?.name || "Unknown Patient"}</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">{patient?.name || "Unknown Patient"}</h1>
+                <button
+                  onClick={() => setIsProfileDrawerOpen(true)}
+                  className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                  title="Edit Patient Profile"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              </div>
               <div className="flex items-center gap-3 text-sm text-slate-500 mt-0.5">
                 <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" /> {patient?.patientCode || "PT-NEW"}</span>
                 <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {patient?.gender || "N/A"}</span>
@@ -951,6 +970,12 @@ export default function ConsultationPage() {
           </div>
         </div>
       </div>
+
+      <PatientProfileDrawer 
+        isOpen={isProfileDrawerOpen}
+        onClose={() => setIsProfileDrawerOpen(false)}
+        editingPatient={patient}
+      />
     </div>
   )
 }
