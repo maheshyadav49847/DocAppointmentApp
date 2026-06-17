@@ -8,6 +8,8 @@ namespace CodeX.Application.Common.Interfaces
         Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId);
         Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId);
         Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId);
+        Task SendSessionCancelledAlert(string phoneNumber, string doctorName, Guid branchId);
+        Task SendSessionTransferredAlert(string phoneNumber, string doctorName, string newSessionName, int newTokenNumber, Guid branchId);
 
         // ─── Templated Messages (Twilio Content API) ──────────────────────────
         Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId);

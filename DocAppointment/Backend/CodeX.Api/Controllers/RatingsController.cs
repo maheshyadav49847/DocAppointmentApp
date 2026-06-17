@@ -32,15 +32,8 @@ namespace CodeX.Api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> CreateRating([FromBody] CreateRatingCommand command)
         {
-            try
-            {
-                var ratingId = await _mediator.Send(command);
-                return Ok(new { id = ratingId, message = "Thank you for your feedback!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var ratingId = await _mediator.Send(command);
+            return Ok(new { id = ratingId, message = "Thank you for your feedback!" });
         }
 
         /// <summary>

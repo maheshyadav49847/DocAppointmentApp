@@ -61,12 +61,12 @@ namespace CodeX.Application.Features.Queue.Commands.SkipToken
                 {
                     try
                     {
-                        var skipMsg = $"⚠️ *APPOINTMENT MISSED* ⚠️\n\n" +
-                                     $"Aapka *Token #{currentToken.TokenNumber}* (Dr. {queue.Doctor?.Name}) bulaya gaya tha, par aap wahan nahi pahunche.\n\n" +
-                                     $"Is wajah se humein agla patient bulana pada aur aapka number *SKIP* kar diya gaya hai.\n\n" +
-                                     $"👉 Agar aap clinic pahunch gaye hain aur fir se queue me lagna chahte hain, toh kripya is message ka reply *REJOIN* likhkar bhejein. ✨";
-                        
-                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, skipMsg, queue.BranchId);
+                        var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone && s.BranchId == queue.BranchId, cancellationToken);
+                        var languagePreference = chatSession?.Language ?? "1";
+
+                        string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "APPOINTMENT_MISSED_ALERT", currentToken.TokenNumber, queue.Doctor?.Name);
+
+                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, translatedMsg, queue.BranchId);
                     }
                     catch { /* Log and ignore background errors */ }
                 }

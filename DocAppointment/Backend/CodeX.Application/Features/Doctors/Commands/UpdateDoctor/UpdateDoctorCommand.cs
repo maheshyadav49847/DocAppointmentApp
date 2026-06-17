@@ -16,6 +16,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
         public string? Mobile { get; init; }
         public string? EmailId { get; init; }
         public List<Guid> BranchIds { get; init; } = new List<Guid>();
+        public string? Password { get; init; }
     }
 
     public class UpdateDoctorCommandHandler : IRequestHandler<UpdateDoctorCommand, Unit>
@@ -71,6 +72,43 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 foreach (var branch in branches)
                 {
                     doctor.Branches.Add(branch);
+                }
+            }
+
+            // Update or Create Staff record for the doctor if Email and Password are provided
+            if (!string.IsNullOrWhiteSpace(request.EmailId) && !string.IsNullOrWhiteSpace(request.Password))
+            {
+                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.DoctorId == doctor.Id, cancellationToken);
+                if (staff == null)
+                {
+                    staff = new CodeX.Domain.Entities.Staff
+                    {
+                        OrganizationId = doctor.OrganizationId,
+                        BranchId = request.BranchIds.FirstOrDefault(),
+                        Email = request.EmailId.Trim().ToLower(),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                        FirstName = request.Name,
+                        Role = CodeX.Domain.Enums.StaffRole.Doctor,
+                        DoctorId = doctor.Id
+                    };
+                    _context.Staffs.Add(staff);
+                }
+                else
+                {
+                    staff.Email = request.EmailId.Trim().ToLower();
+                    staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                    staff.FirstName = request.Name;
+                    staff.BranchId = request.BranchIds.FirstOrDefault();
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(request.EmailId))
+            {
+                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.DoctorId == doctor.Id, cancellationToken);
+                if (staff != null)
+                {
+                    staff.Email = request.EmailId.Trim().ToLower();
+                    staff.FirstName = request.Name;
+                    staff.BranchId = request.BranchIds.FirstOrDefault();
                 }
             }
 

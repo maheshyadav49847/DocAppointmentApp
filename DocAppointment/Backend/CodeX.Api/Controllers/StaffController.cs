@@ -58,14 +58,7 @@ namespace CodeX.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Guid>> Create(CreateStaffCommand command)
         {
-            try
-            {
-                return await Mediator.Send(command);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return await Mediator.Send(command);
         }
 
         [HttpPut("{id}")]
@@ -76,29 +69,15 @@ namespace CodeX.Api.Controllers
                 return BadRequest();
             }
 
-            try
-            {
-                await Mediator.Send(command);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await Mediator.Send(command);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try
-            {
-                await Mediator.Send(new DeleteStaffCommand(id));
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await Mediator.Send(new DeleteStaffCommand(id));
+            return NoContent();
         }
     }
 }

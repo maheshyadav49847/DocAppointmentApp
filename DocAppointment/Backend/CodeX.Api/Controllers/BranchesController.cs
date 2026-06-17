@@ -68,6 +68,16 @@ namespace CodeX.Api.Controllers
                 return BadRequest(new { message = $"A branch with the name '{name}' already exists in your organization." });
             }
 
+            if (!string.IsNullOrWhiteSpace(branch.WhatsAppNumber))
+            {
+                var waNumber = branch.WhatsAppNumber.Trim();
+                var duplicateWaExists = await _context.Branches.AnyAsync(b => b.WhatsAppNumber == waNumber && !b.IsDeleted);
+                if (duplicateWaExists)
+                {
+                    return BadRequest(new { message = $"The WhatsApp number '{waNumber}' is already registered with another branch." });
+                }
+            }
+
             _context.Branches.Add(branch);
             await _context.SaveChangesAsync(default);
             return branch.Id;
@@ -93,6 +103,16 @@ namespace CodeX.Api.Controllers
             if (duplicateExists)
             {
                 return BadRequest(new { message = $"Another branch with the name '{name}' already exists in your organization." });
+            }
+
+            if (!string.IsNullOrWhiteSpace(updatedBranch.WhatsAppNumber))
+            {
+                var waNumber = updatedBranch.WhatsAppNumber.Trim();
+                var duplicateWaExists = await _context.Branches.AnyAsync(b => b.Id != id && b.WhatsAppNumber == waNumber && !b.IsDeleted);
+                if (duplicateWaExists)
+                {
+                    return BadRequest(new { message = $"The WhatsApp number '{waNumber}' is already registered with another branch." });
+                }
             }
 
             branch.Name = name;

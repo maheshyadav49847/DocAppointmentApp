@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 namespace CodeX.Api.Middlewares
 {
@@ -16,8 +18,14 @@ namespace CodeX.Api.Middlewares
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IApplicationDbContext dbContext)
+        public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService, IApplicationDbContext dbContext, IWebHostEnvironment env)
         {
+            if (env.IsDevelopment())
+            {
+                await _next(context);
+                return;
+            }
+
             var path = context.Request.Path.Value?.ToLower();
             
             // Skip paths that don't need active subscriptions

@@ -56,15 +56,12 @@ namespace CodeX.Application.Features.Queue.Commands.CancelQueue
                 {
                     try
                     {
-                        string message = $"⚠️ *APPOINTMENT RADD (CANCEL) SOOCHNA* ⚠️\n" +
-                                         $"🏢 *{hospitalName.ToUpper()}*\n" +
-                                         $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                                         $"Namaste {token.Patient.Name},\n\n" +
-                                         $"Kripya dhyan dein: Kisi achanak aayi emergency/pre-planned chutti ki wajah se *Dr. {doctorName}* ka aaj ka session radd (cancel) kar diya gaya hai.\n\n" +
-                                         $"Aapka Token #{token.TokenNumber} cancel kar diya gaya hai. Humein is asuvidha ke liye khed hai. 🙏\n\n" +
-                                         $"👉 Kripya naya appointment book karne ke liye kisi bhi waqt *HI* likhkar bhejein. ✨";
+                        var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone && s.BranchId == queue.BranchId, cancellationToken);
+                        var languagePreference = chatSession?.Language ?? "1";
 
-                        await _whatsAppService.SendTextMessage(token.Patient.Phone, message, queue.BranchId);
+                        string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "APPOINTMENT_CANCELLED_ALERT", hospitalName.ToUpper(), token.Patient.Name, doctorName, token.TokenNumber);
+
+                        await _whatsAppService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
                     }
                     catch { /* Log and continue gracefully */ }
                 }

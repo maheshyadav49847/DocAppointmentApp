@@ -65,18 +65,12 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                     session.CurrentState = "AWAITING_RATING_SCORE";
                     session.SelectedSessionId = currentToken.Id;
 
-                    string msg = $"🌟 *Aapka Appointment Pura Hua!* 🌟\n\n" +
-                                 $"Dr. {queue.Doctor?.Name} ke sath aapka anubhav kaisa raha?\n\n" +
-                                 $"Kripya 1 se 5 ke beech ek rating dekar humein batayein:\n" +
-                                 $"5 = Behtareen (Excellent) 🤩\n" +
-                                 $"4 = Bahut Achha (Very Good) 😊\n" +
-                                 $"3 = Theek (Average) 😐\n" +
-                                 $"2 = Kharab (Poor) 😞\n" +
-                                 $"1 = Bahut Kharab (Terrible) 😠\n\n" +
-                                 $"👉 *Sirf number likhkar bhejein (Jaise: 5)*";
+                    var languagePreference = session.Language ?? "1";
+
+                    string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name, currentToken.Id);
 
                     try {
-                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, msg, queue.BranchId);
+                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, translatedMsg, queue.BranchId);
                     } catch { }
                 }
                 

@@ -13,6 +13,7 @@ import {
   Edit, Trash2, Plus, X, Search, MessageSquare,
   LayoutGrid, List, Save
 } from "lucide-react"
+import toast from "react-hot-toast"
 
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
@@ -46,6 +47,18 @@ export default function BranchesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] })
       setIsDrawerOpen(false)
+      toast.success("Branch created successfully")
+    },
+    onError: (error: any) => {
+      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to add branch";
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && errors[firstKey].length > 0) {
+          errorMessage = errors[firstKey][0];
+        }
+      }
+      toast.error(errorMessage)
     }
   })
 
@@ -55,12 +68,30 @@ export default function BranchesPage() {
       queryClient.invalidateQueries({ queryKey: ['branches'] })
       setIsDrawerOpen(false)
       setEditingBranch(null)
+      toast.success("Branch updated successfully")
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || error.response?.data?.detail || "Failed to update branch")
     }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => branchService.deleteBranch(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['branches'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] })
+      toast.success("Branch deleted successfully")
+    },
+    onError: (error: any) => {
+      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to delete branch";
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && errors[firstKey].length > 0) {
+          errorMessage = errors[firstKey][0];
+        }
+      }
+      toast.error(errorMessage)
+    }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

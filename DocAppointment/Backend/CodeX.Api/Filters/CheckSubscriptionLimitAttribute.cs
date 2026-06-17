@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Hosting;
 
 namespace CodeX.Api.Filters
 {
@@ -45,6 +46,13 @@ namespace CodeX.Api.Filters
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
+            var env = context.HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            if (env.IsDevelopment())
+            {
+                await next();
+                return;
+            }
+
             if (_currentUserService.OrgId == Guid.Empty)
             {
                 await next();

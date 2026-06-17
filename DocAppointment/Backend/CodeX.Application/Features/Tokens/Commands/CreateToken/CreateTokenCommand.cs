@@ -138,6 +138,12 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 }
             }
 
+            // Fix existing patients created with empty OrgId from WhatsApp webhook
+            if (patient.OrganizationId == Guid.Empty && queue.Branch != null)
+            {
+                patient.OrganizationId = queue.Branch.OrganizationId;
+            }
+
             // 2. Duplicate Check (If patient exists)
             if (patient.Id != Guid.Empty)
             {

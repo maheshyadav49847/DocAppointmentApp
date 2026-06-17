@@ -81,6 +81,21 @@ namespace CodeX.Infrastructure.ExternalServices
             await SendTextMessage(phoneNumber, message, branchId);
         }
 
+        public async Task SendSessionCancelledAlert(string phoneNumber, string doctorName, Guid branchId)
+        {
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var message = WhatsAppTranslationHelper.Get(lang, "SESSION_CANCELLED_ALERT", doctorName);
+            await SendTextMessage(phoneNumber, message, branchId);
+        }
+
+        public async Task SendSessionTransferredAlert(string phoneNumber, string doctorName, string newSessionName, int newTokenNumber, Guid branchId)
+        {
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var message = WhatsAppTranslationHelper.Get(lang, "SESSION_TRANSFERRED_ALERT", doctorName, newSessionName, newTokenNumber);
+            await SendTextMessage(phoneNumber, message, branchId);
+        }
+
+
         public Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)
         {
             _logger.LogInformation("Bridge provider does not support templates. Falling back to plain text send.");

@@ -116,6 +116,7 @@ async function getClient(branchId, expectedNumber) {
     },
     client: null,
     saveCreds: null,
+    isReconnecting: false,
     expectedNumber: expectedNumber || null
   };
 
@@ -127,16 +128,6 @@ async function getClient(branchId, expectedNumber) {
     
     const secureSaveCreds = async () => {
       await saveCreds();
-      try {
-        const folder = `baileys_auth_info_${branchId}`;
-        if (fs.existsSync(folder)) {
-          fs.readdirSync(folder).forEach(file => {
-            fs.chmodSync(`${folder}/${file}`, 0o600);
-          });
-        }
-      } catch (e) {
-        console.error("[SECURITY] Failed to set permissions on auth files", e);
-      }
     };
 
     entry.saveCreds = secureSaveCreds;
@@ -144,10 +135,14 @@ async function getClient(branchId, expectedNumber) {
     const sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
-      logger: pino({ level: "warn" }),
-      browser: ['DocAppointment', 'Chrome', '121.0.0.0'],
+      logger: pino({ level: "silent" }),
+      browser: ['Ubuntu', 'Chrome', '121.0.0.0'],
       syncFullHistory: false,
-      generateHighQualityLinkPreview: false
+      markOnlineOnConnect: true,
+      generateHighQualityLinkPreview: false,
+      getMessage: async (key) => {
+        return { conversation: 'Message' };
+      }
     });
 
     entry.client = sock;
@@ -169,9 +164,18 @@ async function getClient(branchId, expectedNumber) {
         entry.state.ready = false;
 
         if (shouldReconnect) {
-          entry.state.step = "Reconnecting...";
-          console.log(`[WARN] ${branchId} connection closed due to error (Status: ${statusCode}), reconnecting...`);
-          setTimeout(connectToWhatsApp, 2000); // Backoff to prevent spamming WhatsApp servers
+          if (!entry.isReconnecting) {
+            entry.isReconnecting = true;
+            entry.state.step = "Reconnecting...";
+            console.log(`[WARN] ${branchId} connection closed due to error (Status: ${statusCode}), reconnecting...`);
+            if (entry.client) {
+              try { entry.client.end(undefined); } catch (e) {}
+            }
+            setTimeout(() => {
+              entry.isReconnecting = false;
+              connectToWhatsApp();
+            }, 2000); // Backoff to prevent spamming WhatsApp servers
+          }
         } else {
           entry.state.step = "Logged Out";
           entry.state.error = entry.state.error || "Session invalid or logged out";

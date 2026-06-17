@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 // Removed unused framer-motion import
 import { api } from "@/lib/axios"
+import { useAuthStore } from "@/store/authStore"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import {
@@ -29,6 +30,15 @@ export default function ConsultationPage() {
   const { patientId } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { activeBranchId, user } = useAuthStore()
+  
+  const { data: branches } = useQuery({
+    queryKey: ['branches', user?.orgId],
+    queryFn: () => api.get(`/branches/org/${user?.orgId}`).then(r => r.data),
+    enabled: !!user?.orgId && !activeBranchId && !user?.branchId
+  })
+
+  const currentBranchId = activeBranchId || user?.branchId || branches?.[0]?.id || user?.orgId || "default"
 
   // Queries
   const { data: patient, isLoading: isPatientLoading } = useQuery({
@@ -105,7 +115,6 @@ export default function ConsultationPage() {
   // Printing & WhatsApp state
   const [isPrintingRx, setIsPrintingRx] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
-  const [sendWhatsApp, setSendWhatsApp] = useState(false)
 
   // Edit State
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
@@ -208,30 +217,34 @@ export default function ConsultationPage() {
       setEditingVisitId(null)
       alert("Consultation saved successfully!")
 
-      if (sendWhatsApp) {
-        setTimeout(async () => {
-          if (!printRef.current) return;
-          try {
-            const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
-            const imgData = canvas.toDataURL("image/png");
-            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-            
-            const base64Pdf = pdf.output("datauristring").split(",")[1];
-            await api.post("/whatsapp/bridge/send", {
-              to: patient?.phone,
-              message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
-              fileBase64: base64Pdf,
-              fileName: `Prescription_${patient?.name}.pdf`
-            });
-            alert("Prescription sent to WhatsApp!");
-          } catch (err) {
-            console.error("Auto-send WA Error", err);
+      setTimeout(async () => {
+        if (!printRef.current) return;
+        try {
+          const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+          
+          const base64Pdf = pdf.output("datauristring").split(",")[1];
+          await api.post("/whatsapp/bridge/send", {
+            branchId: currentBranchId,
+            to: patient?.phone,
+            message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
+            fileBase64: base64Pdf,
+            fileName: `Prescription_${patient?.name}.pdf`
+          });
+          alert("Prescription sent to WhatsApp!");
+        } catch (err: any) {
+          console.error("Auto-send WA Error", err);
+          if (err.response?.status === 409) {
+            alert("WhatsApp is not connected for this branch. Please scan the QR code in WhatsApp Settings first.");
+          } else {
+            alert("Prescription saved, but failed to send WhatsApp: " + (err.response?.data?.message || err.message));
           }
-        }, 500);
-      }
+        }
+      }, 500);
     },
     onError: (err: any) => {
       alert("Failed to save consultation: " + (err.response?.data || err.message))
@@ -341,18 +354,7 @@ export default function ConsultationPage() {
         
         <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
           <div className="flex items-center gap-4 whitespace-nowrap">
-            <div className="flex items-center gap-2 mr-4">
-              <input 
-                type="checkbox" 
-                id="sendWa" 
-                checked={sendWhatsApp} 
-                onChange={e => setSendWhatsApp(e.target.checked)} 
-                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="sendWa" className="text-sm font-semibold text-slate-700 flex items-center gap-1">
-                <MessageSquare className="w-4 h-4 text-emerald-500" /> Auto-send WhatsApp
-              </label>
-            </div>
+
             
             {editingVisitId && (
               <button 

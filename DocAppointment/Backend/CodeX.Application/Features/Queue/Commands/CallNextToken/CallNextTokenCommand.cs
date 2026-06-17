@@ -123,10 +123,11 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                     {
                         _ = LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Failed", error: ex.Message, tokenId: nextToken.Id);
                         
-                        // SMS Fallback for critical turn alert
                         try
                         {
-                            var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{nextToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
+                            var chatSessionAlert = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == nextToken.Patient.Phone, cancellationToken);
+                            var lang = chatSessionAlert?.Language ?? "1";
+                            var smsMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", nextToken.TokenNumber);
                             await _smsService.SendSmsAsync(nextToken.Patient.Phone, smsMsg);
                             await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Sent", tokenId: nextToken.Id);
                         }

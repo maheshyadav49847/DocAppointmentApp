@@ -46,6 +46,12 @@ namespace CodeX.Api.Filters
             // var body = await new StreamReader(request.Body).ReadToEndAsync();
             // auditLog.RequestPayload = body;
 
+            // If the action threw an exception, clear the change tracker to avoid saving partial entity states (like the Organization added before the exception)
+            if (executedContext.Exception != null && !executedContext.ExceptionHandled)
+            {
+                ((Microsoft.EntityFrameworkCore.DbContext)_dbContext).ChangeTracker.Clear();
+            }
+
             _dbContext.AuditLogs.Add(auditLog);
             await _dbContext.SaveChangesAsync(default);
         }

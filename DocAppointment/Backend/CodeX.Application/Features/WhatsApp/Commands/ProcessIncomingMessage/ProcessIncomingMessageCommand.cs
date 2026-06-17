@@ -8,6 +8,7 @@ using CodeX.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 {
@@ -25,14 +26,16 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private readonly IWhatsAppService _whatsappService;
         private readonly ISmsService _smsService;
         private readonly IQueueNotificationService _notificationService;
+        private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
 
-        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService)
+        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory)
         {
             _context = context;
             _mediator = mediator;
             _whatsappService = whatsappService;
             _smsService = smsService;
             _notificationService = notificationService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -401,7 +404,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             try
             {
-                var result = await _mediator.Send(new CreateTokenCommand
+                using var scope = _serviceScopeFactory.CreateScope();
+                var scopedMediator = scope.ServiceProvider.GetRequiredService<ISender>();
+                var scopedContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+                var result = await scopedMediator.Send(new CreateTokenCommand
                 {
                     QueueId = queue.Id,
                     PatientName = patient?.Name ?? "WhatsApp User",
@@ -409,8 +416,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     Source = BookingSource.WhatsApp
                 }, ct);
 
-                var createdToken = await _context.Tokens.IgnoreQueryFilters().FirstOrDefaultAsync(t => !t.IsDeleted && t.Id == result.TokenId, ct);
-                var tokenNum = createdToken?.TokenNumber ?? 0;
+                var tokenNum = result.TokenNumber;
 
                 ResetSession(session);
 
@@ -498,7 +504,13 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && phoneVars.Contains(p.Phone), ct);
             if (patient == null)
             {
-                patient = new Patient { Phone = session.PhoneNumber, Name = name.Trim() };
+                var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == session.BranchId, ct);
+                patient = new Patient 
+                { 
+                    Phone = session.PhoneNumber, 
+                    Name = name.Trim(),
+                    OrganizationId = branch?.OrganizationId ?? Guid.Empty
+                };
                 _context.Patients.Add(patient);
             }
             else
@@ -583,7 +595,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             try
             {
-                await _mediator.Send(new CreateRatingCommand
+                using var scope = _serviceScopeFactory.CreateScope();
+                var scopedMediator = scope.ServiceProvider.GetRequiredService<ISender>();
+
+                await scopedMediator.Send(new CreateRatingCommand
                 {
                     TokenId = session.SelectedSessionId.Value,
                     Score = score

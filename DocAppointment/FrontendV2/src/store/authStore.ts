@@ -6,6 +6,7 @@ interface AuthUser {
   role: string
   orgId: string
   branchId: string | null
+  doctorId?: string
 }
 
 interface AuthState {

@@ -46,25 +46,13 @@ namespace CodeX.Api.Controllers
         [HttpPost("{queueId}/next")]
         public async Task<ActionResult<int>> Next(Guid queueId)
         {
-            try
+            if (!await CanAccessQueue(queueId))
             {
-                if (!await CanAccessQueue(queueId))
-                {
-                    return Forbid();
-                }
+                return Forbid();
+            }
 
-                var result = await Mediator.Send(new CallNextTokenCommand(queueId));
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                // Return 400 for domain exceptions like "No more tokens"
-                if (ex.Message.Contains("No more pending tokens"))
-                {
-                    return BadRequest(new { message = ex.Message });
-                }
-                return StatusCode(500, new { message = "An error occurred while processing the queue.", detail = "Please contact support if the issue persists." });
-            }
+            var result = await Mediator.Send(new CallNextTokenCommand(queueId));
+            return Ok(result);
         }
 
         [HttpPost("{queueId}/arrived")]
@@ -101,14 +89,14 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/end")]
-        public async Task<ActionResult<bool>> End(Guid queueId)
+        public async Task<ActionResult<bool>> End(Guid queueId, [FromBody] EndQueueDto? dto = null)
         {
             if (!await CanAccessQueue(queueId))
             {
                 return Forbid();
             }
 
-            return await Mediator.Send(new EndQueueCommand(queueId));
+            return await Mediator.Send(new EndQueueCommand(queueId, dto?.Action ?? EndQueueAction.CancelRemaining, dto?.TargetSessionId));
         }
 
         [HttpPost("{queueId}/alert")]
@@ -172,12 +160,15 @@ namespace CodeX.Api.Controllers
                 id = queue.Id,
                 status = queue.Status,
                 currentTokenNumber = queue.CurrentTokenNumber,
+                doctorId = queue.DoctorId,
+                sessionId = queue.SessionId,
                 doctorName = queue.Doctor?.Name ?? "Unknown Doctor",
                 sessionName = queue.Session?.SessionName ?? "Unknown Session",
                 waitingCount,
                 completedCount,
                 skippedCount,
-                currentPatientName = currentToken?.Patient?.Name ?? "No one"
+                currentPatientName = currentToken?.Patient?.Name ?? "No one",
+                currentPatientId = currentToken?.PatientId
             });
         }
 
@@ -293,10 +284,19 @@ namespace CodeX.Api.Controllers
                 return true;
             }
 
-            return await _context.DailyQueues
-                .AnyAsync(q => q.Id == queueId && 
-                          q.Branch.OrganizationId == _currentUserService.OrgId &&
-                          (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+            var query = _context.DailyQueues.Where(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
+
+            if (_currentUserService.BranchId != null)
+            {
+                query = query.Where(q => q.BranchId == _currentUserService.BranchId);
+            }
+
+            if (_currentUserService.IsInRole("Doctor") && _currentUserService.DoctorId.HasValue)
+            {
+                query = query.Where(q => q.DoctorId == _currentUserService.DoctorId.Value);
+            }
+
+            return await query.AnyAsync();
         }
     }
 }

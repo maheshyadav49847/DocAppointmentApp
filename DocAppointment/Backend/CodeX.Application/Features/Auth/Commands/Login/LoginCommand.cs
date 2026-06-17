@@ -78,7 +78,8 @@ namespace CodeX.Application.Features.Auth.Commands.Login
                 staff.Email, 
                 staff.Role.ToString(), 
                 staff.BranchId, 
-                staff.OrganizationId);
+                staff.OrganizationId,
+                staff.DoctorId);
                 
             var refreshTokenStr = _identityService.GenerateRefreshToken();
             

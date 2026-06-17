@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom"
 import { Activity, MessageSquare, Building2, Sparkles } from "lucide-react"
-import { MyQCareLogo } from '../components/MyQCareLogo'
+import { BrandLogo } from '../components/BrandLogo'
 
 export default function AuthLayout() {
   return (
@@ -12,14 +12,8 @@ export default function AuthLayout() {
         {/* Background Effects */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
 
-        {/* Top Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-900/20">
-            <MyQCareLogo size={28} className="text-indigo-600" />
-          </div>
-          <span className="text-2xl font-bold text-white tracking-tight">
-            MyQCare
-          </span>
+        <div className="relative z-10">
+          <BrandLogo theme="dark" size="xl" showSubtitle align="start" />
         </div>
 
         {/* Middle Content - Application Details */}
@@ -96,11 +90,8 @@ export default function AuthLayout() {
         <div className="w-full max-w-md animate-in slide-in-from-bottom-8 fade-in duration-700 relative z-10">
 
           {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              <MyQCareLogo size={24} className="text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900 tracking-tight">MQcare</span>
+          <div className="lg:hidden flex mb-10 w-full justify-center">
+            <BrandLogo theme="light" size="lg" showSubtitle align="center" />
           </div>
 
           <Outlet />

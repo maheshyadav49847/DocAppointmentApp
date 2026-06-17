@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
-import { motion } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Search, Activity, X, Building2, UserCog, ClipboardList } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Search, Activity, X, Building2, UserCog, ClipboardList, Key } from "lucide-react"
+import toast from "react-hot-toast"
 
-import { MyQCareLogo } from "@/components/MyQCareLogo"
+import { BrandLogo } from "@/components/BrandLogo"
 import { useAuthStore } from "@/store/authStore"
 import { authService } from "@/services/authService"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,8 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [notificationOpen, setNotificationOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
 
   const profileRef = useRef<HTMLDivElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -90,10 +93,7 @@ export default function DashboardLayout() {
       >
         {/* Brand */}
         <div className="h-14 flex items-center px-4 border-b border-slate-200 shrink-0">
-          <div className="flex items-center gap-2">
-            <MyQCareLogo size={20} className="text-indigo-600" />
-            <span className="text-base font-semibold tracking-tight text-slate-900">MyQCare</span>
-          </div>
+          <BrandLogo theme="light" size="sm" showSubtitle={false} />
           {sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(false)}
@@ -107,6 +107,11 @@ export default function DashboardLayout() {
         {/* Nav Links */}
         <div className="flex-1 overflow-y-auto py-4 space-y-1">
           {navigation.map((item) => {
+            // Hide administrative menus from Doctors
+            if (user?.role === "Doctor" && !["Queue (Live)", "Analytics", "Patients", "Pharmacy"].includes(item.name)) {
+              return null;
+            }
+
             const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href))
             return (
               <Link
@@ -240,6 +245,12 @@ export default function DashboardLayout() {
                     <Settings className="w-4 h-4" /> Settings
                   </Link>
                   <button
+                    onClick={() => { setProfileOpen(false); setChangePasswordOpen(true); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                  >
+                    <Key className="w-4 h-4" /> Change Password
+                  </button>
+                  <button
                     onClick={() => { setProfileOpen(false); handleLogout(); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
                   >
@@ -264,6 +275,95 @@ export default function DashboardLayout() {
           </motion.div>
         </main>
       </div>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {changePasswordOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                    <Key className="w-5 h-5 text-indigo-500" />
+                    Change Password
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-1">Update your account password securely.</p>
+                </div>
+                <button onClick={() => setChangePasswordOpen(false)} className="p-2 text-zinc-400 hover:bg-zinc-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                const formData = new FormData(e.currentTarget)
+                const oldPassword = formData.get('oldPassword') as string
+                const newPassword = formData.get('newPassword') as string
+                const confirmNewPassword = formData.get('confirmNewPassword') as string
+
+                if (newPassword !== confirmNewPassword) {
+                  toast.error("New passwords do not match")
+                  return
+                }
+
+                try {
+                  setIsChangingPassword(true)
+                  await authService.changePassword({ oldPassword, newPassword, confirmNewPassword })
+                  toast.success("Password changed successfully")
+                  setChangePasswordOpen(false)
+                } catch (error: any) {
+                  const errorMsg = error.response?.data?.errors?.OldPassword?.[0] || error.response?.data?.message || "Failed to change password"
+                  toast.error(errorMsg)
+                } finally {
+                  setIsChangingPassword(false)
+                }
+              }}>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Old Password</label>
+                    <input
+                      type="password"
+                      name="oldPassword"
+                      required
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      required
+                      minLength={8}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
+                    <input
+                      type="password"
+                      name="confirmNewPassword"
+                      required
+                      minLength={8}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
+                  <button type="button" onClick={() => setChangePasswordOpen(false)} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
+                  <button type="submit" disabled={isChangingPassword} className="btn-primary text-sm">
+                    {isChangingPassword ? 'Saving...' : 'Change Password'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -18,7 +18,7 @@ namespace CodeX.Infrastructure.Identity
             _jwtSettings = jwtOptions.Value;
         }
 
-        public string GenerateJwtToken(Guid userId, string email, string role, Guid? branchId, Guid orgId)
+        public string GenerateJwtToken(Guid userId, string email, string role, Guid? branchId, Guid orgId, Guid? doctorId = null)
         {
             var secretKey = _jwtSettings.Secret;
             if (string.IsNullOrEmpty(secretKey) || secretKey.Length < 32)
@@ -38,6 +38,11 @@ namespace CodeX.Infrastructure.Identity
             if (branchId.HasValue)
             {
                 claims.Add(new Claim("branchId", branchId.Value.ToString()));
+            }
+
+            if (doctorId.HasValue)
+            {
+                claims.Add(new Claim("doctorId", doctorId.Value.ToString()));
             }
 
             var token = new JwtSecurityToken(

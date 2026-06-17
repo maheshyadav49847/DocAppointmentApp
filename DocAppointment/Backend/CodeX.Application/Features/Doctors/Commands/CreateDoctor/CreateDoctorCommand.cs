@@ -17,6 +17,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
         public string? Experience { get; init; }
         public string? Mobile { get; init; }
         public string? EmailId { get; init; }
+        public string? Password { get; init; }
     }
 
     public class CreateDoctorCommandHandler : IRequestHandler<CreateDoctorCommand, Guid>
@@ -76,6 +77,23 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
             }
 
             _context.Doctors.Add(doctor);
+            
+            // Create Staff record for the doctor if Email and Password are provided
+            if (!string.IsNullOrWhiteSpace(request.EmailId) && !string.IsNullOrWhiteSpace(request.Password))
+            {
+                var staff = new CodeX.Domain.Entities.Staff
+                {
+                    OrganizationId = request.OrganizationId,
+                    BranchId = request.BranchIds.FirstOrDefault(),
+                    Email = request.EmailId.Trim().ToLower(),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    FirstName = request.Name,
+                    Role = CodeX.Domain.Enums.StaffRole.Doctor,
+                    DoctorId = doctor.Id
+                };
+                _context.Staffs.Add(staff);
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return doctor.Id;

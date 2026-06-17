@@ -30,6 +30,12 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((state) => state.user)
+  if (user?.role === "Doctor") return <Navigate to="/" replace />
+  return <>{children}</>
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -39,22 +45,22 @@ function App() {
           <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
           <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
         </Route>
-        
+
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<QueueDashboardPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/doctors" element={<DoctorsPage />} />
+          <Route path="/doctors" element={<AdminOnlyRoute><DoctorsPage /></AdminOnlyRoute>} />
           <Route path="/patients" element={<PatientsPage />} />
           <Route path="/consult/:patientId" element={<ConsultationPage />} />
-          <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/branches" element={<BranchesPage />} />
-          <Route path="/staff" element={<StaffPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/sessions" element={<AdminOnlyRoute><SessionsPage /></AdminOnlyRoute>} />
+          <Route path="/branches" element={<AdminOnlyRoute><BranchesPage /></AdminOnlyRoute>} />
+          <Route path="/staff" element={<AdminOnlyRoute><StaffPage /></AdminOnlyRoute>} />
+          <Route path="/settings" element={<AdminOnlyRoute><SettingsPage /></AdminOnlyRoute>} />
           <Route path="/pharmacy" element={<PharmacyPage />} />
-          <Route path="/audit-logs" element={<AuditLogsPage />} />
+          <Route path="/audit-logs" element={<AdminOnlyRoute><AuditLogsPage /></AdminOnlyRoute>} />
           {/* We will add other routes here in later phases */}
         </Route>
-        
+
         {/* Default route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

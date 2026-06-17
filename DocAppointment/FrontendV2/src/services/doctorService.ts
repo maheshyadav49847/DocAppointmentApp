@@ -13,6 +13,7 @@ export interface Doctor {
   registrationNumber?: string
   organizationId: string
   branchIds?: string[]
+  password?: string
 }
 
 export const doctorService = {

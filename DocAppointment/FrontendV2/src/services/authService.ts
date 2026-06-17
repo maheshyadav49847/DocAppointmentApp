@@ -6,6 +6,7 @@ export interface LoginResponse {
   role: string
   orgId: string
   branchId: string | null
+  doctorId?: string
 }
 
 export const authService = {
@@ -30,6 +31,11 @@ export const authService = {
 
   resetPassword: async (identifier: string, token: string, newPassword: string): Promise<any> => {
     const { data } = await api.post("/auth/reset-password", { identifier, token, newPassword })
+    return data
+  },
+
+  changePassword: async (payload: Record<string, string>): Promise<any> => {
+    const { data } = await api.post("/auth/change-password", payload)
     return data
   }
 }

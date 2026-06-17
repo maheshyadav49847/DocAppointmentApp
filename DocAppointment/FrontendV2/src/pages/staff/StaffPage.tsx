@@ -12,6 +12,7 @@ import {
   UserCog, Search, Plus, Edit, Trash2,
   X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, Building2
 } from "lucide-react"
+import toast from "react-hot-toast"
 
 import { staffService } from "@/services/staffService"
 import { branchService } from "@/services/branchService"
@@ -35,6 +36,7 @@ export default function StaffPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<any>(null)
+  const [resettingStaff, setResettingStaff] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -62,6 +64,18 @@ export default function StaffPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
+      toast.success('Staff created successfully')
+    },
+    onError: (error: any) => {
+      const data = error.response?.data
+      const errors = data?.errors || data?.extensions?.errors
+      if (errors) {
+        Object.values(errors).forEach((errMsgs: any) => {
+          if (Array.isArray(errMsgs)) errMsgs.forEach(msg => toast.error(msg))
+        })
+      } else {
+        toast.error(data?.detail || data?.message || 'Failed to create staff')
+      }
     }
   })
 
@@ -74,12 +88,30 @@ export default function StaffPage() {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
       setEditingStaff(null)
+      toast.success('Staff updated successfully')
+    },
+    onError: (error: any) => {
+      const data = error.response?.data
+      const errors = data?.errors || data?.extensions?.errors
+      if (errors) {
+        Object.values(errors).forEach((errMsgs: any) => {
+          if (Array.isArray(errMsgs)) errMsgs.forEach(msg => toast.error(msg))
+        })
+      } else {
+        toast.error(data?.detail || data?.message || 'Failed to update staff')
+      }
     }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => staffService.deleteStaff(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['staff'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] })
+      toast.success('Staff deleted successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to delete staff')
+    }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -93,13 +125,10 @@ export default function StaffPage() {
       phoneNumber: formData.get('phoneNumber'),
       role: parseInt(formData.get('role') as string)
     }
-    const password = formData.get('password') as string
-
     if (editingStaff) {
-      if (password) data.newPassword = password
       updateMutation.mutate(data)
     } else {
-      data.password = password
+      data.password = formData.get('password') as string
       createMutation.mutate(data)
     }
   }
@@ -167,6 +196,13 @@ export default function StaffPage() {
             title="Edit Staff"
           >
             <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => { setResettingStaff(row.original); }}
+            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+            title="Reset Password"
+          >
+            <Key className="w-4 h-4" />
           </button>
           {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
             <button
@@ -392,6 +428,12 @@ export default function StaffPage() {
                       >
                         <Edit className="w-4 h-4" /> Edit
                       </button>
+                      <button
+                        onClick={() => { setResettingStaff(member); }}
+                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Key className="w-4 h-4" /> Reset
+                      </button>
                       {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
                         <button
                           onClick={() => {
@@ -512,12 +554,14 @@ export default function StaffPage() {
                     <input required type="tel" name="phoneNumber" defaultValue={editingStaff?.phoneNumber} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                   </div>
 
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <Key className="w-4 h-4 text-amber-500" /> Password {editingStaff && <span className="text-zinc-400 font-normal">(Leave blank to keep unchanged)</span>}
-                    </label>
-                    <input type="password" name="password" required={!editingStaff} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={editingStaff ? "••••••••" : "Min 6 characters"} />
-                  </div>
+                  { !editingStaff && (
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <Key className="w-4 h-4 text-amber-500" /> Password
+                      </label>
+                      <input type="password" name="password" required className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
+                    </div>
+                  )}
 
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-3">
@@ -548,6 +592,59 @@ export default function StaffPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Password Reset Modal */}
+      <AnimatePresence>
+        {resettingStaff && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-6 border-b border-zinc-100">
+                <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-500" />
+                  Reset Password
+                </h3>
+                <p className="text-sm text-zinc-500 mt-1">
+                  Enter a new password for {resettingStaff.firstName} {resettingStaff.lastName}.
+                </p>
+              </div>
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                const formData = new FormData(e.currentTarget)
+                const newPassword = formData.get('password') as string
+                updateMutation.mutate({
+                  ...resettingStaff,
+                  newPassword
+                })
+                setResettingStaff(null)
+              }}>
+                <div className="p-6">
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    required
+                    minLength={8}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="Min 8 characters"
+                    autoFocus
+                  />
+                </div>
+                <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
+                  <button type="button" onClick={() => setResettingStaff(null)} className="btn-danger">Cancel</button>
+                  <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+                    {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

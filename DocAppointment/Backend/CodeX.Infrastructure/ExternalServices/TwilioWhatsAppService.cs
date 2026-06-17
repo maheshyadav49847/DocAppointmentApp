@@ -156,6 +156,21 @@ namespace CodeX.Infrastructure.ExternalServices
             await SendTextMessage(phoneNumber, msg, branchId);
         }
 
+        public async Task SendSessionCancelledAlert(string phoneNumber, string doctorName, Guid branchId)
+        {
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_CANCELLED_ALERT", doctorName);
+            await SendTextMessage(phoneNumber, msg, branchId);
+        }
+
+        public async Task SendSessionTransferredAlert(string phoneNumber, string doctorName, string newSessionName, int newTokenNumber, Guid branchId)
+        {
+            var lang = await GetUserLanguageAsync(phoneNumber);
+            var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_TRANSFERRED_ALERT", doctorName, newSessionName, newTokenNumber);
+            await SendTextMessage(phoneNumber, msg, branchId);
+        }
+
+
         // ─── Health check (called from settings) ─────────────────────────────
         public async Task<bool> TestConnection(string accountSid, string authToken, string fromNumber)
         {

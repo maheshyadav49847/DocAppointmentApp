@@ -150,6 +150,8 @@ builder.Services.AddHostedService<CodeX.Api.BackgroundServices.FollowUpReminderS
 
 var app = builder.Build();
 
+app.UseMiddleware<CodeX.Api.Middlewares.ExceptionHandlingMiddleware>();
+
 app.UseCors("DefaultPolicy");
 app.UseSwagger();
 app.UseSwaggerUI();

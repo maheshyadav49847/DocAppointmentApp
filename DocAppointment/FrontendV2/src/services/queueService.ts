@@ -41,8 +41,8 @@ export const queueService = {
     const response = await api.post(`/queue/${queueId}/complete`)
     return response.data
   },
-  endQueue: async (queueId: string) => {
-    const response = await api.post(`/queue/${queueId}/end`)
+  endQueue: async (queueId: string, data?: { action?: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string }) => {
+    const response = await api.post(`/queue/${queueId}/end`, data)
     return response.data
   },
   cancelQueue: async (queueId: string) => {

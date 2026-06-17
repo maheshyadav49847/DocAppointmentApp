@@ -143,5 +143,13 @@ namespace CodeX.Api.Controllers
             await Mediator.Send(command);
             return Ok(new { message = "Password has been reset successfully." });
         }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(CodeX.Application.Features.Auth.Commands.ChangePassword.ChangePasswordCommand command)
+        {
+            await Mediator.Send(command);
+            return Ok(new { message = "Password has been changed successfully." });
+        }
     }
 }

@@ -49,53 +49,34 @@ namespace CodeX.Api.Controllers
         [HttpPost("test")]
         public async Task<IActionResult> Test([FromBody] TwilioConfigDto dto)
         {
-            try
-            {
-                var (accountSid, authToken, fromNumber) = await ResolvePayload(dto, requireAllFields: true);
-                var connected = await _twilioWhatsApp.TestConnection(accountSid, authToken, fromNumber);
-                return Ok(new { connected });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message, connected = false });
-            }
+            var (accountSid, authToken, fromNumber) = await ResolvePayload(dto, requireAllFields: true);
+            var connected = await _twilioWhatsApp.TestConnection(accountSid, authToken, fromNumber);
+            return Ok(new { connected });
         }
 
         [HttpPost]
         public async Task<IActionResult> Save([FromBody] TwilioConfigDto dto)
         {
-            try
+            var (accountSid, authToken, fromNumber) = await ResolvePayload(dto, requireAllFields: true);
+            var isValid = await _twilioWhatsApp.TestConnection(accountSid, authToken, fromNumber);
+            if (!isValid)
             {
-                var (accountSid, authToken, fromNumber) = await ResolvePayload(dto, requireAllFields: true);
-                var isValid = await _twilioWhatsApp.TestConnection(accountSid, authToken, fromNumber);
-                if (!isValid)
-                {
-                    return BadRequest(new { message = "Invalid Twilio credentials. Connection test failed." });
-                }
-
-                await UpsertSetting("Twilio:AccountSid", accountSid, false);
-                await UpsertSetting("Twilio:AuthToken", authToken, true);
-                await UpsertSetting("Twilio:WhatsAppFromNumber", fromNumber, false);
-
-                await _context.SaveChangesAsync(default);
-                _logger.LogInformation("Twilio config updated in database.");
-
-                return Ok(new
-                {
-                    message = "Twilio credentials saved successfully.",
-                    authTokenConfigured = true,
-                    isConfigured = true
-                });
+                return BadRequest(new { message = "Invalid Twilio credentials. Connection test failed." });
             }
-            catch (InvalidOperationException ex)
+
+            await UpsertSetting("Twilio:AccountSid", accountSid, false);
+            await UpsertSetting("Twilio:AuthToken", authToken, true);
+            await UpsertSetting("Twilio:WhatsAppFromNumber", fromNumber, false);
+
+            await _context.SaveChangesAsync(default);
+            _logger.LogInformation("Twilio config updated in database.");
+
+            return Ok(new
             {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to save Twilio config.");
-                return StatusCode(500, new { message = "Failed to save configuration. Internal server error." });
-            }
+                message = "Twilio credentials saved successfully.",
+                authTokenConfigured = true,
+                isConfigured = true
+            });
         }
 
         private async Task<(string AccountSid, string AuthToken, string FromNumber)> ResolvePayload(TwilioConfigDto dto, bool requireAllFields)

@@ -28,15 +28,7 @@ namespace CodeX.Api.Controllers
         public async Task<ActionResult<Guid>> Create(CreateDoctorCommand command)
         {
             var finalCommand = command with { OrganizationId = _currentUserService.OrgId };
-            try
-            {
-                return await Mediator.Send(finalCommand);
-            }
-            catch (System.Exception ex)
-            {
-                var message = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { message });
-            }
+            return await Mediator.Send(finalCommand);
         }
 
         [HttpGet]
@@ -67,32 +59,16 @@ namespace CodeX.Api.Controllers
         public async Task<IActionResult> Update(Guid id, UpdateDoctorCommand command)
         {
             if (id != command.Id) return BadRequest();
-            try
-            {
-                await Mediator.Send(command);
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                var message = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { message });
-            }
+            await Mediator.Send(command);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try 
-            {
-                await Mediator.Send(new DeleteDoctorCommand(id));
-                return NoContent();
-            }
-            catch (System.Exception ex)
-            {
-                var message = ex.InnerException?.Message ?? ex.Message;
-                return BadRequest(new { message });
-            }
+            await Mediator.Send(new DeleteDoctorCommand(id));
+            return NoContent();
         }
     }
 }

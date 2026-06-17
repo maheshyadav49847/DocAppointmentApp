@@ -13,6 +13,7 @@ import {
   Stethoscope, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
   LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2
 } from "lucide-react"
+import toast from "react-hot-toast"
 
 import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
@@ -57,16 +58,40 @@ export default function DoctorsPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctors', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['doctors'] })
       setIsDrawerOpen(false)
       setEditingDoctor(null)
+      toast.success(editingDoctor ? "Doctor updated successfully" : "Doctor created successfully")
+    },
+    onError: (error: any) => {
+      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to save doctor";
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && errors[firstKey].length > 0) {
+          errorMessage = errors[firstKey][0];
+        }
+      }
+      toast.error(errorMessage)
     }
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => doctorService.deleteDoctor(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctors', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['doctors'] })
+      toast.success("Doctor deleted successfully")
+    },
+    onError: (error: any) => {
+      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to delete doctor";
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && errors[firstKey].length > 0) {
+          errorMessage = errors[firstKey][0];
+        }
+      }
+      toast.error(errorMessage)
     }
   })
 
@@ -83,6 +108,7 @@ export default function DoctorsPage() {
       experience: formData.get('experience') as string,
       registrationNumber: formData.get('registrationNumber') as string,
       branchIds: formData.getAll('branchIds') as string[],
+      password: formData.get('password') as string || undefined,
       organizationId: orgId!,
     }
     mutation.mutate(data)
@@ -579,6 +605,12 @@ export default function DoctorsPage() {
                         <Mail className="w-4 h-4 text-rose-500" /> Email
                       </label>
                       <input name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
+                      </label>
+                      <input name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
                     </div>
                     <div className="col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">

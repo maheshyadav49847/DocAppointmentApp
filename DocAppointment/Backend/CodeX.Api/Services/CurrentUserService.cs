@@ -32,6 +32,15 @@ namespace CodeX.Api.Services
             }
         }
 
+        public Guid? DoctorId
+        {
+            get
+            {
+                var doctorIdStr = _httpContextAccessor.HttpContext?.User?.FindFirstValue("doctorId");
+                return Guid.TryParse(doctorIdStr, out var id) ? id : null;
+            }
+        }
+
         public bool IsInRole(string role) => _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;
     }
 }

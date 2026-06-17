@@ -68,7 +68,9 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
                 // SMS Fallback
                 try
                 {
-                    var smsMsg = $"🔔 AAPKA NUMBER AA GAYA HAI! Token #{currentToken.TokenNumber} - Dr. {queue.Doctor.Name}. Kripya turant cabin me aaiye. ✨";
+                    var chatSessionAlert = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
+                    var lang = chatSessionAlert?.Language ?? "1";
+                    var smsMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", currentToken.TokenNumber);
                     await _smsService.SendSmsAsync(currentToken.Patient.Phone, smsMsg);
                     await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient_SMS", "Sent", tokenId: currentToken.Id);
                     return true;

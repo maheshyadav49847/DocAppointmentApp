@@ -25,6 +25,8 @@ namespace CodeX.Domain.Entities
         // Navigation Properties
         public virtual Organization Organization { get; set; } = null!;
         public virtual Branch? Branch { get; set; }
+        public Guid? DoctorId { get; set; }
+        public virtual Doctor? Doctor { get; set; }
         
         public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

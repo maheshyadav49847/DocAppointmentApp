@@ -13,14 +13,7 @@ namespace CodeX.Api.Controllers
         [Authorize(Roles = "OrgAdmin,BranchAdmin")]
         public async Task<ActionResult<Guid>> Create(CreateSessionCommand command)
         {
-            try 
-            {
-                return await Mediator.Send(command);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = ex.Message, inner = ex.InnerException?.Message });
-            }
+            return await Mediator.Send(command);
         }
 
         [HttpGet("doctor/{doctorId}")]

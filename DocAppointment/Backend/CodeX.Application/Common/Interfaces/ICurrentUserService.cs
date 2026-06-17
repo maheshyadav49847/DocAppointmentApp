@@ -7,6 +7,7 @@ namespace CodeX.Application.Common.Interfaces
         string? UserId { get; }
         Guid OrgId { get; }
         Guid? BranchId { get; }
+        Guid? DoctorId { get; }
         bool IsInRole(string role);
     }
 }

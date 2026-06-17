@@ -9,16 +9,20 @@ import {
 import { queueService } from "@/services/queueService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { useAuthStore } from "@/store/authStore"
+import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
+import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
   const { user, activeBranchId } = useAuthStore()
+  const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting')
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
   const [editingToken, setEditingToken] = useState<any>(null)
 
   const { data: queue, refetch: refetchQueue } = useQuery({
@@ -51,6 +55,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
       const handleEnd = (data: any) => {
         const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
         if (incomingQueueId === String(queueId || "").toLowerCase()) {
+          queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+          queryClient.invalidateQueries({ queryKey: ['queueStats'] })
           onBack()
         }
       }
@@ -98,21 +104,34 @@ export default function QueueManager({ sessionData, onBack }: any) {
   })
 
   const endQueueMutation = useMutation({
-    mutationFn: () => queueService.endQueue(queueId),
+    mutationFn: (data?: { action?: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string }) => queueService.endQueue(queueId, data),
     onSuccess: () => {
       const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
       Object.keys(startedSessions).forEach(key => {
         if (startedSessions[key] === queueId) delete startedSessions[key]
       })
       sessionStorage.setItem('started_sessions', JSON.stringify(startedSessions))
+      queryClient.invalidateQueries({ queryKey: ['queueDetails', queueId] })
+      queryClient.invalidateQueries({ queryKey: ['upcomingTokens', queueId] })
+      queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['queueStats'] })
+      setIsEndSessionModalOpen(false)
       onBack()
     }
   })
 
   const handleEndSession = () => {
-    if (window.confirm("Are you sure you want to end this session?")) {
-      endQueueMutation.mutate()
+    if (queue && (queue.waitingCount > 0 || queue.skippedCount > 0)) {
+      setIsEndSessionModalOpen(true)
+    } else {
+      if (window.confirm("Are you sure you want to end this session?")) {
+        endQueueMutation.mutate(undefined)
+      }
     }
+  }
+
+  const confirmEndSession = (action: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string) => {
+    endQueueMutation.mutate({ action, targetSessionId: targetSessionId || undefined })
   }
 
   if (!queue) return (
@@ -537,6 +556,20 @@ export default function QueueManager({ sessionData, onBack }: any) {
           </div>
         )}
       </AnimatePresence>
+      {/* End Session Modal */}
+      {queue && (
+        <EndSessionModal
+          isOpen={isEndSessionModalOpen}
+          onClose={() => setIsEndSessionModalOpen(false)}
+          onConfirm={confirmEndSession}
+          doctorId={queue.doctorId}
+          branchId={branchId}
+          currentSessionId={queue.sessionId}
+          waitingCount={queue.waitingCount}
+          skippedCount={queue.skippedCount}
+          isPending={endQueueMutation.isPending}
+        />
+      )}
     </motion.div>
   )
 }

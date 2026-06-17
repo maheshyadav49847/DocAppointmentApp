@@ -16,7 +16,11 @@ const registerSchema = z.object({
   orgSlug: z.string().min(2, { message: "Slug is required." }).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
   adminEmail: z.string().email({ message: "Please enter a valid email address." }),
   adminPhoneNumber: z.string().min(10, { message: "Phone number must be valid." }),
-  adminPassword: z.string().min(8, { message: "Password must be at least 8 characters." }),
+  adminPassword: z.string()
+    .min(8, { message: "Password must be at least 8 characters." })
+    .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter." })
+    .regex(/[0-9]/, { message: "Password must contain at least one number." })
+    .regex(/[!@#$%^&*()_+=\[{\]};:<>|./?,-]/, { message: "Password must contain at least one special character." }),
   confirmPassword: z.string().min(8, { message: "Please confirm your password." })
 }).refine((data) => data.adminPassword === data.confirmPassword, {
   message: "Passwords do not match.",
