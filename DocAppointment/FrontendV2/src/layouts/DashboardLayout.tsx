@@ -113,7 +113,7 @@ export default function DashboardLayout() {
         <div className="flex-1 overflow-y-auto py-4 space-y-1">
           {navigation.map((item) => {
             // Hide administrative menus from Doctors
-            if (user?.role === "Doctor" && !["Queue (Live)", "Analytics", "Patients", "Pharmacy"].includes(item.name)) {
+            if (user?.role === "Doctor" && !["Queue (Live)", "Patients", "Pharmacy"].includes(item.name)) {
               return null;
             }
             // Hide administrative menus from Receptionists
