@@ -57,8 +57,8 @@ export function BrandLogo({
       pulseColor: "#818cf8", // indigo-400
     },
     light: {
-      boxBorder: "border-t-indigo-300 border-l-indigo-300 border-b-indigo-700 border-r-indigo-700",
-      iconColor: "text-indigo-300",
+      boxBorder: "border-t-indigo-400 border-l-indigo-400 border-b-indigo-700 border-r-indigo-700",
+      iconColor: "text-indigo-400",
       lensColor: "#1e293b", // slate-800
       textColor: "text-indigo-900", // Deep navy blue, rich and premium on white
       qColor: "text-indigo-600",
