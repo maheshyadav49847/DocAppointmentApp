@@ -138,7 +138,11 @@ export default function DashboardLayout() {
                     : "text-slate-500 hover:bg-indigo-50/80 hover:text-indigo-700 border-l-[4px] border-transparent"
                 )}
               >
-                <item.icon className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-indigo-400")} />
+                {item.name === "Queue (Live)" && user?.role === "Doctor" ? (
+                  <Stethoscope className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-indigo-400")} />
+                ) : (
+                  <item.icon className={cn("w-5 h-5", isActive ? "text-indigo-600" : "text-indigo-400")} />
+                )}
                 {item.name === "Queue (Live)" && user?.role === "Doctor" ? "My Desk" : item.name}
 
                 {item.name === "Queue (Live)" && user?.role !== "Doctor" && (

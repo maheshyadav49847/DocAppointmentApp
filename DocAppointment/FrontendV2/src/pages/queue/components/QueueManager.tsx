@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
-import toast from "react-hot-toast"
+
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
@@ -36,7 +36,6 @@ export default function QueueManager({ sessionData, onBack }: any) {
   useEffect(() => {
     if (queue && (queue.status === 3 || queue.status === 4)) {
       console.log("[QueueManager] Polling detected queue status ended:", queue.status);
-      toast.error("Session has been ended.", { icon: "🛑" })
       queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
       queryClient.invalidateQueries({ queryKey: ['queueStats'] })
       onBack()
@@ -77,7 +76,6 @@ export default function QueueManager({ sessionData, onBack }: any) {
         console.log(`[QueueManager] QueueEnded received. Incoming: ${incomingQueueId}, Current: ${queueId}`)
         if (incomingQueueId === String(queueId || "").toLowerCase()) {
           console.log("[QueueManager] Queue IDs match, navigating back to overview...")
-          toast.error("Session has been ended by the Doctor.", { icon: "🛑" })
           queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
           queryClient.invalidateQueries({ queryKey: ['queueStats'] })
           onBack()
