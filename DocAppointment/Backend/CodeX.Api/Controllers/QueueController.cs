@@ -254,7 +254,8 @@ namespace CodeX.Api.Controllers
                 completedCount,
                 skippedCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
-                currentPatientId = currentToken?.PatientId
+                currentPatientId = currentToken?.PatientId,
+                branchName = queue.Branch?.Name
             });
         }
 

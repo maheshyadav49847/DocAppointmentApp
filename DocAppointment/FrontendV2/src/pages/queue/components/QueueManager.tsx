@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
+import toast from "react-hot-toast"
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
@@ -27,10 +28,29 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
   const { data: queue, refetch: refetchQueue } = useQuery({
     queryKey: ['queueDetails', queueId],
-    queryFn: () => queueService.getQueueDetails(queueId)
+    queryFn: () => queueService.getQueueDetails(queueId),
+    refetchInterval: 3000, // Poll every 3 seconds as a fallback to SignalR
   })
 
-  const branchId = activeBranchId || user?.branchId || queue?.branchId || doctor?.branchId
+  // Fallback: If SignalR misses the event, this polling will catch the status change
+  useEffect(() => {
+    if (queue && (queue.status === 3 || queue.status === 4)) {
+      console.log("[QueueManager] Polling detected queue status ended:", queue.status);
+      toast.error("Session has been ended.", { icon: "🛑" })
+      queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['queueStats'] })
+      onBack()
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('mode')) {
+           window.location.href = window.location.pathname;
+        }
+      }, 500);
+    }
+  }, [queue, onBack, queryClient])
+
+  const targetBranchId = queue?.branchId || session?.branchId || doctor?.branchId || user?.branchId || activeBranchId
+  const branchId = targetBranchId === 'org' ? null : targetBranchId
 
   const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
@@ -54,10 +74,19 @@ export default function QueueManager({ sessionData, onBack }: any) {
       }
       const handleEnd = (data: any) => {
         const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        console.log(`[QueueManager] QueueEnded received. Incoming: ${incomingQueueId}, Current: ${queueId}`)
         if (incomingQueueId === String(queueId || "").toLowerCase()) {
+          console.log("[QueueManager] Queue IDs match, navigating back to overview...")
+          toast.error("Session has been ended by the Doctor.", { icon: "🛑" })
           queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
           queryClient.invalidateQueries({ queryKey: ['queueStats'] })
           onBack()
+          setTimeout(() => {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('mode')) {
+               window.location.href = window.location.pathname;
+            }
+          }, 500);
         }
       }
       connection.on('TokenUpdated', handleUpdate)

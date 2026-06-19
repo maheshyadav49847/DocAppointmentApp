@@ -2,11 +2,12 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { 
   Users, Activity, CheckCircle2, 
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp, Building2
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
+import { branchService } from "@/services/branchService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
@@ -20,6 +21,12 @@ export default function DoctorDeskPage() {
     queryKey: ['doctorActiveQueue', user?.doctorId],
     queryFn: () => queueService.getActiveQueue(user?.doctorId || ""),
     enabled: !!user?.doctorId
+  })
+
+  const { data: branches } = useQuery({
+    queryKey: ['branches', user?.orgId],
+    queryFn: () => branchService.getBranches(user?.orgId!),
+    enabled: !!user?.orgId && !activeQueue
   })
 
   const [isQueueExpanded, setIsQueueExpanded] = useState(false)
@@ -67,12 +74,18 @@ export default function DoctorDeskPage() {
         }
       }
 
+      const handleStart = () => {
+        queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+      }
+
       connection.on('TokenUpdated', handleUpdate)
       connection.on('QueueEnded', handleEnd)
+      connection.on('QueueStarted', handleStart)
       
       return () => {
         connection.off('TokenUpdated', handleUpdate)
         connection.off('QueueEnded', handleEnd)
+        connection.off('QueueStarted', handleStart)
       }
     }
   }, [connection, queueId, refetchQueue, refetchTokens])
@@ -174,8 +187,16 @@ export default function DoctorDeskPage() {
                         <Activity className="w-6 h-6" />
                       </div>
                       <h3 className="font-bold text-slate-800 text-xl group-hover:text-indigo-700 transition-colors line-clamp-1">{session.sessionName || 'Consultation Session'}</h3>
-                      <div className="mt-2 inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-semibold">
-                        {session.startTime} - {session.endTime}
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-semibold">
+                          {session.startTime} - {session.endTime}
+                        </span>
+                        {branches?.find((b: any) => b.id === session.branchId)?.name && (
+                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-indigo-100">
+                            <Building2 className="w-4 h-4" />
+                            {branches.find((b: any) => b.id === session.branchId).name}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button
@@ -215,7 +236,14 @@ export default function DoctorDeskPage() {
             <Activity className="w-5 h-5 text-indigo-500" />
             My Consultation Desk
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Manage your active queue and consultations</p>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+            Manage your active queue and consultations
+            {activeQueue?.branchName && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md font-bold text-xs border border-indigo-100">
+                <Building2 className="w-3 h-3" /> {activeQueue.branchName}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button

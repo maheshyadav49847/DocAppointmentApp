@@ -120,6 +120,10 @@ export default function DashboardLayout() {
             if (user?.role === "Receptionist" && !["Queue (Live)", "Patients", "Pharmacy"].includes(item.name)) {
               return null;
             }
+            // Hide Branches from BranchAdmin since they only manage their own
+            if (user?.role === "BranchAdmin" && item.name === "Branches") {
+              return null;
+            }
 
             const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href))
             return (

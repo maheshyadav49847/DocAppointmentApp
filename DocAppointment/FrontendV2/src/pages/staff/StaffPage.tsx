@@ -31,7 +31,7 @@ export default function StaffPage() {
   const globalBranchId = user?.branchId
 
   const queryClient = useQueryClient()
-  const selectedBranchId = activeBranchId || globalBranchId || 'org'
+  const selectedBranchId = role === 'orgadmin' ? (activeBranchId || 'org') : (globalBranchId || 'org');
   const setSelectedBranchId = setActiveBranchId
   const [searchQuery, setSearchQuery] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -251,13 +251,13 @@ export default function StaffPage() {
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
-            disabled={role === 'branchadmin' || role === 'receptionist'}
+            disabled={role !== 'orgadmin'}
             onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
           >
-            <option value="org">Organization Level</option>
+            {role === 'orgadmin' && <option value="org">Organization Level</option>}
             <optgroup label="Branches">
-              {branches?.map((b: any) => (
+              {branches?.filter((b: any) => role === 'orgadmin' || b.id === globalBranchId).map((b: any) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </optgroup>

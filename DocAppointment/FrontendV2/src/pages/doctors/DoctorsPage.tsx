@@ -32,7 +32,7 @@ export default function DoctorsPage() {
 
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
-  const selectedBranch = activeBranchId || 'all'
+  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
   const queryClient = useQueryClient()
 
   const { data: doctors, isLoading, error } = useQuery({
@@ -234,21 +234,20 @@ export default function DoctorsPage() {
           </div>
         </div>
 
-        {user?.role === 'OrgAdmin' && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-            <select
-              value={selectedBranch}
-              onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
-            >
-              <option value="all">All Branches</option>
-              {branches?.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+          <select
+            value={selectedBranch}
+            disabled={user?.role !== 'OrgAdmin'}
+            onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+          >
+            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
+            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Main Card */}

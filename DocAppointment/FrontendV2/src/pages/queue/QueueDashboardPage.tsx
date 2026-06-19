@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useSearchParams } from "react-router-dom"
 import QueueOverview from "./components/QueueOverview"
 import QueueManager from "./components/QueueManager"
@@ -6,8 +6,9 @@ import { useAuthStore } from "@/store/authStore"
 
 export default function QueueDashboardPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const globalBranchId = user?.branchId
-  const selectedBranchId = activeBranchId || globalBranchId || 'org'
+  const selectedBranchId = role === 'orgadmin' ? (activeBranchId || 'org') : (globalBranchId || 'org');
   const setSelectedBranchId = setActiveBranchId
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -15,15 +16,15 @@ export default function QueueDashboardPage() {
   const urlQueueId = searchParams.get('queueId')
   const [activeSession, setActiveSession] = useState<any>(null)
 
-  const handleManageSession = (doctor: any, session: any, queueId: string) => {
+  const handleManageSession = useCallback((doctor: any, session: any, queueId: string) => {
     setActiveSession({ doctor, session, queueId })
     setSearchParams({ mode: 'manage', queueId: queueId })
-  }
+  }, [setSearchParams])
 
-  const handleBackToOverview = () => {
-    setSearchParams({})
+  const handleBackToOverview = useCallback(() => {
+    setSearchParams(new URLSearchParams())
     setActiveSession(null)
-  }
+  }, [setSearchParams])
 
   return (
     <div className="pb-12">

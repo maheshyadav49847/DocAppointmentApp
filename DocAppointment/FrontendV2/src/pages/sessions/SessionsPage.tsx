@@ -20,7 +20,7 @@ export default function SessionsPage() {
 
   const queryClient = useQueryClient()
 
-  const selectedBranchId = activeBranchId || globalBranchId || ''
+  const selectedBranchId = role === 'orgadmin' ? (activeBranchId || '') : (globalBranchId || '');
   const setSelectedBranchId = setActiveBranchId
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -143,14 +143,15 @@ export default function SessionsPage() {
           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
+            disabled={role !== 'orgadmin'}
             onChange={(e) => {
               setSelectedBranchId(e.target.value)
               setSelectedDoctorId('')
             }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
           >
-            <option value="" disabled>Select Facility</option>
-            {branches?.map((b: any) => (
+            {role === 'orgadmin' && <option value="" disabled>Select Facility</option>}
+            {branches?.filter((b: any) => role === 'orgadmin' || b.id === globalBranchId).map((b: any) => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>

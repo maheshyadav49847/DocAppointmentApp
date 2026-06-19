@@ -36,6 +36,13 @@ namespace CodeX.Api.Services
             }
         }
 
+        public async Task NotifyQueueStarted(Guid branchId, Guid queueId)
+        {
+            await SaveNotificationAsync(branchId, "Session Started", "A new queue session has been started.", "Success");
+            await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("QueueStarted", new { QueueId = queueId });
+        }
+
         public async Task NotifyTokenUpdated(Guid branchId, Guid queueId, int newTokenNumber)
         {
             await SaveNotificationAsync(branchId, "Queue Updated", $"Token #{newTokenNumber} is now active.", "Info");

@@ -15,11 +15,13 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
     {
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IQueueNotificationService _notificationService;
 
-        public CreateDailyQueueCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
+        public CreateDailyQueueCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService, IQueueNotificationService notificationService)
         {
             _context = context;
             _currentUserService = currentUserService;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(CreateDailyQueueCommand request, CancellationToken cancellationToken)
@@ -61,6 +63,7 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
                     await _context.SaveChangesAsync(cancellationToken);
                 }
 
+                await _notificationService.NotifyQueueStarted(existing.BranchId, existing.Id);
                 return existing.Id;
             }
 
@@ -96,6 +99,7 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
             _context.DailyQueues.Add(queue);
             await _context.SaveChangesAsync(cancellationToken);
 
+            await _notificationService.NotifyQueueStarted(queue.BranchId, queue.Id);
             return queue.Id;
         }
     }

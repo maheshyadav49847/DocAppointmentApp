@@ -23,12 +23,28 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
         queryClient.invalidateQueries({ queryKey: ['queueStats', selectedBranchId] })
         queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
       }
+      const handleEnd = (data: any) => {
+        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const started = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
+        let changed = false
+        Object.keys(started).forEach(k => {
+           if (String(started[k]).toLowerCase() === incomingQueueId) {
+             delete started[k]
+             changed = true
+           }
+        })
+        if (changed) sessionStorage.setItem('started_sessions', JSON.stringify(started))
+        handleUpdate()
+      }
+
       connection.on('TokenUpdated', handleUpdate)
-      connection.on('QueueEnded', handleUpdate)
+      connection.on('QueueEnded', handleEnd)
+      connection.on('QueueStarted', handleUpdate)
 
       return () => {
         connection.off('TokenUpdated', handleUpdate)
-        connection.off('QueueEnded', handleUpdate)
+        connection.off('QueueEnded', handleEnd)
+        connection.off('QueueStarted', handleUpdate)
       }
     }
   }, [connection, queryClient, selectedBranchId])
@@ -129,11 +145,12 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
             <select
               value={selectedBranchId}
+              disabled={user?.role !== 'OrgAdmin'}
               onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
             >
-              <option value="org" disabled>Select Facility</option>
-              {branches?.map((b: any) => (
+              {user?.role === 'OrgAdmin' && <option value="org" disabled>Select Facility</option>}
+              {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
@@ -318,7 +335,18 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
   const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
   const fallbackQueueId = startedSessions[sessionKey]
 
-  const isLive = !!fallbackQueueId || (!!activeQueue && !!activeQueue.id)
+  // Clear stale session storage if query confirms there is no active queue
+  if (activeQueue === null || activeQueue?.length === 0 || (activeQueue && !activeQueue.id)) {
+    if (fallbackQueueId) {
+       const started = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
+       delete started[sessionKey]
+       sessionStorage.setItem('started_sessions', JSON.stringify(started))
+    }
+  }
+
+  // Only use fallback if activeQueue is undefined (still loading) or hasn't definitively returned null
+  const definitivelyNoQueue = activeQueue === null || activeQueue?.length === 0 || (activeQueue && !activeQueue.id)
+  const isLive = definitivelyNoQueue ? false : (!!activeQueue?.id || !!fallbackQueueId)
   const displayQueueId = activeQueue?.id || fallbackQueueId
 
   return (

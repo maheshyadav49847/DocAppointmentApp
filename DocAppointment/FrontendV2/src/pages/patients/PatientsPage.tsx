@@ -21,7 +21,7 @@ import { useAuthStore } from "@/store/authStore"
 
 export default function PatientsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
-  const selectedBranch = activeBranchId || 'all'
+  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
   const [globalFilter, setGlobalFilter] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -95,7 +95,7 @@ export default function PatientsPage() {
   const { data: branches } = useQuery({
     queryKey: ['branches', user?.orgId],
     queryFn: () => branchService.getBranches(user?.orgId!),
-    enabled: !!user?.orgId && user?.role === 'OrgAdmin'
+    enabled: !!user?.orgId
   })
 
   const { data: paginatedData, isLoading, error } = useQuery({
@@ -170,13 +170,15 @@ export default function PatientsPage() {
           >
             <Edit className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => navigate(`/consult/${row.original.id}`)}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Consult"
-          >
-            <Stethoscope className="w-4 h-4" />
-          </button>
+          {user?.role !== 'Receptionist' && (
+            <button
+              onClick={() => navigate(`/consult/${row.original.id}`)}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Consult"
+            >
+              <Stethoscope className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )
     }
@@ -223,24 +225,23 @@ export default function PatientsPage() {
           </div>
         </div>
 
-        {user?.role === 'OrgAdmin' && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-            <select
-              value={selectedBranch}
-              onChange={(e) => {
-                setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
-                setPagination(prev => ({ ...prev, pageIndex: 0 }))
-              }}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300"
-            >
-              <option value="all">All Branches</option>
-              {branches?.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+          <select
+            value={selectedBranch}
+            disabled={user?.role !== 'OrgAdmin'}
+            onChange={(e) => {
+              setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
+              setPagination(prev => ({ ...prev, pageIndex: 0 }))
+            }}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+          >
+            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
+            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Main Card */}
@@ -458,16 +459,18 @@ export default function PatientsPage() {
                         >
                           <Edit className="w-4 h-4" /> Edit
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/consult/` + patient.id)
-                          }}
-                          className="flex-1 btn-primary text-xs px-3"
-                        >
-                          <Stethoscope className="w-4 h-4" />
-                          Consult
-                        </button>
+                        {user?.role !== 'Receptionist' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/consult/` + patient.id)
+                            }}
+                            className="flex-1 btn-primary text-xs px-3"
+                          >
+                            <Stethoscope className="w-4 h-4" />
+                            Consult
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
