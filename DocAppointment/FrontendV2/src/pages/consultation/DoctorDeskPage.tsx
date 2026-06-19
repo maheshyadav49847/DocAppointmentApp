@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { 
   Users, Activity, CheckCircle2, 
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
@@ -21,6 +21,8 @@ export default function DoctorDeskPage() {
     queryFn: () => queueService.getActiveQueue(user?.doctorId || ""),
     enabled: !!user?.doctorId
   })
+
+  const [isQueueExpanded, setIsQueueExpanded] = useState(false)
 
   const queueId = activeQueue?.id
 
@@ -207,7 +209,7 @@ export default function DoctorDeskPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden">
       {/* Top Bar for Doctor Desk */}
-      <div className="bg-white border-b border-slate-200 rounded-t-xl px-6 py-4 flex items-center justify-between shrink-0 shadow-sm">
+      <div className="bg-white border-b border-slate-200 lg:rounded-t-xl px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 shadow-sm gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-500" />
@@ -215,25 +217,25 @@ export default function DoctorDeskPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Manage your active queue and consultations</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={handleEndSession}
             disabled={endSessionMutation.isPending}
-            className="hidden md:flex items-center gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-rose-200"
+            className="flex items-center gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-rose-200"
             title="End current session"
           >
             {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-            End Session
+            <span className="hidden sm:inline">End Session</span>
           </button>
           <a
             href={`/tv/${branchId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-2 bg-transparent hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-slate-200"
+            className="flex items-center gap-2 bg-transparent hover:bg-slate-50 text-slate-700 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-slate-200"
             title="Open Queue TV Display in a new tab"
           >
             <MonitorPlay className="w-4 h-4 text-indigo-500" />
-            TV View
+            <span className="hidden sm:inline">TV View</span>
           </a>
           <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl flex items-center gap-3">
             <div className="flex flex-col items-center justify-center min-w-[60px]">
@@ -249,9 +251,9 @@ export default function DoctorDeskPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
         {/* Left Side: Active EMR or Call Next Prompt */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-y-auto relative min-h-0">
           <AnimatePresence mode="wait">
             {!hasCurrentPatient ? (
               <motion.div 
@@ -300,7 +302,7 @@ export default function DoctorDeskPage() {
         </div>
 
         {/* Right Side: Up Next Sidebar */}
-        <div className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0">
+        <div className={`w-full lg:w-80 min-h-0 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "h-[50vh] lg:h-auto" : "h-auto lg:h-auto"}`}>
           
           {/* Current Patient Status Bar (if any) */}
           {hasCurrentPatient && (
@@ -327,8 +329,23 @@ export default function DoctorDeskPage() {
               </div>
             </div>
           )}
+          
+          {/* Mobile Collapse Toggle */}
+          <div 
+            className="lg:hidden flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50 cursor-pointer"
+            onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+          >
+            <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-500" />
+              Queue ({pendingTokens.length} waiting)
+            </span>
+            <button className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-md transition-colors">
+              {isQueueExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+            </button>
+          </div>
 
-          <div className="p-2 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
+          <div className={`flex-col flex-1 overflow-hidden ${!isQueueExpanded ? "hidden lg:flex" : "flex"}`}>
+            <div className="p-2 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
             <div className="flex bg-slate-200/50 rounded-lg p-1 w-full relative">
               <button
                 onClick={() => setSidebarTab('pending')}
@@ -399,7 +416,7 @@ export default function DoctorDeskPage() {
 
         </div>
       </div>
-
+      </div>
       {/* End Session Modal */}
       {activeQueue && (
         <EndSessionModal

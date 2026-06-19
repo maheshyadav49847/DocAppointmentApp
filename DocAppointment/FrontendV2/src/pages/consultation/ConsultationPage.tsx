@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 // Removed unused framer-motion import
@@ -98,7 +98,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [activeTab, setActiveTab] = useState<"history" | "attachments">("history")
   
   // Form State
-  const [visitDoctorId, setVisitDoctorId] = useState("")
+  const [visitDoctorId, setVisitDoctorId] = useState(user?.doctorId || "")
   const [visitSymptoms, setVisitSymptoms] = useState("")
   const [visitDiagnosis, setVisitDiagnosis] = useState("")
   const [visitAdvice, setVisitAdvice] = useState("")
@@ -136,12 +136,19 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [medSchedule, setMedSchedule] = useState("") // doseSchedule
   const [medInstructions, setMedInstructions] = useState("") // clinicalInstructions
 
+  const availableDoctors = useMemo(() => {
+    if (!doctors) return [];
+    return user?.doctorId 
+      ? doctors.filter((d: any) => String(d.id) === String(user.doctorId))
+      : doctors;
+  }, [doctors, user?.doctorId]);
+
   // Auto-select doctor
   useEffect(() => {
-    if (doctors?.length > 0 && !visitDoctorId) {
-      setVisitDoctorId(doctors[0].id)
+    if (availableDoctors?.length > 0 && !visitDoctorId) {
+      setVisitDoctorId(String(availableDoctors[0].id))
     }
-  }, [doctors, visitDoctorId])
+  }, [availableDoctors, visitDoctorId])
 
   const deleteAttachmentMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -328,6 +335,23 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     }, 500) // Small delay to let React render the hidden template with data
   }
 
+  const handleSaveConsultation = () => {
+    const hasContent = 
+      visitSymptoms.trim() || 
+      visitDiagnosis.trim() || 
+      visitAdvice.trim() || 
+      visitMedicines.length > 0 ||
+      visitWeight || visitTemperature || visitBloodPressure || 
+      visitHeartRate || visitOxygenLevel || visitBloodSugar || visitRespiratoryRate;
+
+    if (!hasContent) {
+      alert("Please enter some consultation details (Symptoms, Diagnosis, Vitals, or Medicines) before saving.");
+      return;
+    }
+    
+    mutation.mutate();
+  }
+
   if (isPatientLoading) {
     return <div className="p-8 flex justify-center"><Activity className="animate-spin text-indigo-500" /></div>
   }
@@ -402,7 +426,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               </button>
             )}
             <button 
-              onClick={() => mutation.mutate()}
+              onClick={handleSaveConsultation}
               disabled={mutation.isPending}
               className="btn-primary"
             >
@@ -433,7 +457,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="">Select Doctor</option>
-                  {doctors?.map((d: any) => (
+                  {availableDoctors?.map((d: any) => (
                     <option key={d.id} value={d.id}>Dr. {d.name}</option>
                   ))}
                 </select>
