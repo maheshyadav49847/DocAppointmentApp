@@ -92,8 +92,13 @@ export default function DashboardLayout() {
         )}
       >
         {/* Brand */}
-        <div className="h-14 flex items-center px-4 border-b border-slate-200 shrink-0">
-          <BrandLogo theme="light" size="sm" showSubtitle={false} />
+        <div className="h-16 flex items-center px-5 border-b border-slate-200 shrink-0">
+          <div className="hidden md:block lg:hidden">
+            <BrandLogo theme="light" size="md" />
+          </div>
+          <div className="hidden lg:block">
+            <BrandLogo theme="light" size="lg" />
+          </div>
           {sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(false)}
@@ -109,6 +114,10 @@ export default function DashboardLayout() {
           {navigation.map((item) => {
             // Hide administrative menus from Doctors
             if (user?.role === "Doctor" && !["Queue (Live)", "Analytics", "Patients", "Pharmacy"].includes(item.name)) {
+              return null;
+            }
+            // Hide administrative menus from Receptionists
+            if (user?.role === "Receptionist" && !["Queue (Live)", "Patients", "Pharmacy"].includes(item.name)) {
               return null;
             }
 

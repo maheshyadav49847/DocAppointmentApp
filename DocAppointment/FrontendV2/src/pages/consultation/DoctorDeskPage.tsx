@@ -1,14 +1,15 @@
-import { useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { 
   Users, Activity, CheckCircle2, 
-  Loader2, Bell, Play, MonitorPlay
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
+import EndSessionModal from "../queue/components/EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function DoctorDeskPage() {
@@ -79,6 +80,8 @@ export default function DoctorDeskPage() {
     onSuccess: () => { refetchQueue(); refetchTokens() }
   })
 
+  const [sidebarTab, setSidebarTab] = useState<'pending' | 'skipped'>('pending')
+
   const completeMutation = useMutation({
     mutationFn: () => queueService.completeToken(queueId),
     onSuccess: () => { 
@@ -87,6 +90,37 @@ export default function DoctorDeskPage() {
       // Optional: Show a toast here
     }
   })
+
+  const requeueMutation = useMutation({
+    mutationFn: (tokenId: string) => queueService.requeueToken(tokenId),
+    onSuccess: () => { refetchQueue(); refetchTokens() }
+  })
+
+  const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
+
+  const endSessionMutation = useMutation({
+    mutationFn: (data?: { action?: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string }) => 
+      queueService.endQueue(queueId, data),
+    onSuccess: () => {
+      setIsEndSessionModalOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
+    }
+  })
+
+  const handleEndSession = () => {
+    if (activeQueue && (activeQueue.waitingCount > 0 || activeQueue.skippedCount > 0)) {
+      setIsEndSessionModalOpen(true)
+    } else {
+      if (window.confirm("Are you sure you want to end this session?")) {
+        endSessionMutation.mutate(undefined)
+      }
+    }
+  }
+
+  const confirmEndSession = (action: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string) => {
+    endSessionMutation.mutate({ action, targetSessionId: targetSessionId || undefined })
+  }
 
   if (isQueueLoading) {
     return (
@@ -99,55 +133,81 @@ export default function DoctorDeskPage() {
 
   if (!activeQueue) {
     return (
-      <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-2">
-          <Activity className="w-10 h-10" />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-700">No Active Session</h2>
-        <p className="text-slate-500 text-center max-w-md mb-6">
-          You don't have any active queue right now. You can start one of your assigned sessions below.
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-slate-50 p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-slate-200 shadow-xl shadow-slate-200/40 rounded-3xl p-10 max-w-3xl w-full text-center relative overflow-hidden"
+        >
+          {/* Background decorative blob */}
+          <div className="absolute -top-32 -right-32 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+          
+          <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100/50">
+            <MonitorPlay className="w-10 h-10 text-indigo-600" />
+          </div>
+          
+          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Ready to Start?</h2>
+          <p className="text-slate-500 text-lg mb-10 max-w-md mx-auto">
+            You don't have an active consultation queue right now. Select a session below to begin.
+          </p>
 
-        {isSessionsLoading ? (
-          <div className="flex items-center gap-2 text-indigo-500">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading your sessions...</span>
-          </div>
-        ) : sessions?.length > 0 ? (
-          <div className="grid gap-4 w-full max-w-md">
-            {sessions.map((session: any) => (
-              <div key={session.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-800">{session.sessionName || 'Consultation Session'}</h3>
-                  <p className="text-sm text-slate-500">{session.startTime} - {session.endTime}</p>
-                </div>
-                <button
-                  onClick={() => initializeQueueMutation.mutate(session.id)}
-                  disabled={initializeQueueMutation.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 transition-colors flex items-center gap-2"
-                >
-                  {initializeQueueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                  Start
-                </button>
+          <div className="text-left relative z-10">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1">Your Assigned Sessions</h3>
+            
+            {isSessionsLoading ? (
+              <div className="flex items-center justify-center py-12 gap-3 text-indigo-500 bg-slate-50 rounded-2xl border border-slate-100">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="font-medium">Loading your sessions...</span>
               </div>
-            ))}
+            ) : sessions?.length > 0 ? (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {sessions.map((session: any) => (
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    key={session.id} 
+                    className="bg-white group border-2 border-slate-100 hover:border-indigo-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
+                  >
+                    <div className="mb-6">
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                        <Activity className="w-6 h-6" />
+                      </div>
+                      <h3 className="font-bold text-slate-800 text-xl group-hover:text-indigo-700 transition-colors line-clamp-1">{session.sessionName || 'Consultation Session'}</h3>
+                      <div className="mt-2 inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-semibold">
+                        {session.startTime} - {session.endTime}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => initializeQueueMutation.mutate(session.id)}
+                      disabled={initializeQueueMutation.isPending}
+                      className="w-full bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-700 py-3 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    >
+                      {initializeQueueMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                      Start Session
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-amber-50 text-amber-800 p-8 rounded-2xl border border-amber-200 text-center flex flex-col items-center">
+                <Bell className="w-10 h-10 mb-3 text-amber-500 opacity-80" />
+                <p className="font-bold text-lg">You don't have any sessions assigned today.</p>
+                <p className="text-sm opacity-80 mt-1 max-w-sm">Please ask the administrator to schedule a session for you to start receiving patients.</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 text-sm max-w-md text-center">
-            You don't have any sessions assigned. Please ask the administrator to assign sessions to you.
-          </div>
-        )}
+        </motion.div>
       </div>
     )
   }
 
   const hasCurrentPatient = activeQueue.currentTokenNumber > 0 && activeQueue.currentPatientName !== "No one"
   const pendingTokens = upcomingTokens?.filter((t: any) => t.status === 0) || []
+  const skippedTokens = upcomingTokens?.filter((t: any) => t.status === 3) || []
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-slate-50 overflow-hidden">
       {/* Top Bar for Doctor Desk */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="bg-white border-b border-slate-200 rounded-t-xl px-6 py-4 flex items-center justify-between shrink-0 shadow-sm">
         <div>
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-500" />
@@ -155,16 +215,25 @@ export default function DoctorDeskPage() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Manage your active queue and consultations</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleEndSession}
+            disabled={endSessionMutation.isPending}
+            className="hidden md:flex items-center gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-rose-200"
+            title="End current session"
+          >
+            {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+            End Session
+          </button>
           <a
             href={`/tv/${branchId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-slate-200"
+            className="hidden md:flex items-center gap-2 bg-transparent hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-slate-200"
             title="Open Queue TV Display in a new tab"
           >
             <MonitorPlay className="w-4 h-4 text-indigo-500" />
-            Open TV View
+            TV View
           </a>
           <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl flex items-center gap-3">
             <div className="flex flex-col items-center justify-center min-w-[60px]">
@@ -202,9 +271,9 @@ export default function DoctorDeskPage() {
                 <button 
                   onClick={() => callNextMutation.mutate()}
                   disabled={callNextMutation.isPending || pendingTokens.length === 0}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-200 flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
+                  className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-2xl font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
                 >
-                  <Play className="w-6 h-6" />
+                  {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
                   Call Next Patient
                 </button>
               </motion.div>
@@ -235,63 +304,116 @@ export default function DoctorDeskPage() {
           
           {/* Current Patient Status Bar (if any) */}
           {hasCurrentPatient && (
-            <div className="p-4 bg-indigo-600 text-white shrink-0">
-              <div className="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1">Current Patient</div>
-              <div className="font-bold text-lg truncate mb-4">{activeQueue.currentPatientName} (Token #{activeQueue.currentTokenNumber})</div>
+            <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 shrink-0">
+              <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"><Activity className="w-3 h-3"/> Current Patient</div>
+              <div className="font-bold text-lg text-slate-800 truncate mb-4">{activeQueue.currentPatientName} <span className="text-sm font-medium text-slate-500 ml-1">#{activeQueue.currentTokenNumber}</span></div>
               <div className="grid grid-cols-2 gap-2">
                 <button 
                   onClick={() => completeMutation.mutate()}
                   disabled={completeMutation.isPending}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-transparent border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
+                  {completeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   Complete
                 </button>
                 <button 
                   onClick={() => callNextMutation.mutate()}
                   disabled={callNextMutation.isPending || pendingTokens.length === 0}
-                  className="bg-white/20 hover:bg-white/30 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="bg-transparent border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-700 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
                 >
-                  <Play className="w-4 h-4" />
+                  {callNextMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                   Call Next
                 </button>
               </div>
             </div>
           )}
 
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <Users className="w-4 h-4 text-slate-400" />
-              Up Next
-            </h3>
-            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">
-              {pendingTokens.length}
-            </span>
+          <div className="p-2 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
+            <div className="flex bg-slate-200/50 rounded-lg p-1 w-full relative">
+              <button
+                onClick={() => setSidebarTab('pending')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors relative z-10 ${sidebarTab === 'pending' ? 'text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {sidebarTab === 'pending' && <motion.div layoutId="sidebarTab" className="absolute inset-0 bg-white shadow-sm rounded-md" style={{ zIndex: -1 }} />}
+                Up Next ({pendingTokens.length})
+              </button>
+              <button
+                onClick={() => setSidebarTab('skipped')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors relative z-10 ${sidebarTab === 'skipped' ? 'text-rose-600' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {sidebarTab === 'skipped' && <motion.div layoutId="sidebarTab" className="absolute inset-0 bg-white shadow-sm rounded-md" style={{ zIndex: -1 }} />}
+                Skipped ({skippedTokens.length})
+              </button>
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {pendingTokens.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-sm flex flex-col items-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-100 mb-2" />
-                No pending patients
-              </div>
-            ) : (
-              pendingTokens.map((token: any) => (
-                <div key={token.id} className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center gap-3 relative overflow-hidden group">
-                  <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shrink-0 shadow-sm">
-                    {token.tokenNumber}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
-                    <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
-                  </div>
+            {sidebarTab === 'pending' ? (
+              pendingTokens.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm flex flex-col items-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-100 mb-2" />
+                  No pending patients
                 </div>
-              ))
+              ) : (
+                pendingTokens.map((token: any) => (
+                  <div key={token.id} className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center gap-3 relative overflow-hidden group hover:border-indigo-200 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shrink-0 shadow-sm">
+                      {token.tokenNumber}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
+                      <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              skippedTokens.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm flex flex-col items-center">
+                  <AlertCircle className="w-8 h-8 text-slate-200 mb-2" />
+                  No skipped patients
+                </div>
+              ) : (
+                skippedTokens.map((token: any) => (
+                  <div key={token.id} className="bg-rose-50 border border-rose-100 p-3 rounded-xl flex items-center gap-3 relative overflow-hidden group">
+                    <div className="w-10 h-10 rounded-full bg-white border border-rose-200 flex items-center justify-center font-bold text-rose-700 shrink-0 shadow-sm">
+                      {token.tokenNumber}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
+                      <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                    </div>
+                    <button
+                      onClick={() => requeueMutation.mutate(token.id)}
+                      disabled={requeueMutation.isPending}
+                      className="opacity-0 group-hover:opacity-100 p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-lg shadow-sm border border-indigo-100 transition-all absolute right-3"
+                      title="Restore to queue"
+                    >
+                      {requeueMutation.isPending && requeueMutation.variables === token.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                    </button>
+                  </div>
+                ))
+              )
             )}
           </div>
 
         </div>
       </div>
+
+      {/* End Session Modal */}
+      {activeQueue && (
+        <EndSessionModal
+          isOpen={isEndSessionModalOpen}
+          onClose={() => setIsEndSessionModalOpen(false)}
+          onConfirm={confirmEndSession}
+          doctorId={activeQueue.doctorId || user?.doctorId || ""}
+          branchId={branchId}
+          currentSessionId={activeQueue.sessionId}
+          waitingCount={activeQueue.waitingCount}
+          skippedCount={activeQueue.skippedCount || 0}
+          isPending={endSessionMutation.isPending}
+        />
+      )}
     </div>
   )
 }

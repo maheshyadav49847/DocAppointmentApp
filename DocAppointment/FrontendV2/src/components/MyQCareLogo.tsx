@@ -3,10 +3,12 @@
 export const MyQCareLogo = ({ 
   size = 24, 
   className = "", 
+  lensColor,
   pulseColor = "#818cf8" 
 }: { 
   size?: number, 
   className?: string, 
+  lensColor?: string,
   pulseColor?: string 
 }) => {
   return (
@@ -21,16 +23,16 @@ export const MyQCareLogo = ({
       strokeLinejoin="round" 
       className={className}
     >
-      {/* Outer Q Circle */}
-      <circle cx="11" cy="11" r="9" />
-      
-      {/* Q Tail */}
-      <path d="M17.5 17.5 L22 22" />
+      {/* Lens (Outer Q Circle and Tail) */}
+      <g stroke={lensColor || "currentColor"}>
+        <circle cx="11" cy="11" r="9" />
+        <path d="M17.5 17.5 L22 22" />
+      </g>
       
       {/* Medical ECG Pulse inside the Q - Left Half */}
       <path d="M4.5 11 H7.5 L9.5 6 L11 11" />
       
-      {/* Medical ECG Pulse inside the Q - Right Half (Indigo) */}
+      {/* Medical ECG Pulse inside the Q - Right Half */}
       <path d="M11 11 L12.5 16 L14.5 11 H17.5" stroke={pulseColor} />
     </svg>
   );
