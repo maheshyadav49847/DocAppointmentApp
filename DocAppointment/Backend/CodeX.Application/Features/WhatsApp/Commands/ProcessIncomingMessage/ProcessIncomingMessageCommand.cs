@@ -770,7 +770,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return new List<Session>();
             }
 
-            var tzBranch = await _context.Branches.FindAsync(new object[] { branchId.Value }, ct);
+            var tzBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId.Value, ct);
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             int currentDayOfWeek = (int)today.DayOfWeek;
