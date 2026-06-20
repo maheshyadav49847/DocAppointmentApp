@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Search, Activity, X, Building2, UserCog, ClipboardList, Key } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, ClipboardList, Key, ChevronRight, Home } from "lucide-react"
 import toast from "react-hot-toast"
 
 import { BrandLogo } from "@/components/BrandLogo"
@@ -36,6 +36,15 @@ export default function DashboardLayout() {
 
   const { user, token, activeBranchId, clearAuth } = useAuthStore()
   const { notifications, fetchNotifications, markAsRead, markAllAsRead, clearAll } = useNotificationStore()
+
+  let currentNav = navigation.find(n => n.href !== '/' && location.pathname.startsWith(n.href)) || (location.pathname === '/' ? navigation[0] : null);
+
+  if (!currentNav) {
+    if (location.pathname.startsWith('/consult')) currentNav = { name: "Consultation", href: location.pathname, icon: Stethoscope };
+    else if (location.pathname.startsWith('/doctor-desk')) currentNav = { name: "My Desk", href: location.pathname, icon: Stethoscope };
+    else if (location.pathname.startsWith('/queue')) currentNav = { name: "Queue (Live)", href: location.pathname, icon: Activity };
+    else if (location.pathname.startsWith('/settings')) currentNav = { name: "Settings", href: location.pathname, icon: Settings };
+  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -172,14 +181,30 @@ export default function DashboardLayout() {
               <BrandLogo theme="light" size="sm" />
             </div>
 
-            {/* Search Bar */}
-            <div className="hidden md:flex relative w-80">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-slate-300 focus:ring-0 rounded-md text-sm font-medium transition-all outline-none placeholder:text-slate-400"
-              />
+            {/* Breadcrumb */}
+            <div className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500">
+              <Link to="/" className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors">
+                <Home className="w-4 h-4" />
+                <span>Home</span>
+              </Link>
+              {currentNav && currentNav.href !== '/' && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                    <currentNav.icon className="w-4 h-4 text-indigo-600" />
+                    <span>{currentNav.name}</span>
+                  </div>
+                </>
+              )}
+              {currentNav?.href === '/' && (
+                <>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                  <div className="flex items-center gap-1.5 text-slate-800 font-semibold">
+                    <currentNav.icon className="w-4 h-4 text-indigo-600" />
+                    <span>{user?.role === "Doctor" ? "My Desk" : "Queue (Live)"}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -318,7 +343,7 @@ export default function DashboardLayout() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={async (e) => {
+              <form noValidate onSubmit={async (e) => {
                 e.preventDefault()
                 const formData = new FormData(e.currentTarget)
                 const oldPassword = formData.get('oldPassword') as string

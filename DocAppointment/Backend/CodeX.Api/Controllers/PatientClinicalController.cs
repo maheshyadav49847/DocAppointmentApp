@@ -38,6 +38,7 @@ namespace CodeX.Api.Controllers
             if (dto.EmergencyContactPhone != null) patient.EmergencyContactPhone = dto.EmergencyContactPhone;
             patient.Age = dto.Age;
             patient.Gender = dto.Gender;
+            patient.MaritalStatus = dto.MaritalStatus;
             patient.BloodGroup = dto.BloodGroup;
             patient.PreExistingConditions = dto.PreExistingConditions;
             patient.Height = dto.Height;
@@ -64,6 +65,7 @@ namespace CodeX.Api.Controllers
                     p.EmergencyContactPhone,
                     p.Age,
                     p.Gender,
+                    p.MaritalStatus,
                     p.BloodGroup,
                     p.PreExistingConditions,
                     p.Height,
@@ -657,6 +659,7 @@ namespace CodeX.Api.Controllers
         public string? EmergencyContactPhone { get; set; }
         public string? Age { get; set; }
         public string? Gender { get; set; }
+        public string? MaritalStatus { get; set; }
         public string? BloodGroup { get; set; }
         public string? PreExistingConditions { get; set; }
         public decimal? Height { get; set; }

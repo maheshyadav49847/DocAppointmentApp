@@ -17,6 +17,9 @@ import toast from "react-hot-toast"
 import { staffService } from "@/services/staffService"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { FieldError } from "@/components/ui/FieldError"
+import { handleApiError } from "@/lib/utils"
 
 const ROLES = [
   { value: 3, label: 'Receptionist', display: 'Receptionist', desc: 'Can manage queue and book tokens' },
@@ -37,6 +40,8 @@ export default function StaffPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<any>(null)
   const [resettingStaff, setResettingStaff] = useState<any>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  const [apiError, setApiError] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -64,18 +69,14 @@ export default function StaffPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
+      setApiError(null)
+      setValidationErrors({})
       toast.success('Staff created successfully')
     },
     onError: (error: any) => {
-      const data = error.response?.data
-      const errors = data?.errors || data?.extensions?.errors
-      if (errors) {
-        Object.values(errors).forEach((errMsgs: any) => {
-          if (Array.isArray(errMsgs)) errMsgs.forEach(msg => toast.error(msg))
-        })
-      } else {
-        toast.error(data?.detail || data?.message || 'Failed to create staff')
-      }
+      setApiError(error)
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
+      else if (error.response?.data?.extensions?.errors) setValidationErrors(error.response.data.extensions.errors)
     }
   })
 
@@ -88,18 +89,14 @@ export default function StaffPage() {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
       setEditingStaff(null)
+      setApiError(null)
+      setValidationErrors({})
       toast.success('Staff updated successfully')
     },
     onError: (error: any) => {
-      const data = error.response?.data
-      const errors = data?.errors || data?.extensions?.errors
-      if (errors) {
-        Object.values(errors).forEach((errMsgs: any) => {
-          if (Array.isArray(errMsgs)) errMsgs.forEach(msg => toast.error(msg))
-        })
-      } else {
-        toast.error(data?.detail || data?.message || 'Failed to update staff')
-      }
+      setApiError(error)
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
+      else if (error.response?.data?.extensions?.errors) setValidationErrors(error.response.data.extensions.errors)
     }
   })
 
@@ -110,12 +107,14 @@ export default function StaffPage() {
       toast.success('Staff deleted successfully')
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || error.response?.data?.message || 'Failed to delete staff')
+      handleApiError(error, 'Failed to delete staff')
     }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setApiError(null)
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const data: any = {
       email: formData.get('email'),
@@ -486,7 +485,7 @@ export default function StaffPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); }}
+              onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); setApiError(null); setValidationErrors({}); }}
               className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40"
             />
             <motion.div
@@ -509,26 +508,29 @@ export default function StaffPage() {
                     <p className="text-sm text-slate-500 mt-1">{editingStaff ? 'Update employee details and access.' : 'Grant access to a new team member.'}</p>
                   </div>
                 </div>
-                <button onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                <button onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); setApiError(null); setValidationErrors({}); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="staff-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate id="staff-form" onSubmit={handleSubmit} className="space-y-6">
+                  <ApiErrorAlert error={apiError} />
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <User className="w-4 h-4 text-blue-500" /> First Name
                       </label>
-                      <input required name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <input name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <FieldError errors={validationErrors} field="FirstName" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <User className="w-4 h-4 text-blue-500" /> Last Name
                       </label>
-                      <input required name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <input name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <FieldError errors={validationErrors} field="LastName" />
                     </div>
                   </div>
 
@@ -537,13 +539,15 @@ export default function StaffPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Mail className="w-4 h-4 text-rose-500" /> Email
                       </label>
-                      <input required type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <input type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <FieldError errors={validationErrors} field="Email" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Hash className="w-4 h-4 text-teal-500" /> Employee ID
                       </label>
-                      <input required name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <input name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                      <FieldError errors={validationErrors} field="EmployeeId" />
                     </div>
                   </div>
 
@@ -551,7 +555,8 @@ export default function StaffPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone
                     </label>
-                    <input required type="tel" name="phoneNumber" defaultValue={editingStaff?.phoneNumber} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input type="tel" name="phoneNumber" defaultValue={editingStaff?.phoneNumber} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <FieldError errors={validationErrors} field="PhoneNumber" />
                   </div>
 
                   { !editingStaff && (
@@ -559,7 +564,8 @@ export default function StaffPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Key className="w-4 h-4 text-amber-500" /> Password
                       </label>
-                      <input type="password" name="password" required className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
+                      <input type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
+                      <FieldError errors={validationErrors} field="Password" />
                     </div>
                   )}
 
@@ -578,13 +584,14 @@ export default function StaffPage() {
                         </label>
                       ))}
                     </div>
+                    <FieldError errors={validationErrors} field="Role" />
                   </div>
 
                 </form>
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
+                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); setApiError(null); setValidationErrors({}); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="staff-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingStaff ? 'Save Changes' : 'Create Account'}
@@ -614,7 +621,7 @@ export default function StaffPage() {
                   Enter a new password for {resettingStaff.firstName} {resettingStaff.lastName}.
                 </p>
               </div>
-              <form onSubmit={(e) => {
+              <form noValidate onSubmit={(e) => {
                 e.preventDefault()
                 const formData = new FormData(e.currentTarget)
                 const newPassword = formData.get('password') as string
@@ -625,11 +632,11 @@ export default function StaffPage() {
                 setResettingStaff(null)
               }}>
                 <div className="p-6">
+                  <ApiErrorAlert error={updateMutation.error} className="mb-4" />
                   <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
                   <input
                     type="password"
                     name="password"
-                    required
                     minLength={8}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                     placeholder="Min 8 characters"

@@ -1,4 +1,5 @@
 using FluentValidation;
+using CodeX.Application.Common.Validators;
 
 namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
 {
@@ -13,7 +14,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             RuleFor(v => v.PhoneNumber).NotEmpty().Matches(@"^\d{10,15}$").WithMessage("Phone number must be between 10 and 15 digits.");
             
             RuleFor(v => v.NewPassword)
-                .MinimumLength(8)
+                .PasswordRules()
                 .When(v => !string.IsNullOrEmpty(v.NewPassword));
         }
     }

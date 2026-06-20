@@ -56,6 +56,12 @@ namespace CodeX.Api.Controllers
             // Ensure the branch is created for the user's organization
             branch.OrganizationId = _currentUserService.OrgId;
 
+            var errors = new Dictionary<string, string[]>();
+            if (string.IsNullOrWhiteSpace(branch.Name)) errors.Add("Name", new[] { "Name is required." });
+            if (string.IsNullOrWhiteSpace(branch.Address)) errors.Add("Address", new[] { "Address is required." });
+            if (string.IsNullOrWhiteSpace(branch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
+            if (errors.Any()) return BadRequest(new { errors });
+
             // Code-level check: Prevent duplicate branch name in same organization
             var name = branch.Name.Trim();
             var duplicateExists = await _context.Branches.AnyAsync(b => 
@@ -91,6 +97,12 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == id && b.OrganizationId == _currentUserService.OrgId);
 
             if (branch == null) return NotFound();
+
+            var errors = new Dictionary<string, string[]>();
+            if (string.IsNullOrWhiteSpace(updatedBranch.Name)) errors.Add("Name", new[] { "Name is required." });
+            if (string.IsNullOrWhiteSpace(updatedBranch.Address)) errors.Add("Address", new[] { "Address is required." });
+            if (string.IsNullOrWhiteSpace(updatedBranch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
+            if (errors.Any()) return BadRequest(new { errors });
 
             var name = updatedBranch.Name.Trim();
             // Code-level check: Prevent duplicate branch name in same organization

@@ -8,9 +8,9 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
         public UpdateSessionCommandValidator()
         {
             RuleFor(v => v.Id).NotEmpty();
-            RuleFor(v => v.SessionName).NotEmpty().MaximumLength(200);
+            RuleFor(v => v.SessionName).NotEmpty().WithMessage("Session Name is required.").MaximumLength(200);
             RuleFor(v => v.StartTime).LessThan(v => v.EndTime).WithMessage("Start time must be before end time.");
-            RuleFor(v => v.DefaultCapacity).GreaterThanOrEqualTo(0).WithMessage("Capacity cannot be negative.");
+            RuleFor(v => v.DefaultCapacity).GreaterThan(0).WithMessage("Capacity must be greater than zero.");
         }
     }
 }

@@ -17,6 +17,9 @@ namespace CodeX.Application
             });
             services.AddAutoMapper(cfg => { }, assembly);
             services.AddValidatorsFromAssembly(assembly);
+            
+            // Prevent multiple validation errors per field
+            ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
 
             return services;
         }

@@ -1,4 +1,5 @@
 using FluentValidation;
+using CodeX.Application.Common.Validators;
 
 namespace CodeX.Application.Features.Auth.Commands.ResetPassword
 {
@@ -8,7 +9,7 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
         {
             RuleFor(v => v.Identifier).NotEmpty();
             RuleFor(v => v.Token).NotEmpty();
-            RuleFor(v => v.NewPassword).NotEmpty().MinimumLength(8);
+            RuleFor(v => v.NewPassword).NotEmpty().PasswordRules();
         }
     }
 }

@@ -59,6 +59,7 @@ namespace CodeX.Api.Controllers
                     p.CreatedAt,
                     p.Age,
                     p.Gender,
+                    p.MaritalStatus,
                     p.BloodGroup,
                     p.PreExistingConditions,
                     LastVisit = p.Visits
@@ -119,6 +120,7 @@ namespace CodeX.Api.Controllers
                 Phone = dto.Phone,
                 Age = dto.Age,
                 Gender = dto.Gender,
+                MaritalStatus = dto.MaritalStatus,
                 BloodGroup = dto.BloodGroup,
                 PreExistingConditions = dto.PreExistingConditions,
                 Height = dto.Height,
@@ -140,6 +142,7 @@ namespace CodeX.Api.Controllers
                 patient.Phone,
                 patient.Age,
                 patient.Gender,
+                patient.MaritalStatus,
                 patient.BloodGroup,
                 patient.PreExistingConditions,
                 patient.Height,
@@ -189,6 +192,7 @@ namespace CodeX.Api.Controllers
         
         public string? Age { get; set; }
         public string? Gender { get; set; }
+        public string? MaritalStatus { get; set; }
         public string? BloodGroup { get; set; }
         public string? PreExistingConditions { get; set; }
         public decimal? Height { get; set; }

@@ -553,7 +553,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <h3 className="font-bold text-slate-800">Edit Token #{editingToken.tokenNumber}</h3>
                 <button onClick={() => setEditingToken(null)} className="text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-4 h-4"/></button>
               </div>
-              <form 
+              <form noValidate 
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;

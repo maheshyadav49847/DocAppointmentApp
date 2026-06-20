@@ -18,6 +18,7 @@ import { patientService } from "@/services/patientService"
 import type { Patient } from "@/services/patientService"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 
 export default function PatientsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
@@ -66,6 +67,7 @@ export default function PatientsPage() {
       phone: formData.get('phone') as string,
       age: formData.get('age') as string,
       gender: formData.get('gender') as string,
+      maritalStatus: formData.get('maritalStatus') as string,
       bloodGroup: formData.get('bloodGroup') as string,
       email: formData.get('email') as string,
       address: formData.get('address') as string,
@@ -128,10 +130,10 @@ export default function PatientsPage() {
           </div>
           <div>
             <div className="font-bold text-slate-800">{row.original.name}</div>
-            <div className="text-xs text-slate-500 flex items-center gap-2 mt-0.5 font-medium">
-              <span className="flex items-center gap-1"><User className="w-3 h-3 text-slate-400" /> {row.original.gender || 'N/A'}</span>
-              <span className="text-slate-300">•</span>
+            <div className="flex items-center gap-3 text-xs text-slate-500 font-medium mt-0.5">
               <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400" /> {Number(row.original.age) > 0 ? `${row.original.age} Yrs` : 'N/A'}</span>
+              <span className="flex items-center gap-1"><User className="w-3 h-3 text-slate-400" /> {row.original.gender || 'N/A'}</span>
+              <span className="flex items-center gap-1"><Users className="w-3 h-3 text-slate-400" /> {row.original.maritalStatus || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -400,18 +402,23 @@ export default function PatientsPage() {
 
                         {/* Subtext equivalent */}
                         <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
-                          <span className="flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/50 px-2 py-1 rounded-md">
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
                             <User className="w-3.5 h-3.5 text-indigo-500" /> {patient.gender || 'Unk'}
-                          </span>
-                          <span className="flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/50 px-2 py-1 rounded-md">
+                          </div>
+                          {patient.maritalStatus && (
+                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
+                              <Users className="w-3.5 h-3.5 text-indigo-500" /> {patient.maritalStatus}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
                             <Calendar className="w-3.5 h-3.5 text-amber-500" /> {patient.age ? `${patient.age} Yrs` : 'N/A'}
-                          </span>
-                          <span className="flex items-center gap-1.5 bg-rose-50 border border-rose-100/50 text-rose-700 px-2 py-1 rounded-md">
+                          </div>
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
                             <Droplets className="w-3.5 h-3.5 text-rose-500" /> {patient.bloodGroup || '--'}
-                          </span>
-                          <span className="flex items-center gap-1.5 bg-slate-100/80 border border-slate-200/50 px-2 py-1 rounded-md">
+                          </div>
+                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
                             <Ruler className="w-3.5 h-3.5 text-emerald-500" /> {patient.height ? `${patient.height} cm` : '--'}
-                          </span>
+                          </div>
                         </div>
                       </div>
 
@@ -552,7 +559,8 @@ export default function PatientsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="patient-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate id="patient-form" onSubmit={handleSubmit} className="space-y-6">
+                  <ApiErrorAlert error={editingPatient ? updateMutation.error : mutation.error} />
 
                   {/* Section 1: Personal Info */}
                   <div>
@@ -562,7 +570,7 @@ export default function PatientsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <User className="w-4 h-4 text-blue-500" /> Full Name
                         </label>
-                        <input defaultValue={editingPatient?.name} required name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
+                        <input defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -570,13 +578,13 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Calendar className="w-4 h-4 text-orange-500" /> Age
                           </label>
-                          <input defaultValue={editingPatient?.age || ''} required type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                          <input defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Users className="w-4 h-4 text-pink-500" /> Gender
                           </label>
-                          <select defaultValue={editingPatient?.gender} required name="gender" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                          <select defaultValue={editingPatient?.gender} name="gender" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
                             <option value="">Select</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -590,7 +598,7 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Droplet className="w-4 h-4 text-red-500" /> Blood Group
                           </label>
-                          <select defaultValue={editingPatient?.bloodGroup} required name="bloodGroup" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                          <select defaultValue={editingPatient?.bloodGroup} name="bloodGroup" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
                             <option value="">Select</option>
                             <option value="A+">A+</option>
                             <option value="A-">A-</option>
@@ -604,10 +612,23 @@ export default function PatientsPage() {
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                            <Users className="w-4 h-4 text-orange-500" /> Marital Status
                           </label>
-                          <input defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
+                          <select defaultValue={editingPatient?.maritalStatus} name="maritalStatus" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                            <option value="">Select Status</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                            <option value="Widowed">Widowed</option>
+                          </select>
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                          <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                        </label>
+                        <input defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
                       </div>
                     </div>
                   </div>
@@ -621,7 +642,7 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Phone className="w-4 h-4 text-green-500" /> Phone Number
                           </label>
-                          <input defaultValue={editingPatient?.phone} required name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
+                          <input defaultValue={editingPatient?.phone} name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">

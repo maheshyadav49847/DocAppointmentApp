@@ -84,7 +84,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
                 var staff = new CodeX.Domain.Entities.Staff
                 {
                     OrganizationId = request.OrganizationId,
-                    BranchId = request.BranchIds.FirstOrDefault(),
+                    BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null,
                     Email = request.EmailId.Trim().ToLower(),
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                     FirstName = request.Name,

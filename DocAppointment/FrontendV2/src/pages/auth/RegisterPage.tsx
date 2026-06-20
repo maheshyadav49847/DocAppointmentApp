@@ -72,7 +72,7 @@ export default function RegisterPage() {
         <p className="text-slate-500 mt-2 text-sm">Enter your details to set up your hospital's portal.</p>
       </div>
       
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         
         {serverError && (
           <div className="bg-red-50/50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">

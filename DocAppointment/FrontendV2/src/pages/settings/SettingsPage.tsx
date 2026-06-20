@@ -163,7 +163,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="twilio-form" onSubmit={handleTwilioSubmit} className="space-y-5">
+                <form noValidate id="twilio-form" onSubmit={handleTwilioSubmit} className="space-y-5">
                   <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-6 flex gap-3">
                     <Shield className="w-5 h-5 text-indigo-500 shrink-0" />
                     <p className="text-sm text-indigo-800">These credentials securely connect your organization's automated message routing directly to Twilio infrastructure.</p>

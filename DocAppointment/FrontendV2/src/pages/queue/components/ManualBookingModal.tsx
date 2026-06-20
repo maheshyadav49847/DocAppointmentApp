@@ -118,7 +118,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   </button>
                 </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
+            <form noValidate onSubmit={handleSubmit} className="p-6">
               {error && (
                 <div className={`mb-6 p-4 text-sm border rounded-xl flex items-start gap-2 ${error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
                   {error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? (

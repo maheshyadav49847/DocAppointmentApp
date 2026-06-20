@@ -84,7 +84,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                     staff = new CodeX.Domain.Entities.Staff
                     {
                         OrganizationId = doctor.OrganizationId,
-                        BranchId = request.BranchIds.FirstOrDefault(),
+                        BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null,
                         Email = request.EmailId.Trim().ToLower(),
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                         FirstName = request.Name,
@@ -98,7 +98,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                     staff.Email = request.EmailId.Trim().ToLower();
                     staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
                     staff.FirstName = request.Name;
-                    staff.BranchId = request.BranchIds.FirstOrDefault();
+                    staff.BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null;
                 }
             }
             else if (!string.IsNullOrWhiteSpace(request.EmailId))
@@ -108,7 +108,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 {
                     staff.Email = request.EmailId.Trim().ToLower();
                     staff.FirstName = request.Name;
-                    staff.BranchId = request.BranchIds.FirstOrDefault();
+                    staff.BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null;
                 }
             }
 

@@ -6,11 +6,11 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
     {
         public CreateSessionCommandValidator()
         {
-            RuleFor(v => v.SessionName).NotEmpty().MaximumLength(200);
-            RuleFor(v => v.DoctorId).NotEmpty();
-            RuleFor(v => v.BranchId).NotEmpty();
+            RuleFor(v => v.SessionName).NotEmpty().WithMessage("Session Name is required.").MaximumLength(200);
+            RuleFor(v => v.DoctorId).NotEmpty().WithMessage("Doctor is required.");
+            RuleFor(v => v.BranchId).NotEmpty().WithMessage("Facility is required.");
             RuleFor(v => v.StartTime).LessThan(v => v.EndTime).WithMessage("Start time must be before end time.");
-            RuleFor(v => v.DefaultCapacity).GreaterThanOrEqualTo(0).WithMessage("Capacity cannot be negative.");
+            RuleFor(v => v.DefaultCapacity).GreaterThan(0).WithMessage("Capacity must be greater than zero.");
         }
     }
 }

@@ -21,6 +21,7 @@ namespace CodeX.Domain.Entities
         public string? MetaDataJson { get; set; } // For preferences, age, etc.
         public string? Age { get; set; }
         public string? Gender { get; set; }
+        public string? MaritalStatus { get; set; }
         public string? BloodGroup { get; set; }
         public string? PreExistingConditions { get; set; }
         public decimal? Height { get; set; } // Stored in cm, rarely changes for adults

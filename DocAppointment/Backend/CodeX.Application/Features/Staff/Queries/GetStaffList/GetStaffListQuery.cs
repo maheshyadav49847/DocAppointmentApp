@@ -34,7 +34,7 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
         {
             var query = _context.Staffs
                 .Include(s => s.Branch)
-                .Where(s => s.OrganizationId == request.OrganizationId && !s.IsDeleted);
+                .Where(s => s.OrganizationId == request.OrganizationId && !s.IsDeleted && s.Role != CodeX.Domain.Enums.StaffRole.Doctor);
 
             if (request.BranchId.HasValue)
             {

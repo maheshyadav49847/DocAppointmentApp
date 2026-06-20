@@ -19,12 +19,17 @@ import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { FieldError } from "@/components/ui/FieldError"
+import { handleApiError } from "@/lib/utils"
 
 export default function DoctorsPage() {
   const [globalFilter, setGlobalFilter] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null)
+  const [editingDoctor, setEditingDoctor] = useState<any>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  const [apiError, setApiError] = useState<any>(null)
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -61,18 +66,18 @@ export default function DoctorsPage() {
       queryClient.invalidateQueries({ queryKey: ['doctors'] })
       setIsDrawerOpen(false)
       setEditingDoctor(null)
+      setApiError(null)
+      setValidationErrors({})
       toast.success(editingDoctor ? "Doctor updated successfully" : "Doctor created successfully")
     },
     onError: (error: any) => {
-      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to save doctor";
+      setApiError(error)
       if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const firstKey = Object.keys(errors)[0];
-        if (firstKey && errors[firstKey].length > 0) {
-          errorMessage = errors[firstKey][0];
-        }
+        setValidationErrors(error.response.data.errors)
+      } else if (error.response?.data?.extensions?.errors) {
+        setValidationErrors(error.response.data.extensions.errors)
       }
-      toast.error(errorMessage)
+      toast.error('Failed to save doctor')
     }
   })
 
@@ -83,20 +88,14 @@ export default function DoctorsPage() {
       toast.success("Doctor deleted successfully")
     },
     onError: (error: any) => {
-      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to delete doctor";
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const firstKey = Object.keys(errors)[0];
-        if (firstKey && errors[firstKey].length > 0) {
-          errorMessage = errors[firstKey][0];
-        }
-      }
-      toast.error(errorMessage)
+      handleApiError(error, 'Failed to delete doctor')
     }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setApiError(null)
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name') as string,
@@ -300,7 +299,7 @@ export default function DoctorsPage() {
             </div>
 
             <button
-              onClick={() => setIsDrawerOpen(true)}
+              onClick={() => { setEditingDoctor(null); setIsDrawerOpen(true); }}
               className="btn-primary"
             >
               <Plus className="w-4 h-4" /> Add Doctor
@@ -556,13 +555,15 @@ export default function DoctorsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="doctor-form" onSubmit={handleSubmit} className="space-y-5">
+                <form noValidate id="doctor-form" onSubmit={handleSubmit} className="space-y-5">
+                  <ApiErrorAlert error={apiError} />
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <User className="w-4 h-4 text-blue-500" /> Full Name
                       </label>
-                      <input required name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
+                      <input name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
+                      <FieldError errors={validationErrors} field="Name" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
@@ -574,48 +575,56 @@ export default function DoctorsPage() {
                         <option value="Female">Female</option>
                         <option value="Other">Other</option>
                       </select>
+                      <FieldError errors={validationErrors} field="Gender" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Phone className="w-4 h-4 text-green-500" /> Mobile
                       </label>
-                      <input required name="mobile" type="tel" pattern="[0-9]{10}" defaultValue={editingDoctor?.mobile} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="10 digit number" />
+                      <input name="mobile" type="tel" defaultValue={editingDoctor?.mobile} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="10 digit number" />
+                      <FieldError errors={validationErrors} field="Mobile" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
                       </label>
                       <input name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
+                      <FieldError errors={validationErrors} field="Qualification" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs)
                       </label>
                       <input name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
+                      <FieldError errors={validationErrors} field="Experience" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <ShieldCheck className="w-4 h-4 text-teal-500" /> Registration No.
                       </label>
                       <input name="registrationNumber" defaultValue={editingDoctor?.registrationNumber} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MCI-12345" />
+                      <FieldError errors={validationErrors} field="RegistrationNumber" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Mail className="w-4 h-4 text-rose-500" /> Email
                       </label>
                       <input name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
+                      <FieldError errors={validationErrors} field="EmailId" />
                     </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
                       </label>
                       <input name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
+                      <FieldError errors={validationErrors} field="Password" />
                     </div>
                     <div className="col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
                       </label>
-                      <input required name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
+                      <input name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
+                      <FieldError errors={validationErrors} field="Specialization" />
                     </div>
                   </div>
 
@@ -633,7 +642,7 @@ export default function DoctorsPage() {
                               type="checkbox"
                               name="branchIds"
                               value={branch.id}
-                              defaultChecked={editingDoctor?.branchIds?.some(id => id.toLowerCase() === branch.id.toLowerCase())}
+                              defaultChecked={editingDoctor?.branchIds?.some((id: string) => id.toLowerCase() === branch.id.toLowerCase())}
                               className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
                             />
                             {branch.name}
@@ -643,6 +652,7 @@ export default function DoctorsPage() {
                     ) : (
                       <div className="text-sm text-amber-600">No branches found. Please create a branch first.</div>
                     )}
+                    <FieldError errors={validationErrors} field="BranchIds" />
                   </div>
                 </form>
               </div>

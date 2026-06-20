@@ -128,7 +128,7 @@ export default function MedicineModal({ isOpen, onClose, onSave, medicine }: Med
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              <form id="medicine-form" onSubmit={handleSubmit} className="space-y-5">
+              <form noValidate id="medicine-form" onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                     Brand Name *

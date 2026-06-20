@@ -11,6 +11,8 @@ import { sessionService } from "@/services/sessionService"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import { toast } from "react-hot-toast"
+import { FieldError } from "@/components/ui/FieldError"
+import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 
 export default function SessionsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
@@ -26,6 +28,8 @@ export default function SessionsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<any>(null)
   const [isDailyForm, setIsDailyForm] = useState(true)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  const [apiError, setApiError] = useState<any>(null)
 
   const { data: branches } = useQuery({
     queryKey: ['branches', orgId],
@@ -70,9 +74,17 @@ export default function SessionsPage() {
       queryClient.invalidateQueries({ queryKey: ['sessions', selectedDoctorId, selectedBranchId] })
       setIsDrawerOpen(false)
       setEditingSession(null)
+      setApiError(null)
+      setValidationErrors({})
       toast.success("Sessions saved successfully!")
     },
     onError: (error: any) => {
+      setApiError(error)
+      if (error.response?.data?.errors) {
+        setValidationErrors(error.response.data.errors)
+      } else if (error.response?.data?.extensions?.errors) {
+        setValidationErrors(error.response.data.extensions.errors)
+      }
       const msg = error.response?.data?.message || error.message || "Failed to save session."
       toast.error(msg)
     }
@@ -87,16 +99,37 @@ export default function SessionsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setApiError(null)
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const isDaily = formData.get('isDaily') === 'true'
     const dayOfWeek = parseInt(formData.get('dayOfWeek') as string || '1')
 
+    const startTimeStr = formData.get('startTime') as string
+    const endTimeStr = formData.get('endTime') as string
+    const capacityStr = formData.get('defaultCapacity') as string
+    const capacityNum = parseInt(capacityStr)
+
+    // Manual validation for time fields to use the custom messaging feature instead of browser tooltips
+    const errors: Record<string, string[]> = {}
+    if (!startTimeStr) errors.StartTime = ["Start time is required."]
+    if (!endTimeStr) errors.EndTime = ["End time is required."]
+    
+    if (!capacityStr || isNaN(capacityNum) || capacityNum <= 0) {
+      errors.DefaultCapacity = ["Capacity must be greater than 0."]
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
+    }
+
     const dataTemplate = {
       sessionName: formData.get('sessionName') as string,
       isDaily,
-      startTime: formData.get('startTime') as string,
-      endTime: formData.get('endTime') as string,
-      defaultCapacity: parseInt(formData.get('defaultCapacity') as string)
+      startTime: startTimeStr,
+      endTime: endTimeStr,
+      defaultCapacity: capacityNum
     }
 
     const otherSessions = sessions?.filter((s: any) => s.id !== editingSession?.id) || []
@@ -310,7 +343,7 @@ export default function SessionsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setIsDrawerOpen(false); setEditingSession(null); }}
+              onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
               className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40"
             />
             <motion.div
@@ -334,7 +367,7 @@ export default function SessionsPage() {
                   </div>
                 </div>
                 <button
-                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); }}
+                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -342,7 +375,8 @@ export default function SessionsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="session-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate id="session-form" onSubmit={handleSubmit} className="space-y-6">
+                  <ApiErrorAlert error={apiError} />
                   {/* Recurrence Toggle */}
                   <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-xl">
                     <label className="cursor-pointer">
@@ -364,7 +398,8 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <FileText className="w-4 h-4 text-blue-500" /> Session Name
                       </label>
-                      <input required name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <input name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <FieldError errors={validationErrors} field="SessionName" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -372,13 +407,15 @@ export default function SessionsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-green-500" /> Start Time
                         </label>
-                        <input required type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <FieldError errors={validationErrors} field="StartTime" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-rose-500" /> End Time
                         </label>
-                        <input required type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <FieldError errors={validationErrors} field="EndTime" />
                       </div>
                     </div>
 
@@ -386,7 +423,8 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity
                       </label>
-                      <input required type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                      <input type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                      <FieldError errors={validationErrors} field="DefaultCapacity" />
                       <p className="text-xs text-slate-500 mt-1">Maximum number of patients allowed per session.</p>
                     </div>
 
@@ -398,6 +436,7 @@ export default function SessionsPage() {
                         <select name="dayOfWeek" defaultValue={editingSession?.dayOfWeek || 1} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
                           {days.map((day, idx) => <option key={idx} value={idx}>{day}</option>)}
                         </select>
+                        <FieldError errors={validationErrors} field="DayOfWeek" />
                       </div>
                     )}
                   </div>
@@ -407,7 +446,7 @@ export default function SessionsPage() {
               <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); }}
+                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
                   className="btn-danger"
                 >
                   <X className="w-4 h-4" /> Cancel

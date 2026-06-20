@@ -18,6 +18,9 @@ import toast from "react-hot-toast"
 import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
+import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { FieldError } from "@/components/ui/FieldError"
+import { handleApiError } from "@/lib/utils"
 
 export default function BranchesPage() {
   const { user, setBranch: setAuthBranch, activeBranchId, setActiveBranchId } = useAuthStore()
@@ -31,6 +34,8 @@ export default function BranchesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [whatsappConfigBranch, setWhatsappConfigBranch] = useState<any>(null)
   const [logoBase64, setLogoBase64] = useState<string>('')
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  const [apiError, setApiError] = useState<any>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -48,18 +53,13 @@ export default function BranchesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] })
       setIsDrawerOpen(false)
+      setValidationErrors({})
+      setApiError(null)
       toast.success("Branch created successfully")
     },
     onError: (error: any) => {
-      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to add branch";
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const firstKey = Object.keys(errors)[0];
-        if (firstKey && errors[firstKey].length > 0) {
-          errorMessage = errors[firstKey][0];
-        }
-      }
-      toast.error(errorMessage)
+      setApiError(error)
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
     }
   })
 
@@ -69,10 +69,13 @@ export default function BranchesPage() {
       queryClient.invalidateQueries({ queryKey: ['branches'] })
       setIsDrawerOpen(false)
       setEditingBranch(null)
+      setValidationErrors({})
+      setApiError(null)
       toast.success("Branch updated successfully")
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || error.response?.data?.detail || "Failed to update branch")
+      setApiError(error)
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
     }
   })
 
@@ -83,25 +86,20 @@ export default function BranchesPage() {
       toast.success("Branch deleted successfully")
     },
     onError: (error: any) => {
-      let errorMessage = error.response?.data?.message || error.response?.data?.detail || "Failed to delete branch";
-      if (error.response?.data?.errors) {
-        const errors = error.response.data.errors;
-        const firstKey = Object.keys(errors)[0];
-        if (firstKey && errors[firstKey].length > 0) {
-          errorMessage = errors[firstKey][0];
-        }
-      }
-      toast.error(errorMessage)
+      handleApiError(error, "Failed to delete branch")
     }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setApiError(null)
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name'),
       address: formData.get('address'),
       whatsAppNumber: formData.get('whatsAppNumber'),
+      timezone: formData.get('timezone'),
       isActive: formData.get('isActive') === 'on',
       logoBase64
     }
@@ -225,7 +223,6 @@ export default function BranchesPage() {
 
   return (
     <div className="animate-in fade-in duration-500 pb-12 space-y-6">
-      {/* Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
           <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
@@ -243,8 +240,6 @@ export default function BranchesPage() {
 
       <div className="saas-card overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-
-          {/* Left Side: View Toggles & Row Count */}
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
               <button
@@ -262,7 +257,6 @@ export default function BranchesPage() {
                 <List className="w-4 h-4" />
               </button>
             </div>
-
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
@@ -274,8 +268,6 @@ export default function BranchesPage() {
               ))}
             </select>
           </div>
-
-          {/* Right Side: Search & Add Button */}
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
             <div className="relative w-full sm:w-64 group">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -287,7 +279,6 @@ export default function BranchesPage() {
                 className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
             </div>
-
             <button
               onClick={() => { setEditingBranch(null); setLogoBase64(''); setIsDrawerOpen(true); }}
               className="btn-primary"
@@ -296,10 +287,7 @@ export default function BranchesPage() {
             </button>
           </div>
         </div>
-
-        {/* View Content */}
         <div className="p-0 sm:p-6 bg-slate-50/50">
-          {/* Grid */}
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
@@ -344,16 +332,12 @@ export default function BranchesPage() {
                 const isActiveContext = branch.id === currentBranchId
                 return (
                   <div key={branch.id} className={`bg-white rounded-xl border ${isActiveContext ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-500/10' : 'border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 hover:-translate-y-1'} p-5 transition-all duration-300 group relative overflow-hidden flex flex-col`}>
-
-                    {/* Decorative Background Blob */}
                     <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 transition-opacity ${isActiveContext ? 'bg-indigo-400' : 'bg-slate-200 group-hover:bg-indigo-200'}`}></div>
-
                     {isActiveContext && (
                       <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-bl-xl shadow-sm z-10">
                         Active Context
                       </div>
                     )}
-
                     <div className="flex items-start gap-4 mb-5 relative z-10">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-105 ${isActiveContext ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-transparent text-white shadow-md shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600'}`}>
                         <Building2 className="w-7 h-7" />
@@ -369,7 +353,6 @@ export default function BranchesPage() {
                         </div>
                       </div>
                     </div>
-
                     <div className="space-y-4 mb-6 flex-1 relative z-10 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                       <div className="flex items-start gap-3 text-sm text-slate-700">
                         <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-indigo-500 shrink-0">
@@ -384,7 +367,6 @@ export default function BranchesPage() {
                         <span className="font-medium">{branch.whatsAppNumber || 'Not configured'}</span>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 pt-4 border-t border-slate-100 relative z-10">
                       {!isActiveContext ? (
                         <button
@@ -398,7 +380,6 @@ export default function BranchesPage() {
                           <Activity className="w-4 h-4" /> Managing Now
                         </div>
                       )}
-
                       <button
                         onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
                         className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
@@ -406,7 +387,6 @@ export default function BranchesPage() {
                       >
                         <Edit className="w-4.5 h-4.5" />
                       </button>
-
                       <button
                         onClick={() => { setWhatsappConfigBranch(branch) }}
                         className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 bg-slate-50 hover:shadow-sm"
@@ -414,7 +394,6 @@ export default function BranchesPage() {
                       >
                         <MessageSquare className="w-4.5 h-4.5" />
                       </button>
-
                       {['orgadmin', 'superadmin'].includes(role) && (
                         <button
                           onClick={() => {
@@ -432,7 +411,6 @@ export default function BranchesPage() {
             </div>
           )}
         </div>
-        {/* Pagination */}
         <div className="p-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500 bg-slate-50">
           <div className="font-medium">
             Showing {table.getRowModel().rows.length > 0 ? pageIndex * pageSize + 1 : 0} to {Math.min((pageIndex + 1) * pageSize, filteredBranches.length)} of {filteredBranches.length} entries
@@ -459,7 +437,6 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      {/* Branch Drawer */}
       <AnimatePresence>
         {isDrawerOpen && (
           <>
@@ -467,7 +444,7 @@ export default function BranchesPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); }}
+              onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); setApiError(null); setValidationErrors({}); }}
               className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40"
             />
             <motion.div
@@ -490,18 +467,20 @@ export default function BranchesPage() {
                     <p className="text-sm text-slate-500 mt-1">{editingBranch ? 'Update facility details.' : 'Register a new branch location.'}</p>
                   </div>
                 </div>
-                <button onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                <button onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); setApiError(null); setValidationErrors({}); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form id="branch-form" onSubmit={handleSubmit} className="space-y-5">
+                <form noValidate id="branch-form" onSubmit={handleSubmit} className="space-y-5">
+                  <ApiErrorAlert error={apiError} />
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Building2 className="w-4 h-4 text-indigo-500" /> Facility Name
                     </label>
-                    <input required name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <FieldError errors={validationErrors} field="Name" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
@@ -532,14 +511,31 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <MapPin className="w-4 h-4 text-rose-500" /> Physical Address
                     </label>
-                    <textarea required rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
+                    <textarea rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
+                    <FieldError errors={validationErrors} field="Address" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Smartphone className="w-4 h-4 text-green-500" /> WhatsApp Number
                     </label>
                     <input name="whatsAppNumber" defaultValue={editingBranch?.whatsAppNumber} placeholder="e.g. +1234567890" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <FieldError errors={validationErrors} field="WhatsAppNumber" />
                     <p className="text-xs text-slate-500 mt-1">Include country code. Used for automated bot communications.</p>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                      <Activity className="w-4 h-4 text-cyan-500" /> Timezone
+                    </label>
+                    <select name="timezone" defaultValue={editingBranch?.timezone || "Asia/Kolkata"} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                      <option value="Asia/Kolkata">India Standard Time (IST)</option>
+                      <option value="UTC">UTC (Universal Time)</option>
+                      <option value="America/New_York">Eastern Standard Time (EST)</option>
+                      <option value="Europe/London">Greenwich Mean Time (GMT/BST)</option>
+                      <option value="Asia/Dubai">Gulf Standard Time (GST)</option>
+                      <option value="Asia/Singapore">Singapore Standard Time (SGT)</option>
+                    </select>
+                    <FieldError errors={validationErrors} field="Timezone" />
+                    <p className="text-xs text-slate-500 mt-1">Used for accurate queue resets and WhatsApp reminder scheduling.</p>
                   </div>
                   {editingBranch && (
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
