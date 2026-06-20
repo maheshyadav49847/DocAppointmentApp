@@ -119,6 +119,7 @@ namespace CodeX.Api.Controllers
             branch.Address = updatedBranch.Address;
             branch.WhatsAppNumber = updatedBranch.WhatsAppNumber;
             branch.IsActive = updatedBranch.IsActive;
+            branch.LogoBase64 = updatedBranch.LogoBase64;
 
             await _context.SaveChangesAsync(default);
             return NoContent();

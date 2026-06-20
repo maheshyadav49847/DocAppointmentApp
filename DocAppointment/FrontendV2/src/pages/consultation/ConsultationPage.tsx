@@ -14,6 +14,8 @@ import {
 } from "lucide-react"
 import MedicineAutocomplete from "./components/MedicineAutocomplete"
 import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
+import PrescriptionTemplate from "./components/PrescriptionTemplate"
+import { generatePdfFromElement } from "../../utils/pdfUtils"
 
 // Types
 interface Medicine {
@@ -38,14 +40,15 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { activeBranchId, user } = useAuthStore()
-  
+
   const { data: branches } = useQuery({
     queryKey: ['branches', user?.orgId],
     queryFn: () => api.get(`/branches/org/${user?.orgId}`).then(r => r.data),
-    enabled: !!user?.orgId && !activeBranchId && !user?.branchId
+    enabled: !!user?.orgId
   })
 
-  const currentBranchId = activeBranchId || user?.branchId || branches?.[0]?.id || user?.orgId || "default"
+  const currentBranchId = activeBranchId || user?.branchId || branches?.[0]?.id || "default"
+  const currentBranch = branches?.find((b: any) => b.id === currentBranchId) || branches?.[0]
 
   // Queries
   const { data: patient, isLoading: isPatientLoading } = useQuery({
@@ -96,7 +99,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   // State
   const [activeTab, setActiveTab] = useState<"history" | "attachments">("history")
-  
+
   // Form State
   const [visitDoctorId, setVisitDoctorId] = useState(user?.doctorId || "")
   const [visitSymptoms, setVisitSymptoms] = useState("")
@@ -120,8 +123,12 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [stagingCategory, setStagingCategory] = useState("Lab Report")
 
   // Printing & WhatsApp state
-  const [isPrintingRx, setIsPrintingRx] = useState(false)
+  const [printingVisitId, setPrintingVisitId] = useState<string | null>(null)
   const printRef = useRef<HTMLDivElement>(null)
+  
+  // Historical Print State
+  const [visitToPrint, setVisitToPrint] = useState<any>(null)
+  const historicPrintRef = useRef<HTMLDivElement>(null)
 
   // Edit State
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null)
@@ -138,7 +145,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   const availableDoctors = useMemo(() => {
     if (!doctors) return [];
-    return user?.doctorId 
+    return user?.doctorId
       ? doctors.filter((d: any) => String(d.id) === String(user.doctorId))
       : doctors;
   }, [doctors, user?.doctorId]);
@@ -188,14 +195,14 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
           clinicalInstructions: m.clinicalInstructions || ""
         })),
       }
-      
+
       let res;
       if (editingVisitId) {
         res = await api.put(`/patientclinical/visits/${editingVisitId}`, payload)
       } else {
         res = await api.post(`/patientclinical/${patientId}/visits`, payload)
       }
-      
+
       // Upload files
       if (visitFiles.length > 0) {
         for (const item of visitFiles) {
@@ -206,13 +213,53 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
           await api.post(`/patientclinical/${patientId}/attachments`, formData)
         }
       }
-      
+
       return res.data
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["clinicalVisits", patientId] })
       queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
-      // Clear form
+      
+      // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
+      if (printRef.current) {
+        try {
+          const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          let imgWidth = pdfWidth;
+          let imgHeight = (canvas.height * pdfWidth) / canvas.width;
+          if (imgHeight > pageHeight) {
+            const ratio = pageHeight / imgHeight;
+            imgHeight = pageHeight;
+            imgWidth = imgWidth * ratio;
+          }
+          const x = (pdfWidth - imgWidth) / 2;
+          pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
+          
+          const base64Pdf = pdf.output("datauristring").split(",")[1];
+          await api.post("/whatsapp/bridge/send", {
+            branchId: currentBranchId,
+            to: patient?.phone,
+            message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
+            fileBase64: base64Pdf,
+            fileName: `Prescription_${patient?.name}.pdf`
+          });
+          alert("Consultation saved and Prescription sent to WhatsApp!");
+        } catch (err: any) {
+          console.error("Auto-send WA Error", err);
+          if (err.response?.status === 409) {
+            alert("Consultation saved, but WhatsApp is not connected for this branch. Please scan the QR code in WhatsApp Settings first.");
+          } else {
+            alert("Consultation saved, but failed to send WhatsApp: " + (err.response?.data?.message || err.message));
+          }
+        }
+      } else {
+        alert("Consultation saved successfully!");
+      }
+
+      // Clear form AFTER PDF is generated and sent
       setVisitSymptoms("")
       setVisitDiagnosis("")
       setVisitAdvice("")
@@ -230,36 +277,6 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       setVisitFiles([])
       setStagingFile(null)
       setEditingVisitId(null)
-      alert("Consultation saved successfully!")
-
-      setTimeout(async () => {
-        if (!printRef.current) return;
-        try {
-          const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
-          const imgData = canvas.toDataURL("image/png");
-          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-          
-          const base64Pdf = pdf.output("datauristring").split(",")[1];
-          await api.post("/whatsapp/bridge/send", {
-            branchId: currentBranchId,
-            to: patient?.phone,
-            message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
-            fileBase64: base64Pdf,
-            fileName: `Prescription_${patient?.name}.pdf`
-          });
-          alert("Prescription sent to WhatsApp!");
-        } catch (err: any) {
-          console.error("Auto-send WA Error", err);
-          if (err.response?.status === 409) {
-            alert("WhatsApp is not connected for this branch. Please scan the QR code in WhatsApp Settings first.");
-          } else {
-            alert("Prescription saved, but failed to send WhatsApp: " + (err.response?.data?.message || err.message));
-          }
-        }
-      }, 500);
     },
     onError: (err: any) => {
       alert("Failed to save consultation: " + (err.response?.data || err.message))
@@ -268,7 +285,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   const addMedicine = () => {
     if (!medName) return
-    setVisitMedicines([...visitMedicines, { 
+    setVisitMedicines([...visitMedicines, {
       medicineName: medName, dosage: medDosage, foodTiming: medTiming, courseDuration: medDuration,
       doseQty: medDosage, doseSchedule: medSchedule, medicineType: medType, clinicalInstructions: medInstructions
     }])
@@ -310,45 +327,45 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   }
 
   const handlePrintPrescription = async (visit: any) => {
-    setIsPrintingRx(true)
+    setPrintingVisitId(visit.id)
+    setVisitToPrint(visit) // Set the data for the template
+    
+    // Give React a moment to render the template with the new data
     setTimeout(async () => {
-      if (!printRef.current) {
-        setIsPrintingRx(false)
+      if (!historicPrintRef.current) {
+        setPrintingVisitId(null)
+        setVisitToPrint(null)
         return
       }
       try {
-        const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false })
-        const imgData = canvas.toDataURL("image/png")
-        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
-
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
-        pdf.save(`Prescription_${patient?.name}_${new Date(visit.visitDate).toLocaleDateString()}.pdf`)
+        await generatePdfFromElement(
+          historicPrintRef.current, 
+          `Prescription_${patient?.name}_${new Date(visit.visitDate).toLocaleDateString()}.pdf`
+        );
       } catch (err) {
         console.error("Print Error: ", err)
         alert("Failed to generate PDF")
       } finally {
-        setIsPrintingRx(false)
+        setPrintingVisitId(null)
+        setVisitToPrint(null)
       }
-    }, 500) // Small delay to let React render the hidden template with data
+    }, 500)
   }
 
   const handleSaveConsultation = () => {
-    const hasContent = 
-      visitSymptoms.trim() || 
-      visitDiagnosis.trim() || 
-      visitAdvice.trim() || 
+    const hasContent =
+      visitSymptoms.trim() ||
+      visitDiagnosis.trim() ||
+      visitAdvice.trim() ||
       visitMedicines.length > 0 ||
-      visitWeight || visitTemperature || visitBloodPressure || 
+      visitWeight || visitTemperature || visitBloodPressure ||
       visitHeartRate || visitOxygenLevel || visitBloodSugar || visitRespiratoryRate;
 
     if (!hasContent) {
       alert("Please enter some consultation details (Symptoms, Diagnosis, Vitals, or Medicines) before saving.");
       return;
     }
-    
+
     mutation.mutate();
   }
 
@@ -358,12 +375,12 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   return (
     <div className={`flex flex-col bg-slate-50 overflow-hidden ${isEmbedded ? 'h-full' : 'h-[calc(100vh-4rem)]'}`}>
-      
+
       {/* Top Banner */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between shrink-0 gap-4">
         <div className="flex items-center gap-4">
           {!isEmbedded && (
-            <button 
+            <button
               onClick={() => navigate(-1)}
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
             >
@@ -394,13 +411,13 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0">
           <div className="flex items-center gap-4 whitespace-nowrap">
 
-            
+
             {editingVisitId && (
-              <button 
+              <button
                 onClick={() => {
                   setEditingVisitId(null)
                   setVisitSymptoms("")
@@ -425,7 +442,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <X className="w-4 h-4" /> Cancel Edit
               </button>
             )}
-            <button 
+            <button
               onClick={handleSaveConsultation}
               disabled={mutation.isPending}
               className="btn-primary"
@@ -439,11 +456,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
       {/* Main Workspace Workspace */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-        
+
         {/* LEFT COLUMN: Active Consultation Form */}
         <div className="w-full lg:w-2/3 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white lg:overflow-y-auto shrink-0">
           <div className="p-4 sm:p-6 space-y-8">
-            
+
             {/* Header & Doctor */}
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -451,8 +468,8 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               </h2>
               <div className="flex items-center gap-3">
                 <label className="text-sm font-medium text-slate-600">Consulting Doctor:</label>
-                <select 
-                  value={visitDoctorId} 
+                <select
+                  value={visitDoctorId}
                   onChange={(e) => setVisitDoctorId(e.target.value)}
                   className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
@@ -470,7 +487,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <Activity className="w-4 h-4 text-red-500" /> Symptoms / Complaints
                 </label>
-                <textarea 
+                <textarea
                   value={visitSymptoms}
                   onChange={(e) => setVisitSymptoms(e.target.value)}
                   rows={3}
@@ -482,7 +499,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <ClipboardList className="w-4 h-4 text-indigo-500" /> Diagnosis
                 </label>
-                <textarea 
+                <textarea
                   value={visitDiagnosis}
                   onChange={(e) => setVisitDiagnosis(e.target.value)}
                   rows={3}
@@ -500,27 +517,27 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Weight (kg)</label>
-                  <input type="number" value={visitWeight} onChange={e=>setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
+                  <input type="number" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Temp (°F)</label>
-                  <input type="number" value={visitTemperature} onChange={e=>setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
+                  <input type="number" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">BP (mmHg)</label>
-                  <input type="text" value={visitBloodPressure} onChange={e=>setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
+                  <input type="text" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">SpO2 (%)</label>
-                  <input type="number" value={visitOxygenLevel} onChange={e=>setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98" />
+                  <input type="number" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Heart Rate</label>
-                  <input type="number" value={visitHeartRate} onChange={e=>setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="72" />
+                  <input type="number" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="72" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Sugar (mg/dL)</label>
-                  <input type="number" value={visitBloodSugar} onChange={e=>setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="110" />
+                  <input type="number" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="110" />
                 </div>
               </div>
             </div>
@@ -530,14 +547,14 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-emerald-500" /> E-Prescription
               </h3>
-              
+
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Medicine Name *</label>
-                    <MedicineAutocomplete 
-                      value={medName} 
-                      onChange={setMedName} 
+                    <MedicineAutocomplete
+                      value={medName}
+                      onChange={setMedName}
                       onSelectMedicine={(med) => {
                         if (med.type) setMedType(med.type);
                       }}
@@ -545,7 +562,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Type</label>
-                    <select value={medType} onChange={e=>setMedType(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
+                    <select value={medType} onChange={e => setMedType(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white">
                       <option value="">Select Type</option>
                       {medicineTypesData?.map((t: any) => (
                         <option key={t.id} value={t.name}>{t.name}</option>
@@ -554,13 +571,13 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Dose Qty</label>
-                    <input value={medDosage} onChange={e=>setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Schedule</label>
-                    <select value={medSchedule} onChange={e=>setMedSchedule(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <select value={medSchedule} onChange={e => setMedSchedule(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                       <option value="">Select</option>
                       <option value="1-0-1">1-0-1</option>
                       <option value="1-1-1">1-1-1</option>
@@ -571,7 +588,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Timing</label>
-                    <select value={medTiming} onChange={e=>setMedTiming(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <select value={medTiming} onChange={e => setMedTiming(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                       <option value="">Select</option>
                       <option value="After Food">After Food</option>
                       <option value="Before Food">Before Food</option>
@@ -579,11 +596,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Duration</label>
-                    <input value={medDuration} onChange={e=>setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input value={medInstructions} onChange={e=>setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input value={medInstructions} onChange={e => setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="mt-3 text-right">
@@ -625,7 +642,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <HeartPulse className="w-4 h-4 text-emerald-500" /> Advice & Treatment Plan
                 </label>
-                <textarea 
+                <textarea
                   value={visitAdvice}
                   onChange={(e) => setVisitAdvice(e.target.value)}
                   rows={3}
@@ -637,7 +654,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <Edit className="w-4 h-4 text-amber-500" /> Private Notes
                 </label>
-                <textarea 
+                <textarea
                   value={visitInternalNotes}
                   onChange={(e) => setVisitInternalNotes(e.target.value)}
                   rows={3}
@@ -646,7 +663,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 />
               </div>
             </div>
-            
+
             {/* Follow-up & Attachments */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-12">
               <div className="space-y-4">
@@ -656,11 +673,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
-                    <input type="date" value={visitFollowUpDate} onChange={e=>setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input type="text" value={visitFollowUpInstructions} onChange={e=>setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input type="text" value={visitFollowUpInstructions} onChange={e => setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -671,7 +688,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 </h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <div className="flex flex-col gap-3">
-                    <select value={stagingCategory} onChange={e=>setStagingCategory(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm w-full">
+                    <select value={stagingCategory} onChange={e => setStagingCategory(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm w-full">
                       <option value="Lab Report">Lab Report</option>
                       <option value="X-Ray">X-Ray</option>
                       <option value="MRI Scan">MRI Scan</option>
@@ -704,13 +721,13 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         {/* RIGHT COLUMN: History & Attachments */}
         <div className="w-full lg:w-1/3 flex flex-col bg-slate-50 lg:overflow-y-auto shrink-0">
           <div className="flex border-b border-slate-200 bg-white">
-            <button 
+            <button
               onClick={() => setActiveTab("history")}
               className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "history" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
             >
               Patient History
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab("attachments")}
               className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "attachments" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"}`}
             >
@@ -736,26 +753,26 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         </div>
                         <div className="flex items-center gap-2">
                           {index === 0 && (
-                              <button
-                                onClick={() => handleEditVisit(visit)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
-                                title="Edit Consultation"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                                Edit
-                              </button>
+                            <button
+                              onClick={() => handleEditVisit(visit)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors"
+                              title="Edit Consultation"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              Edit
+                            </button>
                           )}
-                          <button 
+                          <button
                             onClick={() => handlePrintPrescription(visit)}
-                            disabled={isPrintingRx}
+                            disabled={printingVisitId === visit.id}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
                           >
                             <Printer className="w-3.5 h-3.5" />
-                            {isPrintingRx ? "Printing..." : "Print Rx"}
+                            {printingVisitId === visit.id ? "Printing..." : "Print Rx"}
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         {visit.symptoms && (
                           <div className="text-slate-600"><span className="font-bold text-slate-700">Symptoms:</span> {visit.symptoms}</div>
@@ -766,7 +783,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         {visit.advice && (
                           <div className="text-slate-600"><span className="font-bold text-slate-700">Treatment Plan:</span> {visit.advice}</div>
                         )}
-                        
+
                         {/* Collapsible Details */}
                         <details className="group mt-3 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden [&_summary::-webkit-details-marker]:hidden">
                           <summary className="flex items-center justify-between px-4 py-2 cursor-pointer font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
@@ -775,9 +792,9 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                               <svg fill="none" height="16" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="16"><path d="M6 9l6 6 6-6"></path></svg>
                             </span>
                           </summary>
-                          
+
                           <div className="p-4 space-y-4 bg-white">
-                            
+
                             {/* Vitals Grid */}
                             {(visit.weight || visit.bloodPressure || visit.temperature || visit.heartRate || visit.oxygenLevel || visit.bloodSugar || visit.respiratoryRate) && (
                               <div>
@@ -866,7 +883,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 )}
               </div>
             )}
-            
+
             {activeTab === "attachments" && (
               <div className="space-y-3">
                 {attachments?.length === 0 ? (
@@ -884,9 +901,9 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <a 
-                          href={`/api${attachment.fileUrl}`} 
-                          target="_blank" 
+                        <a
+                          href={`/api${attachment.fileUrl}`}
+                          target="_blank"
                           rel="noreferrer"
                           className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           title="View File"
@@ -918,84 +935,43 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
       {/* Hidden PDF Template */}
       <div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
-        <div ref={printRef} style={{ width: "800px", padding: "40px", backgroundColor: "#ffffff", color: "#000000", fontFamily: "sans-serif" }}>
-          <div style={{ borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "20px", display: "flex", justifyContent: "space-between" }}>
-            <div>
-              <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0, color: "#1e1b4b" }}>Modern Clinic</h1>
-              <p style={{ margin: "5px 0 0 0", color: "#64748b" }}>123 Health Avenue, Medical District</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <h2 style={{ fontSize: "18px", margin: 0 }}>Dr. {doctors?.find((d: any) => d.id === visitDoctorId)?.name || 'Unknown'}</h2>
-              <p style={{ margin: "5px 0 0 0", color: "#64748b" }}>Prescription / Consultation Note</p>
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px", backgroundColor: "#f8fafc", padding: "15px", borderRadius: "8px" }}>
-            <div>
-              <p style={{ margin: 0, fontWeight: "bold" }}>Patient: {patient?.name}</p>
-              <p style={{ margin: "5px 0 0 0", fontSize: "14px", color: "#475569" }}>Age: {patient?.age} | Gender: {patient?.gender}</p>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <p style={{ margin: 0, fontWeight: "bold" }}>Date: {new Date().toLocaleDateString()}</p>
-              <p style={{ margin: "5px 0 0 0", fontSize: "14px", color: "#475569" }}>ID: {patient?.patientCode}</p>
-            </div>
-          </div>
-
-          {(visitSymptoms || visitDiagnosis) && (
-            <div style={{ marginBottom: "30px" }}>
-              <h3 style={{ fontSize: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px", marginBottom: "10px" }}>Clinical Assessment</h3>
-              {visitSymptoms && <p style={{ margin: "0 0 10px 0" }}><strong>Symptoms:</strong> {visitSymptoms}</p>}
-              {visitDiagnosis && <p style={{ margin: 0 }}><strong>Diagnosis:</strong> {visitDiagnosis}</p>}
-            </div>
-          )}
-
-          {visitMedicines.length > 0 && (
-            <div style={{ marginBottom: "30px" }}>
-              <h3 style={{ fontSize: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px", marginBottom: "10px" }}>Prescription (Rx)</h3>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#f1f5f9", textAlign: "left" }}>
-                    <th style={{ padding: "8px", border: "1px solid #cbd5e1" }}>Medicine</th>
-                    <th style={{ padding: "8px", border: "1px solid #cbd5e1" }}>Dosage</th>
-                    <th style={{ padding: "8px", border: "1px solid #cbd5e1" }}>Timing</th>
-                    <th style={{ padding: "8px", border: "1px solid #cbd5e1" }}>Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visitMedicines.map((m, i) => (
-                    <tr key={i}>
-                      <td style={{ padding: "8px", border: "1px solid #cbd5e1", fontWeight: "bold" }}>{m.medicineName}</td>
-                      <td style={{ padding: "8px", border: "1px solid #cbd5e1" }}>{m.dosage}</td>
-                      <td style={{ padding: "8px", border: "1px solid #cbd5e1" }}>{m.foodTiming}</td>
-                      <td style={{ padding: "8px", border: "1px solid #cbd5e1" }}>{m.courseDuration}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {visitAdvice && (
-            <div style={{ marginBottom: "30px" }}>
-              <h3 style={{ fontSize: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "5px", marginBottom: "10px" }}>Advice / Plan</h3>
-              <p style={{ margin: 0 }}>{visitAdvice}</p>
-            </div>
-          )}
-
-          {visitFollowUpDate && (
-            <div style={{ marginBottom: "30px", padding: "10px", border: "1px dashed #cbd5e1", backgroundColor: "#f8fafc" }}>
-              <p style={{ margin: 0 }}><strong>Next Follow-up:</strong> {new Date(visitFollowUpDate).toLocaleDateString()}</p>
-              {visitFollowUpInstructions && <p style={{ margin: "5px 0 0 0" }}>{visitFollowUpInstructions}</p>}
-            </div>
-          )}
-
-          <div style={{ marginTop: "60px", textAlign: "right" }}>
-            <p style={{ margin: 0, fontWeight: "bold", borderTop: "1px solid #cbd5e1", display: "inline-block", paddingTop: "10px" }}>Doctor's Signature</p>
-          </div>
-        </div>
+        {/* Active Consultation Inline Hidden Template */}
+        {/* We keep this here so the active form matches the new standard design for WhatsApp auto-send */}
+        <PrescriptionTemplate 
+          ref={printRef}
+          patient={patient}
+          visit={{
+            visitDate: new Date().toISOString(),
+            symptoms: visitSymptoms,
+            diagnosis: visitDiagnosis,
+            advice: visitAdvice,
+            bloodPressure: visitBloodPressure,
+            heartRate: visitHeartRate,
+            temperature: visitTemperature,
+            weight: visitWeight,
+            oxygenLevel: visitOxygenLevel,
+            medicines: visitMedicines,
+            followUpDate: visitFollowUpDate,
+            followUpInstructions: visitFollowUpInstructions,
+            doctorName: doctors?.find((d: any) => String(d.id) === String(visitDoctorId))?.name
+          }}
+          doctor={doctors?.find((d: any) => String(d.id) === String(visitDoctorId))}
+          branch={currentBranch}
+        />
       </div>
 
-      <PatientProfileDrawer 
+      {/* Template for Printing Historic Visits */}
+      {visitToPrint && (
+        <PrescriptionTemplate 
+          ref={historicPrintRef} 
+          patient={patient}
+          visit={visitToPrint}
+          doctor={doctors?.find((d: any) => String(d.id) === String(visitToPrint.doctorId))}
+          branch={visitToPrint.branchId ? branches?.find((b: any) => b.id === visitToPrint.branchId) : currentBranch} 
+        />
+      )}
+
+      <PatientProfileDrawer
         isOpen={isProfileDrawerOpen}
         onClose={() => setIsProfileDrawerOpen(false)}
         editingPatient={patient}

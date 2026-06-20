@@ -82,6 +82,7 @@ namespace CodeX.Api.Controllers
         {
             var query = _context.PatientVisits
                 .Include(v => v.Doctor)
+                .Include(v => v.Token).ThenInclude(t => t.Queue)
                 .Include(v => v.Medicines)
                 .Include(v => v.Attachments)
                 .Where(v => v.PatientId == id);
@@ -100,6 +101,7 @@ namespace CodeX.Api.Controllers
                     DoctorName = v.Doctor.Name,
                     Department = v.Doctor.Specialization,
                     v.TokenId,
+                    BranchId = v.Token != null ? (Guid?)v.Token.Queue.BranchId : null,
                     v.VisitDate,
                     v.Symptoms,
                     v.Diagnosis,

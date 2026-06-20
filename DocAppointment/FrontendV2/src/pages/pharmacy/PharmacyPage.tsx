@@ -50,7 +50,7 @@ export default function PharmacyPage() {
 
   const { data: paginatedData, isLoading } = useQuery<any>({
     queryKey: ['medicines', debouncedSearch, pageIndex, pageSize, sorting],
-    queryFn: () => medicineService.getAll(debouncedSearch, pageIndex + 1, pageSize, sorting[0]?.id, sorting[0]?.desc ? 'desc' : 'asc'),
+    queryFn: () => medicineService.getAll(debouncedSearch, undefined, pageIndex + 1, pageSize, sorting[0]?.id, sorting[0]?.desc ? 'desc' : 'asc'),
     placeholderData: keepPreviousData,
   });
 
@@ -234,7 +234,8 @@ export default function PharmacyPage() {
           </div>
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-              <span className="text-slate-900">Medicine Master</span>
+              <span className="text-slate-900">Medicine</span>
+              <span className="text-indigo-600">Master</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global medicine database for prescriptions.</p>
           </div>

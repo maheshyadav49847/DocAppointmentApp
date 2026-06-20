@@ -12,6 +12,7 @@ namespace CodeX.Domain.Entities
         public string WhatsAppNumber { get; set; } = string.Empty;
         public string? WhatsAppApiKey { get; set; }
         public string Timezone { get; set; } = "India Standard Time";
+        public string? LogoBase64 { get; set; }
 
         // Navigation Properties
         public virtual Organization? Organization { get; set; }

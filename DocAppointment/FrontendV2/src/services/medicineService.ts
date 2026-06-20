@@ -8,6 +8,8 @@ export interface MedicineDto {
   medicineTypeId?: string;
   manufacturer?: string;
   isActive: boolean;
+  popularityScore: number;
+  isDoctorFrequent: boolean;
 }
 
 export interface MedicineTypeDto {
@@ -36,9 +38,10 @@ export interface PaginatedList<T> {
 }
 
 export const medicineService = {
-  getAll: async (search?: string, pageNumber: number = 1, pageSize: number = 50, sortColumn?: string, sortDirection?: string): Promise<PaginatedList<MedicineDto>> => {
+  getAll: async (search?: string, doctorId?: string, pageNumber: number = 1, pageSize: number = 50, sortColumn?: string, sortDirection?: string): Promise<PaginatedList<MedicineDto>> => {
     const params: any = { pageNumber, pageSize };
     if (search) params.search = search;
+    if (doctorId) params.doctorId = doctorId;
     if (sortColumn) params.sortColumn = sortColumn;
     if (sortDirection) params.sortDirection = sortDirection;
     const response = await api.get('/medicines', { params });

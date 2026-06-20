@@ -12,6 +12,7 @@ namespace CodeX.Domain.Entities
         public Guid? MedicineTypeId { get; set; }
         public virtual MedicineType? MedicineType { get; set; }
         public string? Manufacturer { get; set; }
+        public int PopularityScore { get; set; } = 0;
         
         // Navigation
         public virtual Organization Organization { get; set; } = null!;

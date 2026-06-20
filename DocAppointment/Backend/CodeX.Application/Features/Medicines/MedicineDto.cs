@@ -11,5 +11,7 @@ namespace CodeX.Application.Features.Medicines.DTOs
         public Guid? MedicineTypeId { get; set; }
         public string? Manufacturer { get; set; }
         public bool IsActive { get; set; }
+        public int PopularityScore { get; set; }
+        public bool IsDoctorFrequent { get; set; }
     }
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Check } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { medicineService, type MedicineDto } from '../../../services/medicineService';
+import { useAuthStore } from '@/store/authStore';
 
 interface MedicineAutocompleteProps {
   value: string;
@@ -15,9 +16,12 @@ export default function MedicineAutocomplete({ value, onChange, onSelectMedicine
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { user } = useAuthStore();
+  const doctorId = user?.role === 'Doctor' ? user.doctorId : undefined;
+
   const { data: medicines } = useQuery({
-    queryKey: ['medicines', value],
-    queryFn: () => medicineService.getAll(value),
+    queryKey: ['medicines', value, doctorId],
+    queryFn: () => medicineService.getAll(value, doctorId),
     enabled: isOpen && value.length >= 1,
     staleTime: 60000
   });
@@ -74,7 +78,14 @@ export default function MedicineAutocomplete({ value, onChange, onSelectMedicine
                   className="px-4 py-2 hover:bg-slate-50 cursor-pointer flex items-center justify-between group transition-colors"
                 >
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-slate-800">{med.name}</span>
+                    <span className="text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      {med.name}
+                      {med.isDoctorFrequent && (
+                        <span title="Frequently Prescribed">
+                          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                        </span>
+                      )}
+                    </span>
                     <span className="text-xs text-slate-500 flex items-center gap-1">
                       {med.type && <span className="text-indigo-500 font-medium">{med.type}</span>}
                       {med.genericName && <span>• {med.genericName}</span>}
