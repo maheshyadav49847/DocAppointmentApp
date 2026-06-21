@@ -17,6 +17,7 @@ namespace CodeX.Domain.Entities
 
         // Navigation Property
         public virtual Patient Patient { get; set; } = null!;
+        public virtual PatientVisit? PatientVisit { get; set; }
     }
 }
 

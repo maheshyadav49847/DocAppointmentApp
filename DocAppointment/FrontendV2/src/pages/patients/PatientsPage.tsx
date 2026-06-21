@@ -64,12 +64,12 @@ export default function PatientsPage() {
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
+      phone: (formData.get('phone') as string) || undefined,
       age: formData.get('age') as string,
       gender: formData.get('gender') as string,
       maritalStatus: formData.get('maritalStatus') as string,
       bloodGroup: formData.get('bloodGroup') as string,
-      email: formData.get('email') as string,
+      email: (formData.get('email') as string) || undefined,
       address: formData.get('address') as string,
       preExistingConditions: formData.get('preExistingConditions') as string,
       height: parseInt(formData.get('height') as string) || 0,
@@ -640,7 +640,7 @@ export default function PatientsPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Phone className="w-4 h-4 text-green-500" /> Phone Number
+                            <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
                           <input defaultValue={editingPatient?.phone} name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
                         </div>

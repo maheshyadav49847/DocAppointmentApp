@@ -73,7 +73,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
       setError("Name must be at least 2 characters")
       return
     }
-    if (!/^\d{10}$/.test(phone)) {
+    if (phone && !/^\d{10}$/.test(phone)) {
       setError("Please enter a valid 10-digit phone number")
       return
     }
@@ -167,7 +167,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                 </div>
 
                 <div className="relative z-10">
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">WhatsApp Number</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">WhatsApp Number <span className="text-zinc-400 font-normal ml-1">Opt</span></label>
                   <div className="relative group">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
                     <input 
@@ -178,7 +178,6 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                       onBlur={() => setTimeout(() => setActiveField(null), 200)}
                       placeholder="10-digit number"
                       className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
-                      required
                       autoComplete="off"
                     />
                     {activeField === "phone" && searchResults?.data && searchResults.data.length > 0 && (

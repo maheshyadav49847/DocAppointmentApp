@@ -1,4 +1,5 @@
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Features.Queue.Commands.EndQueue;
 using CodeX.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -16,12 +17,14 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
         private readonly IQueueNotificationService _notificationService;
+        private readonly IMediator _mediator;
 
-        public CreateDailyQueueCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService, IQueueNotificationService notificationService)
+        public CreateDailyQueueCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService, IQueueNotificationService notificationService, IMediator mediator)
         {
             _context = context;
             _currentUserService = currentUserService;
             _notificationService = notificationService;
+            _mediator = mediator;
         }
 
         public async Task<Guid> Handle(CreateDailyQueueCommand request, CancellationToken cancellationToken)
@@ -38,6 +41,18 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(session.Branch?.Timezone);
             var tomorrow = today.AddDays(1);
+
+            // Auto-end any open queues from previous days to ensure patients get notified
+            var oldOpenQueues = await _context.DailyQueues
+                .Where(q => q.DoctorId == request.DoctorId && 
+                            q.Status == CodeX.Domain.Enums.QueueStatus.Open && 
+                            q.QueueDate < today)
+                .ToListAsync(cancellationToken);
+
+            foreach (var oldQueue in oldOpenQueues)
+            {
+                await _mediator.Send(new EndQueueCommand(oldQueue.Id, EndQueueAction.CancelRemaining), cancellationToken);
+            }
 
             var existing = await _context.DailyQueues
                 .FirstOrDefaultAsync(q =>

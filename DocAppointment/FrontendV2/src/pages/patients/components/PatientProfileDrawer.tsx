@@ -12,30 +12,33 @@ interface PatientProfileDrawerProps {
   onClose: () => void
   editingPatient: Patient | null
   selectedBranch?: string | null
+  onSaved?: (patient: Patient) => void
 }
 
-export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, selectedBranch }: PatientProfileDrawerProps) {
+export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, selectedBranch, onSaved }: PatientProfileDrawerProps) {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
     mutationFn: async (data: Partial<Patient>) => {
-      await patientService.createPatient(data)
+      return await patientService.createPatient(data)
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       queryClient.invalidateQueries({ queryKey: ['patient'] })
+      if (onSaved) onSaved(data)
       onClose()
     }
   })
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Patient>) => {
-      await patientService.updatePatientProfile(editingPatient!.id, { ...data, id: editingPatient!.id })
+      return await patientService.updatePatientProfile(editingPatient!.id, { ...data, id: editingPatient!.id })
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       queryClient.invalidateQueries({ queryKey: ['patient'] })
+      if (onSaved) onSaved(data)
       onClose()
     }
   })
@@ -45,12 +48,12 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
+      phone: (formData.get('phone') as string) || undefined,
       age: formData.get('age') as string,
       gender: formData.get('gender') as string,
       maritalStatus: formData.get('maritalStatus') as string,
       bloodGroup: formData.get('bloodGroup') as string,
-      email: formData.get('email') as string,
+      email: (formData.get('email') as string) || undefined,
       address: formData.get('address') as string,
       preExistingConditions: formData.get('preExistingConditions') as string,
       height: parseInt(formData.get('height') as string) || 0,

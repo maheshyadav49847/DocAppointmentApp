@@ -16,7 +16,7 @@ namespace CodeX.Domain.Entities
         }
 
         public string PatientCode { get; set; } = string.Empty;
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? MetaDataJson { get; set; } // For preferences, age, etc.
         public string? Age { get; set; }

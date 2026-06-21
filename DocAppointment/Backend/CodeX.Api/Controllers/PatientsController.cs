@@ -103,15 +103,18 @@ namespace CodeX.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> AddPatient([FromBody] AddPatientDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Phone))
+            if (string.IsNullOrWhiteSpace(dto.Name))
             {
-                return BadRequest("Name and Phone are required.");
+                return BadRequest("Name is required.");
             }
 
-            var existingPatient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == dto.Phone);
-            if (existingPatient != null)
+            if (!string.IsNullOrWhiteSpace(dto.Phone))
             {
-                return BadRequest("A patient with this phone number already exists.");
+                var existingPatient = await _context.Patients.FirstOrDefaultAsync(p => p.Phone == dto.Phone);
+                if (existingPatient != null)
+                {
+                    return BadRequest("A patient with this phone number already exists.");
+                }
             }
 
             var patient = new Patient
@@ -186,9 +189,8 @@ namespace CodeX.Api.Controllers
         [System.ComponentModel.DataAnnotations.MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Phone number is required")]
         [System.ComponentModel.DataAnnotations.RegularExpression(@"^\+?[1-9]\d{1,14}$", ErrorMessage = "Invalid phone number format.")]
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
         
         public string? Age { get; set; }
         public string? Gender { get; set; }

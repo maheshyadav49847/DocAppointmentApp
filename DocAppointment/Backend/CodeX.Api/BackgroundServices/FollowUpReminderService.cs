@@ -56,6 +56,9 @@ namespace CodeX.Api.BackgroundServices
                 .Include(f => f.Patient)
                 .ThenInclude(p => p.Tokens)
                 .ThenInclude(t => t.Queue)
+                .Include(f => f.PatientVisit)
+                .ThenInclude(pv => pv.Token)
+                .ThenInclude(t => t.Patient)
                 .Where(f => f.FollowUpDate.Date <= today && !f.WhatsAppSent && f.ReminderEnabled)
                 .ToListAsync(stoppingToken);
 
@@ -92,29 +95,43 @@ namespace CodeX.Api.BackgroundServices
                     }
                 }
 
+                var bookerPhone = fup.Patient.Phone;
+                if (fup.PatientVisit?.Token?.Patient != null && !string.IsNullOrWhiteSpace(fup.PatientVisit.Token.Patient.Phone))
+                {
+                    bookerPhone = fup.PatientVisit.Token.Patient.Phone;
+                }
+
+                if (string.IsNullOrWhiteSpace(bookerPhone))
+                {
+                    _logger.LogInformation("No phone number available for patient {PatientId}, skipping WhatsApp reminder.", fup.Patient.Id);
+                    fup.WhatsAppSent = true; 
+                    fup.UpdatedAt = DateTime.UtcNow;
+                    continue;
+                }
+
                 var dateStr = fup.FollowUpDate.ToString("dd MMM yyyy");
                 var instructionsMsg = string.IsNullOrWhiteSpace(fup.Instructions) ? "" : $"\n👉 Doctor's Advice: {fup.Instructions}\n";
                 
                 var message = 
                     $"🏥 *FOLLOW-UP REMINDER* 🏥\n" +
                     $"━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                    $"Namaste *{fup.Patient.Name}* 🙏,\n\n" +
-                    $"Aapka follow-up check-up *{dateStr}* ko scheduled hai.\n" +
+                    $"Namaste 🙏,\n\n" +
+                    $"Aapke patient *{fup.Patient.Name}* ka follow-up check-up *{dateStr}* ko scheduled hai.\n" +
                     instructionsMsg +
                     $"\nKripya clinic aakar doctor se consult karein aur swasth rahein.\n\n" +
                     $"✨ _DocAppointmentApp Queue System_";
 
                 try
                 {
-                    _logger.LogInformation("Sending automated follow-up reminder to {Phone} for {Date}", fup.Patient.Phone, dateStr);
-                    await whatsAppService.SendTextMessage(fup.Patient.Phone, message, branchId);
+                    _logger.LogInformation("Sending automated follow-up reminder to {Phone} for {Date} (Patient: {PatientName})", bookerPhone, dateStr, fup.Patient.Name);
+                    await whatsAppService.SendTextMessage(bookerPhone, message, branchId);
                     
                     fup.WhatsAppSent = true;
                     fup.UpdatedAt = DateTime.UtcNow;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to send automated follow-up WhatsApp reminder to {Phone}", fup.Patient.Phone);
+                    _logger.LogError(ex, "Failed to send automated follow-up WhatsApp reminder to {Phone}", bookerPhone);
                 }
             }
 

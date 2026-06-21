@@ -58,6 +58,14 @@ async function relayIncomingMessage(branchId, message) {
   if (!message.message || message.key.fromMe) return;
   if (!from || from.includes("@g.us")) return; // Ignore groups
 
+  // IMPORTANT: Ignore old messages older than 1 hour (3600 seconds)
+  const messageTimestamp = message.messageTimestamp;
+  const now = Math.floor(Date.now() / 1000);
+  if (messageTimestamp && (now - messageTimestamp > 3600)) {
+    console.log(`[WEBHOOK] Ignoring old message from ${from} (Age: ${now - messageTimestamp}s)`);
+    return;
+  }
+
   const body = message.message.conversation || message.message.extendedTextMessage?.text;
   if (!body) return;
 

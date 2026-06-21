@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp, Building2, Stethoscope
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp, Building2, Stethoscope, Search
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
@@ -11,6 +11,7 @@ import { branchService } from "@/services/branchService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
+import SearchPatientModal from "./components/SearchPatientModal"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function DoctorDeskPage() {
@@ -30,6 +31,8 @@ export default function DoctorDeskPage() {
   })
 
   const [isQueueExpanded, setIsQueueExpanded] = useState(false)
+  const [isSearchPatientModalOpen, setIsSearchPatientModalOpen] = useState(false)
+  const [overridePatientId, setOverridePatientId] = useState<string | null>(null)
 
   const queueId = activeQueue?.id
 
@@ -92,7 +95,7 @@ export default function DoctorDeskPage() {
 
   const callNextMutation = useMutation({
     mutationFn: () => queueService.callNext(queueId),
-    onSuccess: () => { refetchQueue(); refetchTokens() }
+    onSuccess: () => { setOverridePatientId(null); refetchQueue(); refetchTokens() }
   })
 
   const [sidebarTab, setSidebarTab] = useState<'pending' | 'skipped'>('pending')
@@ -100,6 +103,7 @@ export default function DoctorDeskPage() {
   const completeMutation = useMutation({
     mutationFn: () => queueService.completeToken(queueId),
     onSuccess: () => {
+      setOverridePatientId(null);
       refetchQueue();
       refetchTokens();
       // Optional: Show a toast here
@@ -109,6 +113,11 @@ export default function DoctorDeskPage() {
   const requeueMutation = useMutation({
     mutationFn: (tokenId: string) => queueService.requeueToken(tokenId),
     onSuccess: () => { refetchQueue(); refetchTokens() }
+  })
+
+  const markArrivedMutation = useMutation({
+    mutationFn: () => queueService.markArrived(queueId),
+    onSuccess: () => refetchQueue()
   })
 
   const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
@@ -194,7 +203,7 @@ export default function DoctorDeskPage() {
                         {branches?.find((b: any) => b.id === session.branchId)?.name && (
                           <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-indigo-100">
                             <Building2 className="w-4 h-4" />
-                            {branches.find((b: any) => b.id === session.branchId).name}
+                            {branches?.find((b: any) => b.id === session.branchId)?.name}
                           </span>
                         )}
                       </div>
@@ -228,7 +237,7 @@ export default function DoctorDeskPage() {
   const skippedTokens = upcomingTokens?.filter((t: any) => t.status === 3) || []
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-6rem)] space-y-4">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] lg:h-[calc(100vh-6rem)] space-y-4 pb-10 lg:pb-0">
       {/* Page Header (Outside the Card) */}
       <div className="shrink-0 px-2 sm:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
@@ -262,138 +271,142 @@ export default function DoctorDeskPage() {
       </div>
 
       {/* Main Card (Exactly as it was) */}
-      <div className="flex-1 flex flex-col bg-slate-50/50 rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col bg-slate-50/50 rounded-xl border border-slate-200 shadow-sm overflow-visible lg:overflow-hidden min-h-0">
 
         {/* Top Bar inside the Card (Only actions now) */}
-        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-end shrink-0 shadow-sm gap-4 z-20">
-          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleEndSession}
-              disabled={endSessionMutation.isPending}
-              className="flex items-center gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-rose-200"
-              title="End current session"
-            >
-              {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
-              <span className="hidden sm:inline">End Session</span>
-            </button>
-            <a
-              href={`/tv/${branchId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-transparent hover:bg-slate-50 text-slate-700 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-slate-200"
-              title="Open Queue TV Display in a new tab"
-            >
-              <MonitorPlay className="w-4 h-4 text-indigo-500" />
-              <span className="hidden sm:inline">TV View</span>
-            </a>
-            <div className="bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl flex items-center gap-3">
-              <div className="flex flex-col items-center justify-center min-w-[60px]">
-                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-0.5">Waiting</span>
-                <span className="text-xl font-black text-indigo-700 leading-none">{activeQueue.waitingCount}</span>
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-end shrink-0 shadow-sm gap-3 sm:gap-4 z-20">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => markArrivedMutation.mutate()}
+                disabled={activeQueue.status === 1 || markArrivedMutation.isPending}
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border ${
+                  activeQueue.status === 1
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200 cursor-default'
+                    : 'bg-transparent hover:bg-indigo-50 text-indigo-600 border-indigo-200'
+                } w-auto`}
+                title={activeQueue.status === 1 ? "Doctor is present" : "Mark Arrival"}
+              >
+                {activeQueue.status === 1 ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Arrived</span>
+                  </>
+                ) : (
+                  <>
+                    {markArrivedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stethoscope className="w-4 h-4 sm:w-4 sm:h-4" />}
+                    <span className="hidden sm:inline">Mark Arrival</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleEndSession}
+                disabled={endSessionMutation.isPending}
+                className="flex items-center justify-center gap-1.5 sm:gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border border-rose-200 w-10 sm:w-auto"
+                title="End current session"
+              >
+                {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4 sm:w-4 sm:h-4" />}
+                <span className="hidden sm:inline">End Session</span>
+              </button>
+              <a
+                href={`/tv/${branchId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 sm:gap-2 bg-transparent hover:bg-slate-50 text-slate-700 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border border-slate-200 w-10 sm:w-auto"
+                title="Open Queue TV Display in a new tab"
+              >
+                <MonitorPlay className="w-4 h-4 sm:w-4 sm:h-4 text-indigo-500" />
+                <span className="hidden sm:inline">TV View</span>
+              </a>
+            </div>
+
+            <div className="bg-indigo-50 border border-indigo-100 px-3 sm:px-4 py-1 sm:py-2 rounded-xl flex items-center gap-2 sm:gap-3 flex-1 sm:flex-none justify-center">
+              <div className="flex flex-col items-center justify-center min-w-[50px] sm:min-w-[60px]">
+                <span className="text-[9px] sm:text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-0.5 sm:mb-1">Waiting</span>
+                <span className="text-lg sm:text-xl font-black text-indigo-700 leading-none">{activeQueue.waitingCount}</span>
               </div>
-              <div className="w-px h-8 bg-indigo-200"></div>
-              <div className="flex flex-col items-center justify-center min-w-[60px]">
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-0.5">Done</span>
-                <span className="text-xl font-black text-emerald-700 leading-none">{activeQueue.completedCount}</span>
+              <div className="w-px h-6 sm:h-8 bg-indigo-200"></div>
+              <div className="flex flex-col items-center justify-center min-w-[50px] sm:min-w-[60px]">
+                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-0.5 sm:mb-1">Done</span>
+                <span className="text-lg sm:text-xl font-black text-emerald-700 leading-none">{activeQueue.completedCount}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
-          {/* Left Side: Active EMR or Call Next Prompt */}
-          <div className="flex-1 flex flex-col overflow-y-auto relative min-h-0">
-            <AnimatePresence mode="wait">
-              {!hasCurrentPatient ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex-1 flex flex-col items-center justify-center p-8 text-center"
-                >
-                  <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 border-8 border-indigo-100/50">
-                    <Bell className="w-10 h-10 text-indigo-500" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Ready for your next patient?</h2>
-                  <p className="text-slate-500 mb-8 max-w-sm">
-                    You have {activeQueue.waitingCount} patients waiting in your queue right now.
-                  </p>
-                  <button
-                    onClick={() => callNextMutation.mutate()}
-                    disabled={callNextMutation.isPending || pendingTokens.length === 0}
-                    className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-2xl font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
-                  >
-                    {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
-                    Call Next Patient
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="emr"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex-1 overflow-hidden"
-                >
-                  {activeQueue.currentPatientId ? (
-                    <ConsultationPage patientId={activeQueue.currentPatientId} isEmbedded={true} />
-                  ) : (
-                    <div className="flex items-center justify-center h-full p-8 text-center">
-                      <p className="text-slate-500">
-                        Patient is called, but no valid patient ID was found. (Walk-in without record)
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        <div className="flex-1 flex flex-col lg:flex-row overflow-visible lg:overflow-hidden min-h-0 relative">
 
-          {/* Right Side: Up Next Sidebar */}
-          <div className={`w-full lg:w-80 min-h-0 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "h-[50vh] lg:h-auto" : "h-auto lg:h-auto"}`}>
-
-            {/* Current Patient Status Bar (if any) */}
-            {hasCurrentPatient && (
-              <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 shrink-0">
-                <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"><Activity className="w-3 h-3" /> Current Patient</div>
-                <div className="font-bold text-lg text-slate-800 truncate mb-4">{activeQueue.currentPatientName} <span className="text-sm font-medium text-slate-500 ml-1">#{activeQueue.currentTokenNumber}</span></div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => completeMutation.mutate()}
-                    disabled={completeMutation.isPending}
-                    className="bg-transparent border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                  >
-                    {completeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    Complete
-                  </button>
-                  <button
-                    onClick={() => callNextMutation.mutate()}
-                    disabled={callNextMutation.isPending || pendingTokens.length === 0}
-                    className="bg-transparent border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-700 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                  >
-                    {callNextMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
-                    Call Next
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Collapse Toggle */}
-            <div
-              className="lg:hidden flex items-center justify-between p-3 border-b border-slate-100 bg-slate-50 cursor-pointer"
-              onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+          {/* Mobile Floating Button for Queue */}
+          {!isQueueExpanded && (
+            <button
+              onClick={() => setIsQueueExpanded(true)}
+              className="group lg:hidden fixed right-0 top-[150px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-b-0 border-slate-200 rounded-tl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
             >
-              <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <Users className="w-4 h-4 text-indigo-500" />
-                Queue ({pendingTokens.length} waiting)
-              </span>
-              <button className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-md transition-colors">
+              <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[80px] group-hover:opacity-100 group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-xs font-bold">Queue</span>
+              <Users className="w-5 h-5 shrink-0" />
+            </button>
+          )}
+
+          {/* LEFT SIDE: Queue Sidebar */}
+          {/* Desktop: normal flex. Mobile: Right Drawer overlay when expanded */}
+          <div className={`bg-white lg:border-b-0 lg:border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 shadow-[-20px_0_40px_rgba(0,0,0,0.2)] lg:relative lg:inset-auto lg:h-auto lg:w-80 lg:shadow-none border-l lg:border-l-0 lg:border-r border-slate-200" : "hidden lg:flex lg:relative lg:h-auto lg:w-[60px] border-b lg:border-b-0 z-10"}`}>
+
+            {/* Collapse Toggle */}
+            <div
+              className={`flex items-center p-3 border-b border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors ${isQueueExpanded ? "justify-between" : "justify-center"}`}
+              onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+              title={isQueueExpanded ? "Collapse Queue" : "Expand Queue"}
+            >
+              {isQueueExpanded ? (
+                <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-500" />
+                  Queue ({pendingTokens.length} waiting)
+                </span>
+              ) : (
+                <Users className="w-5 h-5 text-indigo-500" />
+              )}
+              <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors hidden lg:block">
+                {isQueueExpanded ? <ChevronUp className="w-5 h-5 -rotate-90" /> : <ChevronDown className="w-5 h-5 -rotate-90" />}
+              </button>
+              <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors lg:hidden">
                 {isQueueExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
               </button>
             </div>
 
-            <div className={`flex-col flex-1 overflow-hidden ${!isQueueExpanded ? "hidden lg:flex" : "flex"}`}>
+            <div className={`flex-col flex-1 overflow-hidden ${!isQueueExpanded ? "hidden" : "flex"}`}>
+              {/* Current Patient Status Bar (if any) */}
+              {hasCurrentPatient && (
+                <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 shrink-0">
+                  <div className="text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5"><Activity className="w-3 h-3" /> Current Patient</div>
+                  <div className="font-bold text-lg text-slate-800 truncate mb-4">{activeQueue.currentPatientName} <span className="text-sm font-medium text-slate-500 ml-1">#{activeQueue.currentTokenNumber}</span></div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      onClick={() => setIsSearchPatientModalOpen(true)}
+                      className="bg-transparent border border-sky-200 hover:border-sky-500 hover:bg-sky-50 text-sky-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      Consult Another (Same Token)
+                    </button>
+                    <button
+                      onClick={() => completeMutation.mutate()}
+                      disabled={completeMutation.isPending}
+                      className="bg-transparent border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      {completeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      Complete & Next Token
+                    </button>
+                    <button
+                      onClick={() => callNextMutation.mutate()}
+                      disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
+                      className="bg-transparent border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      {callNextMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                      Call Next Waiting
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="p-2 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
                 <div className="flex bg-slate-200/50 rounded-lg p-1 w-full relative">
                   <button
@@ -462,8 +475,63 @@ export default function DoctorDeskPage() {
                   )
                 )}
               </div>
-
             </div>
+          </div>
+
+          {/* MAIN AREA: Active EMR or Call Next Prompt */}
+          <div className="flex-1 flex flex-col overflow-y-auto relative min-h-0 bg-slate-50">
+            <AnimatePresence mode="wait">
+              {!hasCurrentPatient ? (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex-1 flex flex-col items-center justify-center p-8 text-center"
+                >
+                  <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6 border-8 border-indigo-100/50">
+                    <Bell className="w-10 h-10 text-indigo-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Ready for your next patient?</h2>
+                  <p className="text-slate-500 mb-8 max-w-sm">
+                    You have {activeQueue.waitingCount} patients waiting in your queue right now.
+                  </p>
+                  <button
+                    onClick={() => callNextMutation.mutate()}
+                    disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
+                    className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-2xl font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
+                  >
+                    {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
+                    Call Next Patient
+                  </button>
+                  {activeQueue.status !== 1 && (
+                    <p className="mt-4 text-sm font-bold text-amber-600 flex items-center gap-1.5"><AlertCircle className="w-4 h-4"/> Please mark your arrival first</p>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="emr"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex-1 overflow-hidden"
+                >
+                  {activeQueue.currentPatientId || overridePatientId ? (
+                    <ConsultationPage
+                      patientId={overridePatientId || activeQueue.currentPatientId}
+                      isEmbedded={true}
+                      activeTokenId={activeQueue.id}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full p-8 text-center">
+                      <p className="text-slate-500">
+                        Patient is called, but no valid patient ID was found. (Walk-in without record)
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -481,6 +549,16 @@ export default function DoctorDeskPage() {
           isPending={endSessionMutation.isPending}
         />
       )}
+
+      {/* Search Patient Modal */}
+      <SearchPatientModal
+        isOpen={isSearchPatientModalOpen}
+        onClose={() => setIsSearchPatientModalOpen(false)}
+        onSelectPatient={(id) => {
+          setOverridePatientId(id)
+          setIsSearchPatientModalOpen(false)
+        }}
+      />
     </div>
   )
 }

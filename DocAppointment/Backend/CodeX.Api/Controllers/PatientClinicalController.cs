@@ -198,50 +198,79 @@ namespace CodeX.Api.Controllers
                 FollowUpDate = dto.FollowUpDate
             };
 
-            // Auto-assign to an active token if none provided, or validate if provided
-            var today = DateTime.UtcNow.Date;
-
-            var todaysTokens = await _context.Tokens
-                .Include(t => t.Queue)
-                .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
-                .OrderByDescending(t => t.CreatedAt)
-                .ToListAsync();
-
-            if (todaysTokens.Any())
+            // Handle token assignment and validation
+            if (dto.TokenId.HasValue)
             {
+                var token = await _context.Tokens.Include(t => t.Queue).FirstOrDefaultAsync(t => t.Id == dto.TokenId.Value);
+                if (token == null)
+                {
+                    return BadRequest("The provided booking token does not exist.");
+                }
+
+                if (token.Status != CodeX.Domain.Enums.TokenStatus.Called)
+                {
+                    return BadRequest($"Cannot save consultation. The token status is '{token.Status}'. They must be 'Called' (in the consulting room) to save a record.");
+                }
+
+                var existingVisitForThisPatient = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value && v.PatientId == id);
+                if (existingVisitForThisPatient != null)
+                {
+                    return BadRequest("A consultation record already exists for this patient under this booking token. Please edit the existing record from the history timeline instead of creating a new one.");
+                }
+
+                // If the doctor selected a different patient profile for this token, update the token's patient ID!
+                if (token.PatientId != id)
+                {
+                    var oldPatientId = token.PatientId;
+                    token.PatientId = id;
+                    
+                    // Cleanup: If the old patient profile was a dummy (has no other tokens, no visits, no attachments), delete it to avoid confusion.
+                    var hasOtherTokens = await _context.Tokens.AnyAsync(t => t.PatientId == oldPatientId && t.Id != token.Id);
+                    var hasVisits = await _context.PatientVisits.AnyAsync(v => v.PatientId == oldPatientId);
+                    var hasAttachments = await _context.PatientAttachments.AnyAsync(a => a.PatientId == oldPatientId);
+                    
+                    if (!hasOtherTokens && !hasVisits && !hasAttachments)
+                    {
+                        var dummyPatient = await _context.Patients.FindAsync(oldPatientId);
+                        if (dummyPatient != null)
+                        {
+                            _context.Patients.Remove(dummyPatient);
+                        }
+                    }
+                }
+
+                visit.TokenId = token.Id;
+            }
+            else
+            {
+                // Auto-assign to an active token if none provided
+                var today = DateTime.UtcNow.Date;
+                var todaysTokens = await _context.Tokens
+                    .Include(t => t.Queue)
+                    .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
+                    .OrderByDescending(t => t.CreatedAt)
+                    .ToListAsync();
+
+                if (!todaysTokens.Any())
+                {
+                    return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
+                }
+
                 var activeToken = todaysTokens.First();
                 if (activeToken.Status != CodeX.Domain.Enums.TokenStatus.Called)
                 {
                     return BadRequest($"Cannot save consultation. The patient's token status is '{activeToken.Status}'. They must be 'Called' (in the consulting room) to save a new record.");
                 }
-                
-                if (dto.TokenId.HasValue)
+
+                var availableToken = todaysTokens.FirstOrDefault(t => !_context.PatientVisits.Any(v => v.TokenId == t.Id));
+                if (availableToken != null)
                 {
-                    var existingVisit = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value);
-                    if (existingVisit != null)
-                    {
-                        return BadRequest("A consultation record already exists for this booking token. Please edit the existing record from the history timeline instead of creating a new one.");
-                    }
-                    visit.TokenId = dto.TokenId.Value;
+                    visit.TokenId = availableToken.Id;
                 }
                 else
                 {
-                    // Find a token that does NOT have a visit yet
-                    var availableToken = todaysTokens.FirstOrDefault(t => !_context.PatientVisits.Any(v => v.TokenId == t.Id));
-                    if (availableToken != null)
-                    {
-                        visit.TokenId = availableToken.Id;
-                    }
-                    else
-                    {
-                        return BadRequest("All queue tokens for this patient today already have consultation records. Please edit the existing records instead of creating a new one.");
-                    }
+                    return BadRequest("All queue tokens for this patient today already have consultation records. Please edit the existing records instead of creating a new one.");
                 }
-            }
-            else
-            {
-                // If they don't have tokens, block it entirely
-                return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
             }
 
 

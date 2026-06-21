@@ -17,6 +17,12 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
+      },
+      '/whatsapp': {
+        target: 'http://localhost:3101',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/whatsapp/, '')
       }
     }
   }
