@@ -481,7 +481,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         {!isHistoryExpanded && (
           <button
             onClick={() => setIsHistoryExpanded(true)}
-            className="group lg:hidden fixed right-0 top-[198px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-slate-200 rounded-bl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
+            className="group fixed right-0 top-[198px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-slate-200 rounded-bl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
           >
             <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[80px] group-hover:opacity-100 group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-xs font-bold">History</span>
             <ClipboardList className="w-5 h-5 shrink-0" />
@@ -771,7 +771,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             </div>
             <button
               onClick={() => setIsHistoryExpanded(false)}
-              className="lg:hidden p-3 text-slate-400 hover:text-slate-600 border-l border-slate-100 flex items-center justify-center"
+              className="p-3 text-slate-400 hover:text-slate-600 border-l border-slate-100 flex items-center justify-center transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

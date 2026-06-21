@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronRight, Building2, Stethoscope
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
@@ -348,7 +348,7 @@ export default function DoctorDeskPage() {
           )}
 
           {/* RIGHT SIDE: Queue Sidebar (Floating Overlay) */}
-          <div className={`bg-white flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 shadow-[-20px_0_40px_rgba(0,0,0,0.2)] border-l border-slate-200" : "fixed inset-y-0 -right-[400px] w-[350px] z-50"}`}>
+          <div className={`bg-white flex flex-col shrink-0 fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 border-l border-slate-200 transition-all duration-300 ease-out transform ${isQueueExpanded ? "translate-x-0 shadow-[-20px_0_40px_rgba(0,0,0,0.2)]" : "translate-x-full shadow-none"}`}>
 
             {/* Collapse Toggle */}
             <div
@@ -361,7 +361,7 @@ export default function DoctorDeskPage() {
                 Queue ({pendingTokens.length} waiting)
               </span>
               <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors">
-                <ChevronRight className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
