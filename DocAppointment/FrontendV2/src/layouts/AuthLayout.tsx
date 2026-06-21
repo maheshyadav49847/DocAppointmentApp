@@ -86,8 +86,8 @@ export default function AuthLayout() {
       </div>
 
       {/* Right Half - Form Container (Outlet) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-slate-50 relative">
-        <div className="w-full max-w-md animate-in slide-in-from-bottom-8 fade-in duration-700 relative z-10">
+      <div className="w-full lg:w-1/2 flex justify-center items-start pt-16 lg:pt-14 p-6 sm:p-12 lg:px-18 bg-slate-50 relative">
+        <div className="w-full max-w-md animate-in slide-in-from-bottom-8 fade-in duration-700 relative z-10 mt-8 lg:mt-0">
 
           {/* Mobile Logo */}
           <div className="lg:hidden flex mb-10 w-full justify-center">
