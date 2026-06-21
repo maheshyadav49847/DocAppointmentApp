@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronDown, ChevronUp, Building2, Stethoscope, Search
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, ChevronRight, Building2, Stethoscope
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
@@ -336,44 +336,36 @@ export default function DoctorDeskPage() {
 
         <div className="flex-1 flex flex-col lg:flex-row overflow-visible lg:overflow-hidden min-h-0 relative">
 
-          {/* Mobile Floating Button for Queue */}
+          {/* Floating Button for Queue */}
           {!isQueueExpanded && (
             <button
               onClick={() => setIsQueueExpanded(true)}
-              className="group lg:hidden fixed right-0 top-[150px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-b-0 border-slate-200 rounded-tl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
+              className="group fixed right-0 top-[150px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-b-0 border-slate-200 rounded-tl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
             >
               <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[80px] group-hover:opacity-100 group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-xs font-bold">Queue</span>
               <Users className="w-5 h-5 shrink-0" />
             </button>
           )}
 
-          {/* LEFT SIDE: Queue Sidebar */}
-          {/* Desktop: normal flex. Mobile: Right Drawer overlay when expanded */}
-          <div className={`bg-white lg:border-b-0 lg:border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 shadow-[-20px_0_40px_rgba(0,0,0,0.2)] lg:relative lg:inset-auto lg:h-auto lg:w-80 lg:shadow-none border-l lg:border-l-0 lg:border-r border-slate-200" : "hidden lg:flex lg:relative lg:h-auto lg:w-[60px] border-b lg:border-b-0 z-10"}`}>
+          {/* RIGHT SIDE: Queue Sidebar (Floating Overlay) */}
+          <div className={`bg-white flex flex-col shrink-0 transition-all duration-300 ${isQueueExpanded ? "fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 shadow-[-20px_0_40px_rgba(0,0,0,0.2)] border-l border-slate-200" : "fixed inset-y-0 -right-[400px] w-[350px] z-50"}`}>
 
             {/* Collapse Toggle */}
             <div
-              className={`flex items-center p-3 border-b border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors ${isQueueExpanded ? "justify-between" : "justify-center"}`}
-              onClick={() => setIsQueueExpanded(!isQueueExpanded)}
-              title={isQueueExpanded ? "Collapse Queue" : "Expand Queue"}
+              className={`flex items-center p-3 border-b border-slate-100 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors justify-between`}
+              onClick={() => setIsQueueExpanded(false)}
+              title="Collapse Queue"
             >
-              {isQueueExpanded ? (
-                <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-indigo-500" />
-                  Queue ({pendingTokens.length} waiting)
-                </span>
-              ) : (
-                <Users className="w-5 h-5 text-indigo-500" />
-              )}
-              <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors hidden lg:block">
-                {isQueueExpanded ? <ChevronUp className="w-5 h-5 -rotate-90" /> : <ChevronDown className="w-5 h-5 -rotate-90" />}
-              </button>
-              <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors lg:hidden">
-                {isQueueExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+              <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-500" />
+                Queue ({pendingTokens.length} waiting)
+              </span>
+              <button className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors">
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
-            <div className={`flex-col flex-1 overflow-hidden ${!isQueueExpanded ? "hidden" : "flex"}`}>
+            <div className={`flex-col flex-1 overflow-hidden flex`}>
               {/* Current Patient Status Bar (if any) */}
               {hasCurrentPatient && (
                 <div className="p-4 bg-indigo-50/50 border-b border-indigo-100 shrink-0">

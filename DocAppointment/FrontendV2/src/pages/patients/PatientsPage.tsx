@@ -213,13 +213,13 @@ export default function PatientsPage() {
   return (
     <div className="animate-in fade-in duration-500 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Users className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Patient</span>
               <span className="text-indigo-600">Directory</span>
             </h1>
@@ -227,8 +227,8 @@ export default function PatientsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranch}
             disabled={user?.role !== 'OrgAdmin'}
@@ -236,7 +236,7 @@ export default function PatientsPage() {
               setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
               setPagination(prev => ({ ...prev, pageIndex: 0 }))
             }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
           >
             {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
             {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
@@ -249,11 +249,11 @@ export default function PatientsPage() {
       {/* Main Card */}
       <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Left Side: View Toggles & Row Count */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
@@ -283,9 +283,9 @@ export default function PatientsPage() {
           </div>
 
           {/* Right Side: Search & Add Button */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-64 group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:max-w-md lg:w-64 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
                 placeholder="Search patients by name or phone..."
@@ -300,7 +300,7 @@ export default function PatientsPage() {
                 setEditingPatient(null)
                 setIsDrawerOpen(true)
               }}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto justify-center shrink-0"
             >
               <Plus className="w-4 h-4" /> Register Patient
             </button>
@@ -361,7 +361,7 @@ export default function PatientsPage() {
           ) : (
             <>
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm animate-pulse">
                       <div className="flex gap-4">
@@ -379,7 +379,7 @@ export default function PatientsPage() {
                   ))}
                 </div>
               ) : patients.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
                   {patients.map(patient => (
                     <div key={patient.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                       {/* Header Section */}

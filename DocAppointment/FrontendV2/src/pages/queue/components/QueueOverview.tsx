@@ -114,13 +114,13 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
       className="space-y-8"
     >
       {/* Header Area */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <LayoutDashboard className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Queue</span>
               <span className="text-indigo-600">Dashboard</span>
             </h1>
@@ -128,26 +128,32 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
           </div>
         </div>
 
-        <div className="flex items-end gap-3 relative z-10 sm:ml-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 relative z-10 xl:ml-auto w-full xl:w-auto">
           {selectedBranchId && selectedBranchId !== 'org' && (
-            <a
-              href={`/tv/${selectedBranchId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors border border-indigo-200 shadow-sm"
-              title="Open Queue TV Display in a new tab"
-            >
-              <MonitorPlay className="w-4 h-4" />
-              <span className="hidden sm:inline">Open TV View</span>
-            </a>
+            <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+              {/* Hidden label spacer to perfectly align with the Branch Location select */}
+              <label className="hidden sm:block text-[10px] font-bold text-transparent select-none uppercase tracking-wider" aria-hidden="true">TV View</label>
+              <a
+                href={`/tv/${selectedBranchId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 h-[42px] rounded-xl text-sm font-bold transition-colors border border-indigo-200 shadow-sm flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
+                title="Open Queue TV Display in a new tab"
+              >
+                <MonitorPlay className="w-4 h-4" />
+                <span>Open TV View</span>
+              </a>
+            </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+          <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[220px]">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-start gap-1">
+              <Building2 className="w-3 h-3 text-indigo-400" /> Branch Location
+            </label>
             <select
               value={selectedBranchId}
               disabled={user?.role !== 'OrgAdmin'}
               onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+              className="bg-white border border-slate-200 rounded-xl px-4 h-[42px] text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
             >
               {user?.role === 'OrgAdmin' && <option value="org" disabled>Select Facility</option>}
               {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
@@ -173,20 +179,20 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
       ) : (
         <div className="space-y-8">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
             {statCards.map((stat, idx) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: idx * 0.1 }}
-                className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col relative overflow-hidden group hover:border-slate-300 transition-colors"
+                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col relative overflow-hidden group hover:border-slate-300 transition-colors"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center border ${stat.border}`}>
+                <div className="flex flex-row items-center justify-between mb-4 gap-3">
+                  <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center border ${stat.border} shrink-0`}>
                     <stat.icon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{stat.label}</span>
+                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 leading-tight text-right">{stat.label}</span>
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</h3>

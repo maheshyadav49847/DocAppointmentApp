@@ -239,9 +239,9 @@ export default function BranchesPage() {
       </div>
 
       <div className="saas-card overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
@@ -260,7 +260,7 @@ export default function BranchesPage() {
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -268,20 +268,20 @@ export default function BranchesPage() {
               ))}
             </select>
           </div>
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-64 group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:max-w-md lg:w-64 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
                 placeholder="Search branches..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
             <button
               onClick={() => { setEditingBranch(null); setLogoBase64(''); setIsDrawerOpen(true); }}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto justify-center shrink-0"
             >
               <Plus className="w-4 h-4" /> Add Branch
             </button>
@@ -326,7 +326,7 @@ export default function BranchesPage() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
               {table.getRowModel().rows.map((row) => {
                 const branch = row.original
                 const isActiveContext = branch.id === currentBranchId
@@ -356,7 +356,7 @@ export default function BranchesPage() {
                     <div className="space-y-4 mb-6 flex-1 relative z-10 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                       <div className="flex items-start gap-3 text-sm text-slate-700">
                         <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-indigo-500 shrink-0">
-                           <MapPin className="w-4 h-4" />
+                          <MapPin className="w-4 h-4" />
                         </div>
                         <span className="line-clamp-2 mt-1 font-medium">{branch.address || 'No address provided'}</span>
                       </div>
@@ -490,9 +490,9 @@ export default function BranchesPage() {
                       {logoBase64 && (
                         <img src={logoBase64} alt="Logo" className="w-12 h-12 rounded object-contain bg-slate-100 border" />
                       )}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
+                      <input
+                        type="file"
+                        accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
@@ -502,8 +502,8 @@ export default function BranchesPage() {
                           } else {
                             setLogoBase64('');
                           }
-                        }} 
-                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 outline-none" 
+                        }}
+                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 outline-none"
                       />
                     </div>
                   </div>

@@ -219,13 +219,13 @@ export default function DoctorsPage() {
   return (
     <div className="animate-in fade-in duration-500 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Stethoscope className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Doctors</span>
               <span className="text-indigo-600">Directory</span>
             </h1>
@@ -233,13 +233,13 @@ export default function DoctorsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranch}
             disabled={user?.role !== 'OrgAdmin'}
             onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
           >
             {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
             {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
@@ -252,11 +252,11 @@ export default function DoctorsPage() {
       {/* Main Card */}
       <div className="saas-card overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Left Side: View Toggles & Row Count */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
@@ -276,7 +276,7 @@ export default function DoctorsPage() {
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -286,9 +286,9 @@ export default function DoctorsPage() {
           </div>
 
           {/* Right Side: Search & Add Button */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-64 group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:max-w-md lg:w-64 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
                 placeholder="Search doctors by name or specialization..."
@@ -300,7 +300,7 @@ export default function DoctorsPage() {
 
             <button
               onClick={() => { setEditingDoctor(null); setIsDrawerOpen(true); }}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto justify-center shrink-0"
             >
               <Plus className="w-4 h-4" /> Add Doctor
             </button>
@@ -309,7 +309,7 @@ export default function DoctorsPage() {
 
         {/* Data View */}
         {viewMode === 'grid' ? (
-          <div className="p-4 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="p-4 grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
@@ -557,8 +557,8 @@ export default function DoctorsPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 <form noValidate id="doctor-form" onSubmit={handleSubmit} className="space-y-5">
                   <ApiErrorAlert error={apiError} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="col-span-1 sm:col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <User className="w-4 h-4 text-blue-500" /> Full Name
                       </label>
@@ -619,7 +619,7 @@ export default function DoctorsPage() {
                       <input name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
                       <FieldError errors={validationErrors} field="Password" />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1 sm:col-span-2">
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
                       </label>

@@ -52,7 +52,7 @@ export default function SessionsPage() {
   const mutation = useMutation({
     mutationFn: async (data: any | any[]) => {
       const payloads = Array.isArray(data) ? data : [data]
-      
+
       const promises = payloads.map(payloadData => {
         const payload = {
           ...payloadData,
@@ -67,7 +67,7 @@ export default function SessionsPage() {
           return sessionService.createSession(payload)
         }
       })
-      
+
       await Promise.all(promises)
     },
     onSuccess: () => {
@@ -114,7 +114,7 @@ export default function SessionsPage() {
     const errors: Record<string, string[]> = {}
     if (!startTimeStr) errors.StartTime = ["Start time is required."]
     if (!endTimeStr) errors.EndTime = ["End time is required."]
-    
+
     if (!capacityStr || isNaN(capacityNum) || capacityNum <= 0) {
       errors.DefaultCapacity = ["Capacity must be greater than 0."]
     }
@@ -158,13 +158,13 @@ export default function SessionsPage() {
   return (
     <div className="animate-in fade-in duration-500 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Calendar className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Manage</span>
               <span className="text-indigo-600">Sessions</span>
             </h1>
@@ -172,8 +172,8 @@ export default function SessionsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
             disabled={role !== 'orgadmin'}
@@ -181,7 +181,7 @@ export default function SessionsPage() {
               setSelectedBranchId(e.target.value)
               setSelectedDoctorId('')
             }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
           >
             {role === 'orgadmin' && <option value="" disabled>Select Facility</option>}
             {branches?.filter((b: any) => role === 'orgadmin' || b.id === globalBranchId).map((b: any) => (
@@ -194,8 +194,8 @@ export default function SessionsPage() {
       {/* Main Container */}
       <div className="saas-card overflow-hidden flex flex-col min-h-[500px]">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="relative w-full sm:w-64">
               <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <select
@@ -215,7 +215,7 @@ export default function SessionsPage() {
           <button
             onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
             disabled={!selectedDoctorId}
-            className="btn-primary w-full sm:w-auto"
+            className="btn-primary w-full sm:w-auto justify-center shrink-0"
           >
             <Plus className="w-4 h-4" /> Add Shift
           </button>
@@ -264,13 +264,13 @@ export default function SessionsPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
               {sessions.map((session: any) => (
                 <div key={session.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                   {/* Header Section */}
                   <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50 relative">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
-                    
+
                     <div className="flex justify-between items-start relative z-10">
                       <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">

@@ -243,9 +243,9 @@ export default function PharmacyPage() {
       </div>
 
       <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
              <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
@@ -258,7 +258,7 @@ export default function PharmacyPage() {
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto justify-end">
             <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -279,7 +279,7 @@ export default function PharmacyPage() {
             />
             
             <button 
-              className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2"
+              className="w-full sm:w-auto px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
               onClick={downloadTemplate}
               title="Download exact CSV format required for import"
             >
@@ -287,7 +287,7 @@ export default function PharmacyPage() {
             </button>
 
             <button 
-              className="btn-secondary" 
+              className="w-full sm:w-auto btn-secondary justify-center" 
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
             >
@@ -295,7 +295,7 @@ export default function PharmacyPage() {
               {isImporting ? (uploadProgress !== null ? `Uploading ${uploadProgress}%` : 'Importing...') : 'Import CSV'}
             </button>
 
-            <button onClick={openAddModal} className="btn-primary">
+            <button onClick={openAddModal} className="w-full sm:w-auto btn-primary justify-center">
               <Plus className="w-4 h-4" /> Add Medicine
             </button>
           </div>
@@ -316,8 +316,9 @@ export default function PharmacyPage() {
               </button>
             </div>
           ) : (
-            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
                   {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id}>
@@ -357,6 +358,7 @@ export default function PharmacyPage() {
                 </tbody>
               </table>
             </div>
+          </div>
           )}
         </div>
 

@@ -233,26 +233,26 @@ export default function StaffPage() {
   return (
     <div className="animate-in fade-in duration-500 pb-12 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <UserCog className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Manage</span>
               <span className="text-indigo-600">Staff</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage team members, roles, and branch assignments.</p>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
+        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
           <select
             value={selectedBranchId}
             disabled={role !== 'orgadmin'}
             onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50"
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
           >
             {role === 'orgadmin' && <option value="org">Organization Level</option>}
             <optgroup label="Branches">
@@ -266,11 +266,11 @@ export default function StaffPage() {
 
       <div className="saas-card overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Left Side: View Toggles & Row Count */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
@@ -290,7 +290,7 @@ export default function StaffPage() {
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -300,21 +300,21 @@ export default function StaffPage() {
           </div>
 
           {/* Right Side: Search & Add Button */}
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="relative w-full sm:w-64 group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:max-w-md lg:w-64 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
                 placeholder="Search staff..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-400"
               />
             </div>
 
             <button
               onClick={() => { setEditingStaff(null); setIsDrawerOpen(true) }}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto justify-center shrink-0"
             >
               <Plus className="w-4 h-4" /> Add Staff Members
             </button>
@@ -362,7 +362,7 @@ export default function StaffPage() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
               {table.getRowModel().rows.map((row) => {
                 const member = row.original
                 const roleConfig = ROLES.find(r => r.label.toLowerCase() === member.role.toLowerCase().replace(/\s/g, '')) || ROLES[0]
@@ -420,7 +420,7 @@ export default function StaffPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
+                    <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2 mt-auto">
                       <button
                         onClick={() => { setEditingStaff(member); setIsDrawerOpen(true) }}
                         className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
@@ -517,7 +517,7 @@ export default function StaffPage() {
                 <form noValidate id="staff-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={apiError} />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <User className="w-4 h-4 text-blue-500" /> First Name
@@ -534,7 +534,7 @@ export default function StaffPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Mail className="w-4 h-4 text-rose-500" /> Email
@@ -559,7 +559,7 @@ export default function StaffPage() {
                     <FieldError errors={validationErrors} field="PhoneNumber" />
                   </div>
 
-                  { !editingStaff && (
+                  {!editingStaff && (
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Key className="w-4 h-4 text-amber-500" /> Password
