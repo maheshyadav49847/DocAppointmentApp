@@ -16,6 +16,7 @@ services:
       - "${BACKEND_PORT:-8080}:8080" # Maps port dynamically on VPS to port 8080 inside container
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - AllowedOrigins=http://${VPS_IP}
       # Point this to your EXISTING database on the VPS. 
       # "172.17.0.1" is usually the Docker host IP in Linux, or use your VPS's public/private IP.
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=172.17.0.1;Database=DocAppointmentDb_Prod;Username=postgres;Password=sa}

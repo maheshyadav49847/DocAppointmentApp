@@ -49,7 +49,7 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
           build-args: |
-            VITE_API_URL=http://${{ secrets.VPS_IP }}:8080/api
+            VITE_API_URL=http://${{ secrets.VPS_IP }}:8080/api/v1.0
 
       # Build & Push Backend
       - name: Build and push Backend
@@ -118,6 +118,7 @@ jobs:
             # Export variables for docker-compose file to resolve
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             export DB_CONNECTION_STRING="${{ secrets.DB_CONNECTION_STRING }}"
+            export VPS_IP="${{ secrets.VPS_IP }}"
             
             # Pull latest images and start containers under a unique project name
             docker compose -p "docappointment-$TARGET_ENV" pull
