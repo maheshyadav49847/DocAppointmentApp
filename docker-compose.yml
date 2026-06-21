@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:latest
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      - NODE_ENV=production
+
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:latest
+    restart: always
+    ports:
+      - "${BACKEND_PORT:-8080}:8080" # Maps port dynamically on VPS to port 8080 inside container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Point this to your EXISTING database on the VPS. 
+      # "172.17.0.1" is usually the Docker host IP in Linux, or use your VPS's public/private IP.
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=172.17.0.1;Database=DocAppointmentDb_Prod;Username=postgres;Password=sa}
+
+  whatsapp-bridge:
+    image: ghcr.io/${GITHUB_REPOSITORY}/whatsapp-bridge:latest
+    restart: always
+    ports:
+      - "${WHATSAPP_PORT:-3101}:3101"
+    volumes:
+      - whatsapp_sessions:/app/sessions
+    environment:
+      - NODE_ENV=production
+
+volumes:
+  whatsapp_sessions:
+    name: docappointment_whatsapp_sessions

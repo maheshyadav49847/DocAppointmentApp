@@ -132,7 +132,8 @@ async function getClient(branchId, expectedNumber) {
   console.log(`[SYSTEM] Creating node for ${branchId} with expectedNumber: ${entry.expectedNumber || 'any'}`);
 
   async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState(`baileys_auth_info_${branchId}`);
+    // Save auth state in the sessions directory so it can be mounted as a single Docker volume
+    const { state, saveCreds } = await useMultiFileAuthState(`sessions/baileys_auth_info_${branchId}`);
     
     const secureSaveCreds = async () => {
       await saveCreds();
