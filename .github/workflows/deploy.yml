@@ -130,6 +130,11 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
+            # Stop old default project containers if they exist (to free up ports)
+            docker compose down || true
+            docker compose -p "docappointment" down || true
+            docker compose -p "docappointment-$TARGET_ENV" down || true
+            
             # Pull latest images and start containers under a unique project name
             docker compose -p "docappointment-$TARGET_ENV" pull
             docker compose -p "docappointment-$TARGET_ENV" up -d
@@ -171,8 +176,11 @@ jobs:
             fi
             
             if command -v nginx >/dev/null 2>&1; then
-              mv /tmp/docappointment.conf /etc/nginx/sites-available/docappointment.conf
-              ln -sf /etc/nginx/sites-available/docappointment.conf /etc/nginx/sites-enabled/
-              rm -f /etc/nginx/sites-enabled/default
+              # Use conf.d which is universal across all Linux distros
+              mkdir -p /etc/nginx/conf.d
+              mv /tmp/docappointment.conf /etc/nginx/conf.d/docappointment.conf
+              # Remove default configs if they exist to prevent port 80 conflicts
+              rm -f /etc/nginx/sites-enabled/default || true
+              rm -f /etc/nginx/conf.d/default.conf || true
               systemctl restart nginx || echo "Nginx restart failed"
             fi
