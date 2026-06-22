@@ -145,27 +145,24 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
-            # NUCLEAR WIPE: Nuke all existing containers, volumes, and images
-            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/frontend" | xargs -r docker rm -f || true
-            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/backend" | xargs -r docker rm -f || true
-            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/whatsapp-bridge" | xargs -r docker rm -f || true
+            # ULTIMATE WIPE: Kill EVERYTHING on the VPS
+            echo "Stopping all host web servers..."
+            sudo systemctl stop nginx || true
+            sudo systemctl stop apache2 || true
             
-            docker ps -a -q --filter "name=frontend" | xargs -r docker rm -f || true
-            docker ps -a -q --filter "name=backend" | xargs -r docker rm -f || true
-            docker ps -a -q --filter "name=whatsapp" | xargs -r docker rm -f || true
-            docker ps -a -q --filter "name=docappointment" | xargs -r docker rm -f || true
+            echo "Deleting ALL Docker containers..."
+            docker rm -f $(docker ps -aq) || true
             
-            # WIPE ALL DOCAPPOINTMENT VOLUMES
-            docker volume ls -q --filter "name=docappointment" | xargs -r docker volume rm || true
-            docker volume ls -q --filter "name=whatsapp_sessions" | xargs -r docker volume rm || true
+            echo "Deleting ALL Docker volumes..."
+            docker volume rm $(docker volume ls -q) || true
             
-            # WIPE IMAGES
-            docker images ghcr.io/${GITHUB_REPOSITORY}/* -q | xargs -r docker rmi -f || true
+            echo "Deleting ALL Docker images..."
+            docker rmi -f $(docker images -q) || true
 
-            # Also clean up standard docker-compose networks if needed
+            echo "Pruning networks..."
             docker network prune -f || true
             
-            WIPE_ONLY="${{ github.event.inputs.wipe_only || 'false' }}"
+            WIPE_ONLY="true"
             if [ "$WIPE_ONLY" != "true" ]; then
               echo "Pulling completely fresh images..."
               docker compose -p "docappointment-$TARGET_ENV" pull
