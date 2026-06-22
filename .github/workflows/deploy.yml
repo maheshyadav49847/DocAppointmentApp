@@ -47,6 +47,10 @@ jobs:
         with:
           context: ./DocAppointment/FrontendV2
           push: true
+          build-args: |
+            VITE_API_URL=/api/v1.0
+            VITE_WHATSAPP_BRIDGE_URL=/qr
+            VITE_WHATSAPP_BRIDGE_API_KEY=codex-secret-123
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
