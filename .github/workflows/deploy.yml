@@ -9,12 +9,12 @@ on:
       target_env:
         description: 'Select Environment to Deploy'
         required: true
-        default: 'prod'
+        default: 'dev'
         type: choice
         options:
-          - prod
-          - sandbox
           - dev
+          - sandbox
+          - prod
 
 env:
   REGISTRY: ghcr.io
@@ -47,7 +47,9 @@ jobs:
         with:
           context: ./DocAppointment/FrontendV2
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
           build-args: |
             VITE_API_URL=http://${{ secrets.VPS_IP }}:8080/api/v1.0
 
@@ -57,7 +59,9 @@ jobs:
         with:
           context: ./DocAppointment/Backend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
 
       # Build & Push WhatsApp Bridge
       - name: Build and push WhatsApp Bridge
@@ -65,12 +69,14 @@ jobs:
         with:
           context: ./DocAppointment/whatsapp-bridge
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/whatsapp-bridge:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/whatsapp-bridge:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/whatsapp-bridge:${{ github.sha }}
 
   deploy-to-vps:
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.target_env || 'prod' }}
+    environment: ${{ github.event.inputs.target_env || 'dev' }}
     
     steps:
       - name: Checkout repository (for docker-compose.yml)
@@ -100,7 +106,7 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Determine ports based on environment
-            TARGET_ENV="${{ github.event.inputs.target_env || 'prod' }}"
+            TARGET_ENV="${{ github.event.inputs.target_env || 'dev' }}"
             if [ "$TARGET_ENV" = "prod" ]; then
               export FRONTEND_PORT=80
               export BACKEND_PORT=8080
@@ -119,6 +125,7 @@ jobs:
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             export DB_CONNECTION_STRING="${{ secrets.DB_CONNECTION_STRING }}"
             export VPS_IP="${{ secrets.VPS_IP }}"
+            export IMAGE_TAG="${{ github.sha }}"
             
             # Pull latest images and start containers under a unique project name
             docker compose -p "docappointment-$TARGET_ENV" pull
