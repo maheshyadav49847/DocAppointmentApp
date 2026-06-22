@@ -66,7 +66,7 @@ export default function AnalyticsPage() {
             <Activity className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Analytics</span>
               <span className="text-indigo-600">Overview</span>
             </h1>

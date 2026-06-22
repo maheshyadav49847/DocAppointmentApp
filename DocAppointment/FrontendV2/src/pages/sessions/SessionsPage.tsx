@@ -164,11 +164,11 @@ export default function SessionsPage() {
             <Calendar className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Manage</span>
               <span className="text-indigo-600">Sessions</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Configure doctor availability and appointment slots.</p>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Configure daily working hours and weekly schedules for professionals.</p>
           </div>
         </div>
 
@@ -194,30 +194,28 @@ export default function SessionsPage() {
       {/* Main Container */}
       <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:w-64">
-              <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(e.target.value)}
-                disabled={!selectedBranchId}
-                className="bg-white border border-slate-200 text-sm rounded-lg pl-9 pr-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm w-full disabled:opacity-50"
-              >
-                <option value="">Select Professional...</option>
-                {doctors?.map((doc: any) => (
-                  <option key={doc.id} value={doc.id}>{doc.name}</option>
-                ))}
-              </select>
-            </div>
+        <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+          <div className="relative flex-1 sm:w-64 lg:w-80 group">
+            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+            <select
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              disabled={!selectedBranchId}
+              className="saas-input w-full appearance-none" style={{ paddingLeft: "2.5rem" }}
+            >
+              <option value="">Select Professional...</option>
+              {doctors?.map((doc: any) => (
+                <option key={doc.id} value={doc.id}>{doc.name}</option>
+              ))}
+            </select>
           </div>
 
           <button
             onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
             disabled={!selectedDoctorId}
-            className="btn-primary w-full sm:w-auto justify-center shrink-0"
+            className="btn-primary shrink-0 px-3 sm:px-5"
           >
-            <Plus className="w-4 h-4" /> Add Shift
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
           </button>
         </div>
 

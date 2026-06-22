@@ -219,7 +219,7 @@ export default function PatientsPage() {
             <Users className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Patient</span>
               <span className="text-indigo-600">Directory</span>
             </h1>
@@ -252,7 +252,7 @@ export default function PatientsPage() {
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
           {/* Left Side: View Toggles & Row Count */}
-          <div className="flex items-center gap-3 w-full lg:w-auto">
+          <div className="flex items-center justify-between sm:justify-start gap-3 w-full lg:w-auto order-2 lg:order-1">
             <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
@@ -273,7 +273,7 @@ export default function PatientsPage() {
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -283,12 +283,12 @@ export default function PatientsPage() {
           </div>
 
           {/* Right Side: Search & Add Button */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            <div className="relative w-full sm:max-w-md lg:w-64 group">
+          <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-1 lg:order-2">
+            <div className="relative flex-1 sm:w-64 lg:w-64 group">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
                 type="text"
-                placeholder="Search patients by name or phone..."
+                placeholder="Search patients..."
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
                 className="saas-input w-full" style={{ paddingLeft: "2.5rem" }}
@@ -300,9 +300,9 @@ export default function PatientsPage() {
                 setEditingPatient(null)
                 setIsDrawerOpen(true)
               }}
-              className="btn-primary w-full sm:w-auto justify-center shrink-0"
+              className="btn-primary shrink-0 px-3 sm:px-5"
             >
-              <Plus className="w-4 h-4" /> Register Patient
+              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
             </button>
           </div>
         </div>
