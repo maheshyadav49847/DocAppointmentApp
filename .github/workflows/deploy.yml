@@ -117,7 +117,7 @@ jobs:
             
             # Export variables for docker-compose file to resolve
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-            export DB_CONNECTION_STRING=$(echo "${{ secrets.DB_CONNECTION_STRING }}" | sed 's/localhost/172.17.0.1/g' | sed 's/127.0.0.1/172.17.0.1/g')
+            export DB_CONNECTION_STRING="${{ secrets.DB_CONNECTION_STRING }}"
             export VPS_IP="${{ secrets.VPS_IP }}"
             
             # Pull latest images and start containers under a unique project name
