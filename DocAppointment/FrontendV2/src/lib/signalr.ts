@@ -7,7 +7,7 @@ let connection: signalR.HubConnection | null = null;
 export const initializeSignalR = async (token: string, branchId: string) => {
   if (connection) return;
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1.0';
+  const apiUrl = import.meta.env.VITE_API_URL || '/api/v1.0';
   const baseUrl = apiUrl.split('/api')[0];
   const hubUrl = `${baseUrl}/queueHub`;
 

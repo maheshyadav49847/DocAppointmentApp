@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Activity, Stethoscope } from "lucide-react"
 import { BrandLogo } from "@/components/BrandLogo"
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api/v1"
+const API_BASE = import.meta.env.VITE_API_URL || "/api/v1.0"
 
 export default function TvDisplayPage() {
   const { branchId } = useParams()

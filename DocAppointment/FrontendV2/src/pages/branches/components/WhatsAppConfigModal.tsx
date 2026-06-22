@@ -204,7 +204,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
                       
                       <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full aspect-square flex items-center justify-center overflow-hidden">
                         <iframe 
-                          src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${branch.id}?expectedNumber=${branch?.whatsAppNumber?.replace(/\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
+                          src={`/qr/${branch.id}?expectedNumber=${branch?.whatsAppNumber?.replace(/\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
                           className="w-[280px] h-[280px] border-none overflow-hidden scale-110 origin-center"
                           scrolling="no"
                         />

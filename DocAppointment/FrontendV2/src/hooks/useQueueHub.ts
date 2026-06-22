@@ -9,7 +9,7 @@ export const useQueueHub = (branchId: string | null | undefined) => {
     if (!branchId) return
 
     const token = useAuthStore.getState().token
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1.0'
+    const apiUrl = import.meta.env.VITE_API_URL || '/api/v1.0'
     const baseUrl = apiUrl.split('/api')[0]
     const hubUrl = import.meta.env.VITE_HUB_URL || `${baseUrl}/queueHub`
     const newConnection = new signalR.HubConnectionBuilder()
