@@ -9,7 +9,7 @@ on:
       target_env:
         description: 'Select Environment to Deploy'
         required: true
-        default: 'dev'
+        default: 'prod'
         type: choice
         options:
           - dev
@@ -74,7 +74,7 @@ jobs:
   deploy-to-vps:
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.target_env || 'dev' }}
+    environment: ${{ github.event.inputs.target_env || 'prod' }}
     
     steps:
       - name: Checkout repository (for docker-compose.yml)
@@ -104,7 +104,7 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             # Determine ports based on environment
-            TARGET_ENV="${{ github.event.inputs.target_env || 'dev' }}"
+            TARGET_ENV="${{ github.event.inputs.target_env || 'prod' }}"
             if [ "$TARGET_ENV" = "prod" ]; then
               export FRONTEND_PORT=8000
               export BACKEND_PORT=8080
