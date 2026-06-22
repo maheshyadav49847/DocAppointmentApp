@@ -121,7 +121,12 @@ jobs:
             
             # Export variables for docker-compose file to resolve
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-            export DB_CONNECTION_STRING="${{ secrets.DB_CONNECTION_STRING }}"
+            
+            # Capitalize first letter of target env (e.g. dev -> Dev, prod -> Prod)
+            CAP_ENV="$(tr '[:lower:]' '[:upper:]' <<< ${TARGET_ENV:0:1})${TARGET_ENV:1}"
+            # Replace the Database name dynamically to isolate databases per environment
+            export DB_CONNECTION_STRING=$(echo "${{ secrets.DB_CONNECTION_STRING }}" | sed -E "s/Database=[^;]+/Database=DocAppointmentDb_${CAP_ENV}/")
+            
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
@@ -131,3 +136,43 @@ jobs:
             
             # Prune old dangling images to save disk space
             docker image prune -f
+
+            # --- AUTOMATE NGINX REVERSE PROXY SETUP ---
+            cat << 'EOF' > /tmp/docappointment.conf
+            server {
+                listen 80;
+                server_name _;
+                location / { proxy_pass http://localhost:8000; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; }
+                location /api/ { proxy_pass http://localhost:8080/api/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'keep-alive'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /queueHub { proxy_pass http://localhost:8080/queueHub; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "Upgrade"; proxy_set_header Host $host; proxy_read_timeout 100s; }
+                location /qr/ { proxy_pass http://localhost:3101/qr/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; }
+            }
+            server {
+                listen 81;
+                server_name _;
+                location / { proxy_pass http://localhost:8001; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; }
+                location /api/ { proxy_pass http://localhost:8081/api/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'keep-alive'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /queueHub { proxy_pass http://localhost:8081/queueHub; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "Upgrade"; proxy_set_header Host $host; proxy_read_timeout 100s; }
+                location /qr/ { proxy_pass http://localhost:3102/qr/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; }
+            }
+            server {
+                listen 82;
+                server_name _;
+                location / { proxy_pass http://localhost:8002; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; }
+                location /api/ { proxy_pass http://localhost:8082/api/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'keep-alive'; proxy_set_header Host $host; proxy_cache_bypass $http_upgrade; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+                location /queueHub { proxy_pass http://localhost:8082/queueHub; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "Upgrade"; proxy_set_header Host $host; proxy_read_timeout 100s; }
+                location /qr/ { proxy_pass http://localhost:3103/qr/; proxy_http_version 1.1; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection 'upgrade'; proxy_set_header Host $host; }
+            }
+            EOF
+            
+            if ! command -v nginx >/dev/null 2>&1; then
+              echo "Installing nginx..."
+              apt-get update && apt-get install -y nginx || true
+            fi
+            
+            if command -v nginx >/dev/null 2>&1; then
+              mv /tmp/docappointment.conf /etc/nginx/sites-available/docappointment.conf
+              ln -sf /etc/nginx/sites-available/docappointment.conf /etc/nginx/sites-enabled/
+              rm -f /etc/nginx/sites-enabled/default
+              systemctl restart nginx || echo "Nginx restart failed"
+            fi
