@@ -97,7 +97,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="bg-white rounded-3xl shadow-2xl shadow-indigo-900/10 w-full max-w-md overflow-visible relative z-10 border border-slate-200/50"
+            className="bg-white rounded-lg shadow-2xl shadow-indigo-900/10 w-full max-w-md overflow-visible relative z-10 border border-slate-200/50"
           >
 
             

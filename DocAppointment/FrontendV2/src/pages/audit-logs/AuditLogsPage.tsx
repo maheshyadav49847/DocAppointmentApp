@@ -53,51 +53,58 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col h-full min-h-0 gap-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-indigo-600" />
-            System Audit Logs
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Monitor and track all system activities, actions, and API requests.
-          </p>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+            <ClipboardList className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <span className="text-slate-900">System</span>
+              <span className="text-indigo-600">Audit Logs</span>
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">
+              Monitor and track all system activities, actions, and API requests.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search by action, path, or user ID..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-300 focus:ring-0 rounded-xl text-sm transition-all outline-none"
-          />
+      {/* Main Card */}
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
+        {/* Toolbar */}
+        <div className="p-4 sm:px-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div className="relative w-full sm:w-96 group">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Search by action, path, or user ID..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="saas-input pl-9"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Table Section */}
-      <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
-              <tr>
-                <th className="px-6 py-4">Timestamp</th>
-                <th className="px-6 py-4">Method & Path</th>
-                <th className="px-6 py-4">Action</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">IP Address</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
+        {/* Table Section */}
+        <div className="overflow-auto flex-1 p-4 sm:p-6 bg-slate-50/30">
+          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
                 <tr>
+                  <th className="px-6 py-4">Timestamp</th>
+                  <th className="px-6 py-4">Method & Path</th>
+                  <th className="px-6 py-4">Action</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">User</th>
+                  <th className="px-6 py-4">IP Address</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading ? (
+                  <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <Activity className="w-6 h-6 text-indigo-400 animate-spin mx-auto mb-3" />
                     <p className="text-sm text-slate-500">Loading audit logs...</p>
@@ -151,6 +158,7 @@ export default function AuditLogsPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}

@@ -217,11 +217,11 @@ export default function DoctorsPage() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Stethoscope className="w-7 h-7" />
           </div>
           <div>
@@ -250,7 +250,7 @@ export default function DoctorsPage() {
       </div>
 
       {/* Main Card */}
-      <div className="saas-card overflow-hidden flex flex-col">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
@@ -308,8 +308,9 @@ export default function DoctorsPage() {
         </div>
 
         {/* Data View */}
-        {viewMode === 'grid' ? (
-          <div className="p-4 grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
+        <div className="flex-1 overflow-auto bg-slate-50/50 p-4 sm:p-6">
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
@@ -332,7 +333,7 @@ export default function DoctorsPage() {
               ))
             ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map(row => (
-                <div key={row.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                <div key={row.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                   {/* Header Section */}
                   <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
                     <div className="flex items-start justify-between mb-4">
@@ -490,6 +491,7 @@ export default function DoctorsPage() {
             </table>
           </div>
         )}
+        </div>
 
         {/* Pagination */}
         <div className="p-4 border-t border-zinc-100 flex items-center justify-between text-sm text-zinc-500 bg-zinc-50/50">

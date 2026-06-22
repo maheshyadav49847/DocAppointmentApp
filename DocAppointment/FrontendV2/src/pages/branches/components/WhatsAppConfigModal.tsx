@@ -64,7 +64,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
@@ -91,7 +91,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
             
             {/* Telemetry Column */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                 <div className="p-5 border-b border-slate-100 bg-white flex items-center justify-between">
                   <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                     <Activity className="w-4 h-4 text-green-600" /> Telemetry
@@ -149,7 +149,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
                 </div>
               </div>
               
-              <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm overflow-hidden border border-slate-800">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-lg p-5 shadow-sm overflow-hidden border border-slate-800">
                 <h3 className="font-semibold text-slate-100 mb-4 flex items-center gap-2">
                   <Activity className="w-4 h-4 text-indigo-400" /> Operational Matrix
                 </h3>
@@ -171,7 +171,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
 
             {/* QR Core Hub */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-2xl border border-slate-200 h-full min-h-[450px] flex flex-col relative overflow-hidden shadow-sm">
+              <div className="bg-white rounded-lg border border-slate-200 h-full min-h-[450px] flex flex-col relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none"></div>
                 
                 <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
@@ -202,7 +202,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
                         <span className="font-semibold text-sm">Syncing Security Key</span>
                       </div>
                       
-                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 w-full aspect-square flex items-center justify-center overflow-hidden">
+                      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full aspect-square flex items-center justify-center overflow-hidden">
                         <iframe 
                           src={`${import.meta.env.VITE_WHATSAPP_BRIDGE_URL || 'http://localhost:3101'}/qr/${branch.id}?expectedNumber=${branch?.whatsAppNumber?.replace(/\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
                           className="w-[280px] h-[280px] border-none overflow-hidden scale-110 origin-center"

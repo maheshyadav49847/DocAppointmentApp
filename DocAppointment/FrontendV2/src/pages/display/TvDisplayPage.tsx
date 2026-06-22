@@ -163,7 +163,7 @@ function SingleDoctorView({ queue }: { queue: any }) {
               </div>
             </div>
 
-            <div className="mt-8 bg-slate-50 border border-slate-100 rounded-3xl px-12 py-4 shadow-sm">
+            <div className="mt-8 bg-slate-50 border border-slate-100 rounded-lg px-12 py-4 shadow-sm">
               <p className="text-4xl font-bold text-slate-700 tracking-tight">{queue.currentPatientName}</p>
             </div>
           </motion.div>
@@ -189,7 +189,7 @@ function SingleDoctorView({ queue }: { queue: any }) {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-white border-2 border-slate-200 text-slate-800 px-8 py-4 rounded-2xl text-4xl font-black tabular-nums shadow-sm"
+                className="bg-white border-2 border-slate-200 text-slate-800 px-8 py-4 rounded-lg text-4xl font-black tabular-nums shadow-sm"
               >
                 {t}
               </motion.div>
@@ -237,7 +237,7 @@ function DoctorCard({ queue }: { queue: any }) {
       {/* Header */}
       <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between z-10 bg-white/60 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl font-black text-indigo-600 shrink-0">
+          <div className="w-14 h-14 rounded-lg bg-indigo-50 flex items-center justify-center text-2xl font-black text-indigo-600 shrink-0">
             {queue.doctorName?.charAt(0) || "D"}
           </div>
           <div>
@@ -271,7 +271,7 @@ function DoctorCard({ queue }: { queue: any }) {
             <div className="text-[9rem] font-black text-indigo-600 leading-none tabular-nums tracking-tighter drop-shadow-sm">
               {queue.currentTokenNumber}
             </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl px-6 py-2 mt-6">
+            <div className="bg-slate-50 border border-slate-100 rounded-lg px-6 py-2 mt-6">
               <p className="text-2xl font-bold text-slate-700 truncate max-w-full">{queue.currentPatientName}</p>
             </div>
           </motion.div>
@@ -308,7 +308,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   }
   
   return (
-    <div className="bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-center flex flex-col justify-center min-w-[140px]">
+    <div className="bg-slate-50 border border-slate-100 rounded-lg px-8 py-5 text-center flex flex-col justify-center min-w-[140px]">
       <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mb-1">{label}</p>
       <p className={`text-7xl font-black tabular-nums leading-none ${colorMap[color]}`}>{value}</p>
     </div>

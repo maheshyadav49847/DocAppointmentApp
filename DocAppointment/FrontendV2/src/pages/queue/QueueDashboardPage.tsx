@@ -27,7 +27,7 @@ export default function QueueDashboardPage() {
   }, [setSearchParams])
 
   return (
-    <div className="pb-12">
+    <div className="flex-1 flex flex-col h-full min-h-0">
       {viewMode === 'overview' ? (
         <QueueOverview 
           selectedBranchId={selectedBranchId}

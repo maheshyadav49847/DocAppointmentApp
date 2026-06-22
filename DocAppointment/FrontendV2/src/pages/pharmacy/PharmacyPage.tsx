@@ -226,23 +226,23 @@ export default function PharmacyPage() {
   });
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Pill className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2">
-              <span className="text-slate-900">Medicine</span>
-              <span className="text-indigo-600">Master</span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <span className="text-slate-900">Pharmacy</span>
+              <span className="text-indigo-600">Database</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global medicine database for prescriptions.</p>
           </div>
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           <div className="flex items-center gap-3 w-full lg:w-auto">
@@ -301,7 +301,7 @@ export default function PharmacyPage() {
           </div>
         </div>
 
-        <div className="p-0 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
+        <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Activity className="w-8 h-8 text-indigo-500 animate-spin" />

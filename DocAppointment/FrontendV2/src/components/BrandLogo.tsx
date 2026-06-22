@@ -36,7 +36,7 @@ export function BrandLogo({
       subtitle: "text-[9px]",
     },
     xl: {
-      box: "w-14 h-14 border-4 rounded-2xl",
+      box: "w-14 h-14 border-4 rounded-lg",
       icon: 32,
       text: "text-3xl",
       subtitle: "text-[10px]",

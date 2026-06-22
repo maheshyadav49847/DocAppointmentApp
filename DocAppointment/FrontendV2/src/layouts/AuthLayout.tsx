@@ -33,7 +33,7 @@ export default function AuthLayout() {
           </div>
 
           <div className="space-y-5 mt-12">
-            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-2xl bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
+            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-lg bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 border border-white/10 group-hover:bg-white group-hover:border-white transition-all duration-300 shadow-sm">
                 <Activity className="w-6 h-6 text-white group-hover:text-indigo-600 transition-colors" />
               </div>
@@ -43,7 +43,7 @@ export default function AuthLayout() {
               </div>
             </div>
 
-            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-2xl bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
+            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-lg bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 border border-white/10 group-hover:bg-white group-hover:border-white transition-all duration-300 shadow-sm">
                 <MessageSquare className="w-6 h-6 text-white group-hover:text-indigo-600 transition-colors" />
               </div>
@@ -53,7 +53,7 @@ export default function AuthLayout() {
               </div>
             </div>
 
-            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-2xl bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
+            <div className="flex items-start gap-5 group p-5 -ml-5 rounded-lg bg-white/5 hover:bg-white/10 hover:shadow-xl hover:shadow-indigo-900/10 transition-all duration-300 border border-white/10 hover:border-white/20">
               <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 border border-white/10 group-hover:bg-white group-hover:border-white transition-all duration-300 shadow-sm">
                 <Building2 className="w-6 h-6 text-white group-hover:text-indigo-600 transition-colors" />
               </div>
@@ -67,7 +67,7 @@ export default function AuthLayout() {
 
         {/* Bottom Social Proof */}
         <div className="relative z-10 mt-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 fill-mode-both">
-          <div className="p-4 rounded-2xl bg-white/10 border border-white/10 shadow-sm inline-flex items-center gap-5 hover:shadow-md transition-shadow cursor-default backdrop-blur-sm">
+          <div className="p-4 rounded-lg bg-white/10 border border-white/10 shadow-sm inline-flex items-center gap-5 hover:shadow-md transition-shadow cursor-default backdrop-blur-sm">
             <div className="flex -space-x-3">
               <img src="https://i.pravatar.cc/100?img=33" alt="Doctor 1" className="w-10 h-10 rounded-full border-2 border-indigo-600 shadow-sm" />
               <img src="https://i.pravatar.cc/100?img=47" alt="Doctor 2" className="w-10 h-10 rounded-full border-2 border-indigo-600 shadow-sm" />

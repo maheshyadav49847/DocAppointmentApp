@@ -181,9 +181,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
       className="space-y-6"
     >
       {/* Top Navigation & Status Bar */}
-      <div className="bg-white border border-slate-200/60 rounded-3xl p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+      <div className="saas-card p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
         <div className="flex items-center gap-4 relative z-10">
-          <button onClick={onBack} className="p-2.5 bg-slate-50 text-slate-500 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200/60">
+          <button onClick={onBack} className="p-2.5 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-100 transition-colors border border-slate-200/60">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="w-px h-8 bg-slate-200"></div>
@@ -205,7 +205,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
         <div className="flex items-center gap-3 relative z-10">
           <button 
             onClick={() => { refetchQueue(); refetchTokens() }} 
-            className="p-2.5 bg-white text-slate-500 rounded-xl border border-slate-200/60 hover:bg-slate-50 shadow-sm transition-colors"
+            className="p-2.5 bg-white text-slate-500 rounded-lg border border-slate-200/60 hover:bg-slate-50 shadow-sm transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -224,7 +224,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
         
         {/* Left Col: Current Token */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
-          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden relative flex-1 min-h-[320px]">
+          <div className="saas-card overflow-hidden relative flex-1 min-h-[320px]">
             <div className="absolute top-6 left-6 flex items-center gap-2">
               <div className="w-2 h-8 bg-indigo-500 rounded-full"></div>
               <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Now Serving</span>
@@ -269,21 +269,21 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
           {/* Quick Stats Strip */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
+            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center"><Users className="w-6 h-6" /></div>
               <div>
                 <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.waitingCount || 0}</h3>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Waiting</p>
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
+            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center"><CheckCircle2 className="w-6 h-6" /></div>
               <div>
                 <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.completedCount || 0}</h3>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Served</p>
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
+            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center"><AlertCircle className="w-6 h-6" /></div>
               <div>
                 <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.skippedCount || 0}</h3>
@@ -294,7 +294,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
         </div>
 
         {/* Right Col: Controls */}
-        <div className="lg:col-span-5 xl:col-span-4 bg-white rounded-3xl border border-slate-200/60 shadow-sm p-6 flex flex-col h-full relative overflow-hidden">
+        <div className="lg:col-span-5 xl:col-span-4 saas-card p-6 flex flex-col h-full relative overflow-hidden">
 
           
           <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
@@ -306,7 +306,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               <button
                 onClick={() => callNextMutation.mutate()}
                 disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
-                className="w-full py-6 bg-transparent border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                className="w-full py-6 bg-transparent border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
               >
                 {callNextMutation.isPending ? (
                   <Activity className="w-8 h-8 animate-spin relative z-10" />
@@ -321,7 +321,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <button
                   onClick={() => completeMutation.mutate()}
                   disabled={completeMutation.isPending}
-                  className="w-full py-4 bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-50 group"
+                  className="w-full py-4 bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-50 group"
                 >
                   {completeMutation.isPending ? (
                     <Activity className="w-6 h-6 animate-spin" />
@@ -337,7 +337,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               <button
                 onClick={() => skipMutation.mutate()}
                 disabled={skipMutation.isPending || !hasActivePatient}
-                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
+                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
               >
                 <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
                   <SkipForward className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
@@ -347,7 +347,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               
               <button
                 disabled={!hasActivePatient}
-                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
+                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
               >
                 <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
                   <MessageSquare className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
@@ -361,7 +361,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
             <button
               onClick={() => markArrivedMutation.mutate()}
               disabled={isDoctorArrived || markArrivedMutation.isPending}
-              className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold transition-all border-2 ${
+              className={`w-full py-4 rounded-lg flex items-center justify-center gap-3 font-bold transition-all border-2 ${
                 isDoctorArrived 
                   ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-default' 
                   : 'bg-transparent border-indigo-600 text-indigo-600 hover:bg-indigo-50'
@@ -383,7 +383,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
       </div>
 
       {/* Patient List Section */}
-      <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
+      <div className="saas-card overflow-hidden">
         {/* Custom Segmented Control Header */}
         <div className="p-4 sm:px-6 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
@@ -547,7 +547,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50"
+              className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50"
             >
               <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
                 <h3 className="font-bold text-slate-800">Edit Token #{editingToken.tokenNumber}</h3>

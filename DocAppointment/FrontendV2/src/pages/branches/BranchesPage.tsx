@@ -222,10 +222,10 @@ export default function BranchesPage() {
   })
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
             <Building2 className="w-7 h-7" />
           </div>
           <div>
@@ -238,7 +238,7 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
@@ -287,7 +287,7 @@ export default function BranchesPage() {
             </button>
           </div>
         </div>
-        <div className="p-0 sm:p-6 bg-slate-50/50">
+        <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
               <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
@@ -339,7 +339,7 @@ export default function BranchesPage() {
                       </div>
                     )}
                     <div className="flex items-start gap-4 mb-5 relative z-10">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-105 ${isActiveContext ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-transparent text-white shadow-md shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600'}`}>
+                      <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-105 ${isActiveContext ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-transparent text-white shadow-md shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600'}`}>
                         <Building2 className="w-7 h-7" />
                       </div>
                       <div className="pt-1">

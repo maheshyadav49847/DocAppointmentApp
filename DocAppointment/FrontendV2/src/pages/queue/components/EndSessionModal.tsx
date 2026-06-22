@@ -51,7 +51,7 @@ export default function EndSessionModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+          className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
         >
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">

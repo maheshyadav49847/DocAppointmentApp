@@ -111,12 +111,12 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-8"
+      className="flex-1 flex flex-col h-full min-h-0 gap-6"
     >
       {/* Header Area */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <LayoutDashboard className="w-7 h-7" />
           </div>
           <div>
@@ -137,7 +137,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
                 href={`/tv/${selectedBranchId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 h-[42px] rounded-xl text-sm font-bold transition-colors border border-indigo-200 shadow-sm flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 h-[42px] rounded-lg text-sm font-bold transition-colors border border-indigo-200 shadow-sm flex-shrink-0 w-full sm:w-auto whitespace-nowrap"
                 title="Open Queue TV Display in a new tab"
               >
                 <MonitorPlay className="w-4 h-4" />
@@ -153,7 +153,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
               value={selectedBranchId}
               disabled={user?.role !== 'OrgAdmin'}
               onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 h-[42px] text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
+              className="bg-white border border-slate-200 rounded-lg px-4 h-[42px] text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
             >
               {user?.role === 'OrgAdmin' && <option value="org" disabled>Select Facility</option>}
               {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
@@ -168,25 +168,25 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center justify-center py-24 bg-white border border-slate-200/60 border-dashed rounded-3xl shadow-sm"
+          className="flex flex-col items-center justify-center py-24 bg-white border border-slate-200/60 border-dashed rounded-lg shadow-sm"
         >
-          <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 text-indigo-500 shadow-inner">
+          <div className="w-20 h-20 bg-indigo-50 rounded-lg flex items-center justify-center mb-6 text-indigo-500 shadow-inner">
             <Activity className="w-10 h-10" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">No Facility Selected</h2>
           <p className="text-slate-500 text-center max-w-sm">Please select a hospital branch from the dropdown above to view live statistics and active doctor sessions.</p>
         </motion.div>
       ) : (
-        <div className="space-y-8">
+        <div className="flex-1 flex flex-col min-h-0 gap-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 shrink-0">
             {statCards.map((stat, idx) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: idx * 0.1 }}
-                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col relative overflow-hidden group hover:border-slate-300 transition-colors"
+                className="bg-white p-4 sm:p-5 rounded-lg border border-slate-200/60 shadow-sm flex flex-col relative overflow-hidden group hover:border-slate-300 transition-colors"
               >
                 <div className="flex flex-row items-center justify-between mb-4 gap-3">
                   <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center border ${stat.border} shrink-0`}>
@@ -203,8 +203,8 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
           </div>
 
           {/* Active Sessions */}
-          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-[500px]">
+            <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md">
                   <Stethoscope className="w-5 h-5" />
@@ -226,7 +226,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50/30">
+            <div className="p-4 sm:p-6 bg-slate-50/30 flex-1 overflow-auto">
               {isLoadingDoctors ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-4">
                   <div className="relative w-12 h-12">
@@ -284,7 +284,7 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
   const todaysSessions = sessions?.filter((s: any) => s.isDaily || s.dayOfWeek === today) || []
 
   return (
-    <div className={`group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full`}>
+    <div className={`group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full`}>
       <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50 relative">
         <div className="flex items-start justify-between relative z-10">
           <div className="flex items-center gap-4">

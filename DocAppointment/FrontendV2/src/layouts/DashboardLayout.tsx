@@ -83,7 +83,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+    <div className="h-screen overflow-hidden bg-slate-50 flex font-sans text-slate-900">
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -224,7 +224,7 @@ export default function DashboardLayout() {
 
               {/* Dropdown */}
               {notificationOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-lg shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <h3 className="text-sm font-bold text-slate-900">Notifications</h3>
                     <div className="flex gap-2">
@@ -307,14 +307,14 @@ export default function DashboardLayout() {
           </div>
         </header>
 
-        {/* Page Content Scrollable Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        {/* Page Content Area (Fallback scroll if pages demand minimum height) */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col min-h-0 overflow-y-auto">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="h-full w-full"
+            className="flex-1 flex flex-col min-h-0 w-full"
           >
             <Outlet />
           </motion.div>
@@ -329,7 +329,7 @@ export default function DashboardLayout() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
             >
               <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
                 <div>

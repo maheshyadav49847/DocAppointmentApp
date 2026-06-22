@@ -231,11 +231,11 @@ export default function StaffPage() {
   })
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 space-y-6">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <UserCog className="w-7 h-7" />
           </div>
           <div>
@@ -264,7 +264,7 @@ export default function StaffPage() {
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
@@ -322,7 +322,7 @@ export default function StaffPage() {
         </div>
 
         {/* View Content */}
-        <div className="p-0 sm:p-6 bg-slate-50/50">
+        <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-50/50">
           {/* Staff Grid */}
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-48">
@@ -367,7 +367,7 @@ export default function StaffPage() {
                 const member = row.original
                 const roleConfig = ROLES.find(r => r.label.toLowerCase() === member.role.toLowerCase().replace(/\s/g, '')) || ROLES[0]
                 return (
-                  <div key={member.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                  <div key={member.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                     {/* Header Section */}
                     <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
                       <div className="flex items-start justify-between">
@@ -610,7 +610,7 @@ export default function StaffPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden"
             >
               <div className="p-6 border-b border-zinc-100">
                 <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">

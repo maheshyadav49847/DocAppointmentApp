@@ -542,7 +542,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             </div>
 
             {/* Vitals Grid */}
-            <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-5">
+            <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-5">
               <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-500" /> Clinical Vitals
               </h3>

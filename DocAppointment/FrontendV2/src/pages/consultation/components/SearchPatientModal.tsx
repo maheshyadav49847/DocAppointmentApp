@@ -43,7 +43,7 @@ export default function SearchPatientModal({ isOpen, onClose, onSelectPatient }:
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
+        className="relative w-full max-w-xl bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <h2 className="text-lg font-bold text-slate-800">Consult Another Patient</h2>

@@ -211,11 +211,11 @@ export default function PatientsPage() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
             <Users className="w-7 h-7" />
           </div>
           <div>
@@ -247,7 +247,7 @@ export default function PatientsPage() {
       </div>
 
       {/* Main Card */}
-      <div className="saas-card overflow-hidden flex flex-col h-[calc(100vh-12rem)]">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
@@ -308,7 +308,7 @@ export default function PatientsPage() {
         </div>
 
         {/* View Content */}
-        <div className="p-0 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
+        <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {viewMode === 'table' ? (
             <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative">
               <table className="w-full text-left border-collapse">
@@ -363,7 +363,7 @@ export default function PatientsPage() {
               {isLoading ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm animate-pulse">
+                    <div key={i} className="bg-white rounded-lg p-5 border border-slate-200 shadow-sm animate-pulse">
                       <div className="flex gap-4">
                         <div className="w-12 h-12 rounded-xl bg-slate-100" />
                         <div className="flex-1 space-y-3">
@@ -381,7 +381,7 @@ export default function PatientsPage() {
               ) : patients.length > 0 ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
                   {patients.map(patient => (
-                    <div key={patient.id} className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                    <div key={patient.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                       {/* Header Section */}
                       <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
                         <div className="flex items-start justify-between mb-4">

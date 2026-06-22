@@ -161,12 +161,12 @@ export default function DoctorDeskPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-slate-200 shadow-xl shadow-slate-200/40 rounded-3xl p-10 max-w-3xl w-full text-center relative overflow-hidden"
+          className="bg-white border border-slate-200 shadow-xl shadow-slate-200/40 rounded-lg p-10 max-w-3xl w-full text-center relative overflow-hidden"
         >
           {/* Background decorative blob */}
           <div className="absolute -top-32 -right-32 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
 
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100/50">
+          <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-lg flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100/50">
             <MonitorPlay className="w-10 h-10 text-indigo-600" />
           </div>
 
@@ -179,7 +179,7 @@ export default function DoctorDeskPage() {
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1">Your Assigned Sessions</h3>
 
             {isSessionsLoading ? (
-              <div className="flex items-center justify-center py-12 gap-3 text-indigo-500 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="flex items-center justify-center py-12 gap-3 text-indigo-500 bg-slate-50 rounded-lg border border-slate-100">
                 <Loader2 className="w-6 h-6 animate-spin" />
                 <span className="font-medium">Loading your sessions...</span>
               </div>
@@ -189,7 +189,7 @@ export default function DoctorDeskPage() {
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     key={session.id}
-                    className="bg-white group border-2 border-slate-100 hover:border-indigo-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
+                    className="bg-white group border-2 border-slate-100 hover:border-indigo-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
                   >
                     <div className="mb-6">
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
@@ -220,7 +220,7 @@ export default function DoctorDeskPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-amber-50 text-amber-800 p-8 rounded-2xl border border-amber-200 text-center flex flex-col items-center">
+              <div className="bg-amber-50 text-amber-800 p-8 rounded-lg border border-amber-200 text-center flex flex-col items-center">
                 <Bell className="w-10 h-10 mb-3 text-amber-500 opacity-80" />
                 <p className="font-bold text-lg">You don't have any sessions assigned today.</p>
                 <p className="text-sm opacity-80 mt-1 max-w-sm">Please ask the administrator to schedule a session for you to start receiving patients.</p>
@@ -241,7 +241,7 @@ export default function DoctorDeskPage() {
       {/* Page Header (Outside the Card) */}
       <div className="shrink-0 px-2 sm:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-2xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
             <Stethoscope className="w-7 h-7" />
           </div>
           <div>
@@ -491,7 +491,7 @@ export default function DoctorDeskPage() {
                   <button
                     onClick={() => callNextMutation.mutate()}
                     disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
-                    className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-2xl font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
+                    className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-lg font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
                   >
                     {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
                     Call Next Patient
