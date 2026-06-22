@@ -15,6 +15,14 @@ on:
           - dev
           - sandbox
           - prod
+      wipe_only:
+        description: 'Wipe VPS only (Do not deploy)'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 env:
   REGISTRY: ghcr.io
@@ -157,9 +165,16 @@ jobs:
             # Also clean up standard docker-compose networks if needed
             docker network prune -f || true
             
-            # Pull latest images and start containers under a unique project name
-            docker compose -p "docappointment-$TARGET_ENV" pull
-            docker compose -p "docappointment-$TARGET_ENV" up -d
+            WIPE_ONLY="${{ github.event.inputs.wipe_only || 'false' }}"
+            if [ "$WIPE_ONLY" != "true" ]; then
+              echo "Pulling completely fresh images..."
+              docker compose -p "docappointment-$TARGET_ENV" pull
+
+              echo "Starting containers..."
+              docker compose -p "docappointment-$TARGET_ENV" up -d
+            else
+              echo "WIPE ONLY mode enabled. Skipping deployment."
+            fi
             
             # Prune old dangling images to save disk space
             docker image prune -f
