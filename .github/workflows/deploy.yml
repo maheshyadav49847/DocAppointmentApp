@@ -130,10 +130,17 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
-            # Stop old default project containers if they exist (to free up ports)
-            docker compose down || true
-            docker compose -p "docappointment" down || true
-            docker compose -p "docappointment-$TARGET_ENV" down || true
+            # Nuke all existing containers for this app to prevent port conflicts and ghost instances
+            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/frontend" | xargs -r docker rm -f || true
+            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/backend" | xargs -r docker rm -f || true
+            docker ps -a -q --filter "ancestor=ghcr.io/${GITHUB_REPOSITORY}/whatsapp-bridge" | xargs -r docker rm -f || true
+            
+            docker ps -a -q --filter "name=frontend" | xargs -r docker rm -f || true
+            docker ps -a -q --filter "name=backend" | xargs -r docker rm -f || true
+            docker ps -a -q --filter "name=whatsapp" | xargs -r docker rm -f || true
+            
+            # Also clean up standard docker-compose networks if needed
+            docker network prune -f || true
             
             # Pull latest images and start containers under a unique project name
             docker compose -p "docappointment-$TARGET_ENV" pull
