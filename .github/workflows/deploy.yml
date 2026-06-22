@@ -123,7 +123,7 @@ jobs:
             export GITHUB_REPOSITORY=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             
             # Capitalize first letter of target env (e.g. dev -> Dev, prod -> Prod)
-            CAP_ENV="$(tr '[:lower:]' '[:upper:]' <<< ${TARGET_ENV:0:1})${TARGET_ENV:1}"
+            CAP_ENV="$(echo "$TARGET_ENV" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
             # Replace the Database name dynamically to isolate databases per environment
             export DB_CONNECTION_STRING=$(echo "${{ secrets.DB_CONNECTION_STRING }}" | sed -E "s/Database=[^;]+/Database=DocAppointmentDb_${CAP_ENV}/")
             
