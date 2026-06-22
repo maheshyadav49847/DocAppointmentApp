@@ -145,22 +145,29 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
-            # ULTIMATE WIPE: Kill EVERYTHING on the VPS
+            # DEBUG WIPE: Find out why it's failing silently
+            echo "Running as user: $(whoami)"
+            echo "Testing Docker access..."
+            docker ps
+            
+            echo "Testing Sudo access..."
+            sudo -n true || echo "Sudo requires password!"
+
             echo "Stopping all host web servers..."
-            sudo systemctl stop nginx || true
-            sudo systemctl stop apache2 || true
+            sudo systemctl stop nginx
+            sudo systemctl stop apache2
             
             echo "Deleting ALL Docker containers..."
-            docker rm -f $(docker ps -aq) || true
+            docker rm -f $(docker ps -aq)
             
             echo "Deleting ALL Docker volumes..."
-            docker volume rm $(docker volume ls -q) || true
+            docker volume rm $(docker volume ls -q)
             
             echo "Deleting ALL Docker images..."
-            docker rmi -f $(docker images -q) || true
+            docker rmi -f $(docker images -q)
 
             echo "Pruning networks..."
-            docker network prune -f || true
+            docker network prune -f
             
             WIPE_ONLY="true"
             if [ "$WIPE_ONLY" != "true" ]; then
