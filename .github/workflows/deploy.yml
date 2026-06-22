@@ -165,7 +165,7 @@ jobs:
             # Also clean up standard docker-compose networks if needed
             docker network prune -f || true
             
-            WIPE_ONLY="${{ github.event.inputs.wipe_only || 'false' }}"
+            WIPE_ONLY="true"
             if [ "$WIPE_ONLY" != "true" ]; then
               echo "Pulling completely fresh images..."
               docker compose -p "docappointment-$TARGET_ENV" pull
