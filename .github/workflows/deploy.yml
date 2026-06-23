@@ -145,40 +145,18 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
-            # DEBUG WIPE: Find out why it's failing silently
-            echo "Running as user: $(whoami)"
-            echo "Testing Docker access..."
-            docker ps
+            # Setup directory and docker-compose.yml
+            mkdir -p ~/docappointment
+            cd ~/docappointment
             
-            echo "Testing Sudo access..."
-            sudo -n true || echo "Sudo requires password!"
-
-            echo "Stopping all host web servers..."
-            sudo systemctl stop nginx
-            sudo systemctl stop apache2
+            # Clean up only the containers for the current target environment
+            docker compose -p "docappointment-$TARGET_ENV" down || true
             
-            echo "Deleting ALL Docker containers..."
-            docker rm -f $(docker ps -aq)
+            echo "Pulling completely fresh images..."
+            docker compose -p "docappointment-$TARGET_ENV" pull
             
-            echo "Deleting ALL Docker volumes..."
-            docker volume rm $(docker volume ls -q)
-            
-            echo "Deleting ALL Docker images..."
-            docker rmi -f $(docker images -q)
-
-            echo "Pruning networks..."
-            docker network prune -f
-            
-            WIPE_ONLY="true"
-            if [ "$WIPE_ONLY" != "true" ]; then
-              echo "Pulling completely fresh images..."
-              docker compose -p "docappointment-$TARGET_ENV" pull
-
-              echo "Starting containers..."
-              docker compose -p "docappointment-$TARGET_ENV" up -d
-            else
-              echo "WIPE ONLY mode enabled. Skipping deployment."
-            fi
+            echo "Starting containers..."
+            docker compose -p "docappointment-$TARGET_ENV" up -d
             
             # Prune old dangling images to save disk space
             docker image prune -f
