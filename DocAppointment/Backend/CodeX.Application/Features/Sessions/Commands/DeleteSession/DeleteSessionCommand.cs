@@ -1,5 +1,6 @@
 using MediatR;
 using CodeX.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Application.Features.Sessions.Commands.DeleteSession
 {
@@ -18,9 +19,12 @@ namespace CodeX.Application.Features.Sessions.Commands.DeleteSession
 
         public async Task<Unit> Handle(DeleteSessionCommand request, CancellationToken cancellationToken)
         {
-            var session = await _context.Sessions.FindAsync(new object[] { request.Id }, cancellationToken);
+            var session = await _context.Sessions
+                .Include(s => s.Branch)
+                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (session == null) throw new Exception("Session not found");
 
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, session.Branch.OrganizationId);
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, session.BranchId);
 
             session.IsDeleted = true;

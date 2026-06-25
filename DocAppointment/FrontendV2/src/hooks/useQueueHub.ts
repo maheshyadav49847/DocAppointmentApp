@@ -17,32 +17,41 @@ export const useQueueHub = (branchId: string | null | undefined) => {
         accessTokenFactory: () => token || ''
       })
       .withAutomaticReconnect()
+      .configureLogging({
+        log: (logLevel, message) => {
+          if (message.includes('stopped during negotiation')) return;
+          if (logLevel === signalR.LogLevel.Error || logLevel === signalR.LogLevel.Critical) console.error(message);
+          else if (logLevel === signalR.LogLevel.Warning) console.warn(message);
+        }
+      })
       .build()
+
+    let isMounted = true
+
+    newConnection.start()
+      .then(() => {
+        if (!isMounted) return
+        console.log(`[QueueHub] Connected! Joining branch group: ${branchId}`)
+        return newConnection.invoke('JoinBranchGroup', branchId)
+      })
+      .then(() => {
+        if (isMounted) console.log(`[QueueHub] Successfully joined branch group: ${branchId}`)
+      })
+      .catch(err => {
+        if (err?.message?.includes('stopped during negotiation')) {
+          console.warn('[QueueHub] Start aborted (strict mode).')
+        } else {
+          console.error("[QueueHub] Connection Error: ", err)
+        }
+      })
 
     setConnection(newConnection)
 
     return () => {
+      isMounted = false
       newConnection.stop()
     }
   }, [branchId])
-
-  useEffect(() => {
-    if (connection) {
-      connection.start()
-        .then(() => {
-          console.log(`[QueueHub] Connected! Joining branch group: ${branchId}`)
-          return connection.invoke('JoinBranchGroup', branchId)
-        })
-        .then(() => console.log(`[QueueHub] Successfully joined branch group: ${branchId}`))
-        .catch(err => {
-          if (err?.message?.includes('stopped during negotiation')) {
-            console.warn('[QueueHub] Start aborted (strict mode).')
-          } else {
-            console.error("[QueueHub] Connection Error: ", err)
-          }
-        })
-    }
-  }, [connection, branchId])
 
   return connection
 }

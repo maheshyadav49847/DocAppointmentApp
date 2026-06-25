@@ -8,9 +8,12 @@ using CodeX.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
+    [Authorize]
     public class DoctorsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
@@ -22,8 +25,15 @@ namespace CodeX.Api.Controllers
             _currentUserService = currentUserService;
         }
 
+        [HttpGet("branches")]
+        [HasPermission(SystemPermissions.Doctors.View)]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+        }
+
         [HttpPost]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Doctors.Add)]
         [CodeX.Api.Filters.CheckSubscriptionLimit(CodeX.Api.Filters.SubscriptionLimitType.Doctors)]
         public async Task<ActionResult<Guid>> Create(CreateDoctorCommand command)
         {
@@ -32,30 +42,38 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
+        [HasPermission(SystemPermissions.Doctors.View)]
         public async Task<ActionResult<List<DoctorDto>>> Get()
         {
             return await Mediator.Send(new GetOrganizationDoctorsQuery(_currentUserService.OrgId));
         }
 
         [HttpGet("org/{orgId}")]
+        [HasPermission(SystemPermissions.Doctors.View)]
         public async Task<ActionResult<List<DoctorDto>>> GetByOrg(Guid orgId)
         {
-            if (orgId != _currentUserService.OrgId && !_currentUserService.IsInRole("SuperAdmin")) return Forbid();
+            if (orgId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty) return Forbid();
             return await Mediator.Send(new GetOrganizationDoctorsQuery(orgId));
         }
 
         [HttpGet("{branchId}")]
+        [HasPermission(SystemPermissions.Doctors.View)]
         public async Task<ActionResult<List<DoctorDto>>> GetByBranch(Guid branchId)
         {
-            // IDOR Protection
+            // Branch Isolation IDOR Protection
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId)
+            {
+                return Forbid();
+            }
+
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
-            if (!branchExists && !_currentUserService.IsInRole("SuperAdmin")) return Forbid();
+            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return Forbid();
 
             return await Mediator.Send(new GetDoctorsListQuery(branchId));
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Doctors.Edit)]
         public async Task<IActionResult> Update(Guid id, UpdateDoctorCommand command)
         {
             if (id != command.Id) return BadRequest();
@@ -64,7 +82,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Doctors.Delete)]
         public async Task<IActionResult> Delete(Guid id)
         {
             await Mediator.Send(new DeleteDoctorCommand(id));

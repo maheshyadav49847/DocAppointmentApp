@@ -54,120 +54,154 @@ namespace CodeX.Infrastructure.ExternalServices
         }
 
         // ─── Core send ───────────────────────────────────────────────────────
-        public async Task SendTextMessage(string toPhoneNumber, string message, Guid branchId)
+        public Task SendTextMessage(string toPhoneNumber, string message, Guid branchId)
         {
-            if (!IsConfigured())
+            _ = Task.Run(async () =>
             {
-                _logger.LogWarning("Twilio not configured. Skipping SendTextMessage to {Phone}.", toPhoneNumber);
-                return;
-            }
+                if (!IsConfigured())
+                {
+                    _logger.LogWarning("Twilio not configured. Skipping SendTextMessage to {Phone}.", toPhoneNumber);
+                    return;
+                }
 
-            try
-            {
-                TwilioClient.Init(AccountSid, AuthToken);
-                var to = NormaliseWhatsApp(toPhoneNumber);
-                var from = NormaliseWhatsApp(FromNumber);
-                
-                await MessageResource.CreateAsync(
-                    body: message,
-                    from: new PhoneNumber(from),
-                    to:   new PhoneNumber(to)
-                );
-                _logger.LogInformation("WhatsApp message sent from {From} to {To} (Branch: {BranchId}).", from, to, branchId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send WhatsApp message to {Phone}.", toPhoneNumber);
-                throw;
-            }
+                try
+                {
+                    TwilioClient.Init(AccountSid, AuthToken);
+                    var to = NormaliseWhatsApp(toPhoneNumber);
+                    var from = NormaliseWhatsApp(FromNumber);
+                    
+                    await MessageResource.CreateAsync(
+                        body: message,
+                        from: new PhoneNumber(from),
+                        to:   new PhoneNumber(to)
+                    );
+                    _logger.LogInformation("WhatsApp message sent from {From} to {To} (Branch: {BranchId}).", from, to, branchId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send WhatsApp message to {Phone}.", toPhoneNumber);
+                }
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)
+        public Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)
         {
-            if (!IsConfigured())
+            _ = Task.Run(async () =>
             {
-                _logger.LogWarning("Twilio not configured. Please check AccountSid, AuthToken and FromNumber in appsettings.json.");
-                return;
-            }
-
-            try
-            {
-                TwilioClient.Init(AccountSid, AuthToken);
-                var to = NormaliseWhatsApp(toPhoneNumber);
-                var from = NormaliseWhatsApp(FromNumber);
-                
-                _logger.LogInformation("Attempting to send WhatsApp Template. From: {From}, To: {To}, ContentSid: {Sid}", from, to, contentSid);
-
-                var messageOptions = new CreateMessageOptions(new PhoneNumber(to))
+                if (!IsConfigured())
                 {
-                    From = new PhoneNumber(from),
-                    ContentSid = contentSid,
-                    ContentVariables = variablesJson
-                };
+                    _logger.LogWarning("Twilio not configured. Please check AccountSid, AuthToken and FromNumber in appsettings.json.");
+                    return;
+                }
 
-                var msg = await MessageResource.CreateAsync(messageOptions);
-                _logger.LogInformation("Twilio Template Sent! MessageSid: {MsgSid}, Status: {Status}", msg.Sid, msg.Status);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "TWILIO ERROR: Failed to send templated WhatsApp to {Phone}. Exception: {Message}", toPhoneNumber, ex.Message);
-                throw;
-            }
+                try
+                {
+                    TwilioClient.Init(AccountSid, AuthToken);
+                    var to = NormaliseWhatsApp(toPhoneNumber);
+                    var from = NormaliseWhatsApp(FromNumber);
+                    
+                    _logger.LogInformation("Attempting to send WhatsApp Template. From: {From}, To: {To}, ContentSid: {Sid}", from, to, contentSid);
+
+                    var messageOptions = new CreateMessageOptions(new PhoneNumber(to))
+                    {
+                        From = new PhoneNumber(from),
+                        ContentSid = contentSid,
+                        ContentVariables = variablesJson
+                    };
+
+                    var msg = await MessageResource.CreateAsync(messageOptions);
+                    _logger.LogInformation("Twilio Template Sent! MessageSid: {MsgSid}, Status: {Status}", msg.Sid, msg.Status);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "TWILIO ERROR: Failed to send templated WhatsApp to {Phone}. Exception: {Message}", toPhoneNumber, ex.Message);
+                }
+            });
+            return Task.CompletedTask;
         }
 
         // ─── Templated messages ──────────────────────────────────────────────
-        public async Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
+        public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var waitTimeMsg = estimatedWaitMinutes.HasValue 
-                ? WhatsAppTranslationHelper.Get(lang, "ESTIMATED_WAIT_MSG", estimatedWaitMinutes.Value) 
-                : "";
-                
-            var msg = WhatsAppTranslationHelper.Get(lang, "BOOKING_CONFIRMED_ALERT", patientName, tokenNumber, waitTimeMsg);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var waitTimeMsg = estimatedWaitMinutes.HasValue 
+                    ? WhatsAppTranslationHelper.Get(lang, "ESTIMATED_WAIT_MSG", estimatedWaitMinutes.Value) 
+                    : "";
+                    
+                var msg = WhatsAppTranslationHelper.Get(lang, "BOOKING_CONFIRMED_ALERT", patientName, tokenNumber, waitTimeMsg);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
+        public Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var msg = WhatsAppTranslationHelper.Get(lang, "DOCTOR_ARRIVED_ALERT", doctorName);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var msg = WhatsAppTranslationHelper.Get(lang, "DOCTOR_ARRIVED_ALERT", doctorName);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
+        public Task SendYourTurnAlert(string phoneNumber, int tokenNumber, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var msg = WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", tokenNumber);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var msg = WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", tokenNumber);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
+        public Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var msg = WhatsAppTranslationHelper.Get(lang, "UPCOMING_TURN_ALERT", tokensLeft);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var msg = WhatsAppTranslationHelper.Get(lang, "UPCOMING_TURN_ALERT", tokensLeft);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
+        public Task SendFeedbackRequest(string phoneNumber, string doctorName, Guid tokenId, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var shortRef = $"CX-{tokenId.ToString().Substring(0, 6).ToUpper()}";
-            var msg = WhatsAppTranslationHelper.Get(lang, "FEEDBACK_REQUEST_ALERT", doctorName, shortRef);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var shortRef = $"CX-{tokenId.ToString().Substring(0, 6).ToUpper()}";
+                var msg = WhatsAppTranslationHelper.Get(lang, "FEEDBACK_REQUEST_ALERT", doctorName, shortRef);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendSessionCancelledAlert(string phoneNumber, string doctorName, Guid branchId)
+        public Task SendSessionCancelledAlert(string phoneNumber, string doctorName, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_CANCELLED_ALERT", doctorName);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_CANCELLED_ALERT", doctorName);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
-        public async Task SendSessionTransferredAlert(string phoneNumber, string doctorName, string newSessionName, int newTokenNumber, Guid branchId)
+        public Task SendSessionTransferredAlert(string phoneNumber, string doctorName, string newSessionName, int newTokenNumber, Guid branchId)
         {
-            var lang = await GetUserLanguageAsync(phoneNumber);
-            var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_TRANSFERRED_ALERT", doctorName, newSessionName, newTokenNumber);
-            await SendTextMessage(phoneNumber, msg, branchId);
+            _ = Task.Run(async () =>
+            {
+                var lang = await GetUserLanguageAsync(phoneNumber);
+                var msg = WhatsAppTranslationHelper.Get(lang, "SESSION_TRANSFERRED_ALERT", doctorName, newSessionName, newTokenNumber);
+                await SendTextMessage(phoneNumber, msg, branchId);
+            });
+            return Task.CompletedTask;
         }
 
 

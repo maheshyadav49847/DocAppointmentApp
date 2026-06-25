@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, Printer } from "lucide-react"
 import { queueService } from "@/services/queueService"
-import { patientService } from "@/services/patientService"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function ManualBookingModal({ isOpen, onClose, queueId, branchId, onSuccess }: any) {
@@ -25,8 +24,8 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
   }, [name, phone, activeField])
 
   const { data: searchResults } = useQuery({
-    queryKey: ['patients-search', branchId, debouncedSearch],
-    queryFn: () => patientService.getPatients(branchId, 1, 5, debouncedSearch),
+    queryKey: ['queue-patients-search', branchId, debouncedSearch],
+    queryFn: () => queueService.searchPatients(branchId, debouncedSearch),
     enabled: debouncedSearch.length >= 2 && activeField !== null,
     staleTime: 1000 * 60
   })
@@ -146,9 +145,9 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                       required
                       autoComplete="off"
                     />
-                    {activeField === "name" && searchResults?.data && searchResults.data.length > 0 && (
+                    {activeField === "name" && searchResults && searchResults.length > 0 && (
                       <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto py-2 z-50">
-                        {searchResults.data.map((patient: any) => (
+                        {searchResults.map((patient: any) => (
                            <div 
                              key={patient.id} 
                              onMouseDown={(e) => { e.preventDefault(); handleSelectPatient(patient); }}
@@ -180,9 +179,9 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                       className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
                       autoComplete="off"
                     />
-                    {activeField === "phone" && searchResults?.data && searchResults.data.length > 0 && (
+                    {activeField === "phone" && searchResults && searchResults.length > 0 && (
                       <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto py-2 z-50">
-                        {searchResults.data.map((patient: any) => (
+                        {searchResults.map((patient: any) => (
                            <div 
                              key={patient.id} 
                              onMouseDown={(e) => { e.preventDefault(); handleSelectPatient(patient); }}

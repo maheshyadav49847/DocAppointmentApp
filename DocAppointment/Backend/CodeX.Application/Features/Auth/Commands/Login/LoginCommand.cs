@@ -41,11 +41,17 @@ namespace CodeX.Application.Features.Auth.Commands.Login
 
             var staff = await _context.Staffs
                 .IgnoreQueryFilters()
+                .Include(s => s.Role)
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == normalizedEmail && !x.IsDeleted, cancellationToken);
 
             if (staff == null)
             {
                 throw new Exception("Invalid credentials");
+            }
+
+            if (staff.OrganizationId == Guid.Empty)
+            {
+                throw new Exception("This organization does not exist or has been disabled. Please contact support.");
             }
 
             // Check Account Lockout
@@ -73,13 +79,25 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             staff.FailedLoginAttempts = 0;
             staff.LockoutEnd = null;
 
+            var permissions = staff.Role != null ? 
+                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) : 
+                new List<string>();
+
+            Guid? dynamicBranchId = staff.BranchId;
+            if (staff.DoctorId.HasValue)
+            {
+                // Doctors are inherently org-level because they can be assigned sessions in any branch
+                dynamicBranchId = null;
+            }
+
             var token = _identityService.GenerateJwtToken(
                 staff.Id, 
                 staff.Email, 
-                staff.Role.ToString(), 
-                staff.BranchId, 
+                staff.Role?.Name ?? string.Empty, 
+                dynamicBranchId, 
                 staff.OrganizationId,
-                staff.DoctorId);
+                staff.DoctorId,
+                permissions);
                 
             var refreshTokenStr = _identityService.GenerateRefreshToken();
             
@@ -109,7 +127,7 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new LoginResponse(token, refreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId, staff.DoctorId);
+            return new LoginResponse(token, refreshTokenStr, staff.Email, staff.Role?.Name ?? string.Empty, staff.OrganizationId, dynamicBranchId, staff.DoctorId);
         }
     }
 }

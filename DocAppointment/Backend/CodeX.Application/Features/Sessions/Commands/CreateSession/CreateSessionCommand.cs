@@ -30,6 +30,10 @@ namespace CodeX.Application.Features.Sessions.Commands.CreateSession
 
         public async Task<Guid> Handle(CreateSessionCommand request, CancellationToken cancellationToken)
         {
+            var branch = await _context.Branches.FindAsync(new object[] { request.BranchId }, cancellationToken);
+            if (branch == null) throw new Exception("Branch not found");
+
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, branch.OrganizationId);
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId);
 
             var overlappingExists = await _context.Sessions

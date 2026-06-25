@@ -13,6 +13,10 @@ export const branchService = {
     const response = await api.get(`/branches/org/${orgId}`)
     return response.data
   },
+  getMyBranches: async (): Promise<Branch[]> => {
+    const response = await api.get('/branches/list')
+    return response.data
+  },
   createBranch: async (data: any) => {
     const response = await api.post('/branches', data)
     return response.data

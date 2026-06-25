@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard, MonitorPlay } from "lucide-react"
-import { branchService } from "@/services/branchService"
-import { doctorService } from "@/services/doctorService"
 import { queueService } from "@/services/queueService"
-import { sessionService } from "@/services/sessionService"
 import { useAuthStore } from "@/store/authStore"
 import { motion, AnimatePresence } from "framer-motion"
 import { useQueueHub } from "@/hooks/useQueueHub"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function QueueOverview({ selectedBranchId, setSelectedBranchId, onManage }: any) {
   const { user } = useAuthStore()
@@ -50,14 +48,14 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
   }, [connection, queryClient, selectedBranchId])
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId!),
+    queryKey: ['queue-branches', orgId],
+    queryFn: () => queueService.getBranches(),
     enabled: !!orgId
   })
 
   const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
-    queryKey: ['doctors', selectedBranchId],
-    queryFn: () => doctorService.getBranchDoctors(selectedBranchId),
+    queryKey: ['queue-doctors', selectedBranchId],
+    queryFn: () => queueService.getDoctors(selectedBranchId),
     enabled: !!selectedBranchId && selectedBranchId !== 'org'
   })
 
@@ -145,24 +143,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
               </a>
             </div>
           )}
-          <div className="flex flex-col gap-1.5 w-full sm:w-auto sm:min-w-[220px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-start gap-1">
-              <Building2 className="w-3 h-3 text-indigo-400" /> Branch Location
-            </label>
-            <select
-              value={selectedBranchId}
-              disabled={user?.role !== 'OrgAdmin'}
-              onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-              className="bg-white border border-slate-200 rounded-lg px-4 h-[42px] text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-            >
-              {user?.role === 'OrgAdmin' && <option value="org" disabled>Select Facility</option>}
-              {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+        </div>      </div>
 
       {selectedBranchId === 'org' ? (
         <motion.div
@@ -276,8 +257,8 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
 
 function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onManage }: any) {
   const { data: sessions } = useQuery({
-    queryKey: ['sessions', doctor.id, selectedBranchId],
-    queryFn: () => sessionService.getSessions(doctor.id, selectedBranchId)
+    queryKey: ['queue-sessions', doctor.id, selectedBranchId],
+    queryFn: () => queueService.getSessions(doctor.id, selectedBranchId)
   })
 
   const today = new Date().getDay()
@@ -328,6 +309,7 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
 }
 
 function SessionItem({ doctor, session, processingSessions, onStart, onManage }: any) {
+  const { can } = usePermissions()
   const { data: activeQueue } = useQuery({
     queryKey: ['activeQueue', doctor.id, session.id],
     queryFn: () => queueService.getActiveQueueBySession(doctor.id, session.id),
@@ -375,21 +357,25 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
         </div>
 
         {isLive ? (
-          <button
-            onClick={() => onManage(doctor, session, displayQueueId)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
-          >
-            <Settings className="w-4 h-4" /> Manage Session
-          </button>
+          can('Queue.View') && (
+            <button
+              onClick={() => onManage(doctor, session, displayQueueId)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
+            >
+              <Settings className="w-4 h-4" /> Manage Session
+            </button>
+          )
         ) : (
-          <button
-            onClick={() => onStart(doctor, session)}
-            disabled={isProcessing}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
-          >
-            {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-500" />}
-            {isProcessing ? "Starting..." : "Start Session"}
-          </button>
+          can('Queue.View') && (
+            <button
+              onClick={() => onStart(doctor, session)}
+              disabled={isProcessing}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
+            >
+              {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-500" />}
+              {isProcessing ? "Starting..." : "Start Session"}
+            </button>
+          )
         )}
       </div>
     </div>

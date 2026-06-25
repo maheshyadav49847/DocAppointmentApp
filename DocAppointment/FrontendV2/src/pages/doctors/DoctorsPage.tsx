@@ -17,11 +17,11 @@ import toast from "react-hot-toast"
 
 import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function DoctorsPage() {
   const [globalFilter, setGlobalFilter] = useState("")
@@ -36,8 +36,11 @@ export default function DoctorsPage() {
   })
 
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const orgId = user?.orgId
-  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranch = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || 'all') : (user?.branchId || '');
   const queryClient = useQueryClient()
 
   const { data: doctors, isLoading, error } = useQuery({
@@ -49,8 +52,8 @@ export default function DoctorsPage() {
   })
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId!),
+    queryKey: ['doctors-branches', orgId],
+    queryFn: () => doctorService.getBranches(),
     enabled: !!orgId
   })
 
@@ -164,25 +167,29 @@ export default function DoctorsPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
-            className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit Doctor"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this doctor?')) {
-                deleteMutation.mutate(row.original.id)
-              }
-            }}
-            disabled={deleteMutation.isPending}
-            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-            title="Delete Doctor"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {can('Doctors.Edit') && (
+            <button
+              onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
+              className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Edit Doctor"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {can('Doctors.Delete') && (
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this doctor?')) {
+                  deleteMutation.mutate(row.original.id)
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              title="Delete Doctor"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )
     }
@@ -233,22 +240,7 @@ export default function DoctorsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranch}
-            disabled={user?.role !== 'OrgAdmin'}
-            onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
-            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
       </div>
-
       {/* Main Card */}
       <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
@@ -298,15 +290,17 @@ export default function DoctorsPage() {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditingDoctor(null)
-                setIsDrawerOpen(true)
-              }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
-            </button>
+            {can('Doctors.Add') && (
+              <button
+                onClick={() => {
+                  setEditingDoctor(null)
+                  setIsDrawerOpen(true)
+                }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -409,27 +403,31 @@ export default function DoctorsPage() {
 
                   {/* Footer Actions */}
                   <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingDoctor(row.original)
-                        setIsDrawerOpen(true)
-                      }}
-                      className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Edit className="w-4 h-4" /> Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm('Are you sure you want to delete this doctor?')) {
-                          deleteMutation.mutate(row.original.id)
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Trash2 className="w-4 h-4" /> Delete
-                    </button>
+                    {can('Doctors.Edit') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingDoctor(row.original)
+                          setIsDrawerOpen(true)
+                        }}
+                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Edit className="w-4 h-4" /> Edit
+                      </button>
+                    )}
+                    {can('Doctors.Delete') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm('Are you sure you want to delete this doctor?')) {
+                            deleteMutation.mutate(row.original.id)
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -574,7 +572,7 @@ export default function DoctorsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Users className="w-4 h-4 text-pink-500" /> Gender
                       </label>
-                      <select name="gender" defaultValue={editingDoctor?.gender} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                      <select name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>

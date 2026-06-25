@@ -9,9 +9,11 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import type { ColumnDef, PaginationState, SortingState } from "@tanstack/react-table";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function PharmacyPage() {
   const queryClient = useQueryClient();
+  const { can } = usePermissions();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -187,20 +189,24 @@ export default function PharmacyPage() {
         const med = row.original;
         return (
           <div className="flex items-center justify-end gap-1">
-            <button
-              onClick={() => openEditModal(med)}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Edit"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(med.id)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {can('Pharmacy.EditStock') && (
+              <button
+                onClick={() => openEditModal(med)}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+            {can('Pharmacy.DeleteStock') && (
+              <button
+                onClick={() => handleDelete(med.id)}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         );
       }
@@ -285,20 +291,24 @@ export default function PharmacyPage() {
               onChange={handleImport}
             />
             
-            <button 
-              className="btn-secondary shrink-0 px-3" 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-            >
-              {isImporting ? <Activity className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-              <span className="hidden sm:inline">
-                {isImporting ? (uploadProgress !== null ? `Uploading ${uploadProgress}%` : 'Importing...') : 'Import CSV'}
-              </span>
-            </button>
+            {can('Pharmacy.AddStock') && (
+              <>
+                <button 
+                  className="btn-secondary shrink-0 px-3" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isImporting}
+                >
+                  {isImporting ? <Activity className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  <span className="hidden sm:inline">
+                    {isImporting ? (uploadProgress !== null ? `Uploading ${uploadProgress}%` : 'Importing...') : 'Import CSV'}
+                  </span>
+                </button>
 
-            <button onClick={openAddModal} className="btn-primary shrink-0 px-3 sm:px-5">
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Medicine</span>
-            </button>
+                <button onClick={openAddModal} className="btn-primary shrink-0 px-3 sm:px-5">
+                  <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Medicine</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 

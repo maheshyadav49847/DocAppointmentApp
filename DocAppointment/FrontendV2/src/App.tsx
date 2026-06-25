@@ -18,7 +18,10 @@ import BranchesPage from "./pages/branches/BranchesPage"
 import StaffPage from "./pages/staff/StaffPage"
 import AuditLogsPage from "./pages/audit-logs/AuditLogsPage"
 import TvDisplayPage from "./pages/display/TvDisplayPage"
+import RolesPermissionsPage from "./pages/settings/RolesPermissionsPage"
 import { useAuthStore } from "./store/authStore"
+
+import { usePermissions } from "./hooks/usePermissions"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -32,19 +35,25 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
-  const user = useAuthStore((state) => state.user)
-  if (user?.role === "Doctor") return <Navigate to="/" replace />
+function PermissionRoute({ children, permissions }: { children: React.ReactNode, permissions: string[] }) {
+  const { canAny } = usePermissions()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (permissions.length > 0 && !canAny(permissions)) return <Navigate to="/" replace />
   return <>{children}</>
 }
 
 function HomeRoute() {
-  const user = useAuthStore((state) => state.user)
-  if (user?.role === "Doctor") return <DoctorDeskPage />
-  return <QueueDashboardPage />
+  const role = useAuthStore((state) => state.user?.role?.toLowerCase().replace(/\s/g, '') || "");
+  if (role === 'doctor') return <Navigate to="/doctor-desk" replace />
+  return <Navigate to="/queue" replace />
 }
 
+import { useAppHub } from "./hooks/useAppHub"
+
 function App() {
+  useAppHub();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -58,18 +67,19 @@ function App() {
 
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRoute />} />
-          <Route path="/queue" element={<QueueDashboardPage />} />
-          <Route path="/doctor-desk" element={<DoctorDeskPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/doctors" element={<AdminOnlyRoute><DoctorsPage /></AdminOnlyRoute>} />
-          <Route path="/patients" element={<PatientsPage />} />
-          <Route path="/consult/:patientId" element={<ConsultationPage />} />
-          <Route path="/sessions" element={<AdminOnlyRoute><SessionsPage /></AdminOnlyRoute>} />
-          <Route path="/branches" element={<AdminOnlyRoute><BranchesPage /></AdminOnlyRoute>} />
-          <Route path="/staff" element={<AdminOnlyRoute><StaffPage /></AdminOnlyRoute>} />
-          <Route path="/settings" element={<AdminOnlyRoute><SettingsPage /></AdminOnlyRoute>} />
-          <Route path="/pharmacy" element={<PharmacyPage />} />
-          <Route path="/audit-logs" element={<AdminOnlyRoute><AuditLogsPage /></AdminOnlyRoute>} />
+          <Route path="/queue" element={<PermissionRoute permissions={["Queue.View"]}><QueueDashboardPage /></PermissionRoute>} />
+          <Route path="/doctor-desk" element={<PermissionRoute permissions={["DoctorDesk.View"]}><DoctorDeskPage /></PermissionRoute>} />
+          <Route path="/analytics" element={<PermissionRoute permissions={["Analytics.View"]}><AnalyticsPage /></PermissionRoute>} />
+          <Route path="/doctors" element={<PermissionRoute permissions={["Doctors.View"]}><DoctorsPage /></PermissionRoute>} />
+          <Route path="/patients" element={<PermissionRoute permissions={["Patients.View"]}><PatientsPage /></PermissionRoute>} />
+          <Route path="/consult/:patientId" element={<PermissionRoute permissions={["Patients.ViewHistory"]}><ConsultationPage /></PermissionRoute>} />
+          <Route path="/sessions" element={<PermissionRoute permissions={["Sessions.View"]}><SessionsPage /></PermissionRoute>} />
+          <Route path="/branches" element={<PermissionRoute permissions={["Branches.View"]}><BranchesPage /></PermissionRoute>} />
+          <Route path="/staff" element={<PermissionRoute permissions={["Staff.View"]}><StaffPage /></PermissionRoute>} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/roles" element={<PermissionRoute permissions={["Settings.ManageRoles"]}><RolesPermissionsPage /></PermissionRoute>} />
+          <Route path="/pharmacy" element={<PermissionRoute permissions={["Pharmacy.View"]}><PharmacyPage /></PermissionRoute>} />
+          <Route path="/audit-logs" element={<PermissionRoute permissions={["Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
           {/* We will add other routes here in later phases */}
         </Route>
 

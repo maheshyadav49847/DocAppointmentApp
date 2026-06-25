@@ -13,6 +13,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
+
 namespace CodeX.Api.Controllers
 {
     [Authorize]
@@ -54,6 +57,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
+        [HasPermission(SystemPermissions.Pharmacy.View)]
         public async Task<IActionResult> GetMedicines([FromQuery] string? search, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, [FromQuery] string? sortColumn = null, [FromQuery] string? sortDirection = null)
         {
             var query = new GetMedicinesQuery
@@ -70,6 +74,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("types")]
+        [HasPermission(SystemPermissions.Pharmacy.View)]
         public async Task<IActionResult> GetMedicineTypes()
         {
             var query = new GetMedicineTypesQuery();
@@ -78,6 +83,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("types")]
+        [HasPermission(SystemPermissions.Pharmacy.AddStock)]
         public async Task<IActionResult> CreateMedicineType([FromBody] CreateMedicineTypeCommand command)
         {
             var id = await _mediator.Send(command);
@@ -85,6 +91,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("{id:guid}")]
+        [HasPermission(SystemPermissions.Pharmacy.View)]
         public async Task<IActionResult> GetMedicineById(Guid id)
         {
             var query = new GetMedicineByIdQuery
@@ -97,6 +104,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost]
+        [HasPermission(SystemPermissions.Pharmacy.AddStock)]
         public async Task<IActionResult> CreateMedicine([FromBody] CreateMedicineCommand command)
         {
             command.OrganizationId = GetOrganizationId();
@@ -105,6 +113,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [HasPermission(SystemPermissions.Pharmacy.EditStock)]
         public async Task<IActionResult> UpdateMedicine(Guid id, [FromBody] UpdateMedicineCommand command)
         {
             if (id != command.Id)
@@ -117,6 +126,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [HasPermission(SystemPermissions.Pharmacy.DeleteStock)]
         public async Task<IActionResult> DeleteMedicine(Guid id)
         {
             var command = new DeleteMedicineCommand
@@ -129,6 +139,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("import")]
+        [HasPermission(SystemPermissions.Pharmacy.AddStock)]
         [DisableRequestSizeLimit]
         [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         public async Task<IActionResult> ImportMedicines(IFormFile file)

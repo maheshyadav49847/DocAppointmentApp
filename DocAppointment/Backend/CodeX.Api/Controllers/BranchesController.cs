@@ -3,9 +3,12 @@ using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
+    [Authorize]
     public class BranchesController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
@@ -19,16 +22,28 @@ namespace CodeX.Api.Controllers
         [HttpGet("list")]
         public async Task<ActionResult<List<Branch>>> Get()
         {
-            return await _context.Branches
-                .Where(b => b.OrganizationId == _currentUserService.OrgId)
-                .ToListAsync();
+            var query = _context.Branches.AsQueryable();
+
+            // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
+            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+            {
+                query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Branch>> Get(Guid id)
         {
+            // Branch Isolation
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            {
+                return Forbid();
+            }
+
             var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == id && b.OrganizationId == _currentUserService.OrgId);
+                .FirstOrDefaultAsync(b => b.Id == id);
 
             if (branch == null) return NotFound();
             return branch;
@@ -38,18 +53,21 @@ namespace CodeX.Api.Controllers
         public async Task<ActionResult<List<Branch>>> GetByOrg(Guid orgId)
         {
             // IDOR Protection: Ensure user can only see branches of their own organization
-            if (orgId != _currentUserService.OrgId && !_currentUserService.IsInRole("SuperAdmin"))
+            if (orgId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty) return Forbid();
+
+            var query = _context.Branches.Where(b => b.OrganizationId == orgId);
+
+            // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
+            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
             {
-                return Forbid();
+                query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
             }
 
-            return await _context.Branches
-                .Where(b => b.OrganizationId == orgId)
-                .ToListAsync();
+            return await query.ToListAsync();
         }
 
         [HttpPost]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Branches.Add)]
         [CodeX.Api.Filters.CheckSubscriptionLimit(CodeX.Api.Filters.SubscriptionLimitType.Branches)]
         public async Task<ActionResult<Guid>> Create(Branch branch)
         {
@@ -90,11 +108,17 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Branches.Edit)]
         public async Task<IActionResult> Update(Guid id, Branch updatedBranch)
         {
+            // Branch Isolation
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            {
+                return Forbid();
+            }
+
             var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == id && b.OrganizationId == _currentUserService.OrgId);
+                .FirstOrDefaultAsync(b => b.Id == id);
 
             if (branch == null) return NotFound();
 
@@ -137,11 +161,17 @@ namespace CodeX.Api.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
-        [Authorize(Roles = "OrgAdmin,BranchAdmin")]
+        [HasPermission(SystemPermissions.Branches.Delete)]
         public async Task<IActionResult> Delete(Guid id)
         {
+            // Branch Isolation
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            {
+                return Forbid();
+            }
+
             var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == id && b.OrganizationId == _currentUserService.OrgId);
+                .FirstOrDefaultAsync(b => b.Id == id);
 
             if (branch == null) return NotFound();
 

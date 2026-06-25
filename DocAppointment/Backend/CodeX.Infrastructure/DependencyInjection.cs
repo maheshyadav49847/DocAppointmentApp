@@ -37,6 +37,7 @@ namespace CodeX.Infrastructure
             services.AddScoped<IEmailService, ConsoleEmailService>();
             services.AddScoped<IPaymentService, CodeX.Infrastructure.Services.RazorpayPaymentService>();
             services.AddScoped<IFileUploadService, CodeX.Infrastructure.Services.FileUploadService>();
+            services.AddSingleton<IChatSessionCache, CodeX.Infrastructure.Services.ChatSessionCache>();
 
             return services;
         }

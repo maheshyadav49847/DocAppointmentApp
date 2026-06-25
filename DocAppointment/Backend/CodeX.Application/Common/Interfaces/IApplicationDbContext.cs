@@ -6,6 +6,8 @@ namespace CodeX.Application.Common.Interfaces
     public interface IApplicationDbContext
     {
         DbSet<Organization> Organizations { get; }
+        DbSet<Role> Roles { get; }
+        DbSet<RolePermission> RolePermissions { get; }
         DbSet<Branch> Branches { get; }
         DbSet<Doctor> Doctors { get; }
         DbSet<Staff> Staff { get; }

@@ -42,8 +42,10 @@ namespace CodeX.Application.Features.Analytics.Queries.GetHistoricalStats
             var endUtc = request.EndDate.Date.AddDays(1).AddTicks(-1).ToUniversalTime();
 
             // Fetch all queues within the date range
-            var dailyQueues = await _context.DailyQueues
-                .Where(q => q.BranchId == request.BranchId && q.QueueDate >= startUtc && q.QueueDate <= endUtc)
+            var dailyQueuesQuery = _context.DailyQueues
+                .Where(q => q.BranchId == request.BranchId && q.QueueDate >= startUtc && q.QueueDate <= endUtc);
+
+            var dailyQueues = await dailyQueuesQuery
                 .Include(q => q.Tokens)
                 .ToListAsync(cancellationToken);
 

@@ -49,6 +49,38 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
             _context.Organizations.Add(org);
 
+            // Clone system roles for the new organization
+            var systemRoles = await _context.Roles
+                .Include(r => r.RolePermissions)
+                .Where(r => r.OrganizationId == Guid.Empty)
+                .ToListAsync(cancellationToken);
+
+            var clonedRoles = new Dictionary<string, Role>();
+
+            foreach (var sysRole in systemRoles)
+            {
+                var clonedRole = new Role
+                {
+                    Name = sysRole.Name,
+                    Description = sysRole.Description,
+                    IsSystemDefault = true,
+                    OrganizationId = org.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                foreach (var perm in sysRole.RolePermissions)
+                {
+                    clonedRole.RolePermissions.Add(new RolePermission
+                    {
+                        Permission = perm.Permission
+                    });
+                }
+
+                _context.Roles.Add(clonedRole);
+                clonedRoles[clonedRole.Name] = clonedRole;
+            }
+
             // 2. Create OrgAdmin Staff
             var emailParts = normalizedEmail.Split('@')[0].Split('.');
             var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
@@ -56,6 +88,9 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
             PasswordValidator.Validate(request.AdminPassword, _configuration);
 
+            // Assign the newly cloned OrgAdmin role instead of the global one
+            var orgAdminRole = clonedRoles.ContainsKey("OrgAdmin") ? clonedRoles["OrgAdmin"] : null;
+            
             var admin = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = org.Id,
@@ -63,7 +98,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 FirstName = firstName,
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
-                Role = StaffRole.OrgAdmin,
+                RoleId = orgAdminRole?.Id,
                 PhoneNumber = normalizedPhone
             };
 

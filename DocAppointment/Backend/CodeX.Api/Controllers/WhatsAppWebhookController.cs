@@ -2,6 +2,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CodeX.Api.Controllers
 {
@@ -14,17 +15,20 @@ namespace CodeX.Api.Controllers
         private readonly ILogger<WhatsAppWebhookController> _logger;
         private readonly MediatR.ISender _mediator;
         private readonly IWhatsAppService _whatsApp;
+        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
         public WhatsAppWebhookController(
             IConfiguration config,
             ILogger<WhatsAppWebhookController> logger,
             MediatR.ISender mediator,
-            IWhatsAppService whatsApp)
+            IWhatsAppService whatsApp,
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _config = config;
             _logger = logger;
             _mediator = mediator;
             _whatsApp = whatsApp;
+            _cache = cache;
         }
 
         [AllowAnonymous]
@@ -45,6 +49,22 @@ namespace CodeX.Api.Controllers
             }
 
             _logger.LogInformation("Generic Webhook received for SessionId={SessionId}", request.SessionId);
+
+            // Rate Limiting (max 10 messages per minute per phone number)
+            var cacheKey = $"wa_rate_{request.From}";
+            var currentCount = _cache.GetOrCreate(cacheKey, entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return 0;
+            });
+
+            if (currentCount >= 10)
+            {
+                _logger.LogWarning("Rate limit exceeded for {Phone}", request.From);
+                return Ok(); // Silently drop to save Twilio costs
+            }
+            
+            _cache.Set(cacheKey, currentCount + 1, TimeSpan.FromMinutes(1));
 
             var response = await _mediator.Send(new ProcessIncomingMessageCommand
             {

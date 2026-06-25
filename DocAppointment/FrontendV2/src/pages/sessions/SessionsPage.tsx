@@ -6,23 +6,22 @@ import {
   User, Building2, Users, FileText
 } from "lucide-react"
 
-import { doctorService } from "@/services/doctorService"
 import { sessionService } from "@/services/sessionService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import { toast } from "react-hot-toast"
 import { FieldError } from "@/components/ui/FieldError"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function SessionsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const globalBranchId = user?.branchId
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
-
+  const isMultiBranchDoctor = role === 'doctor';
   const queryClient = useQueryClient()
-
-  const selectedBranchId = role === 'orgadmin' ? (activeBranchId || '') : (globalBranchId || '');
+  const selectedBranchId = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || '') : (globalBranchId || '');
   const setSelectedBranchId = setActiveBranchId
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -32,14 +31,14 @@ export default function SessionsPage() {
   const [apiError, setApiError] = useState<any>(null)
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId || ''),
+    queryKey: ['sessions-branches', orgId],
+    queryFn: () => sessionService.getBranches(),
     enabled: !!orgId
   })
 
   const { data: doctors } = useQuery({
-    queryKey: ['doctors', orgId, selectedBranchId],
-    queryFn: () => doctorService.getBranchDoctors(selectedBranchId),
+    queryKey: ['sessions-doctors', orgId, selectedBranchId],
+    queryFn: () => sessionService.getDoctors(selectedBranchId),
     enabled: !!selectedBranchId && !!orgId
   })
 
@@ -172,25 +171,7 @@ export default function SessionsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranchId}
-            disabled={role !== 'orgadmin'}
-            onChange={(e) => {
-              setSelectedBranchId(e.target.value)
-              setSelectedDoctorId('')
-            }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {role === 'orgadmin' && <option value="" disabled>Select Facility</option>}
-            {branches?.filter((b: any) => role === 'orgadmin' || b.id === globalBranchId).map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
       </div>
-
       {/* Main Container */}
       <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
@@ -210,13 +191,15 @@ export default function SessionsPage() {
             </select>
           </div>
 
-          <button
-            onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
-            disabled={!selectedDoctorId}
-            className="btn-primary shrink-0 px-3 sm:px-5"
-          >
-            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
-          </button>
+          {can('Sessions.Add') && (
+            <button
+              onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
+              disabled={!selectedDoctorId}
+              className="btn-primary shrink-0 px-3 sm:px-5"
+            >
+              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
+            </button>
+          )}
         </div>
 
         {/* Content Area */}
@@ -254,12 +237,14 @@ export default function SessionsPage() {
               </div>
               <h3 className="text-lg font-semibold text-slate-700">No Shifts Scheduled</h3>
               <p className="text-sm text-slate-500 mt-1 mb-4">This professional has no active shifts. Click 'Add Shift' to create one.</p>
-              <button
-                onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
-                className="btn-primary"
-              >
-                Create First Shift
-              </button>
+              {can('Sessions.Add') && (
+                <button
+                  onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
+                  className="btn-primary"
+                >
+                  Create First Shift
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
@@ -305,15 +290,16 @@ export default function SessionsPage() {
                     </div>
                   </div>
 
-                  {/* Footer Actions */}
                   <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                    <button
-                      onClick={() => { setEditingSession(session); setIsDailyForm(session.isDaily); setIsDrawerOpen(true); }}
-                      className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Edit className="w-4 h-4" /> Edit
-                    </button>
-                    {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
+                    {can('Sessions.Edit') && (
+                      <button
+                        onClick={() => { setEditingSession(session); setIsDailyForm(session.isDaily); setIsDrawerOpen(true); }}
+                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Edit className="w-4 h-4" /> Edit
+                      </button>
+                    )}
+                    {can('Sessions.Delete') && (
                       <button
                         onClick={() => {
                           if (confirm('Are you sure you want to delete this shift?')) {

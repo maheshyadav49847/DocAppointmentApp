@@ -34,7 +34,8 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
         {
             var query = _context.Staffs
                 .Include(s => s.Branch)
-                .Where(s => s.OrganizationId == request.OrganizationId && !s.IsDeleted && s.Role != CodeX.Domain.Enums.StaffRole.Doctor);
+                .Include(s => s.Role)
+                .Where(s => s.OrganizationId == request.OrganizationId && !s.IsDeleted);
 
             if (request.BranchId.HasValue)
             {
@@ -54,7 +55,7 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
                     LastName = s.LastName,
                     EmployeeId = s.EmployeeId,
                     PhoneNumber = s.PhoneNumber,
-                    Role = s.Role.ToString(),
+                    Role = s.Role != null ? s.Role.Name : string.Empty,
                     OrganizationId = s.OrganizationId,
                     BranchId = s.BranchId,
                     BranchName = s.Branch != null ? s.Branch.Name : null,

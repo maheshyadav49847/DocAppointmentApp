@@ -28,6 +28,15 @@ export interface PaginatedResponse<T> {
 }
 
 export const patientService = {
+  getBranches: async () => {
+    const response = await api.get('/patients/branches')
+    return response.data
+  },
+  getDoctors: async () => {
+    const response = await api.get('/patients/doctors')
+    return response.data
+  },
+
   getPatients: async (
     branchId?: string, 
     page: number = 1, 

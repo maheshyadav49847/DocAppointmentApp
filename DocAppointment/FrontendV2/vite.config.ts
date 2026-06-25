@@ -18,6 +18,18 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/queueHub': {
+        target: 'http://127.0.0.1:5001',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/appHub': {
+        target: 'http://127.0.0.1:5001',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
       '/whatsapp': {
         target: 'http://127.0.0.1:3101',
         changeOrigin: true,

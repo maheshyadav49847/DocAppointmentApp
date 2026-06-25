@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -14,16 +16,33 @@ namespace CodeX.Api.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
-    public class PatientsController : ControllerBase
+    public class PatientsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public PatientsController(IApplicationDbContext context)
+        public PatientsController(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
+        }
+
+        [HttpGet("branches")]
+        [HasPermission(SystemPermissions.Patients.View)]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+        }
+
+        [HttpGet("doctors")]
+        [HasPermission(SystemPermissions.Patients.View)]
+        public async Task<ActionResult<List<CodeX.Application.Features.Doctors.Queries.GetDoctorsList.DoctorDto>>> GetDoctors()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Doctors.Queries.GetDoctorsList.GetDoctorsListQuery(Guid.Empty));
         }
 
         [HttpGet]
+        [HasPermission(SystemPermissions.Patients.View)]
         public async Task<IActionResult> GetPatients(
             [FromQuery] Guid? branchId,
             [FromQuery] string? search = null,
@@ -32,9 +51,22 @@ namespace CodeX.Api.Controllers
         {
             IQueryable<Patient> query = _context.Patients;
 
-            if (branchId.HasValue && branchId.Value != Guid.Empty)
+            // Enforce organization scoping
+            if (_currentUserService.OrgId != Guid.Empty)
             {
-                query = query.Where(p => !p.Tokens.Any() || p.Tokens.Any(t => t.Queue.BranchId == branchId.Value));
+                query = query.Where(p => p.OrganizationId == _currentUserService.OrgId);
+            }
+
+            // Enforce branch-level isolation
+            var effectiveBranchId = branchId;
+            if (_currentUserService.BranchId.HasValue)
+            {
+                effectiveBranchId = _currentUserService.BranchId;
+            }
+
+            if (effectiveBranchId.HasValue && effectiveBranchId.Value != Guid.Empty)
+            {
+                query = query.Where(p => !p.Tokens.Any() || p.Tokens.Any(t => t.Queue.BranchId == effectiveBranchId.Value));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -101,6 +133,7 @@ namespace CodeX.Api.Controllers
 
 
         [HttpPost]
+        [HasPermission(SystemPermissions.Patients.Add)]
         public async Task<IActionResult> AddPatient([FromBody] AddPatientDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name))
@@ -158,6 +191,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("{id}/history")]
+        [HasPermission(SystemPermissions.Patients.View)]
         public async Task<IActionResult> GetPatientHistory(Guid id)
         {
             var history = await _context.Tokens

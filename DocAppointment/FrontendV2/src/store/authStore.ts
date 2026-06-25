@@ -7,6 +7,7 @@ interface AuthUser {
   orgId: string
   branchId: string | null
   doctorId?: string
+  permissions?: string[]
 }
 
 interface AuthState {
@@ -27,7 +28,21 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       activeBranchId: null,
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true, activeBranchId: user.branchId || null }),
+      setAuth: (user, token) => {
+        let permissions: string[] = [];
+        try {
+          const payloadStr = atob(token.split('.')[1]);
+          const payload = JSON.parse(payloadStr);
+          if (payload.permissions) {
+            permissions = payload.permissions.split(',');
+          }
+        } catch (e) {
+          console.error("Failed to decode token permissions", e);
+        }
+        
+        const finalUser = { ...user, permissions };
+        set({ user: finalUser, token, isAuthenticated: true, activeBranchId: finalUser.branchId || null });
+      },
       clearAuth: () => set({ user: null, token: null, isAuthenticated: false, activeBranchId: null }),
       setBranch: (branchId) => set((state) => ({ user: state.user ? { ...state.user, branchId } : null })),
       setActiveBranchId: (branchId) => set({ activeBranchId: branchId })

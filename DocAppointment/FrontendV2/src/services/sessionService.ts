@@ -1,6 +1,14 @@
 import { api } from "@/lib/axios"
 
 export const sessionService = {
+  getBranches: async () => {
+    const response = await api.get('/sessions/branches')
+    return response.data
+  },
+  getDoctors: async (branchId: string) => {
+    const response = await api.get(`/sessions/doctors?branchId=${branchId}`)
+    return response.data
+  },
   getSessions: async (doctorId: string, branchId?: string) => {
     const url = branchId ? `/sessions/doctor/${doctorId}?branchId=${branchId}` : `/sessions/doctor/${doctorId}`
     const response = await api.get(url)

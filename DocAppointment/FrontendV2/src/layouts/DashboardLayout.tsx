@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, ClipboardList, Key, ChevronRight, Home } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText } from "lucide-react"
 import toast from "react-hot-toast"
 
 import { BrandLogo } from "@/components/BrandLogo"
@@ -10,18 +10,29 @@ import { authService } from "@/services/authService"
 import { cn } from "@/lib/utils"
 import { useNotificationStore } from "@/store/notificationStore"
 import { initializeSignalR, stopSignalR } from "@/lib/signalr"
+import { usePermissions } from "@/hooks/usePermissions"
+import { useQuery } from "@tanstack/react-query"
+import { branchService } from "@/services/branchService"
+import { queueService } from "@/services/queueService"
 
-const navigation = [
-  { name: "Queue (Live)", href: "/", icon: Activity },
-  { name: "Analytics", href: "/analytics", icon: LayoutDashboard },
-  { name: "Branches", href: "/branches", icon: Building2 },
-  { name: "Doctors", href: "/doctors", icon: Stethoscope },
-  { name: "Patients", href: "/patients", icon: Users },
-  { name: "Sessions", href: "/sessions", icon: Clock },
-  { name: "Staff", href: "/staff", icon: UserCog },
-  { name: "Pharmacy", href: "/pharmacy", icon: Pill },
-  { name: "Audit Logs", href: "/audit-logs", icon: ClipboardList },
-]
+const getNavigation = (role: string) => {
+  let nav = [
+    { name: "Queue (Live)", href: "/queue", icon: Activity, requiredAny: ["Queue.View", "Patients.ViewHistory"] },
+    { name: "Analytics", href: "/analytics", icon: LayoutDashboard, requiredAny: ["Analytics.View"] },
+    { name: "Branches", href: "/branches", icon: Building2, requiredAny: ["Branches.View"] },
+    { name: "Doctors", href: "/doctors", icon: Stethoscope, requiredAny: ["Doctors.View"] },
+    { name: "Patients", href: "/patients", icon: Users, requiredAny: ["Patients.View"] },
+    { name: "Sessions", href: "/sessions", icon: Clock, requiredAny: ["Sessions.View"] },
+    { name: "Staff", href: "/staff", icon: UserCog, requiredAny: ["Staff.View"] },
+    { name: "Pharmacy", href: "/pharmacy", icon: Pill, requiredAny: ["Pharmacy.View"] },
+    { name: "Audit Log", href: "/audit-log", icon: FileText, requiredAny: ["Audit.View"] },
+  ];
+  if (role === 'doctor') {
+    nav = nav.filter(item => item.name !== "Queue (Live)");
+    nav.unshift({ name: "My Desk", href: "/doctor-desk", icon: Stethoscope, requiredAny: ["DoctorDesk.View"] });
+  }
+  return nav;
+}
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -34,16 +45,50 @@ export default function DashboardLayout() {
   const notifRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
-  const { user, token, activeBranchId, clearAuth } = useAuthStore()
+  const { user, token, activeBranchId, clearAuth, setActiveBranchId } = useAuthStore()
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const { notifications, fetchNotifications, markAsRead, markAllAsRead, clearAll } = useNotificationStore()
+  const { canAny } = usePermissions()
+
+  const { data: myBranches = [] } = useQuery({
+    queryKey: ['my-branches'],
+    queryFn: () => branchService.getMyBranches(),
+    enabled: !!token
+  });
+
+  const { data: activeQueue } = useQuery({
+    queryKey: ['active-doctor-queue', user?.doctorId],
+    queryFn: () => queueService.getActiveQueue(user!.doctorId!),
+    enabled: !!token && !!user?.doctorId && role === 'doctor'
+  });
+
+  const isSessionActive = !!activeQueue;
+
+  useEffect(() => {
+    if ((role === 'doctor' || role === 'orgadmin') && myBranches.length > 0 && !activeBranchId) {
+      setActiveBranchId(myBranches[0].id);
+    }
+  }, [role, myBranches, activeBranchId, setActiveBranchId]);
+
+  useEffect(() => {
+    if (role === 'doctor' && isSessionActive && activeQueue.branchId) {
+      if (activeBranchId !== activeQueue.branchId) {
+        setActiveBranchId(activeQueue.branchId);
+      }
+    }
+  }, [activeQueue, isSessionActive, role, activeBranchId, setActiveBranchId]);
+
+
+
+  const navigation = getNavigation(role);
 
   let currentNav = navigation.find(n => n.href !== '/' && location.pathname.startsWith(n.href)) || (location.pathname === '/' ? navigation[0] : null);
 
   if (!currentNav) {
-    if (location.pathname.startsWith('/consult')) currentNav = { name: "Consultation", href: location.pathname, icon: Stethoscope };
-    else if (location.pathname.startsWith('/doctor-desk')) currentNav = { name: "My Desk", href: location.pathname, icon: Stethoscope };
-    else if (location.pathname.startsWith('/queue')) currentNav = { name: "Queue (Live)", href: location.pathname, icon: Activity };
-    else if (location.pathname.startsWith('/settings')) currentNav = { name: "Settings", href: location.pathname, icon: Settings };
+    if (location.pathname.startsWith('/consult')) currentNav = { name: "Consultation", href: location.pathname, icon: Stethoscope, requiredAny: [] };
+    else if (location.pathname.startsWith('/doctor-desk')) currentNav = { name: "My Desk", href: location.pathname, icon: Stethoscope, requiredAny: [] };
+    else if (location.pathname.startsWith('/queue')) currentNav = { name: "Queue (Live)", href: location.pathname, icon: Activity, requiredAny: [] };
+    else if (location.pathname.startsWith('/settings')) currentNav = { name: "Settings", href: location.pathname, icon: Settings, requiredAny: [] };
   }
 
   useEffect(() => {
@@ -60,8 +105,13 @@ export default function DashboardLayout() {
   }, []);
 
   useEffect(() => {
-    const branchId = activeBranchId || user?.branchId;
-    if (token && branchId) {
+    if (!token) return;
+
+    const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+    const isMultiBranchDoctor = role === 'doctor';
+    const branchId = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || "org") : (user?.branchId || "org");
+    
+    if (branchId && branchId !== 'org') {
       fetchNotifications(branchId);
       initializeSignalR(token, branchId);
     }
@@ -121,16 +171,7 @@ export default function DashboardLayout() {
         {/* Nav Links */}
         <div className="flex-1 overflow-y-auto py-4 space-y-1">
           {navigation.map((item) => {
-            // Hide administrative menus from Doctors
-            if (user?.role === "Doctor" && !["Queue (Live)", "Patients", "Pharmacy"].includes(item.name)) {
-              return null;
-            }
-            // Hide administrative menus from Receptionists
-            if (user?.role === "Receptionist" && !["Queue (Live)", "Patients", "Pharmacy"].includes(item.name)) {
-              return null;
-            }
-            // Hide Branches from BranchAdmin since they only manage their own
-            if (user?.role === "BranchAdmin" && item.name === "Branches") {
+            if (!canAny(item.requiredAny)) {
               return null;
             }
 
@@ -210,6 +251,27 @@ export default function DashboardLayout() {
 
           {/* Header Right Content (Profile & Actions) */}
           <div className="flex items-center gap-3 sm:gap-5">
+            {/* Branch Selector */}
+            {myBranches.length > 0 && (
+              <div className="relative flex items-center">
+                <select
+                  value={activeBranchId || ""}
+                  onChange={(e) => setActiveBranchId(e.target.value)}
+                  disabled={isSessionActive && role === 'doctor'}
+                  className={cn(
+                    "appearance-none bg-slate-100/50 border border-slate-200 text-slate-700 text-sm rounded-lg pl-3 pr-8 py-1.5 font-medium transition-colors cursor-pointer",
+                    isSessionActive && role === 'doctor' ? "opacity-60 cursor-not-allowed bg-slate-100" : "hover:bg-slate-100 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  )}
+                >
+                  {myBranches.map(branch => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronRight className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+              </div>
+            )}
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button

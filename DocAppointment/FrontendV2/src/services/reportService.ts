@@ -19,6 +19,11 @@ export interface BranchAnalytics {
 }
 
 export const reportService = {
+  getBranches: async () => {
+    const response = await api.get('/reports/branches')
+    return response.data
+  },
+  
   getBranchAnalytics: async (branchId?: string, startDate?: string, endDate?: string): Promise<BranchAnalytics> => {
     const params = new URLSearchParams()
     if (branchId && branchId !== 'org') params.append('branchId', branchId)

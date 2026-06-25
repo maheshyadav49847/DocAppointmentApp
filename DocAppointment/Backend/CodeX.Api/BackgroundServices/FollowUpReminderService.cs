@@ -15,7 +15,7 @@ namespace CodeX.Api.BackgroundServices
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<FollowUpReminderService> _logger;
-        private static readonly TimeSpan RunInterval = TimeSpan.FromHours(1); // Runs check every hour
+        private static readonly TimeSpan RunInterval = TimeSpan.FromHours(1); // Still run every hour, but gate by LastReminderSentDate
 
         public FollowUpReminderService(IServiceScopeFactory scopeFactory, ILogger<FollowUpReminderService> logger)
         {
@@ -26,8 +26,6 @@ namespace CodeX.Api.BackgroundServices
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("FollowUpReminderService background task started.");
-
-            // Wait a small buffer before first run
             await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
@@ -49,65 +47,78 @@ namespace CodeX.Api.BackgroundServices
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+            var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
             
-            // Check if there are any follow-ups due today or earlier that haven't been alerted
             var today = DateTime.UtcNow.Date;
-            var pendingFollowUps = await context.FollowUps
+
+            // Fetch pending follow ups (Not stopped, and not already reminded today)
+            var activeFollowUps = await context.FollowUps
                 .Include(f => f.Patient)
                 .ThenInclude(p => p.Tokens)
                 .ThenInclude(t => t.Queue)
-                .Include(f => f.PatientVisit)
-                .ThenInclude(pv => pv.Token)
-                .ThenInclude(t => t.Patient)
-                .Where(f => f.FollowUpDate.Date <= today && !f.WhatsAppSent && f.ReminderEnabled)
+                .Where(f => f.ReminderEnabled && 
+                            f.FollowUpDate >= today && 
+                            (f.LastReminderSentDate == null || f.LastReminderSentDate.Value.Date != today))
                 .ToListAsync(stoppingToken);
 
-            if (!pendingFollowUps.Any())
-            {
-                return;
-            }
+            if (!activeFollowUps.Any()) return;
 
-            var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
-            _logger.LogInformation("FollowUpReminderService: Found {Count} pending follow-up alerts to dispatch.", pendingFollowUps.Count);
-
-            foreach (var fup in pendingFollowUps)
+            foreach (var fup in activeFollowUps)
             {
                 if (stoppingToken.IsCancellationRequested) break;
 
-                // Resolve BranchId to send WhatsApp message from
+                // Determine X days before (from settings or default 3)
+                int daysBefore = 3;
                 var branchId = fup.Patient.Tokens
                     .OrderByDescending(t => t.Queue.QueueDate)
                     .Select(t => t.Queue.BranchId)
                     .FirstOrDefault();
 
+                if (branchId != Guid.Empty)
+                {
+                    var tzBranch = await context.Branches.Include(b => b.Organization).FirstOrDefaultAsync(b => b.Id == branchId, stoppingToken);
+                    if (tzBranch?.Organization?.SettingsJson != null)
+                    {
+                        try
+                        {
+                            var settings = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(tzBranch.Organization.SettingsJson);
+                            if (settings.TryGetProperty("FollowUpReminderDaysBefore", out var daysProp) && daysProp.TryGetInt32(out var days))
+                            {
+                                daysBefore = days;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                // Check if we are within the reminder window
+                if (today < fup.FollowUpDate.AddDays(-daysBefore).Date)
+                {
+                    continue; // Too early
+                }
+
+                // Check if patient visited recently (on or after the reminder window started, or within the last 7 days)
+                var thresholdDate = fup.CreatedAt.Date;
+                var hasVisited = await context.PatientVisits
+                    .AnyAsync(pv => pv.Token.PatientId == fup.PatientId && pv.CreatedAt >= thresholdDate, stoppingToken);
+
+                if (hasVisited)
+                {
+                    // Auto-stop reminder
+                    fup.ReminderEnabled = false;
+                    _logger.LogInformation("FollowUpReminderService: Patient {PatientId} has visited. Stopping reminder.", fup.PatientId);
+                    continue;
+                }
+
                 if (branchId == Guid.Empty)
                 {
-                    // Fallback to the first available branch in database
                     var fallbackBranch = await context.Branches.FirstOrDefaultAsync(stoppingToken);
-                    if (fallbackBranch != null)
-                    {
-                        branchId = fallbackBranch.Id;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("No branches found in database; cannot send follow-up reminder for Patient {PatientId}", fup.Patient.Id);
-                        continue;
-                    }
+                    if (fallbackBranch != null) branchId = fallbackBranch.Id;
+                    else continue;
                 }
 
                 var bookerPhone = fup.Patient.Phone;
-                if (fup.PatientVisit?.Token?.Patient != null && !string.IsNullOrWhiteSpace(fup.PatientVisit.Token.Patient.Phone))
-                {
-                    bookerPhone = fup.PatientVisit.Token.Patient.Phone;
-                }
-
-                if (string.IsNullOrWhiteSpace(bookerPhone))
-                {
-                    _logger.LogInformation("No phone number available for patient {PatientId}, skipping WhatsApp reminder.", fup.Patient.Id);
-                    fup.WhatsAppSent = true; 
-                    fup.UpdatedAt = DateTime.UtcNow;
-                    continue;
-                }
+                if (string.IsNullOrWhiteSpace(bookerPhone)) continue;
 
                 var dateStr = fup.FollowUpDate.ToString("dd MMM yyyy");
                 var instructionsMsg = string.IsNullOrWhiteSpace(fup.Instructions) ? "" : $"\n👉 Doctor's Advice: {fup.Instructions}\n";
@@ -123,11 +134,11 @@ namespace CodeX.Api.BackgroundServices
 
                 try
                 {
-                    _logger.LogInformation("Sending automated follow-up reminder to {Phone} for {Date} (Patient: {PatientName})", bookerPhone, dateStr, fup.Patient.Name);
+                    _logger.LogInformation("Sending automated follow-up reminder to {Phone} for {Date}", bookerPhone, dateStr);
                     await whatsAppService.SendTextMessage(bookerPhone, message, branchId);
                     
+                    fup.LastReminderSentDate = DateTime.UtcNow;
                     fup.WhatsAppSent = true;
-                    fup.UpdatedAt = DateTime.UtcNow;
                 }
                 catch (Exception ex)
                 {

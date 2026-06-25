@@ -27,8 +27,9 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         private readonly ISmsService _smsService;
         private readonly IQueueNotificationService _notificationService;
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
+        private readonly IChatSessionCache _chatSessionCache;
 
-        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory)
+        public ProcessIncomingMessageCommandHandler(IApplicationDbContext context, ISender mediator, IWhatsAppService whatsappService, ISmsService smsService, IQueueNotificationService notificationService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, IChatSessionCache chatSessionCache)
         {
             _context = context;
             _mediator = mediator;
@@ -36,6 +37,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             _smsService = smsService;
             _notificationService = notificationService;
             _serviceScopeFactory = serviceScopeFactory;
+            _chatSessionCache = chatSessionCache;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -56,8 +58,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         public async Task<string> Handle(ProcessIncomingMessageCommand request, CancellationToken cancellationToken)
         {
             var fromPhone = NormalizationHelper.NormalizePhone(request.From);
-            var session = await _context.ChatSessions
-                .FirstOrDefaultAsync(x => x.PhoneNumber == fromPhone && x.BranchId == request.BranchId, cancellationToken);
+            var session = await _chatSessionCache.GetSessionAsync(fromPhone, request.BranchId, cancellationToken);
 
             if (session == null)
             {
@@ -68,8 +69,6 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     CurrentState = "START",
                     Language = string.Empty
                 };
-
-                _context.ChatSessions.Add(session);
             }
 
             session.BranchId = request.BranchId;
@@ -84,40 +83,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "EMERGENCY_ALERT");
             }
 
-            if (bodyLower is "hi" or "reset" or "start" or "menu")
+            // Only allow "hi" or "hello" to reset the session. No other text commands allowed.
+            if (bodyLower == "hi" || bodyLower == "hello")
             {
                 ResetSession(session);
-            }
-            else if (bodyLower is "status" or "check")
-            {
-                return await HandleStatus(session, cancellationToken);
-            }
-            else if (bodyLower is "cancel" or "cancel appointment")
-            {
-                return await HandleCancel(session, cancellationToken);
-            }
-            else if (bodyLower == "appointment")
-            {
-                return await HandleAppointmentDetails(session, cancellationToken);
-            }
-            else if (bodyLower == "reschedule")
-            {
-                return await HandleReschedule(session, cancellationToken);
-            }
-            else if (bodyLower is "rejoin" or "re-join")
-            {
-                return await HandleRejoin(session, cancellationToken);
-            }
-            else if (bodyLower == "language")
-            {
-                session.CurrentState = "LANGUAGE_SELECTION";
-                session.Language = string.Empty;
-                var bName = await GetHospitalName(session.BranchId, cancellationToken);
-                return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", bName);
-            }
-            else if (bodyLower == "help")
-            {
-                return await HandleHelp(session, cancellationToken);
             }
             
             // Log Incoming Message
@@ -138,7 +107,9 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 _ => HandleUnknown(session)
             };
 
-            await _context.SaveChangesAsync(cancellationToken);
+            // Save to Cache (Write-Behind)
+            _chatSessionCache.SetSession(session);
+            
             return response;
         }
 
@@ -313,11 +284,32 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "NO_ACTIVE_APP");
             }
 
-            return WhatsAppTranslationHelper.Get(session.Language, "APPOINTMENT_DETAILS",
+            var tzBranchApp = await _context.Branches.IgnoreQueryFilters().Include(b => b.Organization).FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
+            int appAvgWaitMins = 10;
+            if (tzBranchApp?.Organization?.SettingsJson != null)
+            {
+                try
+                {
+                    var settings = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(tzBranchApp.Organization.SettingsJson);
+                    if (settings.TryGetProperty("AvgConsultationTimeMins", out var timeProp) && timeProp.TryGetInt32(out var mins))
+                    {
+                        appAvgWaitMins = mins;
+                    }
+                }
+                catch { }
+            }
+
+            int appWaitTokens = activeToken.TokenNumber - activeToken.Queue.CurrentTokenNumber;
+            int appWaitMins = appWaitTokens > 0 ? appWaitTokens * appAvgWaitMins : 0;
+            string appWaitTimeStr = appWaitMins > 0 ? $"\n⏳ Estimated Wait: {appWaitMins} mins" : "";
+
+            var appResponse = WhatsAppTranslationHelper.Get(session.Language, "APPOINTMENT_DETAILS",
                 activeToken.Patient.Name,
                 activeToken.Queue.Doctor?.Name ?? "Unknown",
                 activeToken.TokenNumber.ToString(),
                 activeToken.Queue.Session?.SessionName ?? "Unknown");
+
+            return appResponse + appWaitTimeStr;
         }
 
         private async Task<string> HandleReschedule(ChatSession session, CancellationToken ct)
@@ -384,7 +376,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
-            var tzBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
+            var tzBranch = await _context.Branches.IgnoreQueryFilters().Include(b => b.Organization).FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
             var queue = await _context.DailyQueues
@@ -432,11 +424,31 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
                 ResetSession(session);
 
+                int avgWaitMins = 10;
+                if (tzBranch?.Organization?.SettingsJson != null)
+                {
+                    try
+                    {
+                        var settings = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(tzBranch.Organization.SettingsJson);
+                        if (settings.TryGetProperty("AvgConsultationTimeMins", out var timeProp) && timeProp.TryGetInt32(out var mins))
+                        {
+                            avgWaitMins = mins;
+                        }
+                    }
+                    catch { }
+                }
+
+                int waitTokens = tokenNum - queue.CurrentTokenNumber;
+                int waitMins = waitTokens > 0 ? waitTokens * avgWaitMins : 0;
+                string waitTimeStr = waitMins > 0 ? $"\n⏳ Estimated Wait: {waitMins} mins" : "";
+
                 var response = WhatsAppTranslationHelper.Get(session.Language, "SUCCESS_BOOKING",
                     tokenNum.ToString(),
                     queue.Doctor?.Name ?? "Unknown",
                     queue.Session?.SessionName ?? "Unknown",
                     $"{queue.Session?.StartTime:hh\\:mm} - {queue.Session?.EndTime:hh\\:mm}");
+
+                response += waitTimeStr;
 
                 // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
                 await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: result.TokenId);

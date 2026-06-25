@@ -13,7 +13,8 @@ namespace CodeX.Domain.Entities
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string EmployeeId { get; set; } = string.Empty;
-        public StaffRole Role { get; set; } = StaffRole.Receptionist;
+        public Guid? RoleId { get; set; }
+        public virtual Role? Role { get; set; }
         public string? PasswordResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;

@@ -169,7 +169,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             {
                 var nextTokenNumber = ((await _context.Tokens
                     .IgnoreQueryFilters()
-                    .Where(t => !t.IsDeleted && t.QueueId == queue.Id)
+                    .Where(t => t.QueueId == queue.Id)
                     .MaxAsync(t => (int?)t.TokenNumber, cancellationToken)) ?? 0) + 1;
 
                 token = new Token

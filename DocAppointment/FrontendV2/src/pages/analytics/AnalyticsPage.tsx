@@ -12,18 +12,18 @@ import {
 
 import { useAuthStore } from "@/store/authStore"
 import { reportService } from "@/services/reportService"
-import { branchService } from "@/services/branchService"
 
 
 export default function AnalyticsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const orgId = user?.orgId
-  const role = user?.role
-  const selectedBranchId = activeBranchId || 'org'
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranchId = (role === 'orgadmin' || role === 'superadmin' || isMultiBranchDoctor) ? (activeBranchId || 'org') : (user?.branchId || 'org');
 
   const dashboardRef = useRef<HTMLDivElement>(null)
 
-  const isRestricted = role !== 'OrgAdmin' && role !== 'SuperAdmin' && role !== '1' && role !== '0'
+  const isRestricted = role !== 'orgadmin' && role !== 'superadmin' && role !== '1' && role !== '0' && !isMultiBranchDoctor
 
 
   const [dateRange] = useState({
@@ -32,8 +32,8 @@ export default function AnalyticsPage() {
   })
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId!),
+    queryKey: ['analytics-branches', orgId],
+    queryFn: () => reportService.getBranches(),
     enabled: !!orgId
   })
 
@@ -74,21 +74,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranchId}
-            onChange={(e) => setActiveBranchId(e.target.value === 'org' ? null : e.target.value)}
-            disabled={isRestricted}
-            className="bg-white border border-slate-200 text-sm rounded-md px-4 py-2 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm disabled:opacity-50 font-medium"
-          >
-            {!isRestricted && <option value="org">All Branches</option>}
-            {branches?.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
 
-        </div>
       </div>
 
       <div ref={dashboardRef} className="space-y-6">

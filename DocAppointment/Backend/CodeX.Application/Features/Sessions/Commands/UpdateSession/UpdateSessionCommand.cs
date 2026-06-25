@@ -29,11 +29,21 @@ namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
 
         public async Task<Unit> Handle(UpdateSessionCommand request, CancellationToken cancellationToken)
         {
-            var session = await _context.Sessions.FindAsync(new object[] { request.Id }, cancellationToken);
+            var session = await _context.Sessions
+                .Include(s => s.Branch)
+                .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (session == null) throw new Exception("Session not found");
 
+            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, session.Branch.OrganizationId);
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, session.BranchId);
-            CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId); // If changing branch
+
+            if (request.BranchId != session.BranchId)
+            {
+                var newBranch = await _context.Branches.FindAsync(new object[] { request.BranchId }, cancellationToken);
+                if (newBranch == null) throw new Exception("New branch not found");
+                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, newBranch.OrganizationId);
+                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, request.BranchId);
+            }
 
             var overlappingExists = await _context.Sessions
                 .AnyAsync(s => s.Id != request.Id &&

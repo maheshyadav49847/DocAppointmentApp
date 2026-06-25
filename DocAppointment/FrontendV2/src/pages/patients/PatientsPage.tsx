@@ -16,13 +16,16 @@ import { useNavigate } from "react-router-dom"
 
 import { patientService } from "@/services/patientService"
 import type { Patient } from "@/services/patientService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function PatientsPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
-  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
+  const { can } = usePermissions()
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranch = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || 'all') : (user?.branchId || '');
   const [globalFilter, setGlobalFilter] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -95,10 +98,25 @@ export default function PatientsPage() {
   }, [globalFilter])
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', user?.orgId],
-    queryFn: () => branchService.getBranches(user?.orgId!),
+    queryKey: ['patients-branches', user?.orgId],
+    queryFn: () => patientService.getBranches(),
     enabled: !!user?.orgId
   })
+
+  const { data: doctors } = useQuery({
+    queryKey: ['patients-doctors', user?.orgId],
+    queryFn: () => patientService.getDoctors(),
+    enabled: !!user?.orgId && user?.role === 'Doctor'
+  })
+
+  const doctorProfile = doctors?.find(d => d.id === user?.doctorId)
+  const allowedBranchIds = doctorProfile?.branchIds || [user?.branchId].filter(Boolean)
+
+  const allowedBranches = branches?.filter(b => 
+    user?.role === 'OrgAdmin' || 
+    (user?.role === 'Doctor' && allowedBranchIds.includes(b.id)) ||
+    b.id === user?.branchId
+  ) || []
 
   const { data: paginatedData, isLoading, error } = useQuery({
     queryKey: ['patients', selectedBranch, pageIndex, pageSize, debouncedSearch],
@@ -162,17 +180,19 @@ export default function PatientsPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => {
-              setEditingPatient(row.original)
-              setIsDrawerOpen(true)
-            }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          {user?.role !== 'Receptionist' && (
+          {can('Patients.Edit') && (
+            <button
+              onClick={() => {
+                setEditingPatient(row.original)
+                setIsDrawerOpen(true)
+              }}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {can('Patients.ViewHistory') && (
             <button
               onClick={() => navigate(`/consult/${row.original.id}`)}
               className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -227,23 +247,7 @@ export default function PatientsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranch}
-            disabled={user?.role !== 'OrgAdmin'}
-            onChange={(e) => {
-              setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
-              setPagination(prev => ({ ...prev, pageIndex: 0 }))
-            }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
-            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
+
       </div>
 
       {/* Main Card */}
@@ -295,15 +299,17 @@ export default function PatientsPage() {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditingPatient(null)
-                setIsDrawerOpen(true)
-              }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
-            </button>
+            {can('Patients.Add') && (
+              <button
+                onClick={() => {
+                  setEditingPatient(null)
+                  setIsDrawerOpen(true)
+                }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -456,17 +462,19 @@ export default function PatientsPage() {
 
                       {/* Footer Actions */}
                       <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingPatient(patient)
-                            setIsDrawerOpen(true)
-                          }}
-                          className="flex-1 btn-secondary text-xs px-3"
-                        >
-                          <Edit className="w-4 h-4" /> Edit
-                        </button>
-                        {user?.role !== 'Receptionist' && (
+                        {can('Patients.Edit') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingPatient(patient)
+                              setIsDrawerOpen(true)
+                            }}
+                            className="flex-1 btn-secondary text-xs px-3"
+                          >
+                            <Edit className="w-4 h-4" /> Edit
+                          </button>
+                        )}
+                        {can('Patients.ViewHistory') && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()

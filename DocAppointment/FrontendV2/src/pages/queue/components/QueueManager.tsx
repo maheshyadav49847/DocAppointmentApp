@@ -13,11 +13,13 @@ import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
+import { usePermissions } from "@/hooks/usePermissions"
 
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
   const { user, activeBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting')
@@ -130,6 +132,16 @@ export default function QueueManager({ sessionData, onBack }: any) {
     }
   })
 
+  const [cancelingToken, setCancelingToken] = useState<any>(null)
+  const cancelTokenMutation = useMutation({
+    mutationFn: ({ id, deletePatient }: { id: string, deletePatient: boolean }) => queueService.deleteToken(id, deletePatient),
+    onSuccess: () => {
+      refetchQueue()
+      refetchTokens()
+      setCancelingToken(null)
+    }
+  })
+
   const endQueueMutation = useMutation({
     mutationFn: (data?: { action?: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string }) => queueService.endQueue(queueId, data),
     onSuccess: () => {
@@ -209,13 +221,15 @@ export default function QueueManager({ sessionData, onBack }: any) {
           >
             <RotateCcw className="w-4 h-4" />
           </button>
-          <button 
-            onClick={handleEndSession}
-            disabled={endQueueMutation.isPending}
-            className="btn-danger"
-          >
-            <Power className="w-4 h-4" /> End Session
-          </button>
+          {can('Queue.EndSession') && (
+            <button 
+              onClick={handleEndSession}
+              disabled={endQueueMutation.isPending}
+              className="btn-danger"
+            >
+              <Power className="w-4 h-4" /> End Session
+            </button>
+          )}
         </div>
       </div>
 
@@ -303,81 +317,91 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
           <div className="flex flex-col gap-4 flex-1">
             {(!hasActivePatient) ? (
-              <button
-                onClick={() => callNextMutation.mutate()}
-                disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
-                className="w-full py-6 bg-transparent border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
-              >
-                {callNextMutation.isPending ? (
-                  <Activity className="w-8 h-8 animate-spin relative z-10" />
-                ) : (
-                  <Play className="w-8 h-8 relative z-10 group-hover:scale-110 transition-transform" />
-                )}
-                <span className="text-xl font-bold relative z-10">Call Next Patient</span>
-              </button>
+              can('Queue.CallNext') ? (
+                <button
+                  onClick={() => callNextMutation.mutate()}
+                  disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
+                  className="w-full py-6 bg-transparent border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+                >
+                  {callNextMutation.isPending ? (
+                    <Activity className="w-8 h-8 animate-spin relative z-10" />
+                  ) : (
+                    <Play className="w-8 h-8 relative z-10 group-hover:scale-110 transition-transform" />
+                  )}
+                  <span className="text-xl font-bold relative z-10">Call Next Patient</span>
+                </button>
+              ) : null
             ) : (
               <div className="flex flex-col gap-3">
 
-                <button
-                  onClick={() => completeMutation.mutate()}
-                  disabled={completeMutation.isPending}
-                  className="w-full py-4 bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-50 group"
-                >
-                  {completeMutation.isPending ? (
-                    <Activity className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                  )}
-                  <span className="font-bold">Finish Visit</span>
-                </button>
+                {can('Queue.CompleteToken') && (
+                  <button
+                    onClick={() => completeMutation.mutate()}
+                    disabled={completeMutation.isPending}
+                    className="w-full py-4 bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-1 transition-all disabled:opacity-50 group"
+                  >
+                    {completeMutation.isPending ? (
+                      <Activity className="w-6 h-6 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    )}
+                    <span className="font-bold">Finish Visit</span>
+                  </button>
+                )}
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4 mt-2">
-              <button
-                onClick={() => skipMutation.mutate()}
-                disabled={skipMutation.isPending || !hasActivePatient}
-                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <SkipForward className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
-                </div>
-                Skip Turn
-              </button>
+              {can('Queue.SkipToken') && (
+                <button
+                  onClick={() => skipMutation.mutate()}
+                  disabled={skipMutation.isPending || !hasActivePatient}
+                  className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <SkipForward className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
+                  </div>
+                  Skip Turn
+                </button>
+              )}
               
-              <button
-                disabled={!hasActivePatient}
-                className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
-                  <MessageSquare className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
-                </div>
-                WhatsApp Alert
-              </button>
+              {can('Queue.SendAlert') && (
+                <button
+                  disabled={!hasActivePatient}
+                  className="py-4 bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg flex flex-col items-center justify-center gap-2 font-semibold transition-all disabled:opacity-50 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <MessageSquare className="w-5 h-5 text-slate-500 group-hover:text-slate-700 transition-colors" />
+                  </div>
+                  WhatsApp Alert
+                </button>
+              )}
             </div>
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-100">
-            <button
-              onClick={() => markArrivedMutation.mutate()}
-              disabled={isDoctorArrived || markArrivedMutation.isPending}
-              className={`w-full py-4 rounded-lg flex items-center justify-center gap-3 font-bold transition-all border-2 ${
-                isDoctorArrived 
-                  ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-default' 
-                  : 'bg-transparent border-indigo-600 text-indigo-600 hover:bg-indigo-50'
-              }`}
-            >
-              {isDoctorArrived ? (
-                <>
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center"><CheckCircle2 className="w-4 h-4" /></div>
-                  Doctor Present
-                </>
-              ) : (
-                <>
-                  <Stethoscope className="w-5 h-5" /> Mark Doctor Arrival
-                </>
-              )}
-            </button>
+            {can('Queue.MarkDoctorArrived') && (
+              <button
+                onClick={() => markArrivedMutation.mutate()}
+                disabled={isDoctorArrived || markArrivedMutation.isPending}
+                className={`w-full py-4 rounded-lg flex items-center justify-center gap-3 font-bold transition-all border-2 ${
+                  isDoctorArrived 
+                    ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-default' 
+                    : 'bg-transparent border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+                }`}
+              >
+                {isDoctorArrived ? (
+                  <>
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center"><CheckCircle2 className="w-4 h-4" /></div>
+                    Doctor Present
+                  </>
+                ) : (
+                  <>
+                    <Stethoscope className="w-5 h-5" /> Mark Doctor Arrival
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -420,12 +444,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
               />
             </div>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="btn-primary"
-            >
-              <PlusCircle className="w-4 h-4" /> Add Patient
-            </button>
+            {can('Queue.AddPatient') && (
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="btn-primary"
+              >
+                <PlusCircle className="w-4 h-4" /> Add Patient
+              </button>
+            )}
           </div>
         </div>
 
@@ -504,15 +530,24 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     {activeTab !== 'completed' && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {t.status === 3 && (
+                          {t.status === 3 && can('Queue.RestoreToken') && (
                             <button onClick={() => requeueMutation.mutate(t.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 font-medium text-sm flex items-center gap-1" title="Requeue">
                               <RotateCcw className="w-4 h-4" /> Restore
                             </button>
                           )}
                           {t.status !== 2 && (
-                            <button onClick={() => setEditingToken(t)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200" title="Edit Patient">
-                              <Edit className="w-4 h-4" />
-                            </button>
+                            <>
+                              {can('Queue.EditPatient') && (
+                                <button onClick={() => setEditingToken(t)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200" title="Edit Patient">
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              {can('Queue.CancelToken') && (
+                                <button onClick={() => setCancelingToken(t)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200" title="Cancel Token">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -576,6 +611,65 @@ export default function QueueManager({ sessionData, onBack }: any) {
                   <button type="button" onClick={() => setEditingToken(null)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
                   <button type="submit" disabled={updateTokenMutation.isPending} className="flex-[2] btn-primary">
                     {updateTokenMutation.isPending ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {cancelingToken && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCancelingToken(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50"
+            >
+              <div className="px-6 py-4 border-b flex justify-between items-center bg-rose-50 text-rose-800">
+                <h3 className="font-bold flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Cancel Token</h3>
+                <button onClick={() => setCancelingToken(null)} className="text-rose-400 hover:text-rose-600 rounded-full p-1"><X className="w-4 h-4"/></button>
+              </div>
+              <form noValidate 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const deletePatient = (form.elements.namedItem('deletePatient') as HTMLInputElement)?.checked || false;
+                  cancelTokenMutation.mutate({ id: cancelingToken.id, deletePatient });
+                }}
+                className="p-6 space-y-4"
+              >
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                  Are you sure you want to cancel token <b>#{cancelingToken.tokenNumber}</b> for <b>{cancelingToken.patientName}</b>?
+                </p>
+
+                {can('Queue.CancelOfflinePatient') && (
+                  <div className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg mt-4">
+                    <input 
+                      type="checkbox" 
+                      id="deletePatient" 
+                      name="deletePatient" 
+                      className="mt-1 rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="deletePatient" className="text-xs text-slate-600 font-medium cursor-pointer">
+                      Also delete this offline patient record permanently (Only works if patient has no past medical history).
+                    </label>
+                  </div>
+                )}
+
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setCancelingToken(null)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Go Back</button>
+                  <button type="submit" disabled={cancelTokenMutation.isPending} className="flex-[2] btn-danger">
+                    {cancelTokenMutation.isPending ? "Canceling..." : "Yes, Cancel It"}
                   </button>
                 </div>
               </form>

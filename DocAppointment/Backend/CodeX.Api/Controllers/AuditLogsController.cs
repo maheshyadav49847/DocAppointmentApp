@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
+
 namespace CodeX.Api.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,OrgAdmin")]
+    [Authorize]
+    [HasPermission(SystemPermissions.Settings.View)]
     public class AuditLogsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
@@ -26,7 +30,7 @@ namespace CodeX.Api.Controllers
             var orgId = _currentUserService.OrgId;
             var query = _context.AuditLogs.AsQueryable();
 
-            if (!_currentUserService.IsInRole("SuperAdmin"))
+            if (orgId != Guid.Empty)
             {
                 query = query.Where(a => a.OrganizationId == orgId);
             }

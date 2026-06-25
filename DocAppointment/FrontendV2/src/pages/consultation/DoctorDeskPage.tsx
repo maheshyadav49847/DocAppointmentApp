@@ -7,7 +7,6 @@ import {
 import { useAuthStore } from "@/store/authStore"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
-import { branchService } from "@/services/branchService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
@@ -15,7 +14,7 @@ import SearchPatientModal from "./components/SearchPatientModal"
 import { motion, AnimatePresence } from "framer-motion"
 
 export default function DoctorDeskPage() {
-  const { user, activeBranchId } = useAuthStore()
+  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const queryClient = useQueryClient()
 
   const { data: activeQueue, isLoading: isQueueLoading, refetch: refetchQueue } = useQuery({
@@ -25,8 +24,8 @@ export default function DoctorDeskPage() {
   })
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', user?.orgId],
-    queryFn: () => branchService.getBranches(user?.orgId!),
+    queryKey: ['doctordesk-branches', user?.orgId],
+    queryFn: () => queueService.getBranches(),
     enabled: !!user?.orgId && !activeQueue
   })
 
@@ -50,13 +49,26 @@ export default function DoctorDeskPage() {
 
   const initializeQueueMutation = useMutation({
     mutationFn: (sessionId: string) => queueService.initializeQueue(user?.doctorId || "", sessionId),
-    onSuccess: () => {
+    onSuccess: (_, sessionId) => {
+      const startedSession = sessions?.find((s: any) => s.id === sessionId)
+      if (startedSession?.branchId) {
+        useAuthStore.getState().setActiveBranchId(startedSession.branchId)
+      }
       refetchQueue()
     }
   })
 
+  // Sync activeQueue's branch to global state
+  useEffect(() => {
+    if (activeQueue?.branchId && activeQueue.branchId !== activeBranchId) {
+      useAuthStore.getState().setActiveBranchId(activeQueue.branchId)
+    }
+  }, [activeQueue?.branchId, activeBranchId])
+
   // SignalR
-  const branchId = activeBranchId || user?.branchId || "org"
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const branchId = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || "org") : (user?.branchId || "org");
   const connection = useQueueHub(branchId)
 
   useEffect(() => {
@@ -156,78 +168,87 @@ export default function DoctorDeskPage() {
   }
 
   if (!activeQueue) {
+    const uniqueBranchIds = Array.from(new Set(sessions?.map((s: any) => s.branchId) || []))
+    const filterBranches = branches?.filter((b: any) => uniqueBranchIds.includes(b.id)) || []
+    
+    const actualDeskBranch = (activeBranchId && filterBranches.some((b: any) => b.id === activeBranchId))
+      ? activeBranchId
+      : (filterBranches.length > 0 ? filterBranches[0].id : '')
+
+    const filteredSessions = sessions?.filter((s: any) => s.branchId === actualDeskBranch) || []
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] bg-slate-50 p-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-slate-200 shadow-xl shadow-slate-200/40 rounded-lg p-10 max-w-3xl w-full text-center relative overflow-hidden"
-        >
-          {/* Background decorative blob */}
-          <div className="absolute -top-32 -right-32 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-lg flex items-center justify-center mx-auto mb-6 shadow-inner border border-indigo-100/50">
-            <MonitorPlay className="w-10 h-10 text-indigo-600" />
+      <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
+        {/* Header */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
+          <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+            <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+              <Stethoscope className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+                <span className="text-slate-900">Doctor</span>
+                <span className="text-indigo-600">Desk</span>
+              </h1>
+              <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Ready to start? Select a session below to begin your consultation queue.</p>
+            </div>
           </div>
 
-          <h2 className="text-3xl font-black text-slate-800 mb-3 tracking-tight">Ready to Start?</h2>
-          <p className="text-slate-500 text-lg mb-10 max-w-md mx-auto">
-            You don't have an active consultation queue right now. Select a session below to begin.
-          </p>
 
-          <div className="text-left relative z-10">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1">Your Assigned Sessions</h3>
+        </div>
 
-            {isSessionsLoading ? (
-              <div className="flex items-center justify-center py-12 gap-3 text-indigo-500 bg-slate-50 rounded-lg border border-slate-100">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="font-medium">Loading your sessions...</span>
-              </div>
-            ) : sessions?.length > 0 ? (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {sessions.map((session: any) => (
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    key={session.id}
-                    className="bg-white group border-2 border-slate-100 hover:border-indigo-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
-                  >
-                    <div className="mb-6">
-                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
-                        <Activity className="w-6 h-6" />
-                      </div>
-                      <h3 className="font-bold text-slate-800 text-xl group-hover:text-indigo-700 transition-colors line-clamp-1">{session.sessionName || 'Consultation Session'}</h3>
-                      <div className="mt-2 flex items-center gap-2 flex-wrap">
-                        <span className="inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-sm font-semibold">
-                          {session.startTime} - {session.endTime}
-                        </span>
-                        {branches?.find((b: any) => b.id === session.branchId)?.name && (
-                          <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold border border-indigo-100">
-                            <Building2 className="w-4 h-4" />
-                            {branches?.find((b: any) => b.id === session.branchId)?.name}
-                          </span>
-                        )}
-                      </div>
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 pl-1">Your Assigned Sessions</h3>
+
+          {isSessionsLoading ? (
+            <div className="flex items-center justify-center py-12 gap-3 text-indigo-500 bg-slate-50 rounded-xl border border-slate-100">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span className="font-medium">Loading your sessions...</span>
+            </div>
+          ) : filteredSessions?.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredSessions.map((session: any) => (
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  key={session.id}
+                  className="bg-white group border border-slate-200 hover:border-indigo-300 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
+                >
+                  <div className="mb-6">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 border border-indigo-100/50">
+                      <Activity className="w-6 h-6" />
                     </div>
-                    <button
-                      onClick={() => initializeQueueMutation.mutate(session.id)}
-                      disabled={initializeQueueMutation.isPending}
-                      className="w-full bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-700 py-3 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                    >
-                      {initializeQueueMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-                      Start Session
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-amber-50 text-amber-800 p-8 rounded-lg border border-amber-200 text-center flex flex-col items-center">
-                <Bell className="w-10 h-10 mb-3 text-amber-500 opacity-80" />
-                <p className="font-bold text-lg">You don't have any sessions assigned today.</p>
-                <p className="text-sm opacity-80 mt-1 max-w-sm">Please ask the administrator to schedule a session for you to start receiving patients.</p>
-              </div>
-            )}
-          </div>
-        </motion.div>
+                    <h3 className="font-bold text-slate-800 text-lg group-hover:text-indigo-700 transition-colors line-clamp-1">{session.sessionName || 'Consultation Session'}</h3>
+                    <div className="mt-3 flex flex-col gap-2">
+                      <span className="inline-flex items-center gap-2 text-slate-600 text-sm font-semibold">
+                        <MonitorPlay className="w-4 h-4 text-slate-400" /> {session.startTime} - {session.endTime}
+                      </span>
+                      {branches?.find((b: any) => b.id === session.branchId)?.name && (
+                        <span className="inline-flex items-center gap-2 text-indigo-700 text-sm font-semibold">
+                          <Building2 className="w-4 h-4 text-indigo-400" />
+                          {branches?.find((b: any) => b.id === session.branchId)?.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => initializeQueueMutation.mutate(session.id)}
+                    disabled={initializeQueueMutation.isPending}
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-indigo-600 hover:bg-indigo-600 hover:text-white text-slate-700 py-2.5 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    {initializeQueueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    Start Session
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-amber-50 text-amber-800 p-8 rounded-2xl border border-amber-200 text-center flex flex-col items-center max-w-lg">
+              <Bell className="w-10 h-10 mb-3 text-amber-500 opacity-80" />
+              <p className="font-bold text-lg">No sessions assigned today.</p>
+              <p className="text-sm opacity-80 mt-1">Please ask the administrator to schedule a session for you to start receiving patients.</p>
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -512,7 +533,7 @@ export default function DoctorDeskPage() {
                     <ConsultationPage
                       patientId={overridePatientId || activeQueue.currentPatientId}
                       isEmbedded={true}
-                      activeTokenId={activeQueue.id}
+                      activeTokenId={activeQueue.currentTokenId}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full p-8 text-center">

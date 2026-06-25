@@ -8,13 +8,17 @@ using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
-    public class PatientClinicalController : ControllerBase
+    public class PatientClinicalController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
 
@@ -23,8 +27,17 @@ namespace CodeX.Api.Controllers
             _context = context;
         }
 
+        [HttpGet("branches")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            var result = await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+            return Ok(result);
+        }
+
         // 1. Update Patient Overview Profile
         [HttpPut("{id}")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> UpdatePatientProfile(Guid id, [FromBody] UpdateProfileDto dto)
         {
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
@@ -50,6 +63,7 @@ namespace CodeX.Api.Controllers
 
         // 1.5 Fetch Patient Overview Profile
         [HttpGet("{id}")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
         public async Task<IActionResult> GetPatientProfile(Guid id)
         {
             var patient = await _context.Patients
@@ -80,6 +94,7 @@ namespace CodeX.Api.Controllers
 
         // 2. Fetch all visits for a patient (including medicines and doctor details)
         [HttpGet("{id}/visits")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
         public async Task<IActionResult> GetPatientVisits(Guid id, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             var query = _context.PatientVisits
@@ -147,6 +162,7 @@ namespace CodeX.Api.Controllers
 
         // 3. Add manual visit entry
         [HttpGet("{id}/has-token-today")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
         public async Task<IActionResult> HasTokenToday(Guid id)
         {
             var todayStart = DateTime.UtcNow.Date;
@@ -166,6 +182,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{id}/visits")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> AddPatientVisit(Guid id, [FromBody] AddVisitDto dto)
         {
             var patientExists = await _context.Patients.AnyAsync(p => p.Id == id);
@@ -336,6 +353,7 @@ namespace CodeX.Api.Controllers
 
         // 3.5. Update Vitals (Mobile App Support)
         [HttpPost("{id}/vitals")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> AddVitals(Guid id, [FromBody] EditVisitDto dto)
         {
             var patientExists = await _context.Patients.AnyAsync(p => p.Id == id);
@@ -395,6 +413,7 @@ namespace CodeX.Api.Controllers
 
         // 4. Update visit details & medicines
         [HttpPut("visits/{visitId}")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> UpdatePatientVisit(Guid visitId, [FromBody] EditVisitDto dto)
         {
             var visit = await _context.PatientVisits
@@ -498,6 +517,7 @@ namespace CodeX.Api.Controllers
 
         // 5. Upload file attachment (PDF/PNG/JPEG)
         [HttpPost("{id}/attachments")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile file, [FromForm] string category, [FromForm] Guid? patientVisitId)
         {
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
@@ -543,6 +563,7 @@ namespace CodeX.Api.Controllers
 
         // 6. Delete attachment
         [HttpDelete("attachments/{attachmentId}")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> DeleteAttachment(Guid attachmentId)
         {
             var attachment = await _context.PatientAttachments.FirstOrDefaultAsync(a => a.Id == attachmentId);
@@ -573,6 +594,7 @@ namespace CodeX.Api.Controllers
 
         // 7. Get all attachments for a patient
         [HttpGet("{id}/attachments")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
         public async Task<IActionResult> GetAttachments(Guid id, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             var query = _context.PatientAttachments
@@ -600,6 +622,7 @@ namespace CodeX.Api.Controllers
 
         // 8. Get patient followups
         [HttpGet("{id}/followups")]
+        [HasPermission(SystemPermissions.Patients.ViewHistory)]
         public async Task<IActionResult> GetFollowUps(Guid id)
         {
             var followups = await _context.FollowUps
@@ -613,6 +636,7 @@ namespace CodeX.Api.Controllers
 
         // 9. Add follow-up
         [HttpPost("{id}/followups")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> AddFollowUp(Guid id, [FromBody] AddFollowUpDto dto)
         {
             var followup = new FollowUp
@@ -631,6 +655,7 @@ namespace CodeX.Api.Controllers
 
         // 10. Toggle reminder state / Update date
         [HttpPut("followups/{followupId}")]
+        [HasPermission(SystemPermissions.Patients.Edit)]
         public async Task<IActionResult> UpdateFollowUp(Guid followupId, [FromBody] UpdateFollowUpDto dto)
         {
             var followup = await _context.FollowUps.FirstOrDefaultAsync(f => f.Id == followupId);
@@ -649,6 +674,7 @@ namespace CodeX.Api.Controllers
 
         // 11. Overdue followups list
         [HttpGet("followups/overdue")]
+        [HasPermission(SystemPermissions.Patients.View)]
         public async Task<IActionResult> GetOverdueFollowUps([FromQuery] Guid? branchId)
         {
             // Fetch follow-ups that are scheduled in the past and WhatsApp reminders have not been sent yet

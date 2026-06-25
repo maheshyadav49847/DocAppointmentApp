@@ -44,6 +44,8 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 .Include(x => x.Doctor)
                 .Include(x => x.Tokens)
                 .ThenInclude(x => x.Patient)
+                .Include(x => x.Branch)
+                .ThenInclude(b => b.Organization)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
 
             if (queue == null) throw new Exception("Queue not found");
@@ -140,6 +142,19 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                 // Automated Upcoming Alerts
                 var upcomingPositions = new[] { 3, 5 };
+                if (queue.Branch?.Organization?.SettingsJson != null)
+                {
+                    try
+                    {
+                        var settings = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(queue.Branch.Organization.SettingsJson);
+                        if (settings.TryGetProperty("WhatsAppAlertPositions", out var positionsProp) && positionsProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            upcomingPositions = positionsProp.EnumerateArray().Select(x => x.GetInt32()).ToArray();
+                        }
+                    }
+                    catch { }
+                }
+
                 foreach (var pos in upcomingPositions)
                 {
                     var upcomingPatient = queue.Tokens

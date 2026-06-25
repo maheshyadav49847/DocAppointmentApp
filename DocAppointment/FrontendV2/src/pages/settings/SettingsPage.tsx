@@ -7,10 +7,12 @@ import {
 
 import { whatsappConfigService } from "@/services/whatsappConfigService"
 import { useAuthStore } from "@/store/authStore"
+import { Link } from "react-router-dom"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function SettingsPage() {
   const { user } = useAuthStore()
-  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const { can } = usePermissions()
   const orgId = user?.orgId
   const queryClient = useQueryClient()
 
@@ -19,7 +21,7 @@ export default function SettingsPage() {
   const { data: twilioData } = useQuery({
     queryKey: ['twilioConfig'],
     queryFn: whatsappConfigService.getConfig,
-    enabled: !!orgId && ['orgadmin', 'superadmin'].includes(role)
+    enabled: !!orgId && can('Settings.ManageWhatsapp')
   })
 
   const saveTwilioMutation = useMutation({
@@ -70,7 +72,7 @@ export default function SettingsPage() {
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global configurations and your personal profile.</p>
           </div>
         </div>
-        {['orgadmin', 'superadmin'].includes(role) && (
+        {can('Settings.ManageWhatsapp') && (
           <button 
             onClick={() => setIsTwilioDrawerOpen(true)}
             className="btn-secondary"
@@ -124,6 +126,22 @@ export default function SettingsPage() {
             </p>
           </div>
         </div>
+
+        {can('Settings.ManageRoles') && (
+          <div className="saas-card overflow-hidden">
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-indigo-500" /> Roles & Permissions
+              </h3>
+              <Link to="/settings/roles" className="btn-secondary text-xs">Manage Roles</Link>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Create custom roles and configure granular access permissions for your organization's staff members.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Twilio Config Drawer */}

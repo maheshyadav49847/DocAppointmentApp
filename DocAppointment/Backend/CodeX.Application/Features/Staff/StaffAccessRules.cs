@@ -8,14 +8,9 @@ namespace CodeX.Application.Features.Staff
     {
         public static Guid ResolveOrganizationId(ICurrentUserService currentUser, Guid requestedOrganizationId)
         {
-            if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
-            {
-                return requestedOrganizationId != Guid.Empty ? requestedOrganizationId : currentUser.OrgId;
-            }
-
             if (currentUser.OrgId == Guid.Empty)
             {
-                throw new Exception("Your account is not linked to an organization.");
+                return requestedOrganizationId != Guid.Empty ? requestedOrganizationId : currentUser.OrgId;
             }
 
             return currentUser.OrgId;
@@ -28,64 +23,32 @@ namespace CodeX.Application.Features.Staff
                 requestedBranchId = null;
             }
 
-            if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) || currentUser.IsInRole(nameof(StaffRole.OrgAdmin)))
+            if (currentUser.OrgId == Guid.Empty || !currentUser.BranchId.HasValue)
             {
                 return requestedBranchId;
             }
 
-            if (currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
+            if (requestedBranchId.HasValue && requestedBranchId != currentUser.BranchId)
             {
-                if (!currentUser.BranchId.HasValue)
-                {
-                    throw new Exception("Your account is not linked to a branch.");
-                }
-
-                if (requestedBranchId.HasValue && requestedBranchId != currentUser.BranchId)
-                {
-                    throw new Exception("Branch admins can only manage staff in their own branch.");
-                }
-
-                return currentUser.BranchId.Value;
+                throw new Exception("Branch-level staff can only manage staff in their own branch.");
             }
 
-            throw new Exception("You do not have permission to manage staff.");
+            return currentUser.BranchId.Value;
         }
 
-        public static void EnsureCanAssignRole(ICurrentUserService currentUser, StaffRole targetRole)
+        public static void EnsureCanAssignRole(ICurrentUserService currentUser, string targetRoleName)
         {
-            if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
-            {
-                return;
-            }
-
-            if (targetRole == StaffRole.SuperAdmin)
-            {
-                throw new Exception("Only super admins can assign the SuperAdmin role.");
-            }
-
-            if (currentUser.IsInRole(nameof(StaffRole.BranchAdmin)) &&
-                targetRole is StaffRole.OrgAdmin or StaffRole.BranchAdmin)
-            {
-                throw new Exception("Branch admins can only create or update receptionist and doctor accounts.");
-            }
+            // Allowed via Controller [HasPermission] attributes
         }
 
-        public static void EnsureRoleMatchesBranchScope(Guid? branchId, StaffRole role)
+        public static void EnsureRoleMatchesBranchScope(Guid? branchId, string roleName)
         {
-            if (!branchId.HasValue && role is not StaffRole.OrgAdmin and not StaffRole.SuperAdmin)
-            {
-                throw new Exception("Organization-level staff must be OrgAdmin or SuperAdmin.");
-            }
-
-            if (branchId.HasValue && role == StaffRole.OrgAdmin)
-            {
-                throw new Exception("OrgAdmin accounts cannot be assigned to a specific branch.");
-            }
+            // Allowed via Controller [HasPermission] attributes and flexible dynamic roles
         }
 
         public static void EnsureCanManageTarget(ICurrentUserService currentUser, Domain.Entities.Staff targetStaff)
         {
-            if (currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
+            if (currentUser.OrgId == Guid.Empty)
             {
                 return;
             }
@@ -95,21 +58,11 @@ namespace CodeX.Application.Features.Staff
                 throw new Exception("You cannot manage staff outside your organization.");
             }
 
-            if (targetStaff.Role == StaffRole.SuperAdmin)
+            if (currentUser.BranchId.HasValue)
             {
-                throw new Exception("Only super admins can manage SuperAdmin accounts.");
-            }
-
-            if (currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
-            {
-                if (!currentUser.BranchId.HasValue || targetStaff.BranchId != currentUser.BranchId)
+                if (targetStaff.BranchId != currentUser.BranchId)
                 {
-                    throw new Exception("Branch admins can only manage staff in their own branch.");
-                }
-
-                if (targetStaff.Role is StaffRole.OrgAdmin or StaffRole.BranchAdmin)
-                {
-                    throw new Exception("Branch admins cannot manage other admin accounts.");
+                    throw new Exception("Branch-level staff can only manage staff in their own branch.");
                 }
             }
         }

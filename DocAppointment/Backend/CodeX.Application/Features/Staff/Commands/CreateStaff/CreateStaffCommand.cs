@@ -18,7 +18,7 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
         public string FirstName { get; init; } = string.Empty;
         public string LastName { get; init; } = string.Empty;
         public string EmployeeId { get; init; } = string.Empty;
-        public StaffRole Role { get; init; } = StaffRole.Receptionist;
+        public string RoleName { get; init; } = "Receptionist";
         public string PhoneNumber { get; init; } = string.Empty;
     }
 
@@ -40,8 +40,8 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
             var organizationId = StaffAccessRules.ResolveOrganizationId(_currentUserService, request.OrganizationId);
             var branchId = StaffAccessRules.ResolveBranchId(_currentUserService, request.BranchId);
 
-            StaffAccessRules.EnsureCanAssignRole(_currentUserService, request.Role);
-            StaffAccessRules.EnsureRoleMatchesBranchScope(branchId, request.Role);
+            StaffAccessRules.EnsureCanAssignRole(_currentUserService, request.RoleName);
+            StaffAccessRules.EnsureRoleMatchesBranchScope(branchId, request.RoleName);
 
             if (branchId.HasValue)
             {
@@ -63,6 +63,8 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
 
             PasswordValidator.Validate(request.Password, _configuration);
 
+            var targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.RoleName && (r.OrganizationId == Guid.Empty || r.OrganizationId == organizationId), cancellationToken);
+
             var staff = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = organizationId,
@@ -72,7 +74,7 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
                 FirstName = request.FirstName.Trim(),
                 LastName = request.LastName.Trim(),
                 EmployeeId = request.EmployeeId.Trim(),
-                Role = request.Role,
+                RoleId = targetRole?.Id,
                 PhoneNumber = request.PhoneNumber.Trim()
             };
 

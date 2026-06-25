@@ -15,7 +15,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
         public string FirstName { get; init; } = string.Empty;
         public string LastName { get; init; } = string.Empty;
         public string EmployeeId { get; init; } = string.Empty;
-        public StaffRole Role { get; init; }
+        public string RoleName { get; init; } = "Receptionist";
         public string? NewPassword { get; init; } // Optional — only update if provided
         public string PhoneNumber { get; init; } = string.Empty;
     }
@@ -40,8 +40,8 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
                 ?? throw new Exception("Staff member not found.");
 
             StaffAccessRules.EnsureCanManageTarget(_currentUserService, staff);
-            StaffAccessRules.EnsureCanAssignRole(_currentUserService, request.Role);
-            StaffAccessRules.EnsureRoleMatchesBranchScope(staff.BranchId, request.Role);
+            StaffAccessRules.EnsureCanAssignRole(_currentUserService, request.RoleName);
+            StaffAccessRules.EnsureRoleMatchesBranchScope(staff.BranchId, request.RoleName);
 
             var email = request.Email.Trim().ToLower();
             var emailTaken = await _context.Staffs
@@ -50,11 +50,13 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             if (emailTaken)
                 throw new Exception($"The email '{email}' is already taken by another user in the system.");
 
+            var targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.RoleName && (r.OrganizationId == Guid.Empty || r.OrganizationId == staff.OrganizationId), cancellationToken);
+
             staff.Email = email;
             staff.FirstName = request.FirstName.Trim();
             staff.LastName = request.LastName.Trim();
             staff.EmployeeId = request.EmployeeId.Trim();
-            staff.Role = request.Role;
+            staff.RoleId = targetRole?.Id;
             staff.PhoneNumber = request.PhoneNumber.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.NewPassword))

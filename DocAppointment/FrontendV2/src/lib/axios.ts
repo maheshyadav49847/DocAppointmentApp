@@ -1,5 +1,6 @@
 import axios from "axios"
 import { useAuthStore } from "@/store/authStore"
+import toast from "react-hot-toast"
 
 // Base Axios instance configured to point to our proxy which maps to http://localhost:5001
 export const api = axios.create({
@@ -11,6 +12,14 @@ export const api = axios.create({
 })
 
 // Optional: Interceptors for request/response handling globally
+api.interceptors.request.use((config) => {
+  const branchId = useAuthStore.getState().activeBranchId
+  if (branchId) {
+    config.headers['X-Branch-Id'] = branchId
+  }
+  return config
+})
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -21,6 +30,12 @@ api.interceptors.response.use(
       // Clear store to force redirect to login
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
+    } else if (error.response?.status === 403) {
+      console.error("Forbidden: You do not have permission to perform this action.")
+      toast.error("You do not have permission to perform this action.", {
+        id: "forbidden-error", // Prevent duplicate toasts
+        duration: 4000
+      })
     }
     return Promise.reject(error)
   }

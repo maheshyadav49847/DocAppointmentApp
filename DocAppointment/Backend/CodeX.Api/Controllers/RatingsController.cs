@@ -5,6 +5,8 @@ using CodeX.Application.Features.Ratings.Queries.GetDoctorRatings;
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -41,12 +43,20 @@ namespace CodeX.Api.Controllers
         /// </summary>
         [HttpGet("doctor/{doctorId}")]
         [Authorize]
+        [HasPermission(SystemPermissions.Doctors.View)]
         public async Task<IActionResult> GetDoctorRatings(Guid doctorId)
         {
-            // Enforcement: Ensure doctor belongs to current user's organization
-            if (!_currentUserService.IsInRole("SuperAdmin"))
+            // Enforcement: Ensure doctor belongs to current user's organization and branch
+            if (_currentUserService.OrgId != Guid.Empty)
             {
-                var doctorExists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_context.Doctors, d => d.Id == doctorId && d.OrganizationId == _currentUserService.OrgId);
+                var doctorQuery = _context.Doctors.Where(d => d.Id == doctorId && d.OrganizationId == _currentUserService.OrgId);
+
+                if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
+                {
+                    doctorQuery = doctorQuery.Where(d => d.Branches.Any(b => b.Id == _currentUserService.BranchId.Value));
+                }
+
+                var doctorExists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(doctorQuery);
                 if (!doctorExists)
                 {
                     return Forbid();
