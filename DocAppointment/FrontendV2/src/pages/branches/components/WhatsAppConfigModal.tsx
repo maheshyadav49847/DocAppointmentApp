@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 
 import { whatsappService, type BridgeStatus } from "@/services/whatsappService"
+import MetaEmbeddedSignup from "./MetaEmbeddedSignup"
 
 export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, onClose: () => void }) {
   const [status, setStatus] = useState<BridgeStatus | null>(null)
@@ -169,68 +170,106 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
               </div>
             </div>
 
-            {/* QR Core Hub */}
+            {/* Channel Hub */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg border border-slate-200 h-full min-h-[450px] flex flex-col relative overflow-hidden shadow-sm">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none"></div>
-                
-                <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
-                  {status?.ready ? (
-                    <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
-                      <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-green-200">
+              {branch.whatsAppProvider === "MetaCloud" ? (
+                 <div className="bg-white rounded-lg border border-slate-200 h-full min-h-[450px] flex flex-col relative overflow-hidden shadow-sm p-8">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto relative z-10">
+                      <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-200">
                         <CheckCircle2 className="w-12 h-12" />
                       </div>
-                      <h2 className="text-2xl font-bold text-slate-900 mb-2">Channel Verified</h2>
-                      <p className="text-slate-600">
-                        Node <strong>{branch.name}</strong> is online and securely processing automated queue alerts and patient communications.
+                      <h2 className="text-2xl font-bold text-slate-900 mb-2">Meta Cloud Verified</h2>
+                      <p className="text-slate-600 mb-4">
+                        Node <strong>{branch.name}</strong> is connected via the official Meta Cloud API.
+                        Messages are routed instantly without device syncing.
                       </p>
+                      <button 
+                        onClick={() => {
+                           if(confirm("Are you sure you want to revert to the Unofficial Bridge?")) {
+                              // We could call an endpoint to switch provider back
+                              alert("To revert, please update your WhatsApp number via the Edit Branch option.");
+                           }
+                        }}
+                        className="text-slate-500 text-sm font-semibold underline"
+                      >
+                        Revert to Unofficial Bridge
+                      </button>
                     </div>
-                  ) : status?.error === 'Bridge Unreachable' ? (
-                    <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
-                      <div className="w-24 h-24 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-rose-200">
-                        <AlertCircle className="w-12 h-12" />
-                      </div>
-                      <h2 className="text-2xl font-bold text-slate-900 mb-2">Bridge Unreachable</h2>
-                      <p className="text-slate-600">
-                        The WhatsApp Bridge service is currently down or unreachable. Please try Cold Booting the service.
-                      </p>
-                    </div>
-                  ) : status !== null ? (
-                    <div className="flex flex-col items-center w-full max-w-sm mx-auto">
-                      <div className="w-full flex items-center justify-center gap-2 mb-6 bg-amber-50 text-amber-700 px-4 py-2 rounded-lg border border-amber-200">
-                        <AlertCircle className="w-5 h-5" />
-                        <span className="font-semibold text-sm">Syncing Security Key</span>
-                      </div>
-                      
-                      <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full aspect-square flex items-center justify-center overflow-hidden">
-                        <iframe 
-                          src={`/whatsapp/qr/${branch.id}?expectedNumber=${branch?.whatsAppNumber?.replace(/\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
-                          className="w-[280px] h-[280px] border-none overflow-hidden scale-110 origin-center"
-                          scrolling="no"
-                        />
-                      </div>
-                      
-                      <div className="mt-8 bg-slate-50 p-4 rounded-xl border border-slate-200 w-full">
-                        <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                          <Smartphone className="w-4 h-4" /> Instructions
+                 </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-slate-200 h-full min-h-[450px] flex flex-col relative overflow-hidden shadow-sm">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none"></div>
+                  
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
+                    {status?.ready ? (
+                      <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
+                        <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-green-200">
+                          <CheckCircle2 className="w-12 h-12" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Channel Verified</h2>
+                        <p className="text-slate-600 mb-6">
+                          Node <strong>{branch.name}</strong> is online and securely processing automated queue alerts and patient communications.
                         </p>
-                        <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
-                          <li>Open WhatsApp on the facility phone.</li>
-                          <li>Tap Menu (⋮) or Settings.</li>
-                          <li>Select <strong>Linked Devices</strong>.</li>
-                          <li>Tap <strong>Link a Device</strong> and scan the QR code above.</li>
-                        </ol>
+
+                        <div className="w-full pt-6 border-t border-slate-100">
+                          <MetaEmbeddedSignup branchId={branch.id} onSuccess={() => window.location.reload()} />
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center">
-                      <div className="w-16 h-16 border-4 border-slate-200 border-t-green-500 rounded-full animate-spin mb-6" />
-                      <h3 className="text-xl font-bold text-slate-800 mb-2">Provisioning Node...</h3>
-                      <p className="text-slate-500 max-w-xs">Spawning Chromium core for encrypted bridge access.</p>
-                    </div>
-                  )}
+                    ) : status?.error === 'Bridge Unreachable' ? (
+                      <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto">
+                        <div className="w-24 h-24 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-6 shadow-sm border border-rose-200">
+                          <AlertCircle className="w-12 h-12" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Bridge Unreachable</h2>
+                        <p className="text-slate-600 mb-6">
+                          The WhatsApp Bridge service is currently down or unreachable. Please try Cold Booting the service.
+                        </p>
+                        
+                        <div className="w-full pt-6 border-t border-slate-100">
+                          <MetaEmbeddedSignup branchId={branch.id} onSuccess={() => window.location.reload()} />
+                        </div>
+                      </div>
+                    ) : status !== null ? (
+                      <div className="flex flex-col items-center w-full max-w-sm mx-auto">
+                        <div className="w-full flex items-center justify-center gap-2 mb-6 bg-amber-50 text-amber-700 px-4 py-2 rounded-lg border border-amber-200">
+                          <AlertCircle className="w-5 h-5" />
+                          <span className="font-semibold text-sm">Syncing Security Key</span>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 w-full aspect-square flex items-center justify-center overflow-hidden">
+                          <iframe 
+                            src={`/whatsapp/qr/${branch.id}?expectedNumber=${branch?.whatsAppNumber?.replace(/\D/g, '') || ''}&apiKey=${import.meta.env.VITE_WHATSAPP_BRIDGE_API_KEY || ''}`} 
+                            className="w-[280px] h-[280px] border-none overflow-hidden scale-110 origin-center"
+                            scrolling="no"
+                          />
+                        </div>
+                        
+                        <div className="mt-8 bg-slate-50 p-4 rounded-xl border border-slate-200 w-full mb-6">
+                          <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <Smartphone className="w-4 h-4" /> Instructions
+                          </p>
+                          <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
+                            <li>Open WhatsApp on the facility phone.</li>
+                            <li>Tap Menu (⋮) or Settings.</li>
+                            <li>Select <strong>Linked Devices</strong>.</li>
+                            <li>Tap <strong>Link a Device</strong> and scan the QR code above.</li>
+                          </ol>
+                        </div>
+                        
+                        <div className="w-full pt-6 border-t border-slate-100">
+                          <MetaEmbeddedSignup branchId={branch.id} onSuccess={() => window.location.reload()} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 border-4 border-slate-200 border-t-green-500 rounded-full animate-spin mb-6" />
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">Provisioning Node...</h3>
+                        <p className="text-slate-500 max-w-xs">Spawning Chromium core for encrypted bridge access.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
           </div>

@@ -11,6 +11,13 @@ namespace CodeX.Domain.Entities
         public string Address { get; set; } = string.Empty;
         public string WhatsAppNumber { get; set; } = string.Empty;
         public string? WhatsAppApiKey { get; set; }
+        
+        // WhatsApp Integration settings
+        public string WhatsAppProvider { get; set; } = "Bridge"; // "Bridge", "MetaCloud", "Twilio"
+        public string? MetaWabaId { get; set; }
+        public string? MetaPhoneNumberId { get; set; }
+        public string? MetaSystemUserToken { get; set; }
+
         public string Timezone { get; set; } = "India Standard Time";
         public string? LogoBase64 { get; set; }
 
