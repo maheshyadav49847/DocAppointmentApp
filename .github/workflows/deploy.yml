@@ -145,6 +145,11 @@ jobs:
             export VPS_IP="${{ secrets.VPS_IP }}"
             export IMAGE_TAG="${{ github.sha }}"
             
+            export ASPNET_ENV="Production"
+            if [ "$TARGET_ENV" = "dev" ] || [ "$TARGET_ENV" = "sandbox" ]; then
+              export ASPNET_ENV="Development"
+            fi
+            
             # Setup directory and docker-compose.yml
             mkdir -p ~/docappointment
             cd ~/docappointment
