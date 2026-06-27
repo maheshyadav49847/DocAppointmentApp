@@ -55,6 +55,9 @@ namespace CodeX.Infrastructure.ExternalServices
 
             // Ensure recipient number format
             var cleanPhone = toPhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
+            while (cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+            if (cleanPhone.Length == 10) cleanPhone = "91" + cleanPhone;
+
 
             var url = $"https://graph.facebook.com/v19.0/{phoneNumberId}/messages";
             
@@ -85,6 +88,8 @@ namespace CodeX.Infrastructure.ExternalServices
         public async Task SendTextMessage(string toPhoneNumber, string message, Guid branchId)
         {
             var cleanPhone = toPhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
+            while (cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+            if (cleanPhone.Length == 10) cleanPhone = "91" + cleanPhone;
             var payload = new
             {
                 messaging_product = "whatsapp",
