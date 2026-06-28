@@ -50,7 +50,14 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
               backgroundColor: '#ffffff', padding: '0px'
             }}>
               {branch?.logoBase64 ? (
-                <img src={branch.logoBase64.startsWith('data:image') ? branch.logoBase64 : `data:image/png;base64,${branch.logoBase64}`} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                <img 
+                  src={branch.logoBase64.replace(/\s+/g, '').startsWith('data:image') 
+                    ? branch.logoBase64.replace(/\s+/g, '') 
+                    : `data:image/png;base64,${branch.logoBase64.replace(/\s+/g, '')}`} 
+                  alt="Clinic Logo" 
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                  crossOrigin="anonymous"
+                />
               ) : (
                 <div style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>+</div>
               )}
