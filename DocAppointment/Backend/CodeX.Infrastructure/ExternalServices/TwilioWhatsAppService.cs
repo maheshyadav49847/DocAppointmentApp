@@ -85,6 +85,12 @@ namespace CodeX.Infrastructure.ExternalServices
             return Task.CompletedTask;
         }
 
+        public Task SendDocumentMessage(string toPhoneNumber, string message, string fileName, string base64Data, Guid branchId)
+        {
+            _logger.LogWarning("SendDocumentMessage is not implemented for TwilioWhatsAppService.");
+            return Task.CompletedTask;
+        }
+
         public Task SendTemplatedMessage(string toPhoneNumber, string contentSid, string variablesJson, Guid branchId)
         {
             _ = Task.Run(async () =>

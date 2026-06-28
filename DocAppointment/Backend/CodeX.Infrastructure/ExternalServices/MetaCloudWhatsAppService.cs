@@ -106,6 +106,76 @@ namespace CodeX.Infrastructure.ExternalServices
             await SendMetaMessageAsync(toPhoneNumber, payload, branchId);
         }
 
+        public async Task SendDocumentMessage(string toPhoneNumber, string message, string fileName, string base64Data, Guid branchId)
+        {
+            var (phoneNumberId, systemUserToken) = await GetBranchMetaCredentialsAsync(branchId);
+            if (string.IsNullOrEmpty(phoneNumberId) || string.IsNullOrEmpty(systemUserToken))
+            {
+                _logger.LogWarning("Meta credentials missing for branch {BranchId}. Cannot send document.", branchId);
+                return;
+            }
+
+            var cleanPhone = toPhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
+            while (cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
+            if (cleanPhone.Length == 10) cleanPhone = "91" + cleanPhone;
+
+            string mediaId = string.Empty;
+            try
+            {
+                byte[] fileBytes = Convert.FromBase64String(base64Data);
+                using var form = new MultipartFormDataContent();
+                var fileContent = new ByteArrayContent(fileBytes);
+                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/pdf");
+                form.Add(fileContent, "file", fileName);
+                form.Add(new StringContent("whatsapp"), "messaging_product");
+                
+                var uploadUrl = $"https://graph.facebook.com/v19.0/{phoneNumberId}/media";
+                var uploadRequest = new HttpRequestMessage(HttpMethod.Post, uploadUrl);
+                uploadRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", systemUserToken);
+                uploadRequest.Content = form;
+
+                var uploadResponse = await _httpClient.SendAsync(uploadRequest);
+                var uploadResponseStr = await uploadResponse.Content.ReadAsStringAsync();
+                
+                if (uploadResponse.IsSuccessStatusCode)
+                {
+                    var result = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(uploadResponseStr);
+                    if (result.TryGetProperty("id", out var idProp))
+                    {
+                        mediaId = idProp.GetString() ?? "";
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Meta Media Upload Error: {StatusCode} - {Content}", uploadResponse.StatusCode, uploadResponseStr);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload media to Meta");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(mediaId)) return;
+
+            var payload = new
+            {
+                messaging_product = "whatsapp",
+                recipient_type = "individual",
+                to = cleanPhone,
+                type = "document",
+                document = new
+                {
+                    id = mediaId,
+                    caption = message,
+                    filename = fileName
+                }
+            };
+
+            await SendMetaMessageAsync(toPhoneNumber, payload, branchId);
+        }
+
         public Task SendWelcomeMessage(string phoneNumber, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
         {
             _ = Task.Run(async () =>

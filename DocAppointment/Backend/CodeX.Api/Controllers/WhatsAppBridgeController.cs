@@ -88,35 +88,24 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("send/{branchId}")]
-        public async Task<IActionResult> Send(string branchId, [FromBody] SendMessageRequest body)
+        public async Task<IActionResult> Send(string branchId, [FromBody] SendMessageRequest body, [FromServices] IWhatsAppService whatsAppService)
         {
             try
             {
                 await EnsureBranchAccess(branchId);
-                var payload = new
-                {
-                    branchId = branchId,
-                    to = body.To,
-                    message = body.Message ?? body.Text,
-                    fileBase64 = body.FileBase64,
-                    fileName = body.FileName
-                };
-                
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{BridgeUrl}/send-message")
-                {
-                    Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json")
-                };
-                if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
+                var branchGuid = Guid.Parse(branchId);
+                var message = body.Message ?? body.Text ?? string.Empty;
 
-                var response = await _httpClient.SendAsync(request);
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
+                if (!string.IsNullOrEmpty(body.FileBase64))
                 {
-                    return Ok(System.Text.Json.JsonSerializer.Deserialize<object>(content));
+                    await whatsAppService.SendDocumentMessage(body.To, message, body.FileName ?? "document.pdf", body.FileBase64, branchGuid);
+                }
+                else
+                {
+                    await whatsAppService.SendTextMessage(body.To, message, branchGuid);
                 }
 
-                return BadRequest(new { error = "Failed to send message", details = content });
+                return Ok(new { success = true, message = "Message queued/sent successfully" });
             }
             catch (Exception ex)
             {

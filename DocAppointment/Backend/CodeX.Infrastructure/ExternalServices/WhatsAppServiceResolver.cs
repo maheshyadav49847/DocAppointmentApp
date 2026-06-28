@@ -71,6 +71,12 @@ namespace CodeX.Infrastructure.ExternalServices
             await service.SendTextMessage(toPhoneNumber, message, branchId);
         }
 
+        public async Task SendDocumentMessage(string toPhoneNumber, string message, string fileName, string base64Data, Guid branchId)
+        {
+            var service = await ResolveServiceAsync(branchId);
+            await service.SendDocumentMessage(toPhoneNumber, message, fileName, base64Data, branchId);
+        }
+
         public async Task SendUpcomingTurnAlert(string phoneNumber, int tokensLeft, Guid branchId)
         {
             var service = await ResolveServiceAsync(branchId);

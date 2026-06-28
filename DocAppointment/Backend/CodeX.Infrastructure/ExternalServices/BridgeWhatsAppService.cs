@@ -167,6 +167,12 @@ namespace CodeX.Infrastructure.ExternalServices
             return Task.CompletedTask;
         }
 
+        public Task SendDocumentMessage(string toPhoneNumber, string message, string fileName, string base64Data, Guid branchId)
+        {
+            _logger.LogWarning("SendDocumentMessage is not implemented for BridgeWhatsAppService.");
+            return Task.CompletedTask;
+        }
+
         public async Task<bool> TestConnection(string accountSid, string authToken, string fromNumber)
         {
             try

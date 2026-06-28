@@ -10,7 +10,15 @@ export interface PrescriptionTemplateProps {
 const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProps>(({ patient, visit, doctor, branch }, ref) => {
   if (!patient || !visit) return null;
 
-  const medicines = visit.medicines || [];
+  let medicines = visit.medicines || [];
+  if (typeof medicines === 'string') {
+    try {
+      medicines = JSON.parse(medicines);
+    } catch {
+      medicines = [];
+    }
+  }
+
   const symptoms = visit.symptoms || '';
   const diagnosis = visit.diagnosis || '';
   const advice = visit.advice || '';
@@ -42,7 +50,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
               backgroundColor: '#ffffff', padding: '0px'
             }}>
               {branch?.logoBase64 ? (
-                <img src={branch.logoBase64} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                <img src={branch.logoBase64.startsWith('data:image') ? branch.logoBase64 : `data:image/png;base64,${branch.logoBase64}`} alt="Clinic Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               ) : (
                 <div style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>+</div>
               )}
@@ -189,7 +197,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
         {/* Rx Symbol */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', marginBottom: '20px', paddingBottom: '8px' }}>
           <div style={{ fontSize: '42px', fontFamily: 'serif', fontWeight: '400', color: '#0f172a', fontStyle: 'italic', lineHeight: 1 }}>
-            ℞
+            Rx
           </div>
           <div style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', paddingBottom: '6px' }}>
             Prescribed Medicines
