@@ -14,13 +14,15 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
         private readonly ISmsService _smsService;
+        private readonly IChatSessionCache _chatSessionCache;
 
-        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService)
+        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService, IChatSessionCache chatSessionCache)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
             _smsService = smsService;
+            _chatSessionCache = chatSessionCache;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -76,6 +78,8 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         }
                         chatSession.CurrentState = "AWAITING_RATING_SCORE";
                         chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
+
+                        _chatSessionCache.SetSession(chatSession);
 
                         await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id, queue.BranchId);
                     }
