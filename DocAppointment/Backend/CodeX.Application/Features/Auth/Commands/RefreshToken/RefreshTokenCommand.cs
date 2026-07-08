@@ -1,10 +1,9 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Common.Settings;
-using Microsoft.Extensions.Options;
 using CodeX.Application.Features.Auth.Commands.Login;
-using CodeX.Domain.Entities;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CodeX.Application.Features.Auth.Commands.RefreshToken
 {
@@ -50,8 +49,8 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
             // Revoke the old token
             storedToken.IsRevoked = true;
 
-            var permissions = staff.Role != null ? 
-                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) : 
+            var permissions = staff.Role != null ?
+                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) :
                 new List<string>();
 
             Guid? dynamicBranchId = staff.BranchId;
@@ -62,16 +61,16 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
             }
 
             var token = _identityService.GenerateJwtToken(
-                staff.Id, 
+                staff.Id,
                 staff.Email,
-                staff.Role?.Name ?? string.Empty, 
-                dynamicBranchId, 
+                staff.Role?.Name ?? string.Empty,
+                dynamicBranchId,
                 staff.OrganizationId,
                 staff.DoctorId,
                 permissions);
 
             var newRefreshTokenStr = _identityService.GenerateRefreshToken();
-            
+
             var newRefreshToken = new CodeX.Domain.Entities.RefreshToken
             {
                 StaffId = staff.Id,
@@ -79,9 +78,9 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
                 ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
                 IsRevoked = false
             };
-            
+
             _context.RefreshTokens.Add(newRefreshToken);
-            
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return new LoginResponse(token, newRefreshTokenStr, staff.Email, staff.Role?.Name ?? string.Empty, staff.OrganizationId, dynamicBranchId, staff.DoctorId);

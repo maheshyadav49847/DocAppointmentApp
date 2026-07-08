@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay } from "lucide-react"
 import toast from "react-hot-toast"
 
 import { BrandLogo } from "@/components/BrandLogo"
@@ -15,7 +15,7 @@ import { useQuery } from "@tanstack/react-query"
 import { branchService } from "@/services/branchService"
 import { queueService } from "@/services/queueService"
 
-const getNavigation = (role: string) => {
+const getNavigation = (role: string, isDoctor: boolean) => {
   let nav = [
     { name: "Queue (Live)", href: "/queue", icon: Activity, requiredAny: ["Queue.View", "Patients.ViewHistory"] },
     { name: "Analytics", href: "/analytics", icon: LayoutDashboard, requiredAny: ["Analytics.View"] },
@@ -27,9 +27,11 @@ const getNavigation = (role: string) => {
     { name: "Pharmacy", href: "/pharmacy", icon: Pill, requiredAny: ["Pharmacy.View"] },
     { name: "Audit Log", href: "/audit-log", icon: FileText, requiredAny: ["Audit.View"] },
   ];
-  if (role === 'doctor') {
-    nav = nav.filter(item => item.name !== "Queue (Live)");
-    nav.unshift({ name: "My Desk", href: "/doctor-desk", icon: Stethoscope, requiredAny: ["DoctorDesk.View"] });
+  if (isDoctor) {
+    if (role === 'doctor') {
+      nav = nav.filter(item => item.name !== "Queue (Live)");
+    }
+    nav.unshift({ name: "My Desk", href: "/doctor-desk", icon: MonitorPlay, requiredAny: ["DoctorDesk.View"] });
   }
   return nav;
 }
@@ -57,7 +59,7 @@ export default function DashboardLayout() {
   });
 
   const { data: activeQueue } = useQuery({
-    queryKey: ['active-doctor-queue', user?.doctorId],
+    queryKey: ['doctorActiveQueue', user?.doctorId],
     queryFn: () => queueService.getActiveQueue(user!.doctorId!),
     enabled: !!token && !!user?.doctorId && role === 'doctor'
   });
@@ -80,13 +82,13 @@ export default function DashboardLayout() {
 
 
 
-  const navigation = getNavigation(role);
+  const navigation = getNavigation(role, !!user?.doctorId);
 
   let currentNav = navigation.find(n => n.href !== '/' && location.pathname.startsWith(n.href)) || (location.pathname === '/' ? navigation[0] : null);
 
   if (!currentNav) {
     if (location.pathname.startsWith('/consult')) currentNav = { name: "Consultation", href: location.pathname, icon: Stethoscope, requiredAny: [] };
-    else if (location.pathname.startsWith('/doctor-desk')) currentNav = { name: "My Desk", href: location.pathname, icon: Stethoscope, requiredAny: [] };
+    else if (location.pathname.startsWith('/doctor-desk')) currentNav = { name: "My Desk", href: location.pathname, icon: MonitorPlay, requiredAny: [] };
     else if (location.pathname.startsWith('/queue')) currentNav = { name: "Queue (Live)", href: location.pathname, icon: Activity, requiredAny: [] };
     else if (location.pathname.startsWith('/settings')) currentNav = { name: "Settings", href: location.pathname, icon: Settings, requiredAny: [] };
   }
@@ -214,12 +216,12 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-md md:hidden"
+              className="p-1 sm:p-2 -ml-1 sm:-ml-2 text-slate-500 hover:bg-slate-100 rounded-md md:hidden shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="block md:hidden">
-              <BrandLogo theme="light" size="sm" />
+            <div className="block md:hidden shrink-0">
+              <BrandLogo theme="light" size="sm" showSubtitle={false} />
             </div>
 
             {/* Breadcrumb */}
@@ -250,16 +252,16 @@ export default function DashboardLayout() {
           </div>
 
           {/* Header Right Content (Profile & Actions) */}
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="flex items-center gap-2 sm:gap-5 min-w-0">
             {/* Branch Selector */}
             {myBranches.length > 0 && (
-              <div className="relative flex items-center">
+              <div className="relative flex items-center min-w-0 max-w-[130px] sm:max-w-[200px]">
                 <select
                   value={activeBranchId || ""}
                   onChange={(e) => setActiveBranchId(e.target.value)}
                   disabled={isSessionActive && role === 'doctor'}
                   className={cn(
-                    "appearance-none bg-slate-100/50 border border-slate-200 text-slate-700 text-sm rounded-lg pl-3 pr-8 py-1.5 font-medium transition-colors cursor-pointer",
+                    "appearance-none bg-slate-100/50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg pl-2 sm:pl-3 pr-6 py-1 sm:py-1.5 font-medium transition-colors cursor-pointer w-full text-ellipsis overflow-hidden whitespace-nowrap",
                     isSessionActive && role === 'doctor' ? "opacity-60 cursor-not-allowed bg-slate-100" : "hover:bg-slate-100 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   )}
                 >
@@ -269,7 +271,7 @@ export default function DashboardLayout() {
                     </option>
                   ))}
                 </select>
-                <ChevronRight className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 absolute right-1.5 sm:right-2.5 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
               </div>
             )}
             {/* Notification Bell */}
@@ -327,13 +329,13 @@ export default function DashboardLayout() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-3 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left"
+                className="flex items-center gap-2 sm:gap-3 p-1 rounded-lg hover:bg-slate-50 transition-colors text-left shrink-0"
               >
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-slate-900">{user?.email?.split('@')[0]}</p>
                   <p className="text-[11px] text-slate-500 capitalize leading-tight">{user?.role}</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center font-semibold text-indigo-700 text-sm border border-indigo-200 shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-50 flex items-center justify-center font-semibold text-indigo-700 text-xs sm:text-sm border border-indigo-200 shrink-0">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
               </button>

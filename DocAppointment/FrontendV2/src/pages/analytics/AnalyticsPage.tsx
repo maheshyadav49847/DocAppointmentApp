@@ -1,5 +1,6 @@
 import { useState, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { PageLoader } from "@/components/ui/PageLoader"
 
 import { subDays } from "date-fns"
 import {
@@ -7,7 +8,7 @@ import {
 } from "recharts"
 import {
   Users, Clock, Activity,
-  Star, UserCheck, Timer, MessageSquare, Server, Building2
+  Star, UserCheck, Timer, MessageSquare, Server
 } from "lucide-react"
 
 import { useAuthStore } from "@/store/authStore"
@@ -15,7 +16,7 @@ import { reportService } from "@/services/reportService"
 
 
 export default function AnalyticsPage() {
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user, activeBranchId } = useAuthStore()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const isMultiBranchDoctor = role === 'doctor';
@@ -23,7 +24,7 @@ export default function AnalyticsPage() {
 
   const dashboardRef = useRef<HTMLDivElement>(null)
 
-  const isRestricted = role !== 'orgadmin' && role !== 'superadmin' && role !== '1' && role !== '0' && !isMultiBranchDoctor
+
 
 
   const [dateRange] = useState({
@@ -31,11 +32,6 @@ export default function AnalyticsPage() {
     end: new Date()
   })
 
-  const { data: branches } = useQuery({
-    queryKey: ['analytics-branches', orgId],
-    queryFn: () => reportService.getBranches(),
-    enabled: !!orgId
-  })
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['analytics', selectedBranchId, dateRange],
@@ -49,11 +45,10 @@ export default function AnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Activity className="w-12 h-12 text-indigo-500 animate-pulse mb-4" />
-        <h2 className="text-xl font-semibold text-zinc-700 animate-pulse">Gathering Strategic Data...</h2>
-        <p className="text-sm text-zinc-500">Compiling 30-day analytics</p>
-      </div>
+      <PageLoader 
+        message="Gathering Strategic Data..." 
+        subMessage="Compiling 30-day analytics" 
+      />
     )
   }
 

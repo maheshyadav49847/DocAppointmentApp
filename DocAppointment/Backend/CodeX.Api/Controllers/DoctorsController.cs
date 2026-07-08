@@ -1,15 +1,14 @@
+using CodeX.Api.Authorization;
+using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Doctors.Commands.CreateDoctor;
-using CodeX.Application.Features.Doctors.Commands.UpdateDoctor;
 using CodeX.Application.Features.Doctors.Commands.DeleteDoctor;
-using CodeX.Application.Features.Doctors.Queries.GetOrganizationDoctors;
+using CodeX.Application.Features.Doctors.Commands.UpdateDoctor;
 using CodeX.Application.Features.Doctors.Queries.GetDoctorsList;
 using CodeX.Application.Features.Doctors.Queries.GetOrganizationDoctors;
-using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization;
-using CodeX.Api.Authorization;
-using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {

@@ -1,5 +1,3 @@
-using System.Security.Claims;
-
 namespace CodeX.Application.Common.Interfaces
 {
     public interface ICurrentUserService

@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, Building2, LayoutDashboard, MonitorPlay } from "lucide-react"
+import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, LayoutDashboard, MonitorPlay } from "lucide-react"
 import { queueService } from "@/services/queueService"
-import { useAuthStore } from "@/store/authStore"
+
 import { motion, AnimatePresence } from "framer-motion"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { usePermissions } from "@/hooks/usePermissions"
+import { PageLoader } from "@/components/ui/PageLoader"
 
-export default function QueueOverview({ selectedBranchId, setSelectedBranchId, onManage }: any) {
-  const { user } = useAuthStore()
-  const orgId = user?.orgId
+export default function QueueOverview({ selectedBranchId, onManage }: any) {
+
   const [searchQuery, setSearchQuery] = useState("")
   const [processingSessions, setProcessingSessions] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
@@ -47,11 +47,6 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
     }
   }, [connection, queryClient, selectedBranchId])
 
-  const { data: branches } = useQuery({
-    queryKey: ['queue-branches', orgId],
-    queryFn: () => queueService.getBranches(),
-    enabled: !!orgId
-  })
 
   const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
     queryKey: ['queue-doctors', selectedBranchId],
@@ -129,8 +124,6 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
         <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 relative z-10 xl:ml-auto w-full xl:w-auto">
           {selectedBranchId && selectedBranchId !== 'org' && (
             <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-              {/* Hidden label spacer to perfectly align with the Branch Location select */}
-              <label className="hidden sm:block text-[10px] font-bold text-transparent select-none uppercase tracking-wider" aria-hidden="true">TV View</label>
               <a
                 href={`/tv/${selectedBranchId}`}
                 target="_blank"
@@ -209,13 +202,7 @@ export default function QueueOverview({ selectedBranchId, setSelectedBranchId, o
 
             <div className="p-4 sm:p-6 bg-slate-50/30 flex-1 overflow-auto">
               {isLoadingDoctors ? (
-                <div className="py-20 flex flex-col items-center justify-center gap-4">
-                  <div className="relative w-12 h-12">
-                    <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
-                  </div>
-                  <p className="text-slate-500 font-medium animate-pulse">Loading doctors...</p>
-                </div>
+                <PageLoader message="Loading doctors..." minHeight="min-h-[30vh]" />
               ) : filteredDoctors.length === 0 ? (
                 <div className="py-20 text-center flex flex-col items-center justify-center">
                   <div className="w-16 h-16 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center mb-4">
@@ -370,9 +357,9 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
             <button
               onClick={() => onStart(doctor, session)}
               disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-slate-300 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent border border-indigo-600 text-indigo-600 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-all disabled:opacity-50"
             >
-              {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-500" />}
+              {isProcessing ? <Activity className="w-4 h-4 animate-spin text-indigo-500" /> : <Play className="w-4 h-4 text-indigo-600" />}
               {isProcessing ? "Starting..." : "Start Session"}
             </button>
           )

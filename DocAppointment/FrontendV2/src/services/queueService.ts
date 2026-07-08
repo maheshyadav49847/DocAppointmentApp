@@ -1,6 +1,10 @@
 import { api } from "@/lib/axios"
 
 export const queueService = {
+  quickStart: async () => {
+    const response = await api.post('/queue/quick-start')
+    return response.data
+  },
   callNext: async (queueId: string) => {
     const response = await api.post(`/queue/${queueId}/next`)
     return response.data

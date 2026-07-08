@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace CodeX.Application.Common.Helpers
 {
     public static class NormalizationHelper

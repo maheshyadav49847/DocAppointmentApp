@@ -1,12 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Features.Medicines.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Features.Medicines.DTOs;
 
 namespace CodeX.Application.Features.Medicines.Queries
 {
@@ -39,7 +34,7 @@ namespace CodeX.Application.Features.Medicines.Queries
                 var defaultTypes = defaultNames.Select(n => new CodeX.Domain.Entities.MedicineType { Name = n }).ToList();
                 await _context.MedicineTypes.AddRangeAsync(defaultTypes, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
-                
+
                 types = defaultTypes.Select(m => new MedicineTypeDto { Id = m.Id, Name = m.Name }).ToList();
             }
 

@@ -182,7 +182,7 @@ namespace CodeX.Infrastructure.Persistence
 
             var systemRoles = await context.Roles
                 .Include(r => r.RolePermissions)
-                .Where(r => r.OrganizationId == Guid.Empty)
+                .Where(r => r.OrganizationId == Guid.Empty && r.Name != "SuperAdmin")
                 .ToListAsync();
 
             foreach (var org in orgs)

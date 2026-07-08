@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
+using CodeX.Api.Authorization;
 using CodeX.Application.Features.Medicines.Commands;
 using CodeX.Application.Features.Medicines.Queries;
+using CodeX.Domain.Constants;
 using CsvHelper;
 using CsvHelper.Configuration;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using CodeX.Api.Authorization;
-using CodeX.Domain.Constants;
+using System.Globalization;
 
 namespace CodeX.Api.Controllers
 {
@@ -45,10 +38,10 @@ namespace CodeX.Api.Controllers
 
         private Guid GetUserId()
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
-                ?? User.FindFirst("id")?.Value 
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("id")?.Value
                 ?? User.FindFirst("sub")?.Value;
-                
+
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             {
                 throw new UnauthorizedAccessException("User context not found in token.");

@@ -18,6 +18,7 @@ import toast from "react-hot-toast"
 import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
 import { useAuthStore } from "@/store/authStore"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
@@ -35,7 +36,7 @@ export default function DoctorsPage() {
     pageSize: 10,
   })
 
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user, activeBranchId } = useAuthStore()
   const { can } = usePermissions()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
@@ -80,7 +81,6 @@ export default function DoctorsPage() {
       } else if (error.response?.data?.extensions?.errors) {
         setValidationErrors(error.response.data.extensions.errors)
       }
-      toast.error('Failed to save doctor')
     }
   })
 
@@ -306,29 +306,11 @@ export default function DoctorsPage() {
 
         {/* Data View */}
         <div className="flex-1 overflow-auto bg-slate-50/50 p-4 sm:p-6">
-          {viewMode === 'grid' ? (
+          {isLoading ? (
+            <PageLoader message="Loading doctors..." minHeight="min-h-[40vh]" />
+          ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
-            {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-slate-200 rounded-full" />
-                    <div>
-                      <div className="h-4 bg-slate-200 rounded w-24 mb-2" />
-                      <div className="h-3 bg-slate-200 rounded w-16" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="h-3 bg-slate-200 rounded w-full" />
-                    <div className="h-3 bg-slate-200 rounded w-2/3" />
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex gap-2">
-                    <div className="h-8 bg-slate-200 rounded flex-1" />
-                    <div className="h-8 bg-slate-200 rounded w-8" />
-                  </div>
-                </div>
-              ))
-            ) : table.getRowModel().rows.length > 0 ? (
+              {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map(row => (
                 <div key={row.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                   {/* Header Section */}
@@ -456,18 +438,7 @@ export default function DoctorsPage() {
                 ))}
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {isLoading ? (
-                  // Skeleton Rows
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="px-6 py-4"><div className="h-10 w-48 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-5 w-24 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-6 w-16 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-5 w-12 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-8 w-8 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                    </tr>
-                  ))
-                ) : table.getRowModel().rows.length > 0 ? (
+                {table.getRowModel().rows.length > 0 ? (
                   table.getRowModel().rows.map(row => (
                     <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors group">
                       {row.getVisibleCells().map(cell => (

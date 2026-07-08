@@ -1,9 +1,6 @@
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeX.Api.Filters
 {

@@ -16,6 +16,8 @@ import {
 import toast from "react-hot-toast"
 
 import { branchService } from "@/services/branchService"
+
+import { PageLoader } from "@/components/ui/PageLoader"
 import { useAuthStore } from "@/store/authStore"
 import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
@@ -297,9 +299,7 @@ export default function BranchesPage() {
         </div>
         <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48">
-              <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
-            </div>
+            <PageLoader message="Loading branches..." minHeight="min-h-[20vh]" />
           ) : filteredBranches.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
               <Building2 className="w-12 h-12 text-slate-300 mb-4" />

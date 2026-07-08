@@ -1,7 +1,6 @@
+using CodeX.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Common.Interfaces;
-using CodeX.Application.Features.Staff;
 
 namespace CodeX.Application.Features.Staff.Commands.DeleteStaff
 {

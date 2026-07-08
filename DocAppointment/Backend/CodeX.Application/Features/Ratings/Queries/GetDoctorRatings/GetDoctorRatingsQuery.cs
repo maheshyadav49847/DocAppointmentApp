@@ -1,11 +1,6 @@
+using CodeX.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Common.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CodeX.Application.Features.Ratings.Queries.GetDoctorRatings
 {
@@ -52,7 +47,7 @@ namespace CodeX.Application.Features.Ratings.Queries.GetDoctorRatings
                 .OrderByDescending(r => r.CreatedAt);
 
             var totalRatings = await ratingsQuery.CountAsync(cancellationToken);
-            
+
             if (totalRatings == 0)
             {
                 return new DoctorRatingsSummaryDto
@@ -64,7 +59,7 @@ namespace CodeX.Application.Features.Ratings.Queries.GetDoctorRatings
             }
 
             var averageScore = await ratingsQuery.AverageAsync(r => r.Score, cancellationToken);
-            
+
             var recentRatings = await ratingsQuery
                 .Take(20) // Get top 20 recent ratings
                 .Select(r => new DoctorRatingDto

@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeX.Domain.Entities
 {
     public class RolePermission

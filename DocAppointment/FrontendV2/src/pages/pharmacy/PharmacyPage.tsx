@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Pill, Plus, Search, Edit, Trash2, Activity, UploadCloud, DownloadCloud, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { DownloadCloud, UploadCloud, Pill, Plus, Search, Edit, Trash2, Activity, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { medicineService, type MedicineDto } from "../../services/medicineService";
 import MedicineModal from "./components/MedicineModal";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -314,9 +315,7 @@ export default function PharmacyPage() {
 
         <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48">
-              <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
-            </div>
+            <PageLoader message="Loading medicines..." minHeight="min-h-[30vh]" />
           ) : (paginatedData?.items?.length || 0) === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
               <Pill className="w-12 h-12 text-slate-300 mb-4" />

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace CodeX.Application.Common.Helpers
 {
     public static class WhatsAppTranslationHelper

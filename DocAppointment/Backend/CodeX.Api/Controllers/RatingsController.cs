@@ -1,12 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using MediatR;
+using CodeX.Api.Authorization;
 using CodeX.Application.Features.Ratings.Commands.CreateRating;
 using CodeX.Application.Features.Ratings.Queries.GetDoctorRatings;
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using CodeX.Api.Authorization;
 using CodeX.Domain.Constants;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CodeX.Api.Controllers
 {

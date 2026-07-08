@@ -1,5 +1,4 @@
 using FluentValidation;
-using CodeX.Application.Features.Sessions.Commands.UpdateSession;
 
 namespace CodeX.Application.Features.Sessions.Commands.UpdateSession
 {

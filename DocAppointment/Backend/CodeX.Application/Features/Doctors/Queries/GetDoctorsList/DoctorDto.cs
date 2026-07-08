@@ -1,5 +1,3 @@
-using CodeX.Domain.Entities;
-
 namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
 {
     public class DoctorDto

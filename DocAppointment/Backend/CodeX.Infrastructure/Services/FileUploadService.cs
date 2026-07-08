@@ -1,10 +1,6 @@
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Common.Settings;
 using Microsoft.Extensions.Options;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CodeX.Infrastructure.Services
 {

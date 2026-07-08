@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using MediatR;
@@ -14,10 +9,10 @@ namespace CodeX.Application.Features.Medicines.Commands
     {
         [CsvHelper.Configuration.Attributes.Name("BrandName")]
         public string Name { get; set; } = string.Empty;
-        
+
         [CsvHelper.Configuration.Attributes.Name("GenericName")]
         public string? GenericName { get; set; }
-        
+
         public string? Type { get; set; }
         public string? Manufacturer { get; set; }
     }
@@ -97,7 +92,7 @@ namespace CodeX.Application.Features.Medicines.Commands
                 {
                     foreach (var typeKvp in existingTypes.OrderByDescending(t => t.Key.Length))
                     {
-                        if (lowerName.Contains(typeKvp.Key) || 
+                        if (lowerName.Contains(typeKvp.Key) ||
                             (!string.IsNullOrWhiteSpace(med.GenericName) && med.GenericName.ToLower().Contains(typeKvp.Key)))
                         {
                             typeId = typeKvp.Value;

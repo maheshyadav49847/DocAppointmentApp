@@ -1,12 +1,11 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Common.Settings;
-using Microsoft.Extensions.Options;
-using BCrypt.Net;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using CodeX.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace CodeX.Application.Features.Auth.Commands.Login
 {
@@ -64,13 +63,13 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             {
                 staff.FailedLoginAttempts++;
                 var maxAttempts = _configuration.GetValue<int>("LockoutSettings:MaxFailedAccessAttempts", 5);
-                
+
                 if (staff.FailedLoginAttempts >= maxAttempts)
                 {
                     var lockoutMinutes = _configuration.GetValue<int>("LockoutSettings:DefaultLockoutTimeSpanMinutes", 15);
                     staff.LockoutEnd = DateTime.UtcNow.AddMinutes(lockoutMinutes);
                 }
-                
+
                 await _context.SaveChangesAsync(cancellationToken);
                 throw new Exception("Invalid credentials");
             }
@@ -79,8 +78,8 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             staff.FailedLoginAttempts = 0;
             staff.LockoutEnd = null;
 
-            var permissions = staff.Role != null ? 
-                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) : 
+            var permissions = staff.Role != null ?
+                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) :
                 new List<string>();
 
             Guid? dynamicBranchId = staff.BranchId;
@@ -91,16 +90,16 @@ namespace CodeX.Application.Features.Auth.Commands.Login
             }
 
             var token = _identityService.GenerateJwtToken(
-                staff.Id, 
-                staff.Email, 
-                staff.Role?.Name ?? string.Empty, 
-                dynamicBranchId, 
+                staff.Id,
+                staff.Email,
+                staff.Role?.Name ?? string.Empty,
+                dynamicBranchId,
                 staff.OrganizationId,
                 staff.DoctorId,
                 permissions);
-                
+
             var refreshTokenStr = _identityService.GenerateRefreshToken();
-            
+
             var refreshToken = new CodeX.Domain.Entities.RefreshToken
             {
                 StaffId = staff.Id,
@@ -109,12 +108,12 @@ namespace CodeX.Application.Features.Auth.Commands.Login
                 IsRevoked = false
             };
             _context.RefreshTokens.Add(refreshToken);
-            
+
             // Log Session
             var context = _httpContextAccessor.HttpContext;
             var ipAddress = context?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
             var userAgent = context?.Request.Headers["User-Agent"].ToString() ?? "unknown";
-            
+
             var session = new UserSession
             {
                 UserId = staff.Id,
@@ -124,7 +123,7 @@ namespace CodeX.Application.Features.Auth.Commands.Login
                 LastActiveAt = DateTime.UtcNow
             };
             _context.UserSessions.Add(session);
-            
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return new LoginResponse(token, refreshTokenStr, staff.Email, staff.Role?.Name ?? string.Empty, staff.OrganizationId, dynamicBranchId, staff.DoctorId);

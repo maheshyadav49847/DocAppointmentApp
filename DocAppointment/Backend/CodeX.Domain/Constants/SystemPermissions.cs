@@ -51,6 +51,14 @@ namespace CodeX.Domain.Constants
         public static class DoctorDesk
         {
             public const string View = "DoctorDesk.View";
+            public const string CallNext = "DoctorDesk.CallNext";
+            public const string CompleteToken = "DoctorDesk.CompleteToken";
+            public const string SkipToken = "DoctorDesk.SkipToken";
+            public const string EndSession = "DoctorDesk.EndSession";
+            public const string MarkDoctorArrived = "DoctorDesk.MarkDoctorArrived";
+            public const string CancelToken = "DoctorDesk.CancelToken";
+            public const string RestoreToken = "DoctorDesk.RestoreToken";
+            public const string EditPatient = "DoctorDesk.EditPatient";
         }
 
         public static class Patients

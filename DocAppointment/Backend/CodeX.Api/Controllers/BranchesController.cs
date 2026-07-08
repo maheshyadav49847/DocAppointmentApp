@@ -24,8 +24,13 @@ namespace CodeX.Api.Controllers
         {
             var query = _context.Branches.AsQueryable();
 
+            if (_currentUserService.DoctorId.HasValue)
+            {
+                // Doctors only see branches they are assigned to
+                query = query.Where(b => b.Doctors.Any(d => d.Id == _currentUserService.DoctorId.Value));
+            }
             // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
-            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+            else if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
             {
                 query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
             }
@@ -36,8 +41,8 @@ namespace CodeX.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Branch>> Get(Guid id)
         {
-            // Branch Isolation
-            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            // Branch Isolation: strictly bound users (like Receptionists) can only view their TokenBranchId
+            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty && _currentUserService.TokenBranchId.Value != id)
             {
                 return Forbid();
             }
@@ -46,6 +51,13 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (branch == null) return NotFound();
+
+            // Ensure the branch belongs to the user's organization
+            if (branch.OrganizationId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty)
+            {
+                return Forbid();
+            }
+
             return branch;
         }
 

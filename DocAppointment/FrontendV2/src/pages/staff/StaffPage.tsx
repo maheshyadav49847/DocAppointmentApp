@@ -84,14 +84,12 @@ export default function StaffPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => staffService.updateStaff(editingStaff.id, {
-      id: editingStaff.id,
-      ...data
-    }),
+    mutationFn: (data: any) => staffService.updateStaff(data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
       setEditingStaff(null)
+      setResettingStaff(null)
       setApiError(null)
       setValidationErrors({})
       toast.success('Staff updated successfully')
@@ -128,7 +126,7 @@ export default function StaffPage() {
       roleId: formData.get('role') as string
     }
     if (editingStaff) {
-      updateMutation.mutate(data)
+      updateMutation.mutate({ ...data, id: editingStaff.id })
     } else {
       data.password = formData.get('password') as string
       createMutation.mutate(data)

@@ -3,9 +3,6 @@ using CodeX.Domain.Common;
 using CodeX.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading.Tasks;
 
 namespace CodeX.Api.Filters
 {
@@ -15,7 +12,7 @@ namespace CodeX.Api.Filters
     /// </summary>
     public class AuthorizeResourceAttribute : TypeFilterAttribute
     {
-        public AuthorizeResourceAttribute(Type entityType, string routeKey = "id") 
+        public AuthorizeResourceAttribute(Type entityType, string routeKey = "id")
             : base(typeof(AuthorizeResourceFilter))
         {
             Arguments = new object[] { entityType, routeKey };

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities

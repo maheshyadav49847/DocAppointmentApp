@@ -1,8 +1,7 @@
+using CodeX.Application.Common.Settings;
 using CodeX.Application.Features.Auth.Commands.Login;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-using CodeX.Application.Common.Settings;
 using Microsoft.Extensions.Options;
 
 namespace CodeX.Api.Controllers
@@ -26,7 +25,7 @@ namespace CodeX.Api.Controllers
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = Request.IsHttps, 
+                    Secure = Request.IsHttps,
                     SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes)
                 };
@@ -43,12 +42,12 @@ namespace CodeX.Api.Controllers
                 Response.Cookies.Append("refresh_token", response.RefreshToken, refreshCookieOptions);
 
                 // Return user info WITH the token so the frontend can use it in headers
-                return Ok(new 
-                { 
+                return Ok(new
+                {
                     token = response.Token,
-                    email = response.Email, 
-                    role = response.Role, 
-                    orgId = response.OrgId, 
+                    email = response.Email,
+                    role = response.Role,
+                    orgId = response.OrgId,
                     branchId = response.BranchId,
                     doctorId = response.DoctorId
                 });
@@ -98,7 +97,7 @@ namespace CodeX.Api.Controllers
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = Request.IsHttps, 
+                    Secure = Request.IsHttps,
                     SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes)
                 };
@@ -114,12 +113,12 @@ namespace CodeX.Api.Controllers
                 Response.Cookies.Append("jwt_token", response.Token, cookieOptions);
                 Response.Cookies.Append("refresh_token", response.RefreshToken, refreshCookieOptions);
 
-                return Ok(new 
-                { 
+                return Ok(new
+                {
                     token = response.Token,
-                    email = response.Email, 
-                    role = response.Role, 
-                    orgId = response.OrgId, 
+                    email = response.Email,
+                    role = response.Role,
+                    orgId = response.OrgId,
                     branchId = response.BranchId,
                     doctorId = response.DoctorId
                 });

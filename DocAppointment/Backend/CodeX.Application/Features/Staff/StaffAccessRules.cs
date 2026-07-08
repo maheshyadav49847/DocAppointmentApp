@@ -1,6 +1,4 @@
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Entities;
-using CodeX.Domain.Enums;
 
 namespace CodeX.Application.Features.Staff
 {

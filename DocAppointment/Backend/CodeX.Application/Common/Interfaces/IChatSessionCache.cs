@@ -1,8 +1,4 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeX.Domain.Entities;
-using System;
 
 namespace CodeX.Application.Common.Interfaces
 {

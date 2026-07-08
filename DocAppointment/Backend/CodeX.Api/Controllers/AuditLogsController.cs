@@ -1,10 +1,9 @@
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using CodeX.Api.Authorization;
-using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -38,8 +37,8 @@ namespace CodeX.Api.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var searchLower = search.ToLower();
-                query = query.Where(a => 
-                    a.Action.ToLower().Contains(searchLower) || 
+                query = query.Where(a =>
+                    a.Action.ToLower().Contains(searchLower) ||
                     a.Path.ToLower().Contains(searchLower) ||
                     (a.UserId != null && a.UserId.ToLower().Contains(searchLower)));
             }

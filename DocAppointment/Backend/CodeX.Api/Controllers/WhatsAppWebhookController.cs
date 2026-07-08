@@ -1,5 +1,5 @@
-using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage;
+using CodeX.Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,14 +14,14 @@ namespace CodeX.Api.Controllers
         private readonly IConfiguration _config;
         private readonly ILogger<WhatsAppWebhookController> _logger;
         private readonly MediatR.ISender _mediator;
-        private readonly IWhatsAppService _whatsApp;
+        private readonly BridgeWhatsAppService _whatsApp;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
 
         public WhatsAppWebhookController(
             IConfiguration config,
             ILogger<WhatsAppWebhookController> logger,
             MediatR.ISender mediator,
-            IWhatsAppService whatsApp,
+            BridgeWhatsAppService whatsApp,
             Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
         {
             _config = config;
@@ -63,7 +63,7 @@ namespace CodeX.Api.Controllers
                 _logger.LogWarning("Rate limit exceeded for {Phone}", request.From);
                 return Ok(); // Silently drop to save Twilio costs
             }
-            
+
             _cache.Set(cacheKey, currentCount + 1, TimeSpan.FromMinutes(1));
 
             var response = await _mediator.Send(new ProcessIncomingMessageCommand

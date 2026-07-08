@@ -1,5 +1,4 @@
-using System.Text;
-using System.Text.Json;
+using CodeX.Application.Common.Helpers;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Ratings.Commands.CreateRating;
 using CodeX.Application.Features.Tokens.Commands.CreateToken;
@@ -7,8 +6,8 @@ using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Common.Helpers;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 
 namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 {
@@ -88,7 +87,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             {
                 ResetSession(session);
             }
-            
+
             // Log Incoming Message
             await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received");
 
@@ -109,7 +108,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             // Save to Cache (Write-Behind)
             _chatSessionCache.SetSession(session);
-            
+
             return response;
         }
 
@@ -142,21 +141,21 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 session.CurrentState = "START";
                 return await HandleStart(session, ct); // Automatically proceed
             }
-            
+
             return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(session.BranchId, ct));
         }
 
         private async Task<string> HandleHelp(ChatSession session, CancellationToken ct)
         {
             var sb = new StringBuilder();
-            
+
             if (session.Language == "1") sb.AppendLine("❓ सहायता केंद्र / Help Menu\n\nउपलब्ध कमांड (Type the word):");
             else if (session.Language == "2") sb.AppendLine("❓ मदत केंद्र / Help Menu\n\nउपलब्ध कमांड (Type the word):");
             else sb.AppendLine("❓ Help Menu\n\nAvailable Commands (Type the word):");
-            
+
             sb.AppendLine("🏠 *HI* - Main Menu / मुख्य मेन्यू");
             sb.AppendLine("🌐 *LANGUAGE* - Change Language / भाषा बदलें");
-            
+
             // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone == session.PhoneNumber, ct);
             if (patient != null && session.BranchId.HasValue)
@@ -177,7 +176,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     sb.AppendLine("🔄 *RESCHEDULE* - Reschedule / समय बदलें");
                     sb.AppendLine("❌ *CANCEL* - Cancel Booking / रद्द करें");
                 }
-                else 
+                else
                 {
                     var skippedToken = await _context.Tokens
                         .IgnoreQueryFilters()
@@ -186,10 +185,10 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                                     t.Queue.BranchId == session.BranchId &&
                                     t.Status == TokenStatus.Skipped)
                         .FirstOrDefaultAsync(ct);
-                    
+
                     if (skippedToken != null)
                     {
-                         sb.AppendLine("🔁 *REJOIN* - Rejoin Queue / कतार में जुड़ें");
+                        sb.AppendLine("🔁 *REJOIN* - Rejoin Queue / कतार में जुड़ें");
                     }
                 }
             }
@@ -240,7 +239,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 await _context.SaveChangesAsync(ct);
 
                 // Notify via SignalR
-                try 
+                try
                 {
                     await _notificationService.NotifyTokenUpdated(activeToken.Queue.BranchId, activeToken.QueueId, activeToken.Queue.CurrentTokenNumber);
                 }
@@ -452,7 +451,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
                 // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
                 await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: result.TokenId);
-                
+
                 return response;
             }
             catch (Exception ex)
@@ -529,9 +528,9 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             if (patient == null)
             {
                 var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == session.BranchId, ct);
-                patient = new Patient 
-                { 
-                    Phone = session.PhoneNumber, 
+                patient = new Patient
+                {
+                    Phone = session.PhoneNumber,
                     Name = name.Trim(),
                     OrganizationId = branch?.OrganizationId ?? Guid.Empty
                 };
@@ -744,7 +743,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             await _context.SaveChangesAsync(ct);
 
             // Notify via SignalR
-            try 
+            try
             {
                 await _notificationService.NotifyTokenUpdated(skippedToken.Queue.BranchId, skippedToken.QueueId, skippedToken.Queue.CurrentTokenNumber);
             }
@@ -787,7 +786,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             foreach (var session in activeSessions)
             {
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
-                
+
                 // Only include doctors whose session has been explicitly started (q != null)
                 if (q == null || q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled)
                     continue;
@@ -827,7 +826,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             foreach (var session in activeSessions)
             {
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
-                
+
                 // Only include sessions that have been explicitly started (q != null)
                 if (q == null || q.Status == QueueStatus.Completed || q.Status == QueueStatus.Cancelled)
                     continue;

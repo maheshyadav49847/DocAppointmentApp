@@ -1,12 +1,7 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Enums;
-using CodeX.Domain.Entities;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Application.Features.Queue.Commands.CancelQueue
 {

@@ -1,11 +1,9 @@
-using MediatR;
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Entities;
-using CodeX.Domain.Enums;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
-using Microsoft.Extensions.Configuration;
 using CodeX.Application.Common.Security;
+using CodeX.Domain.Entities;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 {
@@ -52,7 +50,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             // Clone system roles for the new organization
             var systemRoles = await _context.Roles
                 .Include(r => r.RolePermissions)
-                .Where(r => r.OrganizationId == Guid.Empty)
+                .Where(r => r.OrganizationId == Guid.Empty && r.Name != "SuperAdmin")
                 .ToListAsync(cancellationToken);
 
             var clonedRoles = new Dictionary<string, Role>();
@@ -90,7 +88,19 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
             // Assign the newly cloned OrgAdmin role instead of the global one
             var orgAdminRole = clonedRoles.ContainsKey("OrgAdmin") ? clonedRoles["OrgAdmin"] : null;
-            
+
+            // 3. Create Doctor Profile for the Admin (Solo Doctor Workflow)
+            var doctor = new CodeX.Domain.Entities.Doctor
+            {
+                OrganizationId = org.Id,
+                Name = $"Dr. {firstName} {lastName}",
+                Specialization = "General Practitioner",
+                ConsultationFee = 500,
+                IsActive = true
+            };
+
+            _context.Doctors.Add(doctor);
+
             var admin = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = org.Id,
@@ -99,7 +109,8 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
                 RoleId = orgAdminRole?.Id,
-                PhoneNumber = normalizedPhone
+                PhoneNumber = normalizedPhone,
+                Doctor = doctor // Link the staff to the newly created doctor profile
             };
 
             _context.Staff.Add(admin);

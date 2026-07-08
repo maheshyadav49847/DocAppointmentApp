@@ -150,7 +150,27 @@ namespace CodeX.Infrastructure.Persistence
                     .Property(p => p.AadhaarNumber)
                     .HasConversion(converter);
             }
+
+            // Doctor Data Isolation Filters
+            modelBuilder.Entity<Doctor>().HasQueryFilter(x =>
+                (_currentUserService.OrgId == Guid.Empty || x.OrganizationId == _currentUserService.OrgId) 
+                && (!IsDoctorRole || x.Id == CurrentDoctorId)
+                && !x.IsDeleted
+            );
+
+            modelBuilder.Entity<Session>().HasQueryFilter(x =>
+                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                && !x.IsDeleted
+            );
+
+            modelBuilder.Entity<DailyQueue>().HasQueryFilter(x =>
+                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                && !x.IsDeleted
+            );
         }
+
+        private bool IsDoctorRole => _currentUserService.IsInRole("Doctor");
+        private Guid? CurrentDoctorId => _currentUserService.DoctorId;
 
         private void ApplyTenantFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
         {

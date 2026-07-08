@@ -111,10 +111,9 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             {
                 if (!string.IsNullOrWhiteSpace(request.PatientPhone))
                 {
-                    var phoneVars = CodeX.Application.Common.Helpers.NormalizationHelper.GetPhoneVariations(request.PatientPhone);
                     patient = await _context.Patients
                         .IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone != null && phoneVars.Contains(p.Phone), cancellationToken);
+                        .FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone != null && p.Phone == normalizedPhone, cancellationToken);
                 }
 
                 if (patient != null)

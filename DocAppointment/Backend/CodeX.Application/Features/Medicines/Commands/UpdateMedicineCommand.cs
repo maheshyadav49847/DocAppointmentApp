@@ -1,9 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Entities;
 using MediatR;
 
 namespace CodeX.Application.Features.Medicines.Commands

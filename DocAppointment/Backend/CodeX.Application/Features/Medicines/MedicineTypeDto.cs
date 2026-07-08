@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeX.Application.Features.Medicines.DTOs
 {
     public class MedicineTypeDto

@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 
 namespace CodeX.Infrastructure.Services
 {
@@ -34,7 +29,7 @@ namespace CodeX.Infrastructure.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                
+
                 // IgnoreQueryFilters to get the session across branches if needed, though we strictly filter by BranchId
                 session = await context.ChatSessions
                     .IgnoreQueryFilters()
@@ -52,7 +47,7 @@ namespace CodeX.Infrastructure.Services
         public void SetSession(ChatSession session)
         {
             SetCacheOnly(session);
-            
+
             // Mark as dirty so background service persists it
             var cacheKey = GetCacheKey(session.PhoneNumber, session.BranchId);
             _dirtySessions.AddOrUpdate(cacheKey, session, (_, _) => session);
@@ -63,7 +58,7 @@ namespace CodeX.Infrastructure.Services
             var cacheKey = GetCacheKey(session.PhoneNumber, session.BranchId);
             var cacheOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromHours(24));
-                
+
             _memoryCache.Set(cacheKey, session, cacheOptions);
         }
 

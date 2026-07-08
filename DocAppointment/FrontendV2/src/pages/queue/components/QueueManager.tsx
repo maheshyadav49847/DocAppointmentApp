@@ -282,26 +282,26 @@ export default function QueueManager({ sessionData, onBack }: any) {
           </div>
 
           {/* Quick Stats Strip */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center"><Users className="w-6 h-6" /></div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0"><Users className="w-5 h-5 sm:w-6 sm:h-6" /></div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.waitingCount || 0}</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Waiting</p>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.waitingCount || 0}</h3>
+                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Waiting</p>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center"><CheckCircle2 className="w-6 h-6" /></div>
+            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /></div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.completedCount || 0}</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Served</p>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.completedCount || 0}</h3>
+                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Served</p>
               </div>
             </div>
-            <div className="bg-white rounded-lg p-5 border border-slate-200/60 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center"><AlertCircle className="w-6 h-6" /></div>
+            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0"><AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" /></div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-none mb-1">{queue.skippedCount || 0}</h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Skipped</p>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.skippedCount || 0}</h3>
+                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Skipped</p>
               </div>
             </div>
           </div>

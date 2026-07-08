@@ -1,9 +1,8 @@
+using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Common.Security;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Common.Interfaces;
-using BCrypt.Net;
 using Microsoft.Extensions.Configuration;
-using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Auth.Commands.ResetPassword
 {
@@ -28,8 +27,8 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
         public async Task<bool> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
         {
             var isEmail = request.Identifier.Contains("@");
-            var normalizedIdentifier = isEmail ? 
-                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.Identifier) : 
+            var normalizedIdentifier = isEmail ?
+                CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.Identifier) :
                 CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.Identifier);
 
             var staff = await _context.Staffs
@@ -44,7 +43,7 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
             // Update password
             PasswordValidator.Validate(request.NewPassword, _configuration);
             staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            
+
             // Clear token
             staff.PasswordResetToken = null;
             staff.ResetTokenExpiry = null;

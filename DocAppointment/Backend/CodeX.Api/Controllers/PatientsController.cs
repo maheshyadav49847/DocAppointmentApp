@@ -1,14 +1,10 @@
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
-using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Constants;
 using CodeX.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using CodeX.Api.Authorization;
-using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -171,7 +167,8 @@ namespace CodeX.Api.Controllers
             _context.Patients.Add(patient);
             await _context.SaveChangesAsync(new System.Threading.CancellationToken());
 
-            return Ok(new {
+            return Ok(new
+            {
                 patient.Id,
                 patient.PatientCode,
                 patient.Name,
@@ -225,7 +222,7 @@ namespace CodeX.Api.Controllers
 
         [System.ComponentModel.DataAnnotations.RegularExpression(@"^\+?[1-9]\d{1,14}$", ErrorMessage = "Invalid phone number format.")]
         public string? Phone { get; set; }
-        
+
         public string? Age { get; set; }
         public string? Gender { get; set; }
         public string? MaritalStatus { get; set; }

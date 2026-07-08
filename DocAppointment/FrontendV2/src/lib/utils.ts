@@ -7,18 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function handleApiError(error: any, defaultMessage = "An error occurred") {
+  const status = error.response?.status;
   const validationErrors = error.response?.data?.errors || error.response?.data?.extensions?.errors;
   const generalMessage = error.response?.data?.message || error.response?.data?.detail;
 
-  if (validationErrors) {
-    Object.values(validationErrors).forEach((errMsgs: any) => {
-      if (Array.isArray(errMsgs)) {
-        errMsgs.forEach(msg => toast.error(msg));
-      } else if (typeof errMsgs === 'string') {
-        toast.error(errMsgs);
-      }
-    });
-  } else if (generalMessage) {
+  // Do not show toasts for standard validation errors because they should be handled by inline form errors
+  if (validationErrors && (status === 400 || status === 422)) {
+    return;
+  }
+
+  if (generalMessage) {
     toast.error(generalMessage);
   } else {
     toast.error(defaultMessage);

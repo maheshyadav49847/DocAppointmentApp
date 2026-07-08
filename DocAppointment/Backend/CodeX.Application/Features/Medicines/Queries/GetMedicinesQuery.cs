@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CodeX.Application.Common.Interfaces;
-using CodeX.Application.Features.Medicines.DTOs;
 using CodeX.Application.Common.Models;
+using CodeX.Application.Features.Medicines.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,7 +47,7 @@ namespace CodeX.Application.Features.Medicines.Queries
                     .Take(50)
                     .Select(x => x.Name)
                     .ToListAsync(cancellationToken);
-                
+
                 frequentMedicineNames.AddRange(freqList);
             }
 
@@ -60,9 +55,9 @@ namespace CodeX.Application.Features.Medicines.Queries
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             {
                 var term = request.SearchTerm.ToLower();
-                query = query.Where(m => m.Name.ToLower().Contains(term) || 
+                query = query.Where(m => m.Name.ToLower().Contains(term) ||
                                          (m.GenericName != null && m.GenericName.ToLower().Contains(term)));
-                
+
                 // Smart Search Sorting (Prefix > Frequent > Popularity)
                 if (string.IsNullOrWhiteSpace(request.SortColumn))
                 {

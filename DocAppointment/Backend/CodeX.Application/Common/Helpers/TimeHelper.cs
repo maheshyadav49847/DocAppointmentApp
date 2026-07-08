@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeX.Application.Common.Helpers
 {
     public static class TimeHelper

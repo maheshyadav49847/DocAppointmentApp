@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
@@ -11,7 +9,7 @@ namespace CodeX.Domain.Entities
         public string Address { get; set; } = string.Empty;
         public string WhatsAppNumber { get; set; } = string.Empty;
         public string? WhatsAppApiKey { get; set; }
-        
+
         // WhatsApp Integration settings
         public string WhatsAppProvider { get; set; } = "Bridge"; // "Bridge", "MetaCloud", "Twilio"
         public string? MetaWabaId { get; set; }

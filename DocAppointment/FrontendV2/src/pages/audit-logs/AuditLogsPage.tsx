@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
-import { ClipboardList, Search, ChevronLeft, ChevronRight, Activity } from "lucide-react"
+import { ClipboardList, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { auditLogService, type AuditLog } from "@/services/auditLogService"
+
+import { PageLoader } from "@/components/ui/PageLoader"
 import { cn } from "@/lib/utils"
 
 export default function AuditLogsPage() {
@@ -105,9 +107,8 @@ export default function AuditLogsPage() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <Activity className="w-6 h-6 text-indigo-400 animate-spin mx-auto mb-3" />
-                    <p className="text-sm text-slate-500">Loading audit logs...</p>
+                  <td colSpan={6} className="px-6 py-12">
+                    <PageLoader message="Loading audit logs..." minHeight="min-h-[20vh]" />
                   </td>
                 </tr>
               ) : logs.length === 0 ? (

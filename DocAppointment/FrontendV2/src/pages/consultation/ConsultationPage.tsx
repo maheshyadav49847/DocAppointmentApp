@@ -17,6 +17,7 @@ import MedicineAutocomplete from "./components/MedicineAutocomplete"
 import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
 import PrescriptionTemplate from "./components/PrescriptionTemplate"
 import { generatePdfFromElement } from "../../utils/pdfUtils"
+import { PageLoader } from "@/components/ui/PageLoader"
 
 // Types
 interface Medicine {
@@ -394,7 +395,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   }
 
   if (isPatientLoading) {
-    return <div className="p-8 flex justify-center"><Activity className="animate-spin text-indigo-500" /></div>
+    return <PageLoader message="Loading Patient Profile..." minHeight="min-h-[80vh]" />
   }
 
   return (
@@ -418,7 +419,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight truncate">{patient?.name || "Unknown Patient"}</h1>
-                {can('Patients.Edit') && (
+                {(can('Patients.Edit') || can('DoctorDesk.EditPatient')) && (
                   <button
                     onClick={() => setIsProfileDrawerOpen(true)}
                     className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors shrink-0"

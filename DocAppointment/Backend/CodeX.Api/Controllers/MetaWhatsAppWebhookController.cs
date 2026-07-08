@@ -1,12 +1,12 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage;
+using CodeX.Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using CodeX.Domain.Entities;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CodeX.Api.Controllers
 {
@@ -18,7 +18,7 @@ namespace CodeX.Api.Controllers
         private readonly IConfiguration _config;
         private readonly ILogger<MetaWhatsAppWebhookController> _logger;
         private readonly MediatR.ISender _mediator;
-        private readonly IWhatsAppService _whatsApp;
+        private readonly MetaCloudWhatsAppService _whatsApp;
         private readonly IMemoryCache _cache;
         private readonly IApplicationDbContext _context;
 
@@ -26,7 +26,7 @@ namespace CodeX.Api.Controllers
             IConfiguration config,
             ILogger<MetaWhatsAppWebhookController> logger,
             MediatR.ISender mediator,
-            IWhatsAppService whatsApp,
+            MetaCloudWhatsAppService whatsApp,
             IMemoryCache cache,
             IApplicationDbContext context)
         {
@@ -65,9 +65,9 @@ namespace CodeX.Api.Controllers
             {
                 var payloadStr = payloadElement.GetRawText();
                 _logger.LogInformation("Meta Webhook Payload received: {Payload}", payloadStr);
-                
+
                 var payload = JsonSerializer.Deserialize<MetaWebhookPayload>(payloadStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                
+
                 if (payload == null || payload.Object != "whatsapp_business_account" || payload.Entry == null)
                 {
                     return Ok(); // Return 200 OK so Meta doesn't retry
@@ -132,7 +132,7 @@ namespace CodeX.Api.Controllers
                 _logger.LogWarning("Rate limit exceeded for {Phone}", fromPhone);
                 return;
             }
-            
+
             _cache.Set(cacheKey, currentCount + 1, TimeSpan.FromMinutes(1));
 
             var response = await _mediator.Send(new ProcessIncomingMessageCommand

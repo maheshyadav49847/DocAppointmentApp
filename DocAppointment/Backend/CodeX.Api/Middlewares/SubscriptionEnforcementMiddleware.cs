@@ -1,11 +1,5 @@
 using CodeX.Application.Common.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
 
 namespace CodeX.Api.Middlewares
 {
@@ -27,11 +21,11 @@ namespace CodeX.Api.Middlewares
             }
 
             var path = context.Request.Path.Value?.ToLower();
-            
+
             // Skip paths that don't need active subscriptions
             if (path != null && (
-                path.StartsWith("/api/auth") || 
-                path.StartsWith("/api/payments") || 
+                path.StartsWith("/api/auth") ||
+                path.StartsWith("/api/payments") ||
                 path.StartsWith("/swagger") ||
                 path.StartsWith("/api/whatsappbridge") // webhooks
                 ))

@@ -1,10 +1,8 @@
+using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Common.Security;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using CodeX.Application.Common.Interfaces;
-using CodeX.Application.Features.Staff;
-using CodeX.Domain.Enums;
 using Microsoft.Extensions.Configuration;
-using CodeX.Application.Common.Security;
 
 namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
 {

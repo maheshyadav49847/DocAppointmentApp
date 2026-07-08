@@ -3,7 +3,6 @@ using CodeX.Application.Features.Tokens.Commands.UpdateToken;
 using CodeX.Application.Features.Tokens.Commands.DeleteToken;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
 using CodeX.Api.Authorization;
 using CodeX.Domain.Constants;
 
@@ -43,7 +42,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [HasPermission(SystemPermissions.Queue.EditPatient)]
+        [HasPermission($"{SystemPermissions.Queue.EditPatient},{SystemPermissions.DoctorDesk.EditPatient}")]
         public async Task<ActionResult<bool>> Update(Guid id, UpdateTokenCommand command)
         {
             try
@@ -63,7 +62,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [HasPermission(SystemPermissions.Queue.CancelToken)]
+        [HasPermission($"{SystemPermissions.Queue.CancelToken},{SystemPermissions.DoctorDesk.CancelToken}")]
         public async Task<ActionResult<bool>> Delete(Guid id, [FromQuery] bool deleteOfflinePatient = false)
         {
             try
@@ -82,7 +81,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{id}/requeue")]
-        [HasPermission(SystemPermissions.Queue.RestoreToken)]
+        [HasPermission($"{SystemPermissions.Queue.RestoreToken},{SystemPermissions.DoctorDesk.RestoreToken}")]
         public async Task<ActionResult<bool>> Requeue(Guid id)
         {
             try

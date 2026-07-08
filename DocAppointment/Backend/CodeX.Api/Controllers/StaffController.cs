@@ -1,10 +1,9 @@
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Staff.Commands.CreateStaff;
 using CodeX.Application.Features.Staff.Commands.DeleteStaff;
 using CodeX.Application.Features.Staff.Commands.UpdateStaff;
 using CodeX.Application.Features.Staff.Queries.GetStaffList;
-using CodeX.Domain.Enums;
-using CodeX.Api.Authorization;
 using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +36,7 @@ namespace CodeX.Api.Controllers
             }
 
             var effectiveBranchId = branchId;
-            
+
             // Branch-level isolation for branch-specific staff
             if (_currentUserService.BranchId.HasValue)
             {

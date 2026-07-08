@@ -11,10 +11,11 @@ import { useAuthStore } from "@/store/authStore"
 import { toast } from "react-hot-toast"
 import { FieldError } from "@/components/ui/FieldError"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { usePermissions } from "@/hooks/usePermissions"
 
 export default function SessionsPage() {
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user, activeBranchId } = useAuthStore()
   const { can } = usePermissions()
   const globalBranchId = user?.branchId
   const orgId = user?.orgId
@@ -22,7 +23,7 @@ export default function SessionsPage() {
   const isMultiBranchDoctor = role === 'doctor';
   const queryClient = useQueryClient()
   const selectedBranchId = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || '') : (globalBranchId || '');
-  const setSelectedBranchId = setActiveBranchId
+
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<any>(null)
@@ -30,11 +31,6 @@ export default function SessionsPage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
 
-  const { data: branches } = useQuery({
-    queryKey: ['sessions-branches', orgId],
-    queryFn: () => sessionService.getBranches(),
-    enabled: !!orgId
-  })
 
   const { data: doctors } = useQuery({
     queryKey: ['sessions-doctors', orgId, selectedBranchId],
@@ -84,8 +80,6 @@ export default function SessionsPage() {
       } else if (error.response?.data?.extensions?.errors) {
         setValidationErrors(error.response.data.extensions.errors)
       }
-      const msg = error.response?.data?.message || error.message || "Failed to save session."
-      toast.error(msg)
     }
   })
 
@@ -135,17 +129,17 @@ export default function SessionsPage() {
 
     if (isDaily) {
       if (otherSessions.some((s: any) => !s.isDaily)) {
-        toast.error("Doctor already has specific day sessions. Please delete them before creating a daily session.")
+        setValidationErrors({ Session: ["Doctor already has specific day sessions. Please delete them before creating a daily session."] })
         return
       }
       mutation.mutate({ ...dataTemplate, dayOfWeek: 0 })
     } else {
       if (otherSessions.some((s: any) => s.isDaily)) {
-        toast.error("Doctor already has a daily session. Please delete it before creating specific day sessions.")
+        setValidationErrors({ Session: ["Doctor already has a daily session. Please delete it before creating specific day sessions."] })
         return
       }
       if (otherSessions.some((s: any) => s.dayOfWeek === dayOfWeek)) {
-        toast.error(`Doctor already has a session on ${days[dayOfWeek]}.`)
+        setValidationErrors({ Session: [`Doctor already has a session on ${days[dayOfWeek]}.`] })
         return
       }
       mutation.mutate({ ...dataTemplate, dayOfWeek })
@@ -221,10 +215,7 @@ export default function SessionsPage() {
               <p className="text-sm text-slate-500 mt-1 max-w-sm">Choose a professional from the toolbar to manage their working shifts.</p>
             </div>
           ) : isLoading ? (
-            <div className="flex flex-col items-center justify-center h-64">
-              <Activity className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
-              <p className="text-sm font-medium text-slate-500">Loading schedules...</p>
-            </div>
+            <PageLoader message="Loading schedules..." minHeight="h-64" />
           ) : error ? (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-3 border border-red-100">
               <AlertCircle className="w-5 h-5" />
@@ -361,6 +352,7 @@ export default function SessionsPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 <form noValidate id="session-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={apiError} />
+                  <FieldError errors={validationErrors} field="Session" />
                   {/* Recurrence Toggle */}
                   <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-xl">
                     <label className="cursor-pointer">

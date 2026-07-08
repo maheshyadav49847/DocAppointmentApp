@@ -1,5 +1,5 @@
-using FluentValidation;
 using CodeX.Application.Common.Validators;
+using FluentValidation;
 
 namespace CodeX.Application.Features.Staff.Commands.CreateStaff
 {

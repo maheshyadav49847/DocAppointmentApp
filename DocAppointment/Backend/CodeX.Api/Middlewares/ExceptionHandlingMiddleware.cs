@@ -1,11 +1,7 @@
 using CodeX.Application.Common.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace CodeX.Api.Middlewares
 {
@@ -29,7 +25,7 @@ namespace CodeX.Api.Middlewares
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An unhandled exception has occurred while executing the request.");
-                
+
                 // CRITICAL: Clear the ChangeTracker to prevent any partial state from being saved by upstream filters/middlewares
                 if (dbContext is DbContext efContext)
                 {

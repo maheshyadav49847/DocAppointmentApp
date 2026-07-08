@@ -5,6 +5,7 @@ import {
   Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
+import { usePermissions } from "@/hooks/usePermissions"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
 import { useQueueHub } from "@/hooks/useQueueHub"
@@ -12,9 +13,12 @@ import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
 import SearchPatientModal from "./components/SearchPatientModal"
 import { motion, AnimatePresence } from "framer-motion"
+import { PageLoader } from "@/components/ui/PageLoader"
 
 export default function DoctorDeskPage() {
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user } = useAuthStore()
+  const { can } = usePermissions()
+  const activeBranchId = useAuthStore(state => state.activeBranchId)
   const queryClient = useQueryClient()
 
   const { data: activeQueue, isLoading: isQueueLoading, refetch: refetchQueue } = useQuery({
@@ -144,6 +148,14 @@ export default function DoctorDeskPage() {
     }
   })
 
+  const quickStartMutation = useMutation({
+    mutationFn: () => queueService.quickStart(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+      refetchQueue()
+    }
+  })
+
   const handleEndSession = () => {
     if (activeQueue && (activeQueue.waitingCount > 0 || activeQueue.skippedCount > 0)) {
       setIsEndSessionModalOpen(true)
@@ -159,12 +171,7 @@ export default function DoctorDeskPage() {
   }
 
   if (isQueueLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
-        <p className="text-slate-500 font-medium animate-pulse">Loading Desk...</p>
-      </div>
-    )
+    return <PageLoader message="Loading Desk..." minHeight="h-[80vh]" />
   }
 
   if (!activeQueue) {
@@ -183,7 +190,7 @@ export default function DoctorDeskPage() {
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
           <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
             <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-              <Stethoscope className="w-7 h-7" />
+              <MonitorPlay className="w-7 h-7" />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
@@ -211,7 +218,7 @@ export default function DoctorDeskPage() {
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   key={session.id}
-                  className="bg-white group border border-slate-200 hover:border-indigo-300 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between"
+                  className="bg-white group border border-slate-200 rounded-2xl p-6 shadow-sm transition-all text-left flex flex-col justify-between"
                 >
                   <div className="mb-6">
                     <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 border border-indigo-100/50">
@@ -233,19 +240,31 @@ export default function DoctorDeskPage() {
                   <button
                     onClick={() => initializeQueueMutation.mutate(session.id)}
                     disabled={initializeQueueMutation.isPending}
-                    className="w-full bg-slate-50 border border-slate-200 hover:border-indigo-600 hover:bg-indigo-600 hover:text-white text-slate-700 py-2.5 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 py-2.5 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                   >
-                    {initializeQueueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    {initializeQueueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 text-indigo-600" />}
                     Start Session
                   </button>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div className="bg-amber-50 text-amber-800 p-8 rounded-2xl border border-amber-200 text-center flex flex-col items-center max-w-lg">
-              <Bell className="w-10 h-10 mb-3 text-amber-500 opacity-80" />
-              <p className="font-bold text-lg">No sessions assigned today.</p>
-              <p className="text-sm opacity-80 mt-1">Please ask the administrator to schedule a session for you to start receiving patients.</p>
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center flex flex-col items-center max-w-lg shadow-sm">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                <Play className="w-8 h-8 ml-1" />
+              </div>
+              <h3 className="font-extrabold text-2xl text-slate-900 mb-2">Start Consulting</h3>
+              <p className="text-slate-500 mb-6 font-medium text-sm">
+                No active session found for today. Click below to instantly create a walk-in session and start your queue.
+              </p>
+              <button
+                onClick={() => quickStartMutation.mutate()}
+                disabled={quickStartMutation.isPending}
+                className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                {quickStartMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                Quick Start Walk-in Session
+              </button>
             </div>
           )}
         </div>
@@ -263,7 +282,7 @@ export default function DoctorDeskPage() {
       <div className="shrink-0 px-2 sm:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5">
           <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
-            <Stethoscope className="w-7 h-7" />
+            <MonitorPlay className="w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2">
@@ -276,19 +295,6 @@ export default function DoctorDeskPage() {
           </div>
         </div>
 
-        {activeQueue?.branchName && (
-          <div className="flex flex-col gap-1.5 sm:ml-auto">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center sm:justify-end gap-1">
-              <Building2 className="w-3 h-3 text-indigo-400" /> Branch Location
-            </label>
-            <select
-              disabled
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 min-w-[200px]"
-            >
-              <option>{activeQueue.branchName}</option>
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Main Card (Exactly as it was) */}
@@ -297,38 +303,42 @@ export default function DoctorDeskPage() {
         {/* Top Bar inside the Card (Only actions now) */}
         <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-end shrink-0 shadow-sm gap-3 sm:gap-4 z-20">
           <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => markArrivedMutation.mutate()}
-                disabled={activeQueue.status === 1 || markArrivedMutation.isPending}
-                className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border ${
-                  activeQueue.status === 1
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200 cursor-default'
-                    : 'bg-transparent hover:bg-indigo-50 text-indigo-600 border-indigo-200'
-                } w-auto`}
-                title={activeQueue.status === 1 ? "Doctor is present" : "Mark Arrival"}
-              >
-                {activeQueue.status === 1 ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 sm:w-4 sm:h-4" />
-                    <span className="hidden sm:inline">Arrived</span>
-                  </>
-                ) : (
-                  <>
-                    {markArrivedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stethoscope className="w-4 h-4 sm:w-4 sm:h-4" />}
-                    <span className="hidden sm:inline">Mark Arrival</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleEndSession}
-                disabled={endSessionMutation.isPending}
-                className="flex items-center justify-center gap-1.5 sm:gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border border-rose-200 w-10 sm:w-auto"
-                title="End current session"
-              >
-                {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4 sm:w-4 sm:h-4" />}
-                <span className="hidden sm:inline">End Session</span>
-              </button>
+            <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+              {can('DoctorDesk.MarkDoctorArrived') && (
+                <button
+                  onClick={() => markArrivedMutation.mutate()}
+                  disabled={activeQueue.status === 1 || markArrivedMutation.isPending}
+                  className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border ${
+                    activeQueue.status === 1
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-200 cursor-default'
+                      : 'bg-transparent hover:bg-indigo-50 text-indigo-600 border-indigo-200'
+                  } w-auto`}
+                  title={activeQueue.status === 1 ? "Doctor is present" : "Mark Arrival"}
+                >
+                  {activeQueue.status === 1 ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">Arrived</span>
+                    </>
+                  ) : (
+                    <>
+                      {markArrivedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stethoscope className="w-4 h-4 sm:w-4 sm:h-4" />}
+                      <span className="hidden sm:inline">Mark Arrival</span>
+                    </>
+                  )}
+                </button>
+              )}
+              {can('DoctorDesk.EndSession') && (
+                <button
+                  onClick={handleEndSession}
+                  disabled={endSessionMutation.isPending}
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 bg-transparent hover:bg-rose-50 text-rose-600 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors border border-rose-200 w-10 sm:w-auto"
+                  title="End current session"
+                >
+                  {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4 sm:w-4 sm:h-4" />}
+                  <span className="hidden sm:inline">End Session</span>
+                </button>
+              )}
               <a
                 href={`/tv/${branchId}`}
                 target="_blank"
@@ -400,22 +410,26 @@ export default function DoctorDeskPage() {
                       <Users className="w-3.5 h-3.5" />
                       Consult Another (Same Token)
                     </button>
-                    <button
-                      onClick={() => completeMutation.mutate()}
-                      disabled={completeMutation.isPending}
-                      className="bg-transparent border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
-                      {completeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      Complete & Next Token
-                    </button>
-                    <button
-                      onClick={() => callNextMutation.mutate()}
-                      disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
-                      className="bg-transparent border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
-                      {callNextMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-                      Call Next Waiting
-                    </button>
+                    {can('DoctorDesk.CompleteToken') && (
+                      <button
+                        onClick={() => completeMutation.mutate()}
+                        disabled={completeMutation.isPending}
+                        className="bg-transparent border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50 text-emerald-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        {completeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        Complete & Next Token
+                      </button>
+                    )}
+                    {can('DoctorDesk.CallNext') && (
+                      <button
+                        onClick={() => callNextMutation.mutate()}
+                        disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
+                        className="bg-transparent border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50 text-indigo-700 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        {callNextMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                        Call Next Waiting
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -475,14 +489,16 @@ export default function DoctorDeskPage() {
                           <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
                           <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
                         </div>
-                        <button
-                          onClick={() => requeueMutation.mutate(token.id)}
-                          disabled={requeueMutation.isPending}
-                          className="opacity-0 group-hover:opacity-100 p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-lg shadow-sm border border-indigo-100 transition-all absolute right-3"
-                          title="Restore to queue"
-                        >
-                          {requeueMutation.isPending && requeueMutation.variables === token.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-                        </button>
+                        {can('DoctorDesk.RestoreToken') && (
+                          <button
+                            onClick={() => requeueMutation.mutate(token.id)}
+                            disabled={requeueMutation.isPending}
+                            className="opacity-0 group-hover:opacity-100 p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-lg shadow-sm border border-indigo-100 transition-all absolute right-3"
+                            title="Restore to queue"
+                          >
+                            {requeueMutation.isPending && requeueMutation.variables === token.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                          </button>
+                        )}
                       </div>
                     ))
                   )
@@ -509,14 +525,16 @@ export default function DoctorDeskPage() {
                   <p className="text-slate-500 mb-8 max-w-sm">
                     You have {activeQueue.waitingCount} patients waiting in your queue right now.
                   </p>
-                  <button
-                    onClick={() => callNextMutation.mutate()}
-                    disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
-                    className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-lg font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
-                  >
-                    {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
-                    Call Next Patient
-                  </button>
+                  {can('DoctorDesk.CallNext') && (
+                    <button
+                      onClick={() => callNextMutation.mutate()}
+                      disabled={callNextMutation.isPending || pendingTokens.length === 0 || activeQueue.status !== 1}
+                      className="bg-transparent border-2 border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 px-8 py-4 rounded-lg font-bold text-lg shadow-sm flex items-center gap-3 transition-all hover:scale-105 active:scale-95"
+                    >
+                      {callNextMutation.isPending ? <Loader2 className="w-6 h-6 animate-spin" /> : <Users className="w-6 h-6" />}
+                      Call Next Patient
+                    </button>
+                  )}
                   {activeQueue.status !== 1 && (
                     <p className="mt-4 text-sm font-bold text-amber-600 flex items-center gap-1.5"><AlertCircle className="w-4 h-4"/> Please mark your arrival first</p>
                   )}

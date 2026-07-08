@@ -1,13 +1,8 @@
+using CodeX.Api.Authorization;
+using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System;
-
-using CodeX.Api.Authorization;
-using CodeX.Domain.Constants;
-using CodeX.Application.Common.Interfaces;
 
 namespace CodeX.Api.Controllers
 {
@@ -57,7 +52,7 @@ namespace CodeX.Api.Controllers
                 await EnsureBranchAccess(branchId);
                 var request = new HttpRequestMessage(HttpMethod.Get, $"{BridgeUrl}/status/{branchId}");
                 if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
-                
+
                 var response = await _httpClient.SendAsync(request);
                 var content = await response.Content.ReadAsStringAsync();
                 return Content(content, "application/json");
@@ -77,7 +72,7 @@ namespace CodeX.Api.Controllers
                 await EnsureBranchAccess(branchId);
                 var request = new HttpRequestMessage(HttpMethod.Post, $"{BridgeUrl}/restart/{branchId}");
                 if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
-                
+
                 await _httpClient.SendAsync(request);
                 return Ok(new { message = "Restart command sent to bridge" });
             }
@@ -114,7 +109,6 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("check-number/{branchId}/{phone}")]
-        [HasPermission(SystemPermissions.Settings.ManageWhatsapp)]
         public async Task<IActionResult> CheckNumber(string branchId, string phone)
         {
             try
@@ -122,15 +116,15 @@ namespace CodeX.Api.Controllers
                 await EnsureBranchAccess(branchId);
                 var request = new HttpRequestMessage(HttpMethod.Get, $"{BridgeUrl}/check-number/{branchId}/{phone}");
                 if (!string.IsNullOrEmpty(ApiKey)) request.Headers.Add("X-Bridge-Api-Key", ApiKey);
-                
+
                 var response = await _httpClient.SendAsync(request);
                 var content = await response.Content.ReadAsStringAsync();
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     return Content(content, "application/json");
                 }
-                
+
                 return StatusCode((int)response.StatusCode, content);
             }
             catch (Exception ex)

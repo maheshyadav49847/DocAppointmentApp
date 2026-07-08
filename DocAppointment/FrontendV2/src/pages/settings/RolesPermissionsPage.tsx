@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
-import { Shield, Plus, Save, Activity, Trash2, ChevronLeft, ShieldCheck, Copy, X } from "lucide-react"
+import { Shield, Plus, Save, Activity, Trash2, ChevronLeft, Copy, X } from "lucide-react"
 import toast from "react-hot-toast"
 
 import { rolesService } from "@/services/rolesService"
@@ -195,14 +195,16 @@ export default function RolesPermissionsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <button 
-                      onClick={handleCloneRole}
-                      disabled={createRoleMutation.isPending}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
-                      title="Clone Role"
-                    >
-                      <Copy className="w-5 h-5" />
-                    </button>
+                    {selectedRole?.name !== 'SuperAdmin' && selectedRole?.name !== 'OrgAdmin' && (
+                      <button 
+                        onClick={handleCloneRole}
+                        disabled={createRoleMutation.isPending}
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                        title="Clone Role"
+                      >
+                        <Copy className="w-5 h-5" />
+                      </button>
+                    )}
                     {!selectedRole?.isSystemDefault && (
                       <button 
                         onClick={() => {
