@@ -26,6 +26,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ''
 
 jobs:
   build-and-push:
@@ -154,14 +155,18 @@ jobs:
             mkdir -p ~/docappointment
             cd ~/docappointment
             
-            # Clean up only the containers for the current target environment
+            # --- MIGRATION CLEANUP ---
+            # Clean up old overlapping containers from previous architecture
             docker compose -p "docappointment-$TARGET_ENV" down || true
             
+            # Clean up current isolated containers
+            docker compose -p "myqcare-$TARGET_ENV" down || true
+            
             echo "Pulling completely fresh images..."
-            docker compose -p "docappointment-$TARGET_ENV" pull
+            docker compose -p "myqcare-$TARGET_ENV" pull
             
             echo "Starting containers..."
-            docker compose -p "docappointment-$TARGET_ENV" up -d
+            docker compose -p "myqcare-$TARGET_ENV" up -d
             
             # Prune old dangling images to save disk space
             docker image prune -f
