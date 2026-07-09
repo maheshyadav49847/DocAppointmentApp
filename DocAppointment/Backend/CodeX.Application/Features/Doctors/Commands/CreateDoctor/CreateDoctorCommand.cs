@@ -81,14 +81,15 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
             // Create Staff record for the doctor if Email and Password are provided
             if (!string.IsNullOrWhiteSpace(request.EmailId) && !string.IsNullOrWhiteSpace(request.Password))
             {
+                var doctorRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Doctor" && (r.OrganizationId == Guid.Empty || r.OrganizationId == request.OrganizationId), cancellationToken);
                 var staff = new CodeX.Domain.Entities.Staff
                 {
                     OrganizationId = request.OrganizationId,
-                    BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null,
+                    BranchId = request.BranchIds.Count == 1 ? request.BranchIds.First() : (Guid?)null,
                     Email = request.EmailId.Trim().ToLower(),
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                     FirstName = request.Name,
-                    Role = CodeX.Domain.Enums.StaffRole.Doctor,
+                    RoleId = doctorRole?.Id,
                     DoctorId = doctor.Id
                 };
                 _context.Staffs.Add(staff);

@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.SignalR;
 using CodeX.Api.Hubs;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 
 namespace CodeX.Api.Services
 {

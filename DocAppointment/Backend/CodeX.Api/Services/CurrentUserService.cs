@@ -27,6 +27,21 @@ namespace CodeX.Api.Services
         {
             get
             {
+                // Give precedence to X-Branch-Id header for multi-branch support
+                var headerBranchId = _httpContextAccessor.HttpContext?.Request?.Headers["X-Branch-Id"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(headerBranchId) && Guid.TryParse(headerBranchId, out var headerId))
+                {
+                    return headerId;
+                }
+
+                return TokenBranchId;
+            }
+        }
+
+        public Guid? TokenBranchId
+        {
+            get
+            {
                 var branchIdStr = _httpContextAccessor.HttpContext?.User?.FindFirstValue("branchId");
                 return Guid.TryParse(branchIdStr, out var id) ? id : null;
             }
@@ -42,5 +57,10 @@ namespace CodeX.Api.Services
         }
 
         public bool IsInRole(string role) => _httpContextAccessor.HttpContext?.User?.IsInRole(role) ?? false;
+        public bool HasPermission(string permission)
+        {
+            var permissionsClaim = _httpContextAccessor.HttpContext?.User?.FindFirstValue("permissions");
+            return !string.IsNullOrEmpty(permissionsClaim) && permissionsClaim.Split(',').Contains(permission);
+        }
     }
 }

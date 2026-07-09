@@ -38,6 +38,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IQueueNotificationService, QueueNotificationService>();
+builder.Services.AddHostedService<CodeX.Api.BackgroundServices.ChatSessionPersistenceService>();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -77,6 +78,8 @@ builder.Services
             ClockSkew = TimeSpan.Zero
         };
     });
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, CodeX.Api.Authorization.PermissionPolicyProvider>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, CodeX.Api.Authorization.PermissionAuthorizationHandler>();
 builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
@@ -142,13 +145,27 @@ builder.Services.AddRateLimiter(options =>
 // Allow up to 15MB multipart uploads (covers 10MB limit with overhead)
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 15 * 1024 * 1024; // 15MB
+    options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
 });
 
 // Background Hosted Services
 builder.Services.AddHostedService<CodeX.Api.BackgroundServices.FollowUpReminderService>();
 
+// SignalR Service
+builder.Services.AddScoped<CodeX.Application.Common.Interfaces.ISignalRNotificationService, CodeX.Api.Services.SignalRNotificationService>();
+
 var app = builder.Build();
+
+// Seed Database Roles and Users
+try
+{
+    await CodeX.Infrastructure.Persistence.ApplicationDbContextInitializer.SeedAsync(app.Services);
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error occurred seeding the DB.");
+}
 
 app.UseMiddleware<CodeX.Api.Middlewares.ExceptionHandlingMiddleware>();
 
@@ -202,6 +219,7 @@ app.MapHealthChecks("/health");
 
 app.MapControllers().RequireRateLimiting("GlobalLimit");
 app.MapHub<QueueHub>("/queueHub");
+app.MapHub<CodeX.Api.Hubs.AppHub>("/appHub");
 
 app.Run();
 

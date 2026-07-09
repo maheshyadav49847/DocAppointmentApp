@@ -1,4 +1,3 @@
-using System;
 using CodeX.Domain.Common;
 
 namespace CodeX.Domain.Entities
@@ -13,6 +12,7 @@ namespace CodeX.Domain.Entities
         public DateTime FollowUpDate { get; set; }
         public bool ReminderEnabled { get; set; } = true;
         public bool WhatsAppSent { get; set; } = false;
+        public DateTime? LastReminderSentDate { get; set; }
         public string? Instructions { get; set; }
 
         // Navigation Property

@@ -17,11 +17,12 @@ import toast from "react-hot-toast"
 
 import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { PageLoader } from "@/components/ui/PageLoader"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function DoctorsPage() {
   const [globalFilter, setGlobalFilter] = useState("")
@@ -35,9 +36,12 @@ export default function DoctorsPage() {
     pageSize: 10,
   })
 
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user, activeBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const orgId = user?.orgId
-  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranch = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || 'all') : (user?.branchId || '');
   const queryClient = useQueryClient()
 
   const { data: doctors, isLoading, error } = useQuery({
@@ -49,8 +53,8 @@ export default function DoctorsPage() {
   })
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId!),
+    queryKey: ['doctors-branches', orgId],
+    queryFn: () => doctorService.getBranches(),
     enabled: !!orgId
   })
 
@@ -77,7 +81,6 @@ export default function DoctorsPage() {
       } else if (error.response?.data?.extensions?.errors) {
         setValidationErrors(error.response.data.extensions.errors)
       }
-      toast.error('Failed to save doctor')
     }
   })
 
@@ -164,25 +167,29 @@ export default function DoctorsPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
-            className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit Doctor"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('Are you sure you want to delete this doctor?')) {
-                deleteMutation.mutate(row.original.id)
-              }
-            }}
-            disabled={deleteMutation.isPending}
-            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-            title="Delete Doctor"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {can('Doctors.Edit') && (
+            <button
+              onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
+              className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Edit Doctor"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {can('Doctors.Delete') && (
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to delete this doctor?')) {
+                  deleteMutation.mutate(row.original.id)
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              title="Delete Doctor"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )
     }
@@ -233,22 +240,7 @@ export default function DoctorsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranch}
-            disabled={user?.role !== 'OrgAdmin'}
-            onChange={(e) => setActiveBranchId(e.target.value === 'all' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
-            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
       </div>
-
       {/* Main Card */}
       <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
         {/* Toolbar */}
@@ -298,43 +290,27 @@ export default function DoctorsPage() {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditingDoctor(null)
-                setIsDrawerOpen(true)
-              }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
-            </button>
+            {can('Doctors.Add') && (
+              <button
+                onClick={() => {
+                  setEditingDoctor(null)
+                  setIsDrawerOpen(true)
+                }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* Data View */}
         <div className="flex-1 overflow-auto bg-slate-50/50 p-4 sm:p-6">
-          {viewMode === 'grid' ? (
+          {isLoading ? (
+            <PageLoader message="Loading doctors..." minHeight="min-h-[40vh]" />
+          ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
-            {isLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white border border-slate-200 rounded-xl p-4 animate-pulse">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-slate-200 rounded-full" />
-                    <div>
-                      <div className="h-4 bg-slate-200 rounded w-24 mb-2" />
-                      <div className="h-3 bg-slate-200 rounded w-16" />
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="h-3 bg-slate-200 rounded w-full" />
-                    <div className="h-3 bg-slate-200 rounded w-2/3" />
-                  </div>
-                  <div className="pt-4 border-t border-slate-100 flex gap-2">
-                    <div className="h-8 bg-slate-200 rounded flex-1" />
-                    <div className="h-8 bg-slate-200 rounded w-8" />
-                  </div>
-                </div>
-              ))
-            ) : table.getRowModel().rows.length > 0 ? (
+              {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map(row => (
                 <div key={row.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                   {/* Header Section */}
@@ -409,27 +385,31 @@ export default function DoctorsPage() {
 
                   {/* Footer Actions */}
                   <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingDoctor(row.original)
-                        setIsDrawerOpen(true)
-                      }}
-                      className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Edit className="w-4 h-4" /> Edit
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (confirm('Are you sure you want to delete this doctor?')) {
-                          deleteMutation.mutate(row.original.id)
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Trash2 className="w-4 h-4" /> Delete
-                    </button>
+                    {can('Doctors.Edit') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingDoctor(row.original)
+                          setIsDrawerOpen(true)
+                        }}
+                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Edit className="w-4 h-4" /> Edit
+                      </button>
+                    )}
+                    {can('Doctors.Delete') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (confirm('Are you sure you want to delete this doctor?')) {
+                            deleteMutation.mutate(row.original.id)
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -458,18 +438,7 @@ export default function DoctorsPage() {
                 ))}
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {isLoading ? (
-                  // Skeleton Rows
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="px-6 py-4"><div className="h-10 w-48 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-5 w-24 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-6 w-16 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-5 w-12 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                      <td className="px-6 py-4"><div className="h-8 w-8 bg-zinc-100 animate-pulse rounded-lg" /></td>
-                    </tr>
-                  ))
-                ) : table.getRowModel().rows.length > 0 ? (
+                {table.getRowModel().rows.length > 0 ? (
                   table.getRowModel().rows.map(row => (
                     <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors group">
                       {row.getVisibleCells().map(cell => (
@@ -574,7 +543,7 @@ export default function DoctorsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Users className="w-4 h-4 text-pink-500" /> Gender
                       </label>
-                      <select name="gender" defaultValue={editingDoctor?.gender} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                      <select name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>

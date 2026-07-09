@@ -8,6 +8,7 @@ import {
   flexRender,
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
+
 import {
   UserCog, Search, Plus, Edit, Trash2,
   X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, Building2
@@ -15,20 +16,15 @@ import {
 import toast from "react-hot-toast"
 
 import { staffService } from "@/services/staffService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
-
-const ROLES = [
-  { value: 3, label: 'Receptionist', display: 'Receptionist', desc: 'Can manage queue and book tokens' },
-  { value: 2, label: 'BranchAdmin', display: 'Branch Admin', desc: 'Full access to this branch' },
-  { value: 1, label: 'OrgAdmin', display: 'Org Admin', desc: 'Manages all branches' },
-]
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function StaffPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const globalBranchId = user?.branchId
@@ -49,8 +45,8 @@ export default function StaffPage() {
   })
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', orgId],
-    queryFn: () => branchService.getBranches(orgId || ''),
+    queryKey: ['staff-branches', orgId],
+    queryFn: () => staffService.getBranches(),
     enabled: !!orgId
   })
 
@@ -59,6 +55,13 @@ export default function StaffPage() {
     queryFn: () => staffService.getStaff(orgId!, selectedBranchId === 'org' ? null : selectedBranchId),
     enabled: !!orgId && !!selectedBranchId
   })
+
+  const { data: dbRoles = [] } = useQuery({
+    queryKey: ['staff-roles'],
+    queryFn: staffService.getRoles
+  })
+
+  const availableRoles = dbRoles.filter(r => role === 'superadmin' ? true : r.name !== 'SuperAdmin')
 
   const createMutation = useMutation({
     mutationFn: (data: any) => staffService.createStaff({
@@ -81,14 +84,12 @@ export default function StaffPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => staffService.updateStaff(editingStaff.id, {
-      id: editingStaff.id,
-      ...data
-    }),
+    mutationFn: (data: any) => staffService.updateStaff(data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] })
       setIsDrawerOpen(false)
       setEditingStaff(null)
+      setResettingStaff(null)
       setApiError(null)
       setValidationErrors({})
       toast.success('Staff updated successfully')
@@ -122,10 +123,10 @@ export default function StaffPage() {
       lastName: formData.get('lastName'),
       employeeId: formData.get('employeeId'),
       phoneNumber: formData.get('phoneNumber'),
-      role: parseInt(formData.get('role') as string)
+      roleId: formData.get('role') as string
     }
     if (editingStaff) {
-      updateMutation.mutate(data)
+      updateMutation.mutate({ ...data, id: editingStaff.id })
     } else {
       data.password = formData.get('password') as string
       createMutation.mutate(data)
@@ -155,7 +156,7 @@ export default function StaffPage() {
       accessorKey: "name",
       header: "Staff Member",
       cell: ({ row }) => {
-        const roleConfig = ROLES.find(r => r.label.toLowerCase() === row.original.role.toLowerCase().replace(/\s/g, '')) || ROLES[0]
+        const displayRole = row.original.role || 'Unknown'
         return (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
@@ -164,7 +165,7 @@ export default function StaffPage() {
             <div>
               <div className="font-bold text-slate-800">{row.original.firstName} {row.original.lastName}</div>
               <div className="text-xs text-slate-500 mt-0.5 font-medium flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-indigo-400" /> {roleConfig.display}
+                <ShieldCheck className="w-3 h-3 text-indigo-400" /> {displayRole}
               </div>
             </div>
           </div>
@@ -189,21 +190,25 @@ export default function StaffPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setEditingStaff(row.original); setIsDrawerOpen(true) }}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit Staff"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => { setResettingStaff(row.original); }}
-            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-            title="Reset Password"
-          >
-            <Key className="w-4 h-4" />
-          </button>
-          {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
+          {can('Staff.Edit') && (
+            <>
+              <button
+                onClick={() => { setEditingStaff(row.original); setIsDrawerOpen(true) }}
+                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Edit Staff"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setResettingStaff(row.original); }}
+                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                title="Reset Password"
+              >
+                <Key className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          {can('Staff.Delete') && (
             <button
               onClick={() => {
                 if (confirm('Permanently remove this staff member?')) deleteMutation.mutate(row.original.id)
@@ -217,7 +222,7 @@ export default function StaffPage() {
         </div>
       )
     }
-  ], [role, deleteMutation, setEditingStaff, setIsDrawerOpen])
+  ], [role, deleteMutation, setEditingStaff, setIsDrawerOpen, setResettingStaff, can])
 
   const table = useReactTable({
     data: filteredStaff,
@@ -245,22 +250,6 @@ export default function StaffPage() {
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage team members, roles, and branch assignments.</p>
           </div>
-        </div>
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranchId}
-            disabled={role !== 'orgadmin'}
-            onChange={(e) => setSelectedBranchId(e.target.value === 'org' ? null : e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {role === 'orgadmin' && <option value="org">Organization Level</option>}
-            <optgroup label="Branches">
-              {branches?.filter((b: any) => role === 'orgadmin' || b.id === globalBranchId).map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </optgroup>
-          </select>
         </div>
       </div>
 
@@ -312,12 +301,14 @@ export default function StaffPage() {
               />
             </div>
 
-            <button
-              onClick={() => { setEditingStaff(null); setIsDrawerOpen(true) }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Staff</span>
-            </button>
+            {can('Staff.Add') && (
+              <button
+                onClick={() => { setEditingStaff(null); setIsDrawerOpen(true) }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Staff</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -365,7 +356,7 @@ export default function StaffPage() {
             <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
               {table.getRowModel().rows.map((row) => {
                 const member = row.original
-                const roleConfig = ROLES.find(r => r.label.toLowerCase() === member.role.toLowerCase().replace(/\s/g, '')) || ROLES[0]
+                const displayRole = member.role || 'Unknown'
                 return (
                   <div key={member.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
                     {/* Header Section */}
@@ -379,7 +370,7 @@ export default function StaffPage() {
                             <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{member.firstName} {member.lastName}</h3>
                             <div className="flex items-center gap-2 mt-2">
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
-                                <ShieldCheck className="w-3 h-3" /> {roleConfig.display}
+                                <ShieldCheck className="w-3 h-3" /> {displayRole}
                               </span>
                             </div>
                           </div>
@@ -421,19 +412,23 @@ export default function StaffPage() {
 
                     {/* Footer Actions */}
                     <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2 mt-auto">
-                      <button
-                        onClick={() => { setEditingStaff(member); setIsDrawerOpen(true) }}
-                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Edit className="w-4 h-4" /> Edit
-                      </button>
-                      <button
-                        onClick={() => { setResettingStaff(member); }}
-                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Key className="w-4 h-4" /> Reset
-                      </button>
-                      {['orgadmin', 'branchadmin', 'superadmin'].includes(role) && (
+                      {can('Staff.Edit') && (
+                        <>
+                          <button
+                            onClick={() => { setEditingStaff(member); setIsDrawerOpen(true) }}
+                            className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Edit className="w-4 h-4" /> Edit
+                          </button>
+                          <button
+                            onClick={() => { setResettingStaff(member); }}
+                            className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Key className="w-4 h-4" /> Reset
+                          </button>
+                        </>
+                      )}
+                      {can('Staff.Delete') && (
                         <button
                           onClick={() => {
                             if (confirm('Permanently remove this staff member?')) deleteMutation.mutate(member.id)
@@ -574,12 +569,12 @@ export default function StaffPage() {
                       <ShieldCheck className="w-4 h-4 text-purple-500" /> Assign Role
                     </label>
                     <div className="space-y-2">
-                      {ROLES.filter(r => selectedBranchId === 'org' ? r.label === 'OrgAdmin' : r.label !== 'OrgAdmin').map(r => (
-                        <label key={r.value} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
-                          <input type="radio" name="role" value={r.value} defaultChecked={editingStaff ? ROLES.find(x => x.label === editingStaff.role)?.value === r.value : r.label === 'Receptionist' || r.label === 'OrgAdmin'} className="mt-1" />
+                      {availableRoles.filter((r: any) => selectedBranchId === 'org' ? ['OrgAdmin', 'SuperAdmin'].includes(r.name) : !['OrgAdmin', 'SuperAdmin'].includes(r.name)).map((r: any) => (
+                        <label key={r.id} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
+                          <input type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
                           <div>
-                            <p className="text-sm font-semibold text-zinc-900">{r.display}</p>
-                            <p className="text-xs text-zinc-500">{r.desc}</p>
+                            <p className="text-sm font-semibold text-zinc-900">{r.name}</p>
+                            <p className="text-xs text-zinc-500">{r.description || `Access level: ${r.name}`}</p>
                           </div>
                         </label>
                       ))}

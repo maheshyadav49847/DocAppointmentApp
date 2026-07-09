@@ -1,14 +1,10 @@
 using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
-using CodeX.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System;
+using System.Text;
+using System.Text.Json;
 
 namespace CodeX.Api.Controllers
 {
@@ -53,7 +49,7 @@ namespace CodeX.Api.Controllers
         public async Task<IActionResult> Webhook()
         {
             var signature = HttpContext.Request.Headers["X-Razorpay-Signature"].ToString();
-            
+
             using var reader = new StreamReader(HttpContext.Request.Body, Encoding.UTF8);
             var body = await reader.ReadToEndAsync();
 
@@ -63,7 +59,7 @@ namespace CodeX.Api.Controllers
             {
                 using var document = JsonDocument.Parse(body);
                 var root = document.RootElement;
-                
+
                 var eventId = root.TryGetProperty("id", out var idProp) ? idProp.GetString() : Guid.NewGuid().ToString();
                 var eventType = root.TryGetProperty("event", out var eventProp) ? eventProp.GetString() : "unknown";
 

@@ -4,11 +4,14 @@ using CodeX.Infrastructure.ExternalServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,OrgAdmin")]
+    [Authorize]
+    [HasPermission(SystemPermissions.Settings.ManageWhatsapp)]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/whatsapp/config")]
     public class WhatsAppConfigController : ControllerBase

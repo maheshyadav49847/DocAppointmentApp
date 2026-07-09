@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace CodeX.Application.Common.Interfaces
 {
     public interface IPaymentService

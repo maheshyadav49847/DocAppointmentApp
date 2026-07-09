@@ -22,21 +22,15 @@ namespace CodeX.Infrastructure
             services.AddScoped<IEntityAuthorizationService, EntityAuthorizationService>();
             services.AddScoped<TwilioWhatsAppService>();
             services.AddHttpClient<BridgeWhatsAppService>();
+            services.AddHttpClient<MetaCloudWhatsAppService>();
 
-            var whatsAppProvider = configuration["WhatsApp:Provider"] ?? "Twilio";
-            if (whatsAppProvider == "Bridge")
-            {
-                services.AddScoped<IWhatsAppService>(provider => provider.GetRequiredService<BridgeWhatsAppService>());
-            }
-            else
-            {
-                services.AddScoped<IWhatsAppService>(provider => provider.GetRequiredService<TwilioWhatsAppService>());
-            }
+            services.AddSingleton<IWhatsAppService, WhatsAppServiceResolver>();
 
             services.AddScoped<ISmsService, TwilioSmsService>();
             services.AddScoped<IEmailService, ConsoleEmailService>();
             services.AddScoped<IPaymentService, CodeX.Infrastructure.Services.RazorpayPaymentService>();
             services.AddScoped<IFileUploadService, CodeX.Infrastructure.Services.FileUploadService>();
+            services.AddSingleton<IChatSessionCache, CodeX.Infrastructure.Services.ChatSessionCache>();
 
             return services;
         }

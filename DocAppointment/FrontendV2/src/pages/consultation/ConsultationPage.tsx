@@ -12,10 +12,12 @@ import {
   FileText, User, Calendar, Droplets, Hash,
   Upload, Plus, Printer, Calendar as CalendarIcon, MessageSquare, Pencil
 } from "lucide-react"
+import { usePermissions } from "@/hooks/usePermissions"
 import MedicineAutocomplete from "./components/MedicineAutocomplete"
 import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
 import PrescriptionTemplate from "./components/PrescriptionTemplate"
 import { generatePdfFromElement } from "../../utils/pdfUtils"
+import { PageLoader } from "@/components/ui/PageLoader"
 
 // Types
 interface Medicine {
@@ -41,10 +43,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { activeBranchId, user } = useAuthStore()
+  const { can } = usePermissions()
 
   const { data: branches } = useQuery({
-    queryKey: ['branches', user?.orgId],
-    queryFn: () => api.get(`/branches/org/${user?.orgId}`).then(r => r.data),
+    queryKey: ['clinical-branches', user?.orgId],
+    queryFn: () => api.get(`/patientclinical/branches`).then(r => r.data),
     enabled: !!user?.orgId
   })
 
@@ -61,12 +64,21 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     },
   })
 
+
+
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const r = await api.get("/doctors")
-      return r.data
+      if (user?.role === "Doctor") return []
+      try {
+        const r = await api.get("/doctors")
+        return r.data
+      } catch (e: any) {
+        if (e.response?.status === 403) return []
+        throw e
+      }
     },
+    enabled: !!user,
   })
 
   // History Pagination
@@ -104,6 +116,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   // Form State
   const [visitDoctorId, setVisitDoctorId] = useState(user?.doctorId || "")
+  const [visitDoctorName, setVisitDoctorName] = useState("")
   const [visitSymptoms, setVisitSymptoms] = useState("")
   const [visitDiagnosis, setVisitDiagnosis] = useState("")
   const [visitAdvice, setVisitAdvice] = useState("")
@@ -228,45 +241,49 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
 
       // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
-      if (printRef.current) {
-        try {
-          const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
-          const imgData = canvas.toDataURL("image/png");
-          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          let imgWidth = pdfWidth;
-          let imgHeight = (canvas.height * pdfWidth) / canvas.width;
-          if (imgHeight > pageHeight) {
-            const ratio = pageHeight / imgHeight;
-            imgHeight = pageHeight;
-            imgWidth = imgWidth * ratio;
-          }
-          const x = (pdfWidth - imgWidth) / 2;
-          pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
+        if (printRef.current) {
+          try {
+            const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
+            
+            // Generate PDF and send to WA in the background so we don't block the UI
+            (async () => {
+              try {
+                const imgData = canvas.toDataURL("image/png");
+                const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                let imgWidth = pdfWidth;
+                let imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                if (imgHeight > pageHeight) {
+                  const ratio = pageHeight / imgHeight;
+                  imgHeight = pageHeight;
+                  imgWidth = imgWidth * ratio;
+                }
+                const x = (pdfWidth - imgWidth) / 2;
+                pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
 
-          const base64Pdf = pdf.output("datauristring").split(",")[1];
-          await api.post("/whatsapp/bridge/send", {
-            branchId: currentBranchId,
-            to: patient?.phone,
-            message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
-            fileBase64: base64Pdf,
-            fileName: `Prescription_${patient?.name}.pdf`
-          });
-          alert("Consultation saved and Prescription sent to WhatsApp!");
-        } catch (err: any) {
-          console.error("Auto-send WA Error", err);
-          if (err.response?.status === 409) {
-            alert("Consultation saved, but WhatsApp is not connected for this branch. Please scan the QR code in WhatsApp Settings first.");
-          } else {
-            alert("Consultation saved, but failed to send WhatsApp: " + (err.response?.data?.message || err.message));
+                const base64Pdf = pdf.output("datauristring").split(",")[1];
+                await api.post(`/whatsapp/bridge/send/${currentBranchId}`, {
+                  to: patient?.phone,
+                  message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
+                  fileBase64: base64Pdf,
+                  fileName: `Prescription_${patient?.name}.pdf`
+                });
+                console.log("Prescription sent to WhatsApp successfully.");
+              } catch (err: any) {
+                console.error("Auto-send WA Error", err);
+              }
+            })();
+            
+          } catch (err: any) {
+            console.error("html2canvas error", err);
           }
         }
-      } else {
+        
         alert("Consultation saved successfully!");
-      }
 
       // Clear form AFTER PDF is generated and sent
+      setVisitDoctorName("")
       setVisitSymptoms("")
       setVisitDiagnosis("")
       setVisitAdvice("")
@@ -312,6 +329,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const handleEditVisit = (visit: any) => {
     setEditingVisitId(visit.id)
     setVisitDoctorId(visit.doctorId || "")
+    setVisitDoctorName(visit.doctorName || "")
     setVisitSymptoms(visit.symptoms || "")
     setVisitDiagnosis(visit.diagnosis || "")
     setVisitAdvice(visit.advice || "")
@@ -377,7 +395,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   }
 
   if (isPatientLoading) {
-    return <div className="p-8 flex justify-center"><Activity className="animate-spin text-indigo-500" /></div>
+    return <PageLoader message="Loading Patient Profile..." minHeight="min-h-[80vh]" />
   }
 
   return (
@@ -401,13 +419,15 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight truncate">{patient?.name || "Unknown Patient"}</h1>
-                <button
-                  onClick={() => setIsProfileDrawerOpen(true)}
-                  className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors shrink-0"
-                  title="Edit Patient Profile"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+                {(can('Patients.Edit') || can('DoctorDesk.EditPatient')) && (
+                  <button
+                    onClick={() => setIsProfileDrawerOpen(true)}
+                    className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors shrink-0"
+                    title="Edit Patient Profile"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-slate-500 mt-0.5">
                 <span className="flex items-center gap-1 whitespace-nowrap"><Hash className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {patient?.patientCode || "PT-NEW"}</span>
@@ -427,6 +447,8 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               <button
                 onClick={() => {
                   setEditingVisitId(null)
+                  setVisitDoctorId(user?.doctorId || "")
+                  setVisitDoctorName("")
                   setVisitSymptoms("")
                   setVisitDiagnosis("")
                   setVisitAdvice("")
@@ -509,6 +531,9 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   {doctors?.map((d: any) => (
                     <option key={d.id} value={d.id}>Dr. {d.name}</option>
                   ))}
+                  {user?.role === "Doctor" && visitDoctorId && (!doctors || doctors.length === 0) && (
+                    <option value={visitDoctorId}>Dr. {visitDoctorName || "Me"}</option>
+                  )}
                 </select>
               </div>
             </div>

@@ -12,15 +12,19 @@ namespace CodeX.Api.Controllers
     public class NotificationsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public NotificationsController(IApplicationDbContext context)
+        public NotificationsController(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         [HttpGet("branch/{branchId}")]
         public async Task<IActionResult> GetBranchNotifications(Guid branchId)
         {
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId != branchId) return Forbid();
+
             var notifications = await _context.Notifications
                 .Where(n => n.BranchId == branchId && !n.IsDeleted)
                 .OrderByDescending(n => n.CreatedAt)
@@ -42,8 +46,10 @@ namespace CodeX.Api.Controllers
         [HttpPost("{id}/read")]
         public async Task<IActionResult> MarkAsRead(Guid id)
         {
-            var notification = await _context.Notifications.FindAsync(id);
+            var notification = await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id);
             if (notification == null) return NotFound();
+
+            if (_currentUserService.BranchId.HasValue && notification.BranchId != _currentUserService.BranchId) return Forbid();
 
             notification.IsRead = true;
             await _context.SaveChangesAsync(default);
@@ -53,6 +59,8 @@ namespace CodeX.Api.Controllers
         [HttpPost("branch/{branchId}/read-all")]
         public async Task<IActionResult> MarkAllAsRead(Guid branchId)
         {
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId != branchId) return Forbid();
+
             var notifications = await _context.Notifications
                 .Where(n => n.BranchId == branchId && !n.IsRead && !n.IsDeleted)
                 .ToListAsync();

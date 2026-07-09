@@ -17,6 +17,9 @@ namespace CodeX.Application.Common.Interfaces
         // ─── Bot Reply (send a raw text reply to an incoming WhatsApp message) ─
         Task SendTextMessage(string toPhoneNumber, string message, Guid branchId);
 
+        // ─── Send Document / PDF ──────────────────────────────────────────────
+        Task SendDocumentMessage(string toPhoneNumber, string message, string fileName, string base64Data, Guid branchId);
+
         // ─── Health Check ─────────────────────────────────────────────────────
         Task<bool> TestConnection(string accountSid, string authToken, string fromNumber);
     }

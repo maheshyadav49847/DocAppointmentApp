@@ -26,12 +26,14 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsAppService;
+        private readonly IChatSessionCache _chatSessionCache;
 
-        public EndQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsAppService)
+        public EndQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsAppService, IChatSessionCache chatSessionCache)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsAppService = whatsAppService;
+            _chatSessionCache = chatSessionCache;
         }
 
         public async Task<bool> Handle(EndQueueCommand request, CancellationToken cancellationToken)
@@ -96,6 +98,8 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
                             }
                             chatSession.CurrentState = "AWAITING_RATING_SCORE";
                             chatSession.SelectedSessionId = token.Id; // Reusing field to store TokenId for rating
+
+                            _chatSessionCache.SetSession(chatSession);
 
                             await _whatsAppService.SendFeedbackRequest(token.Patient.Phone, queue.Doctor.Name, token.Id, queue.BranchId); 
                         }

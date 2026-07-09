@@ -1,11 +1,9 @@
-using MediatR;
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Entities;
-using CodeX.Domain.Enums;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
-using Microsoft.Extensions.Configuration;
 using CodeX.Application.Common.Security;
+using CodeX.Domain.Entities;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 {
@@ -49,12 +47,59 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
             _context.Organizations.Add(org);
 
+            // Clone system roles for the new organization
+            var systemRoles = await _context.Roles
+                .Include(r => r.RolePermissions)
+                .Where(r => r.OrganizationId == Guid.Empty && r.Name != "SuperAdmin")
+                .ToListAsync(cancellationToken);
+
+            var clonedRoles = new Dictionary<string, Role>();
+
+            foreach (var sysRole in systemRoles)
+            {
+                var clonedRole = new Role
+                {
+                    Name = sysRole.Name,
+                    Description = sysRole.Description,
+                    IsSystemDefault = true,
+                    OrganizationId = org.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                foreach (var perm in sysRole.RolePermissions)
+                {
+                    clonedRole.RolePermissions.Add(new RolePermission
+                    {
+                        Permission = perm.Permission
+                    });
+                }
+
+                _context.Roles.Add(clonedRole);
+                clonedRoles[clonedRole.Name] = clonedRole;
+            }
+
             // 2. Create OrgAdmin Staff
             var emailParts = normalizedEmail.Split('@')[0].Split('.');
             var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
             var lastName = emailParts.Length > 1 ? char.ToUpper(emailParts[1][0]) + emailParts[1].Substring(1) : "User";
 
             PasswordValidator.Validate(request.AdminPassword, _configuration);
+
+            // Assign the newly cloned OrgAdmin role instead of the global one
+            var orgAdminRole = clonedRoles.ContainsKey("OrgAdmin") ? clonedRoles["OrgAdmin"] : null;
+
+            // 3. Create Doctor Profile for the Admin (Solo Doctor Workflow)
+            var doctor = new CodeX.Domain.Entities.Doctor
+            {
+                OrganizationId = org.Id,
+                Name = $"Dr. {firstName} {lastName}",
+                Specialization = "General Practitioner",
+                ConsultationFee = 500,
+                IsActive = true
+            };
+
+            _context.Doctors.Add(doctor);
 
             var admin = new CodeX.Domain.Entities.Staff
             {
@@ -63,8 +108,9 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 FirstName = firstName,
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
-                Role = StaffRole.OrgAdmin,
-                PhoneNumber = normalizedPhone
+                RoleId = orgAdminRole?.Id,
+                PhoneNumber = normalizedPhone,
+                Doctor = doctor // Link the staff to the newly created doctor profile
             };
 
             _context.Staff.Add(admin);

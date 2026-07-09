@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace CodeX.Application.Common.Exceptions
 {
     public class ValidationException : Exception

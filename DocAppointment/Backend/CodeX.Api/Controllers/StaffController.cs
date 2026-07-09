@@ -1,15 +1,16 @@
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Staff.Commands.CreateStaff;
 using CodeX.Application.Features.Staff.Commands.DeleteStaff;
 using CodeX.Application.Features.Staff.Commands.UpdateStaff;
 using CodeX.Application.Features.Staff.Queries.GetStaffList;
-using CodeX.Domain.Enums;
+using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CodeX.Api.Controllers
 {
-    [Authorize(Roles = $"{nameof(StaffRole.SuperAdmin)},{nameof(StaffRole.OrgAdmin)},{nameof(StaffRole.BranchAdmin)},{nameof(StaffRole.Receptionist)}")]
+    [Authorize]
     public class StaffController : BaseApiController
     {
         private readonly ICurrentUserService _currentUserService;
@@ -20,9 +21,10 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet]
+        [HasPermission(SystemPermissions.Staff.View)]
         public async Task<ActionResult<List<StaffDto>>> Get([FromQuery] Guid? orgId, [FromQuery] Guid? branchId)
         {
-            var effectiveOrgId = _currentUserService.IsInRole(nameof(StaffRole.SuperAdmin)) &&
+            var effectiveOrgId = _currentUserService.OrgId == Guid.Empty &&
                                  orgId.HasValue &&
                                  orgId.Value != Guid.Empty
                 ? orgId.Value
@@ -34,34 +36,39 @@ namespace CodeX.Api.Controllers
             }
 
             var effectiveBranchId = branchId;
-            
-            // Branch-level isolation for BranchAdmin and Receptionist
-            if (_currentUserService.IsInRole(nameof(StaffRole.BranchAdmin)) || 
-                _currentUserService.IsInRole(nameof(StaffRole.Receptionist)))
+
+            // Branch-level isolation for branch-specific staff
+            if (_currentUserService.BranchId.HasValue)
             {
-                if (!_currentUserService.BranchId.HasValue)
-                {
-                    return BadRequest(new { message = "Your account is not linked to a branch." });
-                }
-
-                if (branchId.HasValue && branchId != _currentUserService.BranchId)
-                {
-                    return Forbid();
-                }
-
                 effectiveBranchId = _currentUserService.BranchId;
             }
 
             return await Mediator.Send(new GetStaffListQuery(effectiveOrgId, effectiveBranchId));
         }
 
+        [HttpGet("branches")]
+        [HasPermission(SystemPermissions.Staff.View)]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+        }
+
+        [HttpGet("roles")]
+        [HasPermission(SystemPermissions.Staff.View)]
+        public async Task<ActionResult<List<CodeX.Application.Features.Roles.Queries.GetRoles.RoleDto>>> GetRoles()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Roles.Queries.GetRoles.GetRolesQuery(_currentUserService.OrgId));
+        }
+
         [HttpPost]
+        [HasPermission(SystemPermissions.Staff.Add)]
         public async Task<ActionResult<Guid>> Create(CreateStaffCommand command)
         {
             return await Mediator.Send(command);
         }
 
         [HttpPut("{id}")]
+        [HasPermission(SystemPermissions.Staff.Edit)]
         public async Task<IActionResult> Update(Guid id, UpdateStaffCommand command)
         {
             if (id != command.Id)
@@ -74,6 +81,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [HasPermission(SystemPermissions.Staff.Delete)]
         public async Task<IActionResult> Delete(Guid id)
         {
             await Mediator.Send(new DeleteStaffCommand(id));

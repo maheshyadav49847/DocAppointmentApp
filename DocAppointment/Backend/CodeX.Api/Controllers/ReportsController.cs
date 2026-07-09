@@ -1,9 +1,9 @@
-using MediatR;
+using CodeX.Api.Authorization;
+using CodeX.Application.Common.Interfaces;
+using CodeX.Application.Features.Reports.Queries.GetBranchAnalytics;
+using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CodeX.Application.Features.Reports.Queries.GetBranchAnalytics;
-using CodeX.Domain.Enums;
-using CodeX.Application.Common.Interfaces;
 
 namespace CodeX.Api.Controllers
 {
@@ -20,23 +20,31 @@ namespace CodeX.Api.Controllers
             _currentUserService = currentUserService;
         }
 
+        [HttpGet("branches")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+        }
+
         [HttpGet("branch-analytics")]
+        [HasPermission(SystemPermissions.Analytics.View)]
         public async Task<ActionResult<BranchAnalyticsDto>> GetBranchAnalytics(
-            [FromQuery] Guid? branchId, 
-            [FromQuery] DateTime? startDate, 
+            [FromQuery] Guid? branchId,
+            [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate)
         {
             var orgId = _currentUserService.OrgId;
-            
-            var isSuperAdmin = _currentUserService.IsInRole("SuperAdmin");
-            
+
+            var isSuperAdmin = _currentUserService.OrgId == Guid.Empty;
+
             // Default to last 30 days if no dates provided
             var start = startDate ?? DateTime.UtcNow.AddDays(-30);
             var end = endDate ?? DateTime.UtcNow;
 
-            // Enforcement: If user is BranchAdmin, they can only see their own branch
+            // Enforcement: If user is branch-specific, they can only see their own branch
             var effectiveBranchId = branchId;
-            if (_currentUserService.IsInRole(nameof(StaffRole.BranchAdmin)) || _currentUserService.IsInRole(nameof(StaffRole.Receptionist)))
+            if (_currentUserService.BranchId.HasValue)
             {
                 effectiveBranchId = _currentUserService.BranchId;
             }

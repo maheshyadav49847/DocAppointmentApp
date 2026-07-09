@@ -1,5 +1,3 @@
-using System;
-
 namespace CodeX.Domain.Common
 {
     public interface IMustHaveTenant

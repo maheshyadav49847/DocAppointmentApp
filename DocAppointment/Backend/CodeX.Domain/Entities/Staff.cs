@@ -1,6 +1,4 @@
-using System;
 using CodeX.Domain.Common;
-using CodeX.Domain.Enums;
 
 namespace CodeX.Domain.Entities
 {
@@ -13,7 +11,8 @@ namespace CodeX.Domain.Entities
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string EmployeeId { get; set; } = string.Empty;
-        public StaffRole Role { get; set; } = StaffRole.Receptionist;
+        public Guid? RoleId { get; set; }
+        public virtual Role? Role { get; set; }
         public string? PasswordResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
@@ -27,7 +26,7 @@ namespace CodeX.Domain.Entities
         public virtual Branch? Branch { get; set; }
         public Guid? DoctorId { get; set; }
         public virtual Doctor? Doctor { get; set; }
-        
+
         public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     }

@@ -1,5 +1,3 @@
-using System.Security.Claims;
-
 namespace CodeX.Application.Common.Interfaces
 {
     public interface ICurrentUserService
@@ -7,7 +5,9 @@ namespace CodeX.Application.Common.Interfaces
         string? UserId { get; }
         Guid OrgId { get; }
         Guid? BranchId { get; }
+        Guid? TokenBranchId { get; }
         Guid? DoctorId { get; }
         bool IsInRole(string role);
+        bool HasPermission(string permission);
     }
 }

@@ -1,13 +1,12 @@
 using CodeX.Application.Common.Interfaces;
-using CodeX.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Application.Common.Authorization
 {
     public interface IEntityAuthorizationService
     {
-        Task<bool> CanCreateStaffAsync(Guid organizationId, Guid? branchId, StaffRole targetRole);
-        Task<bool> CanUpdateStaffAsync(Guid staffId, StaffRole targetRole);
+        Task<bool> CanCreateStaffAsync(Guid organizationId, Guid? branchId, string targetRoleName);
+        Task<bool> CanUpdateStaffAsync(Guid staffId, string targetRoleName);
         Task<bool> CanDeleteStaffAsync(Guid staffId);
         Task<bool> CanCreateSessionAsync(Guid doctorId, Guid branchId);
         Task<bool> CanUpdateSessionAsync(Guid sessionId);
@@ -30,28 +29,16 @@ namespace CodeX.Application.Common.Authorization
             _currentUser = currentUser;
         }
 
-        public Task<bool> CanCreateStaffAsync(Guid organizationId, Guid? branchId, StaffRole targetRole)
+        public Task<bool> CanCreateStaffAsync(Guid organizationId, Guid? branchId, string targetRoleName)
         {
-            if (!_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) &&
-                !_currentUser.IsInRole(nameof(StaffRole.OrgAdmin)) &&
-                !_currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
+            if (_currentUser.OrgId != Guid.Empty && organizationId != _currentUser.OrgId)
             {
                 return Task.FromResult(false);
             }
 
-            if (!_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) && organizationId != _currentUser.OrgId)
+            if (_currentUser.BranchId.HasValue)
             {
-                return Task.FromResult(false);
-            }
-
-            if (_currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
-            {
-                if (!_currentUser.BranchId.HasValue || branchId != _currentUser.BranchId)
-                {
-                    return Task.FromResult(false);
-                }
-
-                if (targetRole is StaffRole.OrgAdmin or StaffRole.BranchAdmin or StaffRole.SuperAdmin)
+                if (!branchId.HasValue || branchId != _currentUser.BranchId)
                 {
                     return Task.FromResult(false);
                 }
@@ -60,32 +47,22 @@ namespace CodeX.Application.Common.Authorization
             return Task.FromResult(true);
         }
 
-        public async Task<bool> CanUpdateStaffAsync(Guid staffId, StaffRole targetRole)
+        public async Task<bool> CanUpdateStaffAsync(Guid staffId, string targetRoleName)
         {
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == staffId);
+            var staff = await _context.Staffs.Include(s => s.Role).FirstOrDefaultAsync(s => s.Id == staffId);
             if (staff == null)
             {
                 return false;
             }
 
-            if (staff.Role == StaffRole.SuperAdmin && !_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
+            if (_currentUser.OrgId != Guid.Empty && staff.OrganizationId != _currentUser.OrgId)
             {
                 return false;
             }
 
-            if (!_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) && staff.OrganizationId != _currentUser.OrgId)
-            {
-                return false;
-            }
-
-            if (_currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
+            if (_currentUser.BranchId.HasValue)
             {
                 if (staff.BranchId != _currentUser.BranchId)
-                {
-                    return false;
-                }
-
-                if (targetRole is StaffRole.OrgAdmin or StaffRole.BranchAdmin or StaffRole.SuperAdmin)
                 {
                     return false;
                 }
@@ -96,30 +73,30 @@ namespace CodeX.Application.Common.Authorization
 
         public async Task<bool> CanDeleteStaffAsync(Guid staffId)
         {
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == staffId);
+            var staff = await _context.Staffs.Include(s => s.Role).FirstOrDefaultAsync(s => s.Id == staffId);
             if (staff == null)
             {
                 return false;
             }
 
-            if (staff.Role == StaffRole.SuperAdmin && !_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)))
+            if (staff.Role?.Name == "SuperAdmin" && !_currentUser.IsInRole("SuperAdmin"))
             {
                 return false;
             }
 
-            if (!_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) && staff.OrganizationId != _currentUser.OrgId)
+            if (!_currentUser.IsInRole("SuperAdmin") && staff.OrganizationId != _currentUser.OrgId)
             {
                 return false;
             }
 
-            if (_currentUser.IsInRole(nameof(StaffRole.BranchAdmin)))
+            if (_currentUser.IsInRole("BranchAdmin"))
             {
                 if (staff.BranchId != _currentUser.BranchId)
                 {
                     return false;
                 }
 
-                if (staff.Role is StaffRole.OrgAdmin or StaffRole.BranchAdmin)
+                if (staff.Role?.Name is "OrgAdmin" or "BranchAdmin")
                 {
                     return false;
                 }
@@ -141,14 +118,14 @@ namespace CodeX.Application.Common.Authorization
 
             return await _context.Branches.AnyAsync(b =>
                 b.Id == branchId &&
-                (_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) || b.OrganizationId == _currentUser.OrgId));
+                (_currentUser.OrgId == Guid.Empty || b.OrganizationId == _currentUser.OrgId));
         }
 
         public async Task<bool> CanUpdateSessionAsync(Guid sessionId)
         {
             return await _context.Sessions
                 .AnyAsync(s => s.Id == sessionId &&
-                               (_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) ||
+                               (_currentUser.OrgId == Guid.Empty ||
                                 s.Branch.OrganizationId == _currentUser.OrgId));
         }
 
@@ -159,7 +136,7 @@ namespace CodeX.Application.Common.Authorization
 
         public async Task<bool> CanCreateDoctorAsync(Guid organizationId, Guid branchId)
         {
-            if (!_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) && organizationId != _currentUser.OrgId)
+            if (_currentUser.OrgId != Guid.Empty && organizationId != _currentUser.OrgId)
             {
                 return false;
             }
@@ -171,7 +148,7 @@ namespace CodeX.Application.Common.Authorization
         {
             return await _context.Doctors.AnyAsync(d =>
                 d.Id == doctorId &&
-                (_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) || d.OrganizationId == _currentUser.OrgId));
+                (_currentUser.OrgId == Guid.Empty || d.OrganizationId == _currentUser.OrgId));
         }
 
         public Task<bool> CanDeleteDoctorAsync(Guid doctorId)
@@ -184,14 +161,14 @@ namespace CodeX.Application.Common.Authorization
             return await _context.Sessions.AnyAsync(s =>
                 s.Id == sessionId &&
                 s.DoctorId == doctorId &&
-                (_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) || s.Branch.OrganizationId == _currentUser.OrgId));
+                (_currentUser.OrgId == Guid.Empty || s.Branch.OrganizationId == _currentUser.OrgId));
         }
 
         public async Task<bool> CanManipulateQueueAsync(Guid queueId)
         {
             return await _context.DailyQueues.AnyAsync(q =>
                 q.Id == queueId &&
-                (_currentUser.IsInRole(nameof(StaffRole.SuperAdmin)) || q.Branch.OrganizationId == _currentUser.OrgId));
+                (_currentUser.OrgId == Guid.Empty || q.Branch.OrganizationId == _currentUser.OrgId));
         }
     }
 }

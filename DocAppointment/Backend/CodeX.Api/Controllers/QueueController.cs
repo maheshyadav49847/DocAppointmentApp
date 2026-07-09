@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -27,16 +29,23 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("initialize")]
+        [HasPermission($"{SystemPermissions.Queue.CallNext},{SystemPermissions.DoctorDesk.CallNext}")]
         public async Task<ActionResult<Guid>> Create(CreateDailyQueueCommand command)
         {
-            if (!_currentUserService.IsInRole("SuperAdmin"))
+            if (_currentUserService.OrgId != Guid.Empty)
             {
-                var canAccess = await _context.Sessions
-                    .AnyAsync(s => s.Id == command.SessionId &&
-                                   s.DoctorId == command.DoctorId &&
-                                   s.Branch.OrganizationId == _currentUserService.OrgId);
+                var sessionQuery = _context.Sessions
+                    .Where(s => s.Id == command.SessionId &&
+                                s.DoctorId == command.DoctorId &&
+                                s.Branch.OrganizationId == _currentUserService.OrgId);
 
-                if (!canAccess)
+                // Branch Isolation
+                if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && !_currentUserService.DoctorId.HasValue)
+                {
+                    sessionQuery = sessionQuery.Where(s => s.BranchId == _currentUserService.BranchId.Value);
+                }
+
+                if (!await sessionQuery.AnyAsync())
                 {
                     return Forbid();
                 }
@@ -45,7 +54,96 @@ namespace CodeX.Api.Controllers
             return await Mediator.Send(command);
         }
 
+        [HttpGet("search-patients")]
+        [HasPermission(SystemPermissions.Queue.AddPatient)]
+        public async Task<ActionResult<List<CodeX.Application.Features.Queue.Queries.SearchQueuePatients.QueuePatientDto>>> SearchPatients([FromQuery] Guid? branchId, [FromQuery] string search)
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Queue.Queries.SearchQueuePatients.SearchQueuePatientsQuery(branchId, search));
+        }
+
+        [HttpPost("quick-start")]
+        [HasPermission($"{SystemPermissions.Queue.CallNext},{SystemPermissions.DoctorDesk.CallNext}")] // Ensures Doctor/Admin can do this
+        public async Task<ActionResult<Guid>> QuickStart()
+        {
+            var doctorId = _currentUserService.DoctorId;
+            if (doctorId == null)
+            {
+                // Fallback: If not a doctor, maybe they have a doctor assigned or we try to find one in the branch
+                var firstDoctor = await _context.Doctors.FirstOrDefaultAsync(d => d.OrganizationId == _currentUserService.OrgId);
+                if (firstDoctor == null) return BadRequest(new { message = "No doctor profile found for quick start." });
+                doctorId = firstDoctor.Id;
+            }
+
+            var branchId = _currentUserService.BranchId;
+            if (branchId == null || branchId == Guid.Empty)
+            {
+                var firstBranch = await _context.Branches.FirstOrDefaultAsync(b => b.OrganizationId == _currentUserService.OrgId);
+                if (firstBranch == null) return BadRequest(new { message = "No branch found for quick start." });
+                branchId = firstBranch.Id;
+            }
+
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(null); // Assuming default TZ
+            var tomorrow = today.AddDays(1);
+
+            // Check if queue already running
+            var existingQueue = await _context.DailyQueues
+                .Where(q => q.DoctorId == doctorId && q.BranchId == branchId && q.QueueDate >= today && q.QueueDate < tomorrow && q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled)
+                .OrderByDescending(q => q.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (existingQueue != null)
+            {
+                return Ok(existingQueue.Id); // Queue already running, just return it
+            }
+
+            // Find or create a session for today
+            var session = await _context.Sessions
+                .FirstOrDefaultAsync(s => s.DoctorId == doctorId && s.BranchId == branchId && s.SessionName == "Walk-in Session");
+
+            if (session == null)
+            {
+                session = new CodeX.Domain.Entities.Session
+                {
+                    DoctorId = doctorId.Value,
+                    BranchId = branchId.Value,
+                    SessionName = "Walk-in Session",
+                    StartTime = new TimeSpan(0, 0, 0),
+                    EndTime = new TimeSpan(23, 59, 59),
+                    IsDaily = true,
+                    DefaultCapacity = 100,
+                    IsActive = true
+                };
+                _context.Sessions.Add(session);
+                await _context.SaveChangesAsync(default);
+            }
+
+            return await Mediator.Send(new CreateDailyQueueCommand { DoctorId = doctorId.Value, SessionId = session.Id });
+        }
+
+        [HttpGet("branches")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
+        public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
+        }
+
+        [HttpGet("doctors")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
+        public async Task<ActionResult<List<CodeX.Application.Features.Doctors.Queries.GetDoctorsList.DoctorDto>>> GetDoctors([FromQuery] Guid? branchId)
+        {
+            var effectiveBranchId = branchId ?? _currentUserService.BranchId ?? Guid.Empty;
+            return await Mediator.Send(new CodeX.Application.Features.Doctors.Queries.GetDoctorsList.GetDoctorsListQuery(effectiveBranchId));
+        }
+
+        [HttpGet("sessions")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
+        public async Task<ActionResult<List<CodeX.Application.Features.Sessions.Queries.GetSessionsList.SessionDto>>> GetSessions([FromQuery] Guid doctorId, [FromQuery] Guid? branchId)
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Sessions.Queries.GetSessionsList.GetSessionsListQuery(doctorId, branchId));
+        }
+
         [HttpPost("{queueId}/next")]
+        [HasPermission($"{SystemPermissions.Queue.CallNext},{SystemPermissions.DoctorDesk.CallNext}")]
         public async Task<ActionResult<int>> Next(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -58,6 +156,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/arrived")]
+        [HasPermission($"{SystemPermissions.Queue.MarkDoctorArrived},{SystemPermissions.DoctorDesk.MarkDoctorArrived}")]
         public async Task<ActionResult<bool>> Arrived(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -69,6 +168,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/skip")]
+        [HasPermission($"{SystemPermissions.Queue.SkipToken},{SystemPermissions.DoctorDesk.SkipToken}")]
         public async Task<ActionResult<bool>> Skip(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -80,6 +180,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/complete")]
+        [HasPermission($"{SystemPermissions.Queue.CompleteToken},{SystemPermissions.DoctorDesk.CompleteToken}")]
         public async Task<ActionResult<bool>> Complete(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -91,6 +192,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/end")]
+        [HasPermission($"{SystemPermissions.Queue.EndSession},{SystemPermissions.DoctorDesk.EndSession}")]
         public async Task<ActionResult<bool>> End(Guid queueId, [FromBody] EndQueueDto? dto = null)
         {
             if (!await CanAccessQueue(queueId))
@@ -102,6 +204,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/alert")]
+        [HasPermission(SystemPermissions.Queue.SendAlert)]
         public async Task<ActionResult<bool>> Alert(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -113,6 +216,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("{queueId}/cancel")]
+        [HasPermission($"{SystemPermissions.Queue.EndSession},{SystemPermissions.DoctorDesk.EndSession}")]
         public async Task<ActionResult<bool>> Cancel(Guid queueId)
         {
             if (!await CanAccessQueue(queueId))
@@ -124,16 +228,23 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("stats/{branchId}")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
         public async Task<ActionResult<QueueStatsDto>> GetStats(Guid branchId)
         {
             // IDOR Protection
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
-            if (!branchExists && !_currentUserService.IsInRole("SuperAdmin")) return Forbid();
+            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return Forbid();
+
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId && !_currentUserService.DoctorId.HasValue)
+            {
+                return Forbid();
+            }
 
             return await Mediator.Send(new GetQueueStatsQuery(branchId));
         }
 
         [HttpGet("{queueId}")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
         public async Task<ActionResult<object>> GetQueueDetails(Guid queueId)
         {
             var queue = await _context.DailyQueues
@@ -144,7 +255,7 @@ namespace CodeX.Api.Controllers
                 .Include(q => q.Session)
                 .FirstOrDefaultAsync(q => q.Id == queueId && 
                     q.Branch.OrganizationId == _currentUserService.OrgId &&
-                    (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+                    (_currentUserService.BranchId == null || _currentUserService.DoctorId.HasValue || q.BranchId == _currentUserService.BranchId));
 
             if (queue == null) return NotFound();
 
@@ -170,11 +281,13 @@ namespace CodeX.Api.Controllers
                 completedCount,
                 skippedCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
-                currentPatientId = currentToken?.PatientId
+                currentPatientId = currentToken?.PatientId,
+                currentTokenId = currentToken?.Id
             });
         }
 
         [HttpGet("{queueId}/tokens/upcoming")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
         public async Task<ActionResult<List<object>>> GetUpcomingTokens(Guid queueId)
         {
             var queue = await _context.DailyQueues
@@ -184,7 +297,7 @@ namespace CodeX.Api.Controllers
                 .Include(q => q.Branch)
                 .FirstOrDefaultAsync(q => q.Id == queueId && 
                     q.Branch.OrganizationId == _currentUserService.OrgId &&
-                    (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+                    (_currentUserService.BranchId == null || _currentUserService.DoctorId.HasValue || q.BranchId == _currentUserService.BranchId));
 
             if (queue == null) return NotFound();
 
@@ -208,6 +321,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("active/{doctorId}")]
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
         public async Task<ActionResult<object>> GetActiveQueue(Guid doctorId)
         {
             var query = _context.DailyQueues
@@ -220,8 +334,7 @@ namespace CodeX.Api.Controllers
 
             if (!_currentUserService.IsInRole("SuperAdmin"))
             {
-                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
-                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
             }
 
             var queues = await query.OrderByDescending(q => q.CreatedAt).Take(5).ToListAsync();
@@ -255,12 +368,15 @@ namespace CodeX.Api.Controllers
                 skippedCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
-                branchName = queue.Branch?.Name
+                currentTokenId = currentToken?.Id,
+                branchName = queue.Branch?.Name,
+                branchId = queue.BranchId
             });
         }
 
         [HttpGet("active/{doctorId}/{sessionId}")]
-        public async Task<ActionResult<object>> GetActiveQueueBySession(Guid doctorId, Guid sessionId)
+        [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
+        public async Task<ActionResult<object>> GetActiveQueueForSession(Guid doctorId, Guid sessionId)
         {
             var sessionObj = await _context.Sessions.Include(s => s.Branch).FirstOrDefaultAsync(s => s.Id == sessionId);
             if (sessionObj == null) return Ok(null);
@@ -271,6 +387,7 @@ namespace CodeX.Api.Controllers
             var query = _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
+                .Include(q => q.Branch)
                 .Where(q => q.DoctorId == doctorId &&
                             q.SessionId == sessionId &&
                             q.QueueDate >= today &&
@@ -280,8 +397,7 @@ namespace CodeX.Api.Controllers
 
             if (!_currentUserService.IsInRole("SuperAdmin"))
             {
-                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId &&
-                                         (_currentUserService.BranchId == null || q.BranchId == _currentUserService.BranchId));
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
             }
 
             var queue = await query
@@ -296,14 +412,24 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefault();
 
             var waitingCount = queue.Tokens.Count(t => t.TokenNumber > queue.CurrentTokenNumber && t.Status == TokenStatus.Pending);
+            var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
+            var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
 
             return Ok(new
             {
                 id = queue.Id,
                 status = queue.Status,
                 currentTokenNumber = queue.CurrentTokenNumber,
+                doctorId = queue.DoctorId,
+                sessionId = queue.SessionId,
                 waitingCount,
-                currentPatientName = currentToken?.Patient?.Name ?? "No one"
+                completedCount,
+                skippedCount,
+                currentPatientName = currentToken?.Patient?.Name ?? "No one",
+                currentPatientId = currentToken?.PatientId,
+                currentTokenId = currentToken?.Id,
+                branchName = queue.Branch?.Name,
+                branchId = queue.BranchId
             });
         }
 
@@ -388,21 +514,22 @@ namespace CodeX.Api.Controllers
 
         private async Task<bool> CanAccessQueue(Guid queueId)
         {
-            if (_currentUserService.IsInRole("SuperAdmin"))
+            var query = _context.DailyQueues.Where(q => q.Id == queueId);
+
+            if (_currentUserService.OrgId != Guid.Empty)
             {
-                return true;
+                query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
             }
 
-            var query = _context.DailyQueues.Where(q => q.Id == queueId && q.Branch.OrganizationId == _currentUserService.OrgId);
-
-            if (_currentUserService.BranchId != null)
-            {
-                query = query.Where(q => q.BranchId == _currentUserService.BranchId);
-            }
-
-            if (_currentUserService.IsInRole("Doctor") && _currentUserService.DoctorId.HasValue)
+            // If user has a DoctorId, restrict them to their own queues ONLY (ignore BranchId filter for them)
+            if (_currentUserService.DoctorId.HasValue)
             {
                 query = query.Where(q => q.DoctorId == _currentUserService.DoctorId.Value);
+            }
+            // For other staff (e.g. receptionists), restrict by their current active BranchId
+            else if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
+            {
+                query = query.Where(q => q.BranchId == _currentUserService.BranchId.Value);
             }
 
             return await query.AnyAsync();

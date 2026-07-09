@@ -9,12 +9,20 @@ export const staffService = {
     const response = await api.get(`/staff?${params.toString()}`);
     return response.data;
   },
+  getBranches: async () => {
+    const response = await api.get('/staff/branches');
+    return response.data;
+  },
+  getRoles: async () => {
+    const response = await api.get('/staff/roles');
+    return response.data;
+  },
   createStaff: async (data: {
     branchId: string | null;
     organizationId: string;
     email: string;
     password: string;
-    role: number;
+    roleId: string;
     phoneNumber: string;
     firstName: string;
     lastName: string;
@@ -26,7 +34,7 @@ export const staffService = {
   updateStaff: async (id: string, data: {
     id: string;
     email: string;
-    role: number;
+    roleId: string;
     phoneNumber: string;
     firstName: string;
     lastName: string;

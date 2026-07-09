@@ -14,13 +14,15 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
         private readonly ISmsService _smsService;
+        private readonly IChatSessionCache _chatSessionCache;
 
-        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService)
+        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService, IChatSessionCache chatSessionCache)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
             _smsService = smsService;
+            _chatSessionCache = chatSessionCache;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -44,6 +46,8 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 .Include(x => x.Doctor)
                 .Include(x => x.Tokens)
                 .ThenInclude(x => x.Patient)
+                .Include(x => x.Branch)
+                .ThenInclude(b => b.Organization)
                 .FirstOrDefaultAsync(x => x.Id == request.QueueId, cancellationToken);
 
             if (queue == null) throw new Exception("Queue not found");
@@ -74,6 +78,8 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         }
                         chatSession.CurrentState = "AWAITING_RATING_SCORE";
                         chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
+
+                        _chatSessionCache.SetSession(chatSession);
 
                         await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id, queue.BranchId);
                     }
@@ -140,6 +146,19 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                 // Automated Upcoming Alerts
                 var upcomingPositions = new[] { 3, 5 };
+                if (queue.Branch?.Organization?.SettingsJson != null)
+                {
+                    try
+                    {
+                        var settings = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(queue.Branch.Organization.SettingsJson);
+                        if (settings.TryGetProperty("WhatsAppAlertPositions", out var positionsProp) && positionsProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            upcomingPositions = positionsProp.EnumerateArray().Select(x => x.GetInt32()).ToArray();
+                        }
+                    }
+                    catch { }
+                }
+
                 foreach (var pos in upcomingPositions)
                 {
                     var upcomingPatient = queue.Tokens

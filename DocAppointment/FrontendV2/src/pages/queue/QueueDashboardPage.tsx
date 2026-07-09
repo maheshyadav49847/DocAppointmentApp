@@ -8,7 +8,8 @@ export default function QueueDashboardPage() {
   const { user, activeBranchId, setActiveBranchId } = useAuthStore()
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const globalBranchId = user?.branchId
-  const selectedBranchId = role === 'orgadmin' ? (activeBranchId || 'org') : (globalBranchId || 'org');
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranchId = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || 'org') : (globalBranchId || 'org');
   const setSelectedBranchId = setActiveBranchId
 
   const [searchParams, setSearchParams] = useSearchParams()

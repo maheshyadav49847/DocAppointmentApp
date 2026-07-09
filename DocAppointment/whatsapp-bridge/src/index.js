@@ -2,7 +2,10 @@ import "dotenv/config";
 import express from "express";
 import QRCode from "qrcode";
 import fs from "fs";
+import fsp from "fs/promises";
+import path from "path";
 import pino from "pino";
+import { exec } from "child_process";
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from "@whiskeysockets/baileys";
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -28,6 +31,7 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ error: "Unauthorized" });
 }
 
+// Map now stores objects containing state, client, and initPromise
 const clients = new Map();
 
 function buildBridgeHeaders() {
@@ -48,21 +52,26 @@ function toChatId(phoneNumber) {
   return `${finalDigits}@s.whatsapp.net`;
 }
 
+function markActivity(branchId) {
+  const entry = clients.get(branchId);
+  if (entry) {
+    entry.lastActivity = Date.now();
+  }
+}
+
 async function relayIncomingMessage(branchId, message) {
-  // Prefer the traditional phone-based JID if available in remoteJidAlt
+  markActivity(branchId);
   let from = message.key.remoteJid;
   if (message.key.remoteJidAlt && message.key.remoteJidAlt.includes("@s.whatsapp.net")) {
     from = message.key.remoteJidAlt;
   }
 
   if (!message.message || message.key.fromMe) return;
-  if (!from || from.includes("@g.us")) return; // Ignore groups
+  if (!from || from.includes("@g.us")) return;
 
-  // IMPORTANT: Ignore old messages older than 1 hour (3600 seconds)
   const messageTimestamp = message.messageTimestamp;
   const now = Math.floor(Date.now() / 1000);
   if (messageTimestamp && (now - messageTimestamp > 3600)) {
-    console.log(`[WEBHOOK] Ignoring old message from ${from} (Age: ${now - messageTimestamp}s)`);
     return;
   }
 
@@ -75,26 +84,17 @@ async function relayIncomingMessage(branchId, message) {
     from = `${idPart}@${jidParts[1]}`;
   }
 
-  // Convert @s.whatsapp.net or @lid to @c.us for backend compatibility
   const normalizedFrom = from.replace("@s.whatsapp.net", "@c.us").replace("@lid", "@c.us");
 
   try {
-    console.log(`[WEBHOOK] Attempting relay for ${branchId} to ${backendWebhookUrl}...`);
     const response = await fetch(backendWebhookUrl, {
       method: "POST",
       headers: buildBridgeHeaders(),
-      body: JSON.stringify({
-        sessionId: branchId,
-        from: normalizedFrom,
-        body
-      })
+      body: JSON.stringify({ sessionId: branchId, from: normalizedFrom, body })
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`[WEBHOOK] Relay failed for ${branchId}. Status=${response.status} Body=${errorBody}`);
-    } else {
-      console.log(`[WEBHOOK] Relay success for ${branchId}`);
+      console.error(`[WEBHOOK] Relay failed for ${branchId}. Status=${response.status}`);
     }
   } catch (error) {
     console.error(`[WEBHOOK] Relay failed for ${branchId} (${backendWebhookUrl}): ${error.message}`);
@@ -106,15 +106,28 @@ async function getClient(branchId, expectedNumber) {
     return { state: { ready: false, lastQr: null, error: "No branchId supplied", step: "Invalid Request" }, client: null };
   }
 
-  if (clients.has(branchId)) {
-    const entry = clients.get(branchId);
+  let entry = clients.get(branchId);
+
+  if (entry) {
     if (expectedNumber && !entry.expectedNumber) {
       entry.expectedNumber = expectedNumber;
     }
+    if (entry.initPromise) {
+      await entry.initPromise;
+    }
+    
+    // If it was hibernated (client is null but entry exists)
+    if (!entry.client && entry.state.step === "Hibernating") {
+      console.log(`[WAKE UP] Branch ${branchId} is waking up from hibernation...`);
+      entry.state.step = "Waking Up";
+      entry.lastActivity = Date.now();
+      await startSocket(branchId, entry);
+    }
+    
     return entry;
   }
 
-  const entry = {
+  entry = {
     state: {
       ready: false,
       lastQr: null,
@@ -125,38 +138,43 @@ async function getClient(branchId, expectedNumber) {
     client: null,
     saveCreds: null,
     isReconnecting: false,
-    expectedNumber: expectedNumber || null
+    expectedNumber: expectedNumber || null,
+    initPromise: null,
+    lastActivity: Date.now()
   };
 
   clients.set(branchId, entry);
-  console.log(`[SYSTEM] Creating node for ${branchId} with expectedNumber: ${entry.expectedNumber || 'any'}`);
+  await startSocket(branchId, entry);
 
-  async function connectToWhatsApp() {
-    // Save auth state in the sessions directory so it can be mounted as a single Docker volume
-    const { state, saveCreds } = await useMultiFileAuthState(`sessions/baileys_auth_info_${branchId}`);
+  return entry;
+}
+
+async function startSocket(branchId, entry) {
+  entry.initPromise = (async () => {
+    console.log(`[SYSTEM] Starting node for ${branchId}`);
+    const authDir = `sessions/baileys_auth_info_${branchId}`;
     
-    const secureSaveCreds = async () => {
-      await saveCreds();
-    };
+    await fsp.mkdir('sessions', { recursive: true }).catch(()=>{});
 
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
+    const secureSaveCreds = async () => await saveCreds();
     entry.saveCreds = secureSaveCreds;
 
+    // Memory Tweaks applied here
     const sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
-      logger: pino({ level: "silent" }),
+      logger: pino({ level: "silent" }), 
       browser: ['Ubuntu', 'Chrome', '121.0.0.0'],
-      syncFullHistory: false,
-      markOnlineOnConnect: true,
+      syncFullHistory: false,          // Saves RAM
+      markOnlineOnConnect: false,      // Saves Bandwidth
       generateHighQualityLinkPreview: false,
-      getMessage: async (key) => {
-        return { conversation: 'Message' };
-      }
+      getMessage: async () => ({ conversation: '' }), // No cache required
     });
 
     entry.client = sock;
 
-    sock.ev.on("connection.update", (update) => {
+    sock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
@@ -165,61 +183,59 @@ async function getClient(branchId, expectedNumber) {
         entry.state.lastQrAt = new Date().toISOString();
         entry.state.error = null;
         entry.state.step = "Awaiting Scan";
+        markActivity(branchId);
       }
 
       if (connection === "close") {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401 && statusCode !== 403;
         entry.state.ready = false;
 
         if (shouldReconnect) {
-          if (!entry.isReconnecting) {
+          if (!entry.isReconnecting && entry.state.step !== "Hibernating") {
             entry.isReconnecting = true;
             entry.state.step = "Reconnecting...";
-            console.log(`[WARN] ${branchId} connection closed due to error (Status: ${statusCode}), reconnecting...`);
-            if (entry.client) {
-              try { entry.client.end(undefined); } catch (e) {}
-            }
-            setTimeout(() => {
-              entry.isReconnecting = false;
-              connectToWhatsApp();
-            }, 2000); // Backoff to prevent spamming WhatsApp servers
+            console.log(`[WARN] ${branchId} connection closed (Status: ${statusCode}). Reconnecting in 5s...`);
+            
+            setTimeout(async () => {
+              try {
+                entry.client.ws.close();
+                entry.client.end(undefined);
+              } catch (e) {}
+              
+              clients.delete(branchId);
+              getClient(branchId, entry.expectedNumber).catch(console.error);
+            }, 5000);
           }
         } else {
+          // Logged Out
           entry.state.step = "Logged Out";
-          entry.state.error = entry.state.error || "Session invalid or logged out";
-          console.log(`[AUTH] ${branchId} session invalid (Status: ${statusCode}). Wiping keys...`);
+          entry.state.error = "Session invalid or logged out.";
+          console.log(`[AUTH] ${branchId} session invalid. Wiping keys...`);
 
-          // Perform synchronous wiping to prevent race conditions with frontend polling
           try {
-            if (entry.client) {
-              entry.client.end(undefined);
-            }
-            fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
-          } catch (e) {
-            console.error(`[AUTH] Error wiping keys: ${e.message}`);
-          }
+            entry.client.ws.close();
+            entry.client.end(undefined);
+          } catch(e) {}
+
+          await fsp.rm(authDir, { recursive: true, force: true }).catch(console.error);
           clients.delete(branchId);
         }
       } else if (connection === "open") {
-        const loggedInJid = sock.user.id;
-        const loggedInPhone = String(loggedInJid).split(':')[0];
-
+        const loggedInPhone = String(sock.user.id).split(':')[0];
         const expectedNormalized = entry.expectedNumber ? entry.expectedNumber.replace(/\D/g, '').slice(-10) : null;
         const loggedInNormalized = loggedInPhone.slice(-10);
 
         if (expectedNormalized && loggedInNormalized !== expectedNormalized) {
-          console.log(`[AUTH] Invalid number scanned for ${branchId}! Expected: ${expectedNormalized}, Got: ${loggedInNormalized} (Raw: ${loggedInPhone})`);
+          console.log(`[AUTH] Invalid number scanned for ${branchId}! Expected: ${expectedNormalized}, Got: ${loggedInNormalized}`);
           entry.state.ready = false;
-          entry.state.error = `Security Alert: You scanned with ${loggedInPhone}, but this branch requires ${entry.expectedNumber}. Please logout and use the correct WhatsApp number.`;
+          entry.state.error = `Security Alert: Scanned ${loggedInPhone}, but branch requires ${entry.expectedNumber}.`;
           entry.state.step = "Validation Failed";
 
-          // Force logout because it's the wrong number
           setTimeout(async () => {
-            try {
-              await sock.logout();
-            } catch (e) { }
-            fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
+            try { await sock.logout(); } catch (e) {}
+            try { sock.ws.close(); sock.end(undefined); } catch (e) {}
+            await fsp.rm(authDir, { recursive: true, force: true }).catch(console.error);
             clients.delete(branchId);
           }, 2000);
           return;
@@ -230,6 +246,8 @@ async function getClient(branchId, expectedNumber) {
         entry.state.lastQrAt = null;
         entry.state.error = null;
         entry.state.step = "Operational";
+        entry.isReconnecting = false;
+        markActivity(branchId);
         console.log(`[READY] ${branchId} is connected (Phone: ${loggedInPhone})`);
       }
     });
@@ -239,27 +257,65 @@ async function getClient(branchId, expectedNumber) {
     sock.ev.on("messages.upsert", (m) => {
       if (m.type === "notify") {
         for (const msg of m.messages) {
-          relayIncomingMessage(branchId, msg);
+          relayIncomingMessage(branchId, msg).catch(console.error);
         }
       }
     });
-  }
+  })();
 
-  await connectToWhatsApp();
-  return entry;
+  await entry.initPromise;
 }
+
+// Hibernate logic
+function hibernateSession(branchId, entry) {
+  console.log(`[HIBERNATE] Branch ${branchId} is idle. Unloading from RAM to save memory.`);
+  entry.state.ready = false;
+  entry.state.step = "Hibernating";
+  
+  if (entry.client) {
+    try {
+      entry.client.ws.close();
+      entry.client.end(undefined);
+    } catch(e) {}
+    entry.client = null;
+  }
+}
+
+// Check for idle sessions every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const IDLE_LIMIT = 30 * 60 * 1000; // 30 minutes
+  
+  for (const [branchId, entry] of clients.entries()) {
+    if (entry.state.step === "Operational" && entry.client) {
+      if (now - entry.lastActivity > IDLE_LIMIT) {
+        hibernateSession(branchId, entry);
+      }
+    }
+  }
+}, 5 * 60 * 1000);
+
 
 async function destroyClient(branchId, { logout = false } = {}) {
   const entry = clients.get(branchId);
-  if (entry?.client) {
+  if (!entry) return;
+
+  if (entry.initPromise) {
+    await entry.initPromise;
+  }
+
+  if (entry.client) {
     if (logout) {
-      await entry.client.logout().catch(() => { });
+      await entry.client.logout().catch(() => {});
     }
-    entry.client.end(undefined);
+    try {
+      entry.client.ws.close();
+      entry.client.end(undefined);
+    } catch(e) {}
   }
 
   if (logout) {
-    fs.rmSync(`baileys_auth_info_${branchId}`, { recursive: true, force: true });
+    await fsp.rm(`sessions/baileys_auth_info_${branchId}`, { recursive: true, force: true }).catch(console.error);
   }
 
   clients.delete(branchId);
@@ -290,8 +346,12 @@ app.get("/qr/:branchId", requireAuth, async (req, res) => {
     `);
   }
 
-  const qrImage = await QRCode.toDataURL(state.lastQr);
-  res.send(`<html><body style="margin:0;display:flex;align-items:center;justify-content:center;"><img src="${qrImage}" style="width:90%;height:90%;object-fit:contain;" /></body></html>`);
+  try {
+    const qrImage = await QRCode.toDataURL(state.lastQr);
+    res.send(`<html><body style="margin:0;display:flex;align-items:center;justify-content:center;"><img src="${qrImage}" style="width:90%;height:90%;object-fit:contain;" /></body></html>`);
+  } catch(e) {
+    res.status(500).send("QR Generation failed");
+  }
 });
 
 app.get("/status/:branchId", requireAuth, async (req, res) => {
@@ -304,21 +364,24 @@ app.get("/status/:branchId", requireAuth, async (req, res) => {
 
 app.post("/send-message", requireAuth, async (req, res) => {
   const { branchId, to, message, fileBase64, fileName } = req.body ?? {};
-  console.log(`[OUTGOING] Attempting relay for ${branchId} to ***...`);
-  console.log(`[OUTGOING] Message payload received.`);
 
   if (!branchId || !to || (!message && !fileBase64)) {
-    console.error("[OUTGOING] Missing parameters");
     return res.status(400).json({ message: "branchId, to, and message/file are required." });
   }
 
   try {
     const entry = await getClient(String(branchId));
+    
+    // Safety check - if it was hibernating, getClient just woke it up. Wait a tiny bit to be fully ready.
+    if (!entry.state.ready) {
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
     if (!entry.client || !entry.state.ready) {
-      console.error(`[OUTGOING] Client not ready for branch ${branchId}`);
       return res.status(409).json({ message: "WhatsApp client is not ready for this branch." });
     }
 
+    markActivity(String(branchId));
     const jid = toChatId(to);
 
     if (fileBase64) {
@@ -332,22 +395,25 @@ app.post("/send-message", requireAuth, async (req, res) => {
     } else {
       await entry.client.sendMessage(jid, { text: String(message) });
     }
-
-    console.log(`[OUTGOING] Message sent successfully`);
     return res.json({ sent: true });
   } catch (error) {
-    console.error(`[OUTGOING] Failed to send message for ${branchId}: ${error.message}`);
+    console.error(`[OUTGOING] Failed for ${branchId}: ${error.message}`);
     return res.status(500).json({ message: "Failed to send WhatsApp message." });
   }
 });
 
 app.post("/restart/:branchId", requireAuth, async (req, res) => {
-  await destroyClient(req.params.branchId);
+  const branchId = req.params.branchId;
+  console.log(`[CORE] Cold boot requested for branch: ${branchId}`);
+  await destroyClient(branchId, { logout: false });
+  getClient(branchId).catch(console.error);
   res.json({ message: "Resetting..." });
 });
 
 app.post("/logout/:branchId", requireAuth, async (req, res) => {
-  await destroyClient(req.params.branchId, { logout: true });
+  const branchId = req.params.branchId;
+  console.log(`[CORE] Flush requested for branch: ${branchId}`);
+  await destroyClient(branchId, { logout: true });
   res.json({ message: "Logged out." });
 });
 
@@ -363,9 +429,45 @@ app.get("/check-number/:branchId/:phone", requireAuth, async (req, res) => {
     const exists = result && result.length > 0 && result[0].exists;
     return res.json({ ready: true, exists: Boolean(exists), status: exists ? "exists" : "not_exists" });
   } catch (error) {
-    console.error(`[CHECK] Failed to verify number for branch ${branchId}: ${error.message}`);
     return res.json({ ready: false, exists: null, status: "verification_unavailable" });
   }
 });
 
-app.listen(port, () => console.log(`[CORE] Bridge active on port ${port} (Powered by Baileys)`));
+// Auto-Update API
+app.post("/update-bridge", requireAuth, (req, res) => {
+  console.log(`[SYSTEM] Auto-update triggered via API. Installing @whiskeysockets/baileys@latest...`);
+  res.json({ message: "Update initiated. Bridge will restart in a few seconds." });
+  
+  exec('npm install @whiskeysockets/baileys@latest', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`[UPDATE] Error: ${error.message}`);
+      return;
+    }
+    console.log(`[UPDATE] Success. Restarting process...`);
+    setTimeout(() => {
+      process.exit(0);
+    }, 1000);
+  });
+});
+
+
+// Auto-start existing sessions
+async function autoStartSessions() {
+  try {
+    const dirs = await fsp.readdir('sessions');
+    const branchIds = dirs.filter(d => d.startsWith('baileys_auth_info_')).map(d => d.replace('baileys_auth_info_', ''));
+    if (branchIds.length > 0) {
+      console.log(`[SYSTEM] Auto-starting ${branchIds.length} existing sessions...`);
+      for (const branchId of branchIds) {
+        getClient(branchId).catch(console.error);
+      }
+    }
+  } catch (e) {
+    // sessions folder might not exist yet
+  }
+}
+
+app.listen(port, () => {
+  console.log(`[CORE] Bridge active on port ${port} (Powered by Baileys)`);
+  autoStartSessions();
+});

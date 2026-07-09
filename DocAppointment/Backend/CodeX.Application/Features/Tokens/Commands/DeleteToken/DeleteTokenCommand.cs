@@ -5,17 +5,19 @@ using CodeX.Domain.Enums;
 
 namespace CodeX.Application.Features.Tokens.Commands.DeleteToken
 {
-    public record DeleteTokenCommand(Guid TokenId) : IRequest<bool>;
+    public record DeleteTokenCommand(Guid TokenId, bool DeletePatientIfOffline = false) : IRequest<bool>;
 
     public class DeleteTokenCommandHandler : IRequestHandler<DeleteTokenCommand, bool>
     {
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
+        private readonly ICurrentUserService _currentUserService;
 
-        public DeleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService)
+        public DeleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, ICurrentUserService currentUserService)
         {
             _context = context;
             _notificationService = notificationService;
+            _currentUserService = currentUserService;
         }
 
         public async Task<bool> Handle(DeleteTokenCommand request, CancellationToken cancellationToken)
@@ -26,14 +28,26 @@ namespace CodeX.Application.Features.Tokens.Commands.DeleteToken
 
             if (token == null) throw new Exception("Token not found");
 
-            // We mark as Cancelled instead of hard delete to preserve history, 
-            // or we could hard delete if preferred. Let's hard delete for a clean "Delete" experience.
             token.IsDeleted = true;
-            token.Status = TokenStatus.Cancelled; // Also set status to cancelled for clarity
+            token.Status = TokenStatus.Cancelled;
             
+            if (request.DeletePatientIfOffline && token.Source == BookingSource.WalkIn)
+            {
+                if (_currentUserService.HasPermission(CodeX.Domain.Constants.SystemPermissions.Queue.CancelOfflinePatient))
+                {
+                    var patient = await _context.Patients
+                        .Include(p => p.Tokens)
+                        .FirstOrDefaultAsync(p => p.Id == token.PatientId, cancellationToken);
+
+                    if (patient != null && patient.Tokens.Count <= 1)
+                    {
+                        patient.IsDeleted = true;
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Notify everyone to refresh their lists
             await _notificationService.NotifyTokenUpdated(token.Queue.BranchId, token.QueueId, token.Queue.CurrentTokenNumber);
 
             return true;

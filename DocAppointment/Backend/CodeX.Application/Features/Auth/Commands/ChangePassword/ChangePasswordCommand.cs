@@ -1,8 +1,7 @@
 using CodeX.Application.Common.Interfaces;
-using CodeX.Application.Common.Exceptions;
+using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using FluentValidation;
 
 namespace CodeX.Application.Features.Auth.Commands.ChangePassword
 {
@@ -66,7 +65,7 @@ namespace CodeX.Application.Features.Auth.Commands.ChangePassword
             }
 
             staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return true;

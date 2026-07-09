@@ -13,7 +13,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             RuleFor(v => v.Email).NotEmpty().EmailAddress();
             RuleFor(v => v.PhoneNumber).NotEmpty().Matches(@"^\d{10,15}$").WithMessage("Phone number must be between 10 and 15 digits.");
             
-            RuleFor(v => v.NewPassword)
+            RuleFor(v => v.NewPassword!)
                 .PasswordRules()
                 .When(v => !string.IsNullOrEmpty(v.NewPassword));
         }

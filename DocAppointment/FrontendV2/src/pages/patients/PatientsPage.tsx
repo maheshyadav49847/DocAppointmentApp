@@ -10,19 +10,23 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, Plus, Search, ChevronLeft, ChevronRight, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Building2
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { patientService } from "@/services/patientService"
 import type { Patient } from "@/services/patientService"
-import { branchService } from "@/services/branchService"
 import { useAuthStore } from "@/store/authStore"
+import { FieldError } from "@/components/ui/FieldError"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function PatientsPage() {
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
-  const selectedBranch = user?.role === 'OrgAdmin' ? (activeBranchId || 'all') : (user?.branchId || '');
+  const { user, activeBranchId } = useAuthStore()
+  const { can } = usePermissions()
+  const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
+  const isMultiBranchDoctor = role === 'doctor';
+  const selectedBranch = (role === 'orgadmin' || isMultiBranchDoctor) ? (activeBranchId || 'all') : (user?.branchId || '');
   const [globalFilter, setGlobalFilter] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -35,6 +39,7 @@ export default function PatientsPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -45,6 +50,11 @@ export default function PatientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       setIsDrawerOpen(false)
+      setValidationErrors({})
+    },
+    onError: (error: any) => {
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
+      else if (error.response?.data?.extensions?.errors) setValidationErrors(error.response.data.extensions.errors)
     }
   })
 
@@ -55,12 +65,18 @@ export default function PatientsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] })
       setIsDrawerOpen(false)
+      setValidationErrors({})
       setEditingPatient(null)
+    },
+    onError: (error: any) => {
+      if (error.response?.data?.errors) setValidationErrors(error.response.data.errors)
+      else if (error.response?.data?.extensions?.errors) setValidationErrors(error.response.data.extensions.errors)
     }
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name') as string,
@@ -94,11 +110,7 @@ export default function PatientsPage() {
     return () => clearTimeout(handler)
   }, [globalFilter])
 
-  const { data: branches } = useQuery({
-    queryKey: ['branches', user?.orgId],
-    queryFn: () => branchService.getBranches(user?.orgId!),
-    enabled: !!user?.orgId
-  })
+
 
   const { data: paginatedData, isLoading, error } = useQuery({
     queryKey: ['patients', selectedBranch, pageIndex, pageSize, debouncedSearch],
@@ -162,17 +174,19 @@ export default function PatientsPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
-          <button
-            onClick={() => {
-              setEditingPatient(row.original)
-              setIsDrawerOpen(true)
-            }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-            title="Edit"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          {user?.role !== 'Receptionist' && (
+          {can('Patients.Edit') && (
+            <button
+              onClick={() => {
+                setEditingPatient(row.original)
+                setIsDrawerOpen(true)
+              }}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {can('Patients.ViewHistory') && (
             <button
               onClick={() => navigate(`/consult/${row.original.id}`)}
               className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
@@ -227,23 +241,7 @@ export default function PatientsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 w-full xl:w-auto mt-2 xl:mt-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider w-full pr-1 flex items-center justify-start xl:justify-end gap-1"><Building2 className="w-3 h-3 text-indigo-400" /> Branch Location</label>
-          <select
-            value={selectedBranch}
-            disabled={user?.role !== 'OrgAdmin'}
-            onChange={(e) => {
-              setActiveBranchId(e.target.value === 'all' ? null : e.target.value)
-              setPagination(prev => ({ ...prev, pageIndex: 0 }))
-            }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:border-indigo-500 shadow-sm transition-all hover:border-indigo-300 disabled:opacity-80 disabled:bg-slate-50 w-full"
-          >
-            {user?.role === 'OrgAdmin' && <option value="all">All Branches</option>}
-            {branches?.filter((b: any) => user?.role === 'OrgAdmin' || b.id === user?.branchId).map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
+
       </div>
 
       {/* Main Card */}
@@ -295,15 +293,17 @@ export default function PatientsPage() {
               />
             </div>
 
-            <button
-              onClick={() => {
-                setEditingPatient(null)
-                setIsDrawerOpen(true)
-              }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
-            </button>
+            {can('Patients.Add') && (
+              <button
+                onClick={() => {
+                  setEditingPatient(null)
+                  setIsDrawerOpen(true)
+                }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -456,17 +456,19 @@ export default function PatientsPage() {
 
                       {/* Footer Actions */}
                       <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingPatient(patient)
-                            setIsDrawerOpen(true)
-                          }}
-                          className="flex-1 btn-secondary text-xs px-3"
-                        >
-                          <Edit className="w-4 h-4" /> Edit
-                        </button>
-                        {user?.role !== 'Receptionist' && (
+                        {can('Patients.Edit') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingPatient(patient)
+                              setIsDrawerOpen(true)
+                            }}
+                            className="flex-1 btn-secondary text-xs px-3"
+                          >
+                            <Edit className="w-4 h-4" /> Edit
+                          </button>
+                        )}
+                        {can('Patients.ViewHistory') && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -571,6 +573,7 @@ export default function PatientsPage() {
                           <User className="w-4 h-4 text-blue-500" /> Full Name
                         </label>
                         <input defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
+                        <FieldError errors={validationErrors} field="Name" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -579,6 +582,7 @@ export default function PatientsPage() {
                             <Calendar className="w-4 h-4 text-orange-500" /> Age
                           </label>
                           <input defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                        <FieldError errors={validationErrors} field="Age" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
@@ -590,6 +594,7 @@ export default function PatientsPage() {
                             <option value="Female">Female</option>
                             <option value="Other">Other</option>
                           </select>
+                        <FieldError errors={validationErrors} field="Gender" />
                         </div>
                       </div>
 
@@ -609,6 +614,7 @@ export default function PatientsPage() {
                             <option value="O+">O+</option>
                             <option value="O-">O-</option>
                           </select>
+                        <FieldError errors={validationErrors} field="BloodGroup" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
@@ -621,6 +627,7 @@ export default function PatientsPage() {
                             <option value="Divorced">Divorced</option>
                             <option value="Widowed">Widowed</option>
                           </select>
+                        <FieldError errors={validationErrors} field="MaritalStatus" />
                         </div>
                       </div>
 
@@ -629,6 +636,7 @@ export default function PatientsPage() {
                           <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
                         <input defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
+                        <FieldError errors={validationErrors} field="Height" />
                       </div>
                     </div>
                   </div>
@@ -643,12 +651,14 @@ export default function PatientsPage() {
                             <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
                           <input defaultValue={editingPatient?.phone} name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
+                        <FieldError errors={validationErrors} field="Phone" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
                           <input defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
+                        <FieldError errors={validationErrors} field="Email" />
                         </div>
                       </div>
 
@@ -657,6 +667,7 @@ export default function PatientsPage() {
                           <MapPin className="w-4 h-4 text-rose-500" /> Address <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
                         <textarea defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
+                        <FieldError errors={validationErrors} field="Address" />
                       </div>
                     </div>
                   </div>
@@ -670,6 +681,7 @@ export default function PatientsPage() {
                           <HeartPulse className="w-4 h-4 text-rose-500" /> Pre-existing Conditions <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
                         <input defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
+                        <FieldError errors={validationErrors} field="PreExistingConditions" />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -678,12 +690,14 @@ export default function PatientsPage() {
                             <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
                           <input defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
+                        <FieldError errors={validationErrors} field="EmergencyContactName" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
                           <input defaultValue={editingPatient?.emergencyContactPhone} name="emergencyContactPhone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Phone Number" />
+                        <FieldError errors={validationErrors} field="EmergencyContactPhone" />
                         </div>
                       </div>
                     </div>

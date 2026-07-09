@@ -14,7 +14,8 @@ services:
     restart: always
     network_mode: "host"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=${ASPNET_ENV:-Production}
+      - ASPNETCORE_URLS=http://+:${BACKEND_PORT:-8080}
       - AllowedOrigins=http://${VPS_IP}
       # Point this to your EXISTING database on the VPS. 
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=localhost;Database=DocAppointmentDb_Prod;Username=postgres;Password=sa}

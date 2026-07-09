@@ -17,6 +17,11 @@ export interface Doctor {
 }
 
 export const doctorService = {
+  getBranches: async () => {
+    const response = await api.get('/doctors/branches')
+    return response.data
+  },
+
   getOrganizationDoctors: async (): Promise<Doctor[]> => {
     const response = await api.get('/doctors')
     return response.data

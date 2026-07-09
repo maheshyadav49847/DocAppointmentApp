@@ -11,15 +11,30 @@ namespace CodeX.Application.Features.Sessions.Queries.GetSessionsList
     public class GetSessionsListQueryHandler : IRequestHandler<GetSessionsListQuery, List<SessionDto>>
     {
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public GetSessionsListQueryHandler(IApplicationDbContext context)
+        public GetSessionsListQueryHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<List<SessionDto>> Handle(GetSessionsListQuery request, CancellationToken cancellationToken)
         {
             var query = _context.Sessions.Where(s => s.DoctorId == request.DoctorId && !s.IsDeleted);
+
+            if (_currentUserService.OrgId != Guid.Empty)
+            {
+                query = query.Where(s => s.Branch.OrganizationId == _currentUserService.OrgId);
+            }
+
+            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+            {
+                if (_currentUserService.DoctorId != request.DoctorId)
+                {
+                    query = query.Where(s => s.BranchId == _currentUserService.TokenBranchId.Value);
+                }
+            }
 
             if (request.BranchId.HasValue && request.BranchId != Guid.Empty)
             {

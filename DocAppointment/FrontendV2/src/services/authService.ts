@@ -24,6 +24,11 @@ export const authService = {
     await api.post("/auth/logout")
   },
 
+  refresh: async (): Promise<LoginResponse> => {
+    const { data } = await api.post<LoginResponse>("/auth/refresh")
+    return data
+  },
+
   forgotPassword: async (identifier: string, method: string): Promise<any> => {
     const { data } = await api.post("/auth/forgot-password", { identifier, method })
     return data

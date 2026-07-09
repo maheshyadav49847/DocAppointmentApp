@@ -37,8 +37,16 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 .FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken);
             
             if (doctor == null) throw new Exception("Doctor not found");
-
             CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, doctor.OrganizationId);
+
+            // Branch Isolation
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
+            {
+                if (!doctor.Branches.Any(b => b.Id == _currentUserService.BranchId.Value))
+                {
+                    throw new UnauthorizedAccessException("You do not have permission to edit this doctor.");
+                }
+            }
 
             var duplicateExists = await _context.Doctors
                 .AnyAsync(d => d.Id != request.Id && 
@@ -75,20 +83,21 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 }
             }
 
-            // Update or Create Staff record for the doctor if Email and Password are provided
+            // Create Staff record for the doctor if Email and Password are provided and it doesn't exist
             if (!string.IsNullOrWhiteSpace(request.EmailId) && !string.IsNullOrWhiteSpace(request.Password))
             {
                 var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.DoctorId == doctor.Id, cancellationToken);
                 if (staff == null)
                 {
+                    var doctorRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "Doctor" && (r.OrganizationId == Guid.Empty || r.OrganizationId == doctor.OrganizationId), cancellationToken);
                     staff = new CodeX.Domain.Entities.Staff
                     {
                         OrganizationId = doctor.OrganizationId,
-                        BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null,
+                        BranchId = request.BranchIds.Count == 1 ? request.BranchIds.First() : (Guid?)null,
                         Email = request.EmailId.Trim().ToLower(),
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                         FirstName = request.Name,
-                        Role = CodeX.Domain.Enums.StaffRole.Doctor,
+                        RoleId = doctorRole?.Id,
                         DoctorId = doctor.Id
                     };
                     _context.Staffs.Add(staff);
@@ -98,7 +107,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                     staff.Email = request.EmailId.Trim().ToLower();
                     staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
                     staff.FirstName = request.Name;
-                    staff.BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null;
+                    staff.BranchId = request.BranchIds.Count == 1 ? request.BranchIds.First() : (Guid?)null;
                 }
             }
             else if (!string.IsNullOrWhiteSpace(request.EmailId))
@@ -108,7 +117,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 {
                     staff.Email = request.EmailId.Trim().ToLower();
                     staff.FirstName = request.Name;
-                    staff.BranchId = request.BranchIds.Any() ? request.BranchIds.First() : (Guid?)null;
+                    staff.BranchId = request.BranchIds.Count == 1 ? request.BranchIds.First() : (Guid?)null;
                 }
             }
 

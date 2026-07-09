@@ -1,11 +1,14 @@
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Api.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,OrgAdmin")]
+    [Authorize]
+    [HasPermission(SystemPermissions.Settings.View)]
     public class AuditLogsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
@@ -26,7 +29,7 @@ namespace CodeX.Api.Controllers
             var orgId = _currentUserService.OrgId;
             var query = _context.AuditLogs.AsQueryable();
 
-            if (!_currentUserService.IsInRole("SuperAdmin"))
+            if (orgId != Guid.Empty)
             {
                 query = query.Where(a => a.OrganizationId == orgId);
             }
@@ -34,8 +37,8 @@ namespace CodeX.Api.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var searchLower = search.ToLower();
-                query = query.Where(a => 
-                    a.Action.ToLower().Contains(searchLower) || 
+                query = query.Where(a =>
+                    a.Action.ToLower().Contains(searchLower) ||
                     a.Path.ToLower().Contains(searchLower) ||
                     (a.UserId != null && a.UserId.ToLower().Contains(searchLower)));
             }

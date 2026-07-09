@@ -2,10 +2,8 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Common.Settings;
 using Microsoft.Extensions.Options;
 using Razorpay.Api;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CodeX.Infrastructure.Services
 {
@@ -56,13 +54,13 @@ namespace CodeX.Infrastructure.Services
             using (HMACSHA256 hmac = new HMACSHA256(secretBytes))
             {
                 byte[] hashBytes = hmac.ComputeHash(payloadBytes);
-                
+
                 StringBuilder hex = new StringBuilder(hashBytes.Length * 2);
                 foreach (byte b in hashBytes)
                 {
                     hex.AppendFormat("{0:x2}", b);
                 }
-                
+
                 return hex.ToString();
             }
         }

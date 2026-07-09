@@ -21,6 +21,8 @@ namespace CodeX.Infrastructure.Persistence
         }
 
         public DbSet<Organization> Organizations => Set<Organization>();
+        public DbSet<Role> Roles => Set<Role>();
+        public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public DbSet<Branch> Branches => Set<Branch>();
         public DbSet<Doctor> Doctors => Set<Doctor>();
         public DbSet<Staff> Staff => Set<Staff>();
@@ -99,6 +101,10 @@ namespace CodeX.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<SystemSetting>().HasKey(x => x.Key);
+            
+            modelBuilder.Entity<RolePermission>()
+                .HasKey(rp => new { rp.RoleId, rp.Permission });
+
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
             base.OnModelCreating(modelBuilder);
@@ -144,14 +150,35 @@ namespace CodeX.Infrastructure.Persistence
                     .Property(p => p.AadhaarNumber)
                     .HasConversion(converter);
             }
+
+            // Doctor Data Isolation Filters
+            modelBuilder.Entity<Doctor>().HasQueryFilter(x =>
+                (_currentUserService.OrgId == Guid.Empty || x.OrganizationId == _currentUserService.OrgId) 
+                && (!IsDoctorRole || x.Id == CurrentDoctorId)
+                && !x.IsDeleted
+            );
+
+            modelBuilder.Entity<Session>().HasQueryFilter(x =>
+                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                && !x.IsDeleted
+            );
+
+            modelBuilder.Entity<DailyQueue>().HasQueryFilter(x =>
+                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                && !x.IsDeleted
+            );
         }
+
+        private bool IsDoctorRole => _currentUserService.IsInRole("Doctor");
+        private Guid? CurrentDoctorId => _currentUserService.DoctorId;
 
         private void ApplyTenantFilter<T>(ModelBuilder builder) where T : class, IMustHaveTenant
         {
             // Combines IMustHaveTenant and SoftDelete logic
-            // Since EF Core evaluates Global Query Filters at runtime, we must capture the service resolution dynamically or use a property that returns the value.
-            // Using a lambda that evaluates _currentUserService.OrgId dynamically:
-            builder.Entity<T>().HasQueryFilter(x => x.OrganizationId == _currentUserService.OrgId && !((CodeX.Domain.Common.BaseEntity)(object)x).IsDeleted);
+            // Since EF Core evaluates Global Query Filters at runtime, we must capture the service resolution dynamically
+            builder.Entity<T>().HasQueryFilter(x => 
+                (_currentUserService.OrgId == Guid.Empty || x.OrganizationId == _currentUserService.OrgId) 
+                && !((CodeX.Domain.Common.BaseEntity)(object)x).IsDeleted);
         }
 
         private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : CodeX.Domain.Common.BaseEntity

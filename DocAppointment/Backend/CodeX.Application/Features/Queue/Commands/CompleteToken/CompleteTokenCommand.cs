@@ -13,12 +13,14 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly IChatSessionCache _chatSessionCache;
 
-        public CompleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService)
+        public CompleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, IChatSessionCache chatSessionCache)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _chatSessionCache = chatSessionCache;
         }
 
         public async Task<bool> Handle(CompleteTokenCommand request, CancellationToken cancellationToken)
@@ -64,6 +66,9 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                     
                     session.CurrentState = "AWAITING_RATING_SCORE";
                     session.SelectedSessionId = currentToken.Id;
+
+                    // IMPORTANT: Update the memory cache as well, otherwise webhook will read old state
+                    _chatSessionCache.SetSession(session);
 
                     var languagePreference = session.Language ?? "1";
 

@@ -33,33 +33,36 @@ namespace CodeX.Infrastructure.ExternalServices
             return setting?.Value ?? _config[configKey] ?? string.Empty;
         }
 
-        public async Task SendSmsAsync(string to, string message)
+        public Task SendSmsAsync(string to, string message)
         {
-            if (string.IsNullOrEmpty(AccountSid) || string.IsNullOrEmpty(AuthToken))
+            _ = Task.Run(async () =>
             {
-                _logger.LogWarning("SMS: Twilio not configured. Logging OTP to console: {Msg}", message);
-                Console.WriteLine($"[SMS DEBUG] To: {to}, Message: {message}");
-                return;
-            }
+                if (string.IsNullOrEmpty(AccountSid) || string.IsNullOrEmpty(AuthToken))
+                {
+                    _logger.LogWarning("SMS: Twilio not configured. Logging OTP to console: {Msg}", message);
+                    Console.WriteLine($"[SMS DEBUG] To: {to}, Message: {message}");
+                    return;
+                }
 
-            try
-            {
-                TwilioClient.Init(AccountSid, AuthToken);
-                var toFormatted = NormaliseE164(to);
-                var fromFormatted = NormaliseE164(FromNumber);
+                try
+                {
+                    TwilioClient.Init(AccountSid, AuthToken);
+                    var toFormatted = NormaliseE164(to);
+                    var fromFormatted = NormaliseE164(FromNumber);
 
-                await MessageResource.CreateAsync(
-                    body: message,
-                    from: new PhoneNumber(fromFormatted),
-                    to: new PhoneNumber(toFormatted)
-                );
-                _logger.LogInformation("SMS sent successfully from {From} to {To}", fromFormatted, toFormatted);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send SMS to {To}", to);
-                throw;
-            }
+                    await MessageResource.CreateAsync(
+                        body: message,
+                        from: new PhoneNumber(fromFormatted),
+                        to: new PhoneNumber(toFormatted)
+                    );
+                    _logger.LogInformation("SMS sent successfully from {From} to {To}", fromFormatted, toFormatted);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send SMS to {To}", to);
+                }
+            });
+            return Task.CompletedTask;
         }
 
         private static string NormaliseE164(string number)

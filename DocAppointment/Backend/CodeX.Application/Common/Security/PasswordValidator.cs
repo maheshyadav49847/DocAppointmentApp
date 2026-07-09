@@ -1,6 +1,5 @@
-using System.Linq;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace CodeX.Application.Common.Security
 {

@@ -16,14 +16,18 @@ import {
 import toast from "react-hot-toast"
 
 import { branchService } from "@/services/branchService"
+
+import { PageLoader } from "@/components/ui/PageLoader"
 import { useAuthStore } from "@/store/authStore"
 import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function BranchesPage() {
   const { user, setBranch: setAuthBranch, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { can } = usePermissions()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
   const currentBranchId = activeBranchId || user?.branchId
@@ -179,21 +183,25 @@ export default function BranchesPage() {
                 <ArrowRight className="w-3 h-3" /> Switch Context
               </button>
             )}
-            <button
-              onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
-              className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
-              title="Edit Facility"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => { setWhatsappConfigBranch(branch) }}
-              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
-              title="WhatsApp Configuration"
-            >
-              <MessageSquare className="w-4 h-4" />
-            </button>
-            {['orgadmin', 'superadmin'].includes(role) && (
+            {can('Branches.Edit') && (
+              <>
+                <button
+                  onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                  title="Edit Facility"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => { setWhatsappConfigBranch(branch) }}
+                  className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                  title="WhatsApp Configuration"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            {can('Branches.Delete') && (
               <button
                 onClick={() => {
                   if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)
@@ -279,19 +287,19 @@ export default function BranchesPage() {
                 className="saas-input w-full" style={{ paddingLeft: "2.5rem" }}
               />
             </div>
-            <button
-              onClick={() => { setEditingBranch(null); setIsDrawerOpen(true) }}
-              className="btn-primary shrink-0 px-3 sm:px-5"
-            >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Branch</span>
-            </button>
+            {can('Branches.Add') && (
+              <button
+                onClick={() => { setEditingBranch(null); setIsDrawerOpen(true) }}
+                className="btn-primary shrink-0 px-3 sm:px-5"
+              >
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Branch</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-48">
-              <Activity className="w-8 h-8 text-indigo-500 animate-spin" />
-            </div>
+            <PageLoader message="Loading branches..." minHeight="min-h-[20vh]" />
           ) : filteredBranches.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
               <Building2 className="w-12 h-12 text-slate-300 mb-4" />
@@ -375,26 +383,30 @@ export default function BranchesPage() {
                         >
                           <ArrowRight className="w-4 h-4" /> Switch
                         </button>
-                      ) : (
+                  ) : (
                         <div className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-bold cursor-default">
                           <Activity className="w-4 h-4" /> Managing Now
                         </div>
                       )}
-                      <button
-                        onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
-                        className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
-                        title="Edit Facility"
-                      >
-                        <Edit className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        onClick={() => { setWhatsappConfigBranch(branch) }}
-                        className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 bg-slate-50 hover:shadow-sm"
-                        title="WhatsApp Configuration"
-                      >
-                        <MessageSquare className="w-4.5 h-4.5" />
-                      </button>
-                      {['orgadmin', 'superadmin'].includes(role) && (
+                      {can('Branches.Edit') && (
+                        <>
+                          <button
+                            onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
+                            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
+                            title="Edit Facility"
+                          >
+                            <Edit className="w-4.5 h-4.5" />
+                          </button>
+                          <button
+                            onClick={() => { setWhatsappConfigBranch(branch) }}
+                            className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 bg-slate-50 hover:shadow-sm"
+                            title="WhatsApp Configuration"
+                          >
+                            <MessageSquare className="w-4.5 h-4.5" />
+                          </button>
+                        </>
+                      )}
+                      {can('Branches.Delete') && (
                         <button
                           onClick={() => {
                             if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)

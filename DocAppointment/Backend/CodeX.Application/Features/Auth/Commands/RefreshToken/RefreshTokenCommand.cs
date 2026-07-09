@@ -1,10 +1,9 @@
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Common.Settings;
-using Microsoft.Extensions.Options;
 using CodeX.Application.Features.Auth.Commands.Login;
-using CodeX.Domain.Entities;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CodeX.Application.Features.Auth.Commands.RefreshToken
 {
@@ -32,6 +31,7 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
             var storedToken = await _context.RefreshTokens
                 .IgnoreQueryFilters()
                 .Include(x => x.Staff)
+                    .ThenInclude(s => s.Role)
                 .FirstOrDefaultAsync(x => x.Token == request.RefreshToken, cancellationToken);
 
             if (storedToken == null || storedToken.IsRevoked || storedToken.ExpiresAt <= DateTime.UtcNow)
@@ -41,19 +41,36 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
 
             var staff = storedToken.Staff;
 
+            if (staff.OrganizationId == Guid.Empty)
+            {
+                throw new Exception("This portal is for organization staff only. System administrators cannot log in here.");
+            }
+
             // Revoke the old token
             storedToken.IsRevoked = true;
 
+            var permissions = staff.Role != null ?
+                await _context.RolePermissions.Where(p => p.RoleId == staff.RoleId).Select(p => p.Permission).ToListAsync(cancellationToken) :
+                new List<string>();
+
+            Guid? dynamicBranchId = staff.BranchId;
+            if (staff.DoctorId.HasValue)
+            {
+                // Doctors are inherently org-level because they can be assigned sessions in any branch
+                dynamicBranchId = null;
+            }
+
             var token = _identityService.GenerateJwtToken(
-                staff.Id, 
+                staff.Id,
                 staff.Email,
-                staff.Role.ToString(), 
-                staff.BranchId, 
+                staff.Role?.Name ?? string.Empty,
+                dynamicBranchId,
                 staff.OrganizationId,
-                staff.DoctorId);
+                staff.DoctorId,
+                permissions);
 
             var newRefreshTokenStr = _identityService.GenerateRefreshToken();
-            
+
             var newRefreshToken = new CodeX.Domain.Entities.RefreshToken
             {
                 StaffId = staff.Id,
@@ -61,12 +78,12 @@ namespace CodeX.Application.Features.Auth.Commands.RefreshToken
                 ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays),
                 IsRevoked = false
             };
-            
+
             _context.RefreshTokens.Add(newRefreshToken);
-            
+
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new LoginResponse(token, newRefreshTokenStr, staff.Email, staff.Role.ToString(), staff.OrganizationId, staff.BranchId, staff.DoctorId);
+            return new LoginResponse(token, newRefreshTokenStr, staff.Email, staff.Role?.Name ?? string.Empty, staff.OrganizationId, dynamicBranchId, staff.DoctorId);
         }
     }
 }
