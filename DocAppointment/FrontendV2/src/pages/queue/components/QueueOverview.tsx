@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, LayoutDashboard, MonitorPlay } from "lucide-react"
+import { Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity, LayoutDashboard, MonitorPlay, Building2 } from "lucide-react"
 import { queueService } from "@/services/queueService"
 
 import { motion, AnimatePresence } from "framer-motion"
@@ -22,17 +22,8 @@ export default function QueueOverview({ selectedBranchId, onManage }: any) {
         queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
       }
       const handleEnd = (data: any) => {
-        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
-        const started = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-        let changed = false
-        Object.keys(started).forEach(k => {
-           if (String(started[k]).toLowerCase() === incomingQueueId) {
-             delete started[k]
-             changed = true
-           }
-        })
-        if (changed) sessionStorage.setItem('started_sessions', JSON.stringify(started))
-        handleUpdate()
+        queryClient.invalidateQueries({ queryKey: ['queueStats', selectedBranchId] })
+        queryClient.removeQueries({ queryKey: ['activeQueue'] })
       }
 
       connection.on('TokenUpdated', handleUpdate)
@@ -68,10 +59,8 @@ export default function QueueOverview({ selectedBranchId, onManage }: any) {
       const response = await queueService.initializeQueue(doctor.id, session.id)
       const queueId = response?.id || response?.queueId || (typeof response === 'string' ? response : null)
       if (queueId) {
-        const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-        startedSessions[sessionKey] = queueId
-        sessionStorage.setItem('started_sessions', JSON.stringify(startedSessions))
-
+        queryClient.removeQueries({ queryKey: ['queueDetails', queueId] })
+        queryClient.removeQueries({ queryKey: ['activeQueue'] }) // Ensure fresh fetch
         onManage(doctor, session, queueId)
         setTimeout(() => queryClient.invalidateQueries({ queryKey: ['queueStats'] }), 500)
       }
@@ -145,10 +134,18 @@ export default function QueueOverview({ selectedBranchId, onManage }: any) {
           className="flex flex-col items-center justify-center py-24 bg-white border border-slate-200/60 border-dashed rounded-lg shadow-sm"
         >
           <div className="w-20 h-20 bg-indigo-50 rounded-lg flex items-center justify-center mb-6 text-indigo-500 shadow-inner">
-            <Activity className="w-10 h-10" />
+            <Building2 className="w-10 h-10" />
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">No Facility Selected</h2>
-          <p className="text-slate-500 text-center max-w-sm">Please select a hospital branch from the dropdown above to view live statistics and active doctor sessions.</p>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Welcome to Your Dashboard!</h2>
+          <p className="text-slate-500 text-center max-w-md mb-8">
+            You currently don't have any facilities set up. To get started with managing queues and doctor sessions, please create your first branch.
+          </p>
+          <a
+            href="/branches"
+            className="btn-primary px-6 py-3 text-base shadow-md hover:shadow-lg transition-all"
+          >
+            Create Your First Branch
+          </a>
         </motion.div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 gap-6">
@@ -297,7 +294,7 @@ function DoctorCard({ doctor, selectedBranchId, processingSessions, onStart, onM
 
 function SessionItem({ doctor, session, processingSessions, onStart, onManage }: any) {
   const { can } = usePermissions()
-  const { data: activeQueue } = useQuery({
+  const { data: activeQueue, isLoading } = useQuery({
     queryKey: ['activeQueue', doctor.id, session.id],
     queryFn: () => queueService.getActiveQueueBySession(doctor.id, session.id),
     enabled: !!session.id,
@@ -305,24 +302,10 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
   })
 
   const sessionKey = `${doctor.id}_${session.id}`
-  const isProcessing = processingSessions.has(sessionKey)
+  const isProcessing = processingSessions.has(sessionKey) || isLoading
 
-  const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-  const fallbackQueueId = startedSessions[sessionKey]
-
-  // Clear stale session storage if query confirms there is no active queue
-  if (activeQueue === null || activeQueue?.length === 0 || (activeQueue && !activeQueue.id)) {
-    if (fallbackQueueId) {
-       const started = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-       delete started[sessionKey]
-       sessionStorage.setItem('started_sessions', JSON.stringify(started))
-    }
-  }
-
-  // Only use fallback if activeQueue is undefined (still loading) or hasn't definitively returned null
-  const definitivelyNoQueue = activeQueue === null || activeQueue?.length === 0 || (activeQueue && !activeQueue.id)
-  const isLive = definitivelyNoQueue ? false : (!!activeQueue?.id || !!fallbackQueueId)
-  const displayQueueId = activeQueue?.id || fallbackQueueId
+  const isLive = !!(activeQueue && activeQueue.id)
+  const displayQueueId = activeQueue?.id
 
   return (
     <div className={`p-4 rounded-xl border transition-colors ${isLive ? 'border-indigo-100 bg-indigo-50/30' : 'border-slate-100 bg-slate-50'}`}>

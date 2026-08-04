@@ -20,16 +20,3 @@ services:
       # Point this to your EXISTING database on the VPS. 
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=localhost;Database=DocAppointmentDb_Prod;Username=postgres;Password=sa}
 
-  whatsapp-bridge:
-    image: ghcr.io/${GITHUB_REPOSITORY}/whatsapp-bridge:${IMAGE_TAG:-latest}
-    restart: always
-    ports:
-      - "${WHATSAPP_PORT:-3101}:3101"
-    volumes:
-      - whatsapp_sessions:/app/sessions
-    environment:
-      - NODE_ENV=production
-
-volumes:
-  whatsapp_sessions:
-    name: docappointment_whatsapp_sessions

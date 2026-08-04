@@ -21,7 +21,6 @@ namespace CodeX.Infrastructure
             services.AddScoped<IIdentityService, CodeX.Infrastructure.Identity.IdentityService>();
             services.AddScoped<IEntityAuthorizationService, EntityAuthorizationService>();
             services.AddScoped<TwilioWhatsAppService>();
-            services.AddHttpClient<BridgeWhatsAppService>();
             services.AddHttpClient<MetaCloudWhatsAppService>();
 
             services.AddSingleton<IWhatsAppService, WhatsAppServiceResolver>();

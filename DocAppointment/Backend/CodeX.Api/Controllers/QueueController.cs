@@ -328,6 +328,7 @@ namespace CodeX.Api.Controllers
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
                 .Include(q => q.Branch)
+                .Include(q => q.Session)
                 .Where(q => q.DoctorId == doctorId &&
                             q.Status != QueueStatus.Completed &&
                             q.Status != QueueStatus.Cancelled);
@@ -370,7 +371,8 @@ namespace CodeX.Api.Controllers
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
                 branchName = queue.Branch?.Name,
-                branchId = queue.BranchId
+                branchId = queue.BranchId,
+                sessionName = queue.Session?.SessionName ?? "Walk-in Session"
             });
         }
 

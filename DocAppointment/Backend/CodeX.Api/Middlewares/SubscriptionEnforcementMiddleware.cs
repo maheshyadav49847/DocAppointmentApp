@@ -27,7 +27,7 @@ namespace CodeX.Api.Middlewares
                 path.StartsWith("/api/auth") ||
                 path.StartsWith("/api/payments") ||
                 path.StartsWith("/swagger") ||
-                path.StartsWith("/api/whatsappbridge") // webhooks
+                path.StartsWith("/api/v1/whatsapp/webhook") // webhooks
                 ))
             {
                 await _next(context);

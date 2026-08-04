@@ -11,7 +11,7 @@ namespace CodeX.Domain.Entities
         public string? WhatsAppApiKey { get; set; }
 
         // WhatsApp Integration settings
-        public string WhatsAppProvider { get; set; } = "Bridge"; // "Bridge", "MetaCloud", "Twilio"
+        public string WhatsAppProvider { get; set; } = "MetaCloud"; // "MetaCloud", "Twilio"
         public string? MetaWabaId { get; set; }
         public string? MetaPhoneNumberId { get; set; }
         public string? MetaSystemUserToken { get; set; }

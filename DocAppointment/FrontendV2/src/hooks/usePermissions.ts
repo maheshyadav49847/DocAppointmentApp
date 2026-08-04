@@ -9,19 +9,19 @@ export function usePermissions() {
   
   // Method to check if user has a specific permission
   const can = (permission: string) => {
-    if (isSuperAdmin) return true; // SuperAdmin can do anything
+    if (isSuperAdmin || isOrgAdmin) return true; // SuperAdmin and OrgAdmin can do anything in their scope
     return permissions.includes(permission);
   }
   
   // Method to check if user has ANY of the provided permissions
   const canAny = (permissionList: string[]) => {
-    if (isSuperAdmin) return true;
+    if (isSuperAdmin || isOrgAdmin) return true;
     return permissionList.some(p => permissions.includes(p));
   }
   
   // Method to check if user has ALL of the provided permissions
   const canAll = (permissionList: string[]) => {
-    if (isSuperAdmin) return true;
+    if (isSuperAdmin || isOrgAdmin) return true;
     return permissionList.every(p => permissions.includes(p));
   }
 

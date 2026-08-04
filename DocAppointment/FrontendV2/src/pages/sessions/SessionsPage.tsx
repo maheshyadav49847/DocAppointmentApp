@@ -67,6 +67,8 @@ export default function SessionsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', selectedDoctorId, selectedBranchId] })
+      queryClient.invalidateQueries({ queryKey: ['queue-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
       setIsDrawerOpen(false)
       setEditingSession(null)
       setApiError(null)
@@ -87,6 +89,8 @@ export default function SessionsPage() {
     mutationFn: (id: string) => sessionService.deleteSession(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', selectedDoctorId, selectedBranchId] })
+      queryClient.invalidateQueries({ queryKey: ['queue-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
     }
   })
 

@@ -263,7 +263,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
 
                 const base64Pdf = pdf.output("datauristring").split(",")[1];
-                await api.post(`/whatsapp/bridge/send/${currentBranchId}`, {
+                await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
                   to: patient?.phone,
                   message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
                   fileBase64: base64Pdf,
