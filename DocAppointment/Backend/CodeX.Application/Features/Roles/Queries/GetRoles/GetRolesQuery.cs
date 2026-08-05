@@ -20,7 +20,7 @@ namespace CodeX.Application.Features.Roles.Queries.GetRoles
         public async Task<List<RoleDto>> Handle(GetRolesQuery request, CancellationToken cancellationToken)
         {
             var roles = await _context.Roles
-                .IgnoreQueryFilters()
+                
                 .Where(r => !r.IsDeleted && r.OrganizationId == request.OrgId)
                 .Select(r => new RoleDto(
                     r.Id,

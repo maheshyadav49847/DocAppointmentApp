@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope, Clock
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -21,10 +21,18 @@ export default function DoctorDeskPage() {
   const activeBranchId = useAuthStore(state => state.activeBranchId)
   const queryClient = useQueryClient()
 
+  const { data: allDoctors } = useQuery({
+    queryKey: ['doctordesk-org-doctors', activeBranchId],
+    queryFn: () => queueService.getDoctors(activeBranchId || "org"),
+    enabled: !user?.doctorId
+  })
+
+  const effectiveDoctorId = user?.doctorId || (allDoctors && allDoctors.length > 0 ? allDoctors[0].id : "");
+
   const { data: activeQueue, isLoading: isQueueLoading, refetch: refetchQueue } = useQuery({
-    queryKey: ['doctorActiveQueue', user?.doctorId],
-    queryFn: () => queueService.getActiveQueue(user?.doctorId || ""),
-    enabled: !!user?.doctorId
+    queryKey: ['doctorActiveQueue', effectiveDoctorId],
+    queryFn: () => queueService.getActiveQueue(effectiveDoctorId),
+    enabled: !!effectiveDoctorId
   })
 
   const { data: branches } = useQuery({
@@ -46,13 +54,13 @@ export default function DoctorDeskPage() {
   })
 
   const { data: sessions, isLoading: isSessionsLoading } = useQuery({
-    queryKey: ['doctorSessions', user?.doctorId],
-    queryFn: () => sessionService.getSessions(user?.doctorId || ""),
-    enabled: !activeQueue && !!user?.doctorId && !isQueueLoading
+    queryKey: ['doctorSessions', effectiveDoctorId],
+    queryFn: () => sessionService.getSessions(effectiveDoctorId),
+    enabled: !activeQueue && !!effectiveDoctorId && !isQueueLoading
   })
 
   const initializeQueueMutation = useMutation({
-    mutationFn: (sessionId: string) => queueService.initializeQueue(user?.doctorId || "", sessionId),
+    mutationFn: (sessionId: string) => queueService.initializeQueue(effectiveDoctorId, sessionId),
     onSuccess: (_, sessionId) => {
       const startedSession = sessions?.find((s: any) => s.id === sessionId)
       if (startedSession?.branchId) {
@@ -90,6 +98,7 @@ export default function DoctorDeskPage() {
         const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
         if (incomingQueueId === String(queueId || "").toLowerCase()) {
           queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+          queryClient.removeQueries({ queryKey: ['activeQueue'] })
         }
       }
 
@@ -97,14 +106,24 @@ export default function DoctorDeskPage() {
         queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
       }
 
+      const handleDoctorArrived = (data: any) => {
+        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const currentQueueId = String(queueId || "").toLowerCase()
+        if (!queueId || incomingQueueId === currentQueueId) {
+          refetchQueue()
+        }
+      }
+
       connection.on('TokenUpdated', handleUpdate)
       connection.on('QueueEnded', handleEnd)
       connection.on('QueueStarted', handleStart)
+      connection.on('DoctorArrived', handleDoctorArrived)
 
       return () => {
         connection.off('TokenUpdated', handleUpdate)
         connection.off('QueueEnded', handleEnd)
         connection.off('QueueStarted', handleStart)
+        connection.off('DoctorArrived', handleDoctorArrived)
       }
     }
   }, [connection, queueId, refetchQueue, refetchTokens])
@@ -144,6 +163,7 @@ export default function DoctorDeskPage() {
     onSuccess: () => {
       setIsEndSessionModalOpen(false)
       queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+      queryClient.removeQueries({ queryKey: ['activeQueue'] })
       queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
     }
   })
@@ -152,6 +172,9 @@ export default function DoctorDeskPage() {
     mutationFn: () => queueService.quickStart(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doctorActiveQueue'] })
+      queryClient.removeQueries({ queryKey: ['activeQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['queue-sessions'] })
+      queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
       refetchQueue()
     }
   })
@@ -300,9 +323,28 @@ export default function DoctorDeskPage() {
       {/* Main Card (Exactly as it was) */}
       <div className="flex-1 flex flex-col bg-slate-50/50 rounded-xl border border-slate-200 shadow-sm overflow-visible lg:overflow-hidden min-h-0">
 
-        {/* Top Bar inside the Card (Only actions now) */}
-        <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-end shrink-0 shadow-sm gap-3 sm:gap-4 z-20">
-          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+        {/* Top Bar inside the Card */}
+        <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 shadow-sm gap-3 sm:gap-4 z-20">
+          
+          {/* LEFT SIDE: Session Info */}
+          {activeQueue && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100 shrink-0">
+                <Clock className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight flex items-center gap-2 flex-wrap">
+                  <span className="truncate">{activeQueue.sessionName}</span>
+                  <span className="px-1.5 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-bold rounded flex items-center gap-1 uppercase tracking-wider shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
+                  </span>
+                </h3>
+              </div>
+            </div>
+          )}
+
+          {/* RIGHT SIDE: Actions */}
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
             <div className="flex items-center gap-1 sm:gap-2 ml-auto">
               {can('DoctorDesk.MarkDoctorArrived') && (
                 <button
@@ -376,6 +418,14 @@ export default function DoctorDeskPage() {
               <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[80px] group-hover:opacity-100 group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-xs font-bold">Queue</span>
               <Users className="w-5 h-5 shrink-0" />
             </button>
+          )}
+
+          {/* Queue Sidebar Backdrop */}
+          {isQueueExpanded && (
+            <div 
+              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 transition-opacity"
+              onClick={() => setIsQueueExpanded(false)}
+            />
           )}
 
           {/* RIGHT SIDE: Queue Sidebar (Floating Overlay) */}
@@ -552,6 +602,18 @@ export default function DoctorDeskPage() {
                       patientId={overridePatientId || activeQueue.currentPatientId}
                       isEmbedded={true}
                       activeTokenId={activeQueue.currentTokenId}
+                      isQueueExpanded={isQueueExpanded}
+                      onHistoryOpen={() => setIsQueueExpanded(false)}
+                      onConsultationSaved={() => {
+                        if (activeQueue.currentTokenId && activeQueue.status === 1) {
+                          completeMutation.mutate();
+                          setTimeout(() => {
+                            if (pendingTokens.length > 0) {
+                              callNextMutation.mutate();
+                            }
+                          }, 1000);
+                        }
+                      }}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full p-8 text-center">
@@ -572,7 +634,7 @@ export default function DoctorDeskPage() {
           isOpen={isEndSessionModalOpen}
           onClose={() => setIsEndSessionModalOpen(false)}
           onConfirm={confirmEndSession}
-          doctorId={activeQueue.doctorId || user?.doctorId || ""}
+          doctorId={activeQueue.doctorId || effectiveDoctorId}
           branchId={branchId}
           currentSessionId={activeQueue.sessionId}
           waitingCount={activeQueue.waitingCount}

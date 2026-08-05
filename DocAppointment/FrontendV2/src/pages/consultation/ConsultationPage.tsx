@@ -35,9 +35,12 @@ interface ConsultationPageProps {
   patientId?: string;
   isEmbedded?: boolean;
   activeTokenId?: string;
+  onConsultationSaved?: () => void;
+  isQueueExpanded?: boolean;
+  onHistoryOpen?: () => void;
 }
 
-export default function ConsultationPage({ patientId: propPatientId, isEmbedded = false, activeTokenId }: ConsultationPageProps = {}) {
+export default function ConsultationPage({ patientId: propPatientId, isEmbedded = false, activeTokenId, onConsultationSaved, isQueueExpanded, onHistoryOpen }: ConsultationPageProps = {}) {
   const { patientId: urlPatientId } = useParams()
   const patientId = propPatientId || urlPatientId
   const navigate = useNavigate()
@@ -176,6 +179,13 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     }
   }, [availableDoctors, visitDoctorId])
 
+  // Close history if queue opens to prevent overlap
+  useEffect(() => {
+    if (isQueueExpanded) {
+      setIsHistoryExpanded(false);
+    }
+  }, [isQueueExpanded]);
+
   const deleteAttachmentMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/patientclinical/attachments/${id}`)
@@ -239,6 +249,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["clinicalVisits", patientId] })
       queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
+      if(onConsultationSaved) onConsultationSaved();
 
       // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
         if (printRef.current) {
@@ -263,7 +274,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
 
                 const base64Pdf = pdf.output("datauristring").split(",")[1];
-                await api.post(`/whatsapp/bridge/send/${currentBranchId}`, {
+                await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
                   to: patient?.phone,
                   message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
                   fileBase64: base64Pdf,
@@ -327,27 +338,44 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   }
 
   const handleEditVisit = (visit: any) => {
-    setEditingVisitId(visit.id)
-    setVisitDoctorId(visit.doctorId || "")
-    setVisitDoctorName(visit.doctorName || "")
-    setVisitSymptoms(visit.symptoms || "")
-    setVisitDiagnosis(visit.diagnosis || "")
-    setVisitAdvice(visit.advice || "")
-    setVisitInternalNotes(visit.internalNotes || "")
-    setVisitWeight(visit.weight ? visit.weight.toString() : "")
-    setVisitTemperature(visit.temperature ? visit.temperature.toString() : "")
-    setVisitBloodPressure(visit.bloodPressure || "")
-    setVisitHeartRate(visit.heartRate ? visit.heartRate.toString() : "")
-    setVisitRespiratoryRate(visit.respiratoryRate ? visit.respiratoryRate.toString() : "")
-    setVisitOxygenLevel(visit.oxygenLevel ? visit.oxygenLevel.toString() : "")
-    setVisitBloodSugar(visit.bloodSugar ? visit.bloodSugar.toString() : "")
-    setVisitMedicines(visit.medicines ? visit.medicines.map((m: any) => ({
-      medicineName: m.medicineName, dosage: m.dosage || m.doseQty || "", foodTiming: m.foodTiming || "", courseDuration: m.courseDuration || "",
-      doseQty: m.doseQty || "", doseSchedule: m.doseSchedule || "", medicineType: m.medicineType || "Tablet", clinicalInstructions: m.clinicalInstructions || ""
+    setEditingVisitId(visit.id || visit.Id)
+    setVisitDoctorId(visit.doctorId || visit.DoctorId || "")
+    setVisitDoctorName(visit.doctorName || visit.DoctorName || "")
+    setVisitSymptoms(visit.symptoms ?? visit.Symptoms ?? "")
+    setVisitDiagnosis(visit.diagnosis ?? visit.Diagnosis ?? "")
+    setVisitAdvice(visit.advice ?? visit.Advice ?? "")
+    setVisitInternalNotes(visit.internalNotes ?? visit.InternalNotes ?? "")
+    
+    // Robust vital mapping to handle 0 and PascalCase
+    const getVitalStr = (val1: any, val2: any) => (val1 ?? val2 ?? "").toString();
+    
+    setVisitWeight(getVitalStr(visit.weight, visit.Weight))
+    setVisitTemperature(getVitalStr(visit.temperature, visit.Temperature))
+    setVisitBloodPressure(visit.bloodPressure ?? visit.BloodPressure ?? "")
+    setVisitHeartRate(getVitalStr(visit.heartRate, visit.HeartRate))
+    setVisitRespiratoryRate(getVitalStr(visit.respiratoryRate, visit.RespiratoryRate))
+    setVisitOxygenLevel(getVitalStr(visit.oxygenLevel, visit.OxygenLevel))
+    setVisitBloodSugar(getVitalStr(visit.bloodSugar, visit.BloodSugar))
+    
+    const meds = visit.medicines || visit.Medicines;
+    setVisitMedicines(meds ? meds.map((m: any) => ({
+      medicineName: m.medicineName || m.MedicineName || "", 
+      dosage: m.dosage || m.Dosage || m.doseQty || m.DoseQty || "", 
+      foodTiming: m.foodTiming || m.FoodTiming || "", 
+      courseDuration: m.courseDuration || m.CourseDuration || "",
+      doseQty: m.doseQty || m.DoseQty || "", 
+      doseSchedule: m.doseSchedule || m.DoseSchedule || "", 
+      medicineType: m.medicineType || m.MedicineType || "Tablet", 
+      clinicalInstructions: m.clinicalInstructions || m.ClinicalInstructions || ""
     })) : [])
-    setVisitFollowUpDate(visit.followUpDate ? visit.followUpDate.substring(0, 10) : "")
-    setVisitFollowUpInstructions(visit.followUpInstructions || "")
+    
+    const followUp = visit.followUpDate || visit.FollowUpDate;
+    setVisitFollowUpDate(followUp ? followUp.substring(0, 10) : "")
+    setVisitFollowUpInstructions(visit.followUpInstructions || visit.FollowUpInstructions || "")
+    
+    setIsHistoryExpanded(true)
     setActiveTab("history")
+    if (onHistoryOpen) onHistoryOpen();
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -502,7 +530,10 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         {/* Mobile Floating Button for History */}
         {!isHistoryExpanded && (
           <button
-            onClick={() => setIsHistoryExpanded(true)}
+            onClick={() => {
+              setIsHistoryExpanded(true);
+              if (onHistoryOpen) onHistoryOpen();
+            }}
             className="group fixed right-0 top-[198px] h-[48px] min-w-[44px] bg-white/90 backdrop-blur-sm text-indigo-600 shadow-[-4px_4px_12px_rgba(0,0,0,0.05)] z-40 flex items-center justify-center border border-r-0 border-slate-200 rounded-bl-xl transition-all active:scale-95 px-2.5 hover:bg-white"
           >
             <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[80px] group-hover:opacity-100 group-hover:pr-2 transition-all duration-300 whitespace-nowrap text-xs font-bold">History</span>

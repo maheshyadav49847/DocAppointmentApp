@@ -90,7 +90,7 @@ export const queueService = {
     return response.data
   },
   checkWhatsAppNumber: async (branchId: string, phone: string) => {
-    const response = await api.get(`/whatsapp/bridge/check-number/${branchId}/${phone}`)
-    return response.data
+    // Meta API doesn't support an equivalent direct check like the bridge did.
+    return { ready: false, exists: null, status: 'verification_unavailable' }
   }
 }

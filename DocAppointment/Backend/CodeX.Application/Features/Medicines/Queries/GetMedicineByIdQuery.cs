@@ -23,7 +23,7 @@ namespace CodeX.Application.Features.Medicines.Queries
         public async Task<MedicineDto> Handle(GetMedicineByIdQuery request, CancellationToken cancellationToken)
         {
             var m = await _context.Medicines
-                .IgnoreQueryFilters()
+                
                 .Include(x => x.MedicineType)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, cancellationToken);

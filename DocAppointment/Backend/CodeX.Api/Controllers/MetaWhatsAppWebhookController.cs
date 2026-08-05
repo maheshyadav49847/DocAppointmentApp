@@ -21,6 +21,7 @@ namespace CodeX.Api.Controllers
         private readonly MetaCloudWhatsAppService _whatsApp;
         private readonly IMemoryCache _cache;
         private readonly IApplicationDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
         public MetaWhatsAppWebhookController(
             IConfiguration config,
@@ -28,7 +29,8 @@ namespace CodeX.Api.Controllers
             MediatR.ISender mediator,
             MetaCloudWhatsAppService whatsApp,
             IMemoryCache cache,
-            IApplicationDbContext context)
+            IApplicationDbContext context,
+            ICurrentUserService currentUserService)
         {
             _config = config;
             _logger = logger;
@@ -36,6 +38,7 @@ namespace CodeX.Api.Controllers
             _whatsApp = whatsApp;
             _cache = cache;
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         [AllowAnonymous]
@@ -118,6 +121,9 @@ namespace CodeX.Api.Controllers
                 _logger.LogWarning("Received message for unknown MetaPhoneNumberId: {PhoneNumberId}", phoneNumberId);
                 return;
             }
+
+            // SET THE AMBIENT ORGANIZATION CONTEXT FOR THIS REQUEST
+            _currentUserService.SetCurrentOrganization(branch.OrganizationId);
 
             // Rate Limiting (max 10 messages per minute per phone number)
             var cacheKey = $"wa_rate_{fromPhone}";

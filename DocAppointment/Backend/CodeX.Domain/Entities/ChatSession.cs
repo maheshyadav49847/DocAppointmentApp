@@ -9,7 +9,12 @@ namespace CodeX.Domain.Entities
         public string CurrentState { get; set; } = "START";
         public Guid? SelectedDoctorId { get; set; }
         public Guid? SelectedSessionId { get; set; }
+        public Guid? SelectedPatientId { get; set; }
+        public string? AvailablePatientIds { get; set; }
         public string? LastMessage { get; set; }
         public string Language { get; set; } = string.Empty;
+
+        // Navigation Property
+        public virtual Branch? Branch { get; set; }
     }
 }

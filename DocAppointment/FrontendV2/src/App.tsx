@@ -45,8 +45,16 @@ function PermissionRoute({ children, permissions }: { children: React.ReactNode,
 
 function HomeRoute() {
   const role = useAuthStore((state) => state.user?.role?.toLowerCase().replace(/\s/g, '') || "");
-  if (role === 'doctor') return <Navigate to="/doctor-desk" replace />
-  return <Navigate to="/queue" replace />
+  const { canAny } = usePermissions();
+
+  if (role === 'doctor') {
+    if (canAny(["DoctorDesk.View"])) return <Navigate to="/doctor-desk" replace />;
+    return <Navigate to="/settings" replace />;
+  }
+
+  if (canAny(["Queue.View"])) return <Navigate to="/queue" replace />;
+  
+  return <Navigate to="/settings" replace />;
 }
 
 import { useAppHub } from "./hooks/useAppHub"

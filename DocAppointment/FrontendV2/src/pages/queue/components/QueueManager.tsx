@@ -28,7 +28,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
   const [editingToken, setEditingToken] = useState<any>(null)
 
-  const { data: queue, refetch: refetchQueue } = useQuery({
+  const { data: queue, refetch: refetchQueue, isFetching } = useQuery({
     queryKey: ['queueDetails', queueId],
     queryFn: () => queueService.getQueueDetails(queueId),
     refetchInterval: 3000, // Poll every 3 seconds as a fallback to SignalR
@@ -36,9 +36,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
   // Fallback: If SignalR misses the event, this polling will catch the status change
   useEffect(() => {
-    if (queue && (queue.status === 3 || queue.status === 4)) {
+    if (!isFetching && queue && (queue.status === 3 || queue.status === 4)) {
       console.log("[QueueManager] Polling detected queue status ended:", queue.status);
-      queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      queryClient.removeQueries({ queryKey: ['activeQueue'] })
       queryClient.invalidateQueries({ queryKey: ['queueStats'] })
       onBack()
       setTimeout(() => {
@@ -78,7 +78,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
         console.log(`[QueueManager] QueueEnded received. Incoming: ${incomingQueueId}, Current: ${queueId}`)
         if (incomingQueueId === String(queueId || "").toLowerCase()) {
           console.log("[QueueManager] Queue IDs match, navigating back to overview...")
-          queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+          queryClient.removeQueries({ queryKey: ['activeQueue'] })
           queryClient.invalidateQueries({ queryKey: ['queueStats'] })
           onBack()
           setTimeout(() => {
@@ -89,11 +89,20 @@ export default function QueueManager({ sessionData, onBack }: any) {
           }, 500);
         }
       }
+      const handleDoctorArrived = (data: any) => {
+        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const currentQueueId = String(queueId || "").toLowerCase()
+        if (incomingQueueId === currentQueueId) {
+          refetchQueue()
+        }
+      }
       connection.on('TokenUpdated', handleUpdate)
       connection.on('QueueEnded', handleEnd)
+      connection.on('DoctorArrived', handleDoctorArrived)
       return () => {
         connection.off('TokenUpdated', handleUpdate)
         connection.off('QueueEnded', handleEnd)
+        connection.off('DoctorArrived', handleDoctorArrived)
       }
     }
   }, [connection, queueId, refetchQueue, refetchTokens, onBack])
@@ -145,14 +154,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const endQueueMutation = useMutation({
     mutationFn: (data?: { action?: 'CancelRemaining' | 'TransferRemaining', targetSessionId?: string }) => queueService.endQueue(queueId, data),
     onSuccess: () => {
-      const startedSessions = JSON.parse(sessionStorage.getItem('started_sessions') || '{}')
-      Object.keys(startedSessions).forEach(key => {
-        if (startedSessions[key] === queueId) delete startedSessions[key]
-      })
-      sessionStorage.setItem('started_sessions', JSON.stringify(startedSessions))
-      queryClient.invalidateQueries({ queryKey: ['queueDetails', queueId] })
-      queryClient.invalidateQueries({ queryKey: ['upcomingTokens', queueId] })
-      queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      queryClient.removeQueries({ queryKey: ['queueDetails', queueId] })
+      queryClient.removeQueries({ queryKey: ['upcomingTokens', queueId] })
+      queryClient.removeQueries({ queryKey: ['activeQueue'] })
       queryClient.invalidateQueries({ queryKey: ['queueStats'] })
       setIsEndSessionModalOpen(false)
       onBack()

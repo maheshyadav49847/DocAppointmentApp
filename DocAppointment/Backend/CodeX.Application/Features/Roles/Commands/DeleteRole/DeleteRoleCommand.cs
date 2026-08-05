@@ -18,7 +18,7 @@ namespace CodeX.Application.Features.Roles.Commands.DeleteRole
         public async Task Handle(DeleteRoleCommand request, CancellationToken cancellationToken)
         {
             var role = await _context.Roles
-                .IgnoreQueryFilters()
+                
                 .FirstOrDefaultAsync(r => r.Id == request.RoleId, cancellationToken);
 
             if (role == null)

@@ -24,7 +24,7 @@ namespace CodeX.Application.Features.Ratings.Commands.CreateRating
         public async Task<Guid> Handle(CreateRatingCommand request, CancellationToken cancellationToken)
         {
             // IgnoreQueryFilters: called from WhatsApp webhook (anonymous context)
-            var token = await _context.Tokens.IgnoreQueryFilters().FirstOrDefaultAsync(t => !t.IsDeleted && t.Id == request.TokenId, cancellationToken);
+            var token = await _context.Tokens.FirstOrDefaultAsync(t => !t.IsDeleted && t.Id == request.TokenId, cancellationToken);
             if (token == null)
             {
                 throw new Exception("Token not found.");
@@ -36,7 +36,7 @@ namespace CodeX.Application.Features.Ratings.Commands.CreateRating
             }
 
             // Check if rating already exists (IgnoreQueryFilters for anonymous context)
-            var existingRating = await _context.Ratings.IgnoreQueryFilters().FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == request.TokenId, cancellationToken);
+            var existingRating = await _context.Ratings.FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == request.TokenId, cancellationToken);
             if (existingRating != null)
             {
                 throw new Exception("You have already submitted a rating for this visit.");

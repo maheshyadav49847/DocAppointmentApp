@@ -89,18 +89,6 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             // Assign the newly cloned OrgAdmin role instead of the global one
             var orgAdminRole = clonedRoles.ContainsKey("OrgAdmin") ? clonedRoles["OrgAdmin"] : null;
 
-            // 3. Create Doctor Profile for the Admin (Solo Doctor Workflow)
-            var doctor = new CodeX.Domain.Entities.Doctor
-            {
-                OrganizationId = org.Id,
-                Name = $"Dr. {firstName} {lastName}",
-                Specialization = "General Practitioner",
-                ConsultationFee = 500,
-                IsActive = true
-            };
-
-            _context.Doctors.Add(doctor);
-
             var admin = new CodeX.Domain.Entities.Staff
             {
                 OrganizationId = org.Id,
@@ -109,8 +97,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
                 RoleId = orgAdminRole?.Id,
-                PhoneNumber = normalizedPhone,
-                Doctor = doctor // Link the staff to the newly created doctor profile
+                PhoneNumber = normalizedPhone
             };
 
             _context.Staff.Add(admin);

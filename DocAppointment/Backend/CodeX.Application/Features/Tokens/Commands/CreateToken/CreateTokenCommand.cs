@@ -71,7 +71,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             // IgnoreQueryFilters: This handler is called from WhatsApp webhook (anonymous context).
             // Global OrgId filter must be bypassed so Branch INNER JOIN does not fail.
             var queue = await _context.DailyQueues
-                .IgnoreQueryFilters()
+                
                 .Include(q => q.Session)
                 .Include(q => q.Branch)
                 .FirstOrDefaultAsync(x => !x.IsDeleted && x.Id == request.QueueId, cancellationToken);
@@ -87,7 +87,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             }
 
             var tokenCount = await _context.Tokens
-                .IgnoreQueryFilters()
+                
                 .CountAsync(t => !t.IsDeleted && t.QueueId == queue.Id, cancellationToken);
             if (queue.Session.DefaultCapacity > 0 && tokenCount >= queue.Session.DefaultCapacity)
             {
@@ -112,7 +112,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 if (!string.IsNullOrWhiteSpace(request.PatientPhone))
                 {
                     patient = await _context.Patients
-                        .IgnoreQueryFilters()
+                        
                         .FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone != null && p.Phone == normalizedPhone, cancellationToken);
                 }
 
@@ -150,7 +150,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             if (patient.Id != Guid.Empty)
             {
                 var hasActiveToken = await _context.Tokens
-                    .IgnoreQueryFilters()
+                    
                     .AnyAsync(t => !t.IsDeleted && t.QueueId == request.QueueId && 
                                    t.PatientId == patient.Id && 
                                    (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called), 
@@ -167,7 +167,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 var nextTokenNumber = ((await _context.Tokens
-                    .IgnoreQueryFilters()
+                    
                     .Where(t => t.QueueId == queue.Id)
                     .MaxAsync(t => (int?)t.TokenNumber, cancellationToken)) ?? 0) + 1;
 
@@ -204,7 +204,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
             // Calculate predictive wait time (assuming 10 mins per waiting patient ahead of this token)
             var patientsAhead = await _context.Tokens
-                .IgnoreQueryFilters()
+                
                 .Where(t => !t.IsDeleted && t.QueueId == queue.Id && (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called) && t.TokenNumber < token.TokenNumber)
                 .CountAsync(cancellationToken);
             var estimatedWaitMinutes = patientsAhead * 10;

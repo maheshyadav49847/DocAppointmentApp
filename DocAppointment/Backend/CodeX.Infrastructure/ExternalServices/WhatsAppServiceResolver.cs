@@ -21,18 +21,14 @@ namespace CodeX.Infrastructure.ExternalServices
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
             var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
-            var providerName = branch?.WhatsAppProvider ?? "Bridge";
+            var providerName = branch?.WhatsAppProvider ?? "MetaCloud";
 
-            if (providerName == "MetaCloud")
-            {
-                return scope.ServiceProvider.GetRequiredService<MetaCloudWhatsAppService>();
-            }
-            else if (providerName == "Twilio")
+            if (providerName == "Twilio")
             {
                 return scope.ServiceProvider.GetRequiredService<TwilioWhatsAppService>();
             }
             
-            return scope.ServiceProvider.GetRequiredService<BridgeWhatsAppService>();
+            return scope.ServiceProvider.GetRequiredService<MetaCloudWhatsAppService>();
         }
 
         public async Task SendDoctorArrivalAlert(string phoneNumber, string doctorName, Guid branchId)
@@ -97,10 +93,9 @@ namespace CodeX.Infrastructure.ExternalServices
 
         public async Task<bool> TestConnection(string accountSid, string authToken, string fromNumber)
         {
-            // Default to Bridge for direct testing, or implement logic to figure out which one is being tested.
-            // Since this is generic, we'll try to resolve via bridge first or simply return true since this is a legacy Twilio method.
+            // Default to MetaCloud for direct testing, or implement logic to figure out which one is being tested.
             using var scope = _scopeFactory.CreateScope();
-            var service = scope.ServiceProvider.GetRequiredService<BridgeWhatsAppService>();
+            var service = scope.ServiceProvider.GetRequiredService<MetaCloudWhatsAppService>();
             return await service.TestConnection(accountSid, authToken, fromNumber);
         }
     }

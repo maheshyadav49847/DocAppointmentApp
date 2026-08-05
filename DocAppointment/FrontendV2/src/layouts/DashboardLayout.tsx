@@ -25,7 +25,7 @@ const getNavigation = (role: string, isDoctor: boolean) => {
     { name: "Sessions", href: "/sessions", icon: Clock, requiredAny: ["Sessions.View"] },
     { name: "Staff", href: "/staff", icon: UserCog, requiredAny: ["Staff.View"] },
     { name: "Pharmacy", href: "/pharmacy", icon: Pill, requiredAny: ["Pharmacy.View"] },
-    { name: "Audit Log", href: "/audit-log", icon: FileText, requiredAny: ["Audit.View"] },
+    { name: "Audit Log", href: "/audit-logs", icon: FileText, requiredAny: ["Settings.View"] },
   ];
   if (isDoctor) {
     if (role === 'doctor') {
