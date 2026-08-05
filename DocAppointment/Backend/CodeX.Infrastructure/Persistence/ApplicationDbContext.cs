@@ -153,20 +153,32 @@ namespace CodeX.Infrastructure.Persistence
 
             // Doctor Data Isolation Filters
             modelBuilder.Entity<Doctor>().HasQueryFilter(x =>
-                (_currentUserService.OrgId == Guid.Empty || x.OrganizationId == _currentUserService.OrgId) 
+                _currentUserService.OrgId != Guid.Empty && x.OrganizationId == _currentUserService.OrgId 
                 && (!IsDoctorRole || x.Id == CurrentDoctorId)
                 && !x.IsDeleted
             );
 
             modelBuilder.Entity<Session>().HasQueryFilter(x =>
-                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                (_currentUserService.OrgId == Guid.Empty || x.Branch.OrganizationId == _currentUserService.OrgId)
+                && (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
                 && !x.IsDeleted
             );
 
             modelBuilder.Entity<DailyQueue>().HasQueryFilter(x =>
-                (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
+                (_currentUserService.OrgId == Guid.Empty || x.Branch.OrganizationId == _currentUserService.OrgId)
+                && (!IsDoctorRole || x.DoctorId == CurrentDoctorId)
                 && !x.IsDeleted
             );
+
+            // Additional Navigation-Based Isolation Filters for Entities missing IMustHaveTenant
+            modelBuilder.Entity<MessageLog>().HasQueryFilter(x => 
+                (_currentUserService.OrgId == Guid.Empty || x.Branch.OrganizationId == _currentUserService.OrgId) && !x.IsDeleted);
+            
+            modelBuilder.Entity<ChatSession>().HasQueryFilter(x => 
+                _currentUserService.OrgId == Guid.Empty || (x.Branch != null && x.Branch.OrganizationId == _currentUserService.OrgId));
+
+            modelBuilder.Entity<Rating>().HasQueryFilter(x => 
+                (_currentUserService.OrgId == Guid.Empty || (x.Token != null && x.Token.OrganizationId == _currentUserService.OrgId)) && !x.IsDeleted);
         }
 
         private bool IsDoctorRole => _currentUserService.IsInRole("Doctor");
@@ -177,7 +189,7 @@ namespace CodeX.Infrastructure.Persistence
             // Combines IMustHaveTenant and SoftDelete logic
             // Since EF Core evaluates Global Query Filters at runtime, we must capture the service resolution dynamically
             builder.Entity<T>().HasQueryFilter(x => 
-                (_currentUserService.OrgId == Guid.Empty || x.OrganizationId == _currentUserService.OrgId) 
+                _currentUserService.OrgId != Guid.Empty && x.OrganizationId == _currentUserService.OrgId 
                 && !((CodeX.Domain.Common.BaseEntity)(object)x).IsDeleted);
         }
 

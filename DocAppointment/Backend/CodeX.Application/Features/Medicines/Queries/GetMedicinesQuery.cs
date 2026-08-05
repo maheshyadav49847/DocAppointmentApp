@@ -29,7 +29,7 @@ namespace CodeX.Application.Features.Medicines.Queries
         public async Task<PaginatedList<MedicineDto>> Handle(GetMedicinesQuery request, CancellationToken cancellationToken)
         {
             var query = _context.Medicines
-                .IgnoreQueryFilters()
+                
                 .Include(m => m.MedicineType)
                 .AsNoTracking()
                 .Where(m => m.IsActive && !m.IsDeleted);

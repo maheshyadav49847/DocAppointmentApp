@@ -420,6 +420,14 @@ export default function DoctorDeskPage() {
             </button>
           )}
 
+          {/* Queue Sidebar Backdrop */}
+          {isQueueExpanded && (
+            <div 
+              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 transition-opacity"
+              onClick={() => setIsQueueExpanded(false)}
+            />
+          )}
+
           {/* RIGHT SIDE: Queue Sidebar (Floating Overlay) */}
           <div className={`bg-white flex flex-col shrink-0 fixed inset-y-0 right-0 w-[85vw] max-w-[350px] z-50 border-l border-slate-200 transition-all duration-300 ease-out transform ${isQueueExpanded ? "translate-x-0 shadow-[-20px_0_40px_rgba(0,0,0,0.2)]" : "translate-x-full shadow-none"}`}>
 
@@ -594,6 +602,18 @@ export default function DoctorDeskPage() {
                       patientId={overridePatientId || activeQueue.currentPatientId}
                       isEmbedded={true}
                       activeTokenId={activeQueue.currentTokenId}
+                      isQueueExpanded={isQueueExpanded}
+                      onHistoryOpen={() => setIsQueueExpanded(false)}
+                      onConsultationSaved={() => {
+                        if (activeQueue.currentTokenId && activeQueue.status === 1) {
+                          completeMutation.mutate();
+                          setTimeout(() => {
+                            if (pendingTokens.length > 0) {
+                              callNextMutation.mutate();
+                            }
+                          }, 1000);
+                        }
+                      }}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full p-8 text-center">

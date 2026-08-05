@@ -6,6 +6,7 @@ namespace CodeX.Api.Services
     public class CurrentUserService : ICurrentUserService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private Guid? _overrideOrgId;
 
         public CurrentUserService(IHttpContextAccessor httpContextAccessor)
         {
@@ -18,9 +19,16 @@ namespace CodeX.Api.Services
         {
             get
             {
+                if (_overrideOrgId.HasValue) return _overrideOrgId.Value;
+
                 var orgIdStr = _httpContextAccessor.HttpContext?.User?.FindFirstValue("orgId");
                 return Guid.TryParse(orgIdStr, out var id) ? id : Guid.Empty;
             }
+        }
+
+        public void SetCurrentOrganization(Guid orgId)
+        {
+            _overrideOrgId = orgId;
         }
 
         public Guid? BranchId

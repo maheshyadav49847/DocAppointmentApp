@@ -48,7 +48,7 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                     phoneVars.Add(normalizedPhone);
 
                     var session = await _context.ChatSessions
-                        .IgnoreQueryFilters()
+                        
                         .FirstOrDefaultAsync(s => phoneVars.Contains(s.PhoneNumber) && s.BranchId == queue.BranchId, cancellationToken);
                     if (session == null)
                     {

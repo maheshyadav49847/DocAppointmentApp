@@ -9,5 +9,6 @@ namespace CodeX.Application.Common.Interfaces
         Guid? DoctorId { get; }
         bool IsInRole(string role);
         bool HasPermission(string permission);
+        void SetCurrentOrganization(Guid orgId);
     }
 }

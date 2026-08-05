@@ -3,6 +3,7 @@ using System;
 using CodeX.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeX.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804184057_FixPatientPhoneUniqueConstraint")]
+    partial class FixPatientPhoneUniqueConstraint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -209,8 +212,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BranchId");
 
                     b.HasIndex("PhoneNumber", "BranchId")
                         .IsUnique();
@@ -832,9 +833,7 @@ namespace CodeX.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Name");
 
-                    b.HasIndex("Phone");
-
-                    b.HasIndex("Phone", "OrganizationId")
+                    b.HasIndex("Phone")
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false AND \"Phone\" IS NOT NULL AND \"Phone\" <> ''");
 
@@ -1564,15 +1563,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("CodeX.Domain.Entities.ChatSession", b =>
-                {
-                    b.HasOne("CodeX.Domain.Entities.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId");
-
-                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.DailyQueue", b =>

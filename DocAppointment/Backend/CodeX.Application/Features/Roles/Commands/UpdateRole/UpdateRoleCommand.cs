@@ -21,7 +21,7 @@ namespace CodeX.Application.Features.Roles.Commands.UpdateRole
         public async Task Handle(UpdateRoleCommand request, CancellationToken cancellationToken)
         {
             var role = await _context.Roles
-                .IgnoreQueryFilters()
+                
                 .FirstOrDefaultAsync(r => r.Id == request.RoleId, cancellationToken);
 
             if (role == null)
