@@ -57,6 +57,7 @@ jobs:
           context: ./DocAppointment/FrontendV2
           push: true
           no-cache: true
+          provenance: false
           build-args: |
             VITE_API_URL=/api/v1.0
           tags: |
@@ -70,6 +71,7 @@ jobs:
           context: ./DocAppointment/Backend
           push: true
           no-cache: true
+          provenance: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
