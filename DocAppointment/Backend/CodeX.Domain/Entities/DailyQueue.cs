@@ -13,6 +13,8 @@ namespace CodeX.Domain.Entities
         public DateTime? ActualStartAt { get; set; }
         public DateTime? ActualEndAt { get; set; }
         public int CurrentTokenNumber { get; set; } = 0;
+        public DateTime? PausedUntil { get; set; }
+        public string? PauseReason { get; set; }
 
         // Navigation Properties
         public virtual Branch Branch { get; set; } = null!;

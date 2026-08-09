@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { motion, AnimatePresence } from "framer-motion"
-import { Activity, Stethoscope } from "lucide-react"
+import { Activity, Stethoscope, Pause } from "lucide-react"
 import { BrandLogo } from "@/components/BrandLogo"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1.0"
@@ -105,6 +105,21 @@ export default function TvDisplayPage() {
         </AnimatePresence>
       </main>
 
+      {/* Ticker Footer */}
+      <footer className="bg-indigo-600 text-white py-3 overflow-hidden shrink-0 flex items-center shadow-[0_-10px_20px_-10px_rgba(79,70,229,0.3)] z-20 relative">
+        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-indigo-600 to-transparent z-10"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-indigo-600 to-transparent z-10"></div>
+        <motion.div
+          animate={{ x: ["100vw", "-100%"] }}
+          transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+          className="whitespace-nowrap flex items-center gap-16 font-bold text-lg tracking-wide opacity-90"
+        >
+          <span>⚕️ Please keep your past medical records and test reports ready.</span>
+          <span>⚕️ Inform the doctor about any drug allergies before consultation.</span>
+          <span>⚕️ Maintain silence in the waiting area.</span>
+          <span>⚕️ Your token number will be announced shortly.</span>
+        </motion.div>
+      </footer>
     </div>
   )
 }
@@ -112,6 +127,11 @@ export default function TvDisplayPage() {
 /* ─── Single Doctor: Ultra Premium Layout ─── */
 function SingleDoctorView({ queue }: { queue: any }) {
   const hasCurrent = queue.currentTokenNumber > 0
+
+  const elapsedMinutes = queue.startedAt ? Math.max(0, (new Date().getTime() - new Date(queue.startedAt).getTime()) / 60000) : 0;
+  const avgMinutes = queue.completedCount > 0 ? Math.round(elapsedMinutes / queue.completedCount) : 5;
+  const waitMinutes = (queue.waitingCount ?? 0) * avgMinutes;
+  const waitString = waitMinutes >= 60 ? `${Math.floor(waitMinutes / 60)}h ${Math.floor(waitMinutes % 60)}m` : `${Math.floor(waitMinutes)}m`;
 
   return (
     <motion.div
@@ -136,13 +156,32 @@ function SingleDoctorView({ queue }: { queue: any }) {
         <div className="flex items-center gap-5">
           <StatCard label="Waiting" value={queue.waitingCount ?? 0} color="slate" />
           <StatCard label="Done" value={queue.completedCount ?? 0} color="emerald" />
-          <StatCard label="Skipped" value={queue.skippedCount ?? 0} color="rose" />
+          <StatCard label="Est. Wait" value={waitString} color="indigo" />
         </div>
       </div>
 
       {/* Giant Token Display */}
       <div className="flex-1 flex items-center justify-center relative z-10">
-        {hasCurrent ? (
+        {queue.status === 2 ? (
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="flex flex-col items-center bg-amber-50 border-2 border-amber-200 px-24 py-16 rounded-[3rem] shadow-xl text-center"
+          >
+            <div className="w-32 h-32 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-8">
+              <Pause className="w-16 h-16" />
+            </div>
+            <h2 className="text-6xl font-black text-amber-800 tracking-tight mb-4">Doctor on Break</h2>
+            <p className="text-3xl text-amber-600 font-medium max-w-xl">
+              {queue.pauseReason || "The session is temporarily paused. We will resume shortly."}
+            </p>
+            {queue.pausedUntil && (
+              <p className="text-2xl text-amber-700 font-bold mt-8 bg-amber-200/50 px-8 py-4 rounded-full">
+                Resuming at {new Date(queue.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </motion.div>
+        ) : hasCurrent ? (
           <motion.div
             key={queue.currentTokenNumber}
             initial={{ scale: 0.8, opacity: 0 }}
@@ -251,14 +290,26 @@ function DoctorCard({ queue }: { queue: any }) {
              <span className="text-slate-600 font-bold text-sm">{queue.waitingCount ?? 0} waiting</span>
            </div>
            <div className="flex items-center gap-2">
-             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-             <span className="text-slate-600 font-bold text-sm">{queue.completedCount ?? 0} done</span>
+             <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+             <span className="text-slate-600 font-bold text-sm">~{Math.round(((queue.waitingCount ?? 0) * (queue.completedCount > 0 && queue.startedAt ? (Math.max(0, (new Date().getTime() - new Date(queue.startedAt).getTime()) / 60000)) / queue.completedCount : 5)))} min wait</span>
            </div>
         </div>
       </div>
 
       {/* Token Display */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 z-10">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 z-10 relative">
+        {queue.status === 2 ? (
+          <div className="absolute inset-0 bg-amber-50/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-center p-6">
+            <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-4">
+              <Pause className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-black text-amber-800 tracking-tight mb-2">Paused</h3>
+            <p className="text-sm text-amber-600 font-medium">
+              {queue.pauseReason || "Doctor on a break"}
+            </p>
+          </div>
+        ) : null}
+
         <p className="text-slate-400 uppercase tracking-[0.3em] text-sm font-bold mb-4">Now Serving</p>
         {hasCurrent ? (
           <motion.div
@@ -300,17 +351,18 @@ function DoctorCard({ queue }: { queue: any }) {
 }
 
 /* ─── Massive Stat Card for Single View ─── */
-function StatCard({ label, value, color }: { label: string; value: number; color: 'slate' | 'emerald' | 'rose' }) {
+function StatCard({ label, value, color }: { label: string; value: number | string; color: 'slate' | 'emerald' | 'rose' | 'indigo' }) {
   const colorMap = {
     slate: 'text-slate-800',
     emerald: 'text-emerald-500',
     rose: 'text-rose-500',
+    indigo: 'text-indigo-600'
   }
   
   return (
     <div className="bg-slate-50 border border-slate-100 rounded-lg px-8 py-5 text-center flex flex-col justify-center min-w-[140px]">
       <p className="text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mb-1">{label}</p>
-      <p className={`text-7xl font-black tabular-nums leading-none ${colorMap[color]}`}>{value}</p>
+      <p className={`text-6xl font-black tabular-nums leading-none ${colorMap[color]}`}>{value}</p>
     </div>
   )
 }

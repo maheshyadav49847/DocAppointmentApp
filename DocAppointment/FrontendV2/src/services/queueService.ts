@@ -69,6 +69,18 @@ export const queueService = {
     const response = await api.post(`/queue/${queueId}/cancel`)
     return response.data
   },
+  pauseQueue: async (queueId: string, durationMinutes: number, reason: string) => {
+    const response = await api.post(`/queue/${queueId}/pause`, { durationMinutes, reason })
+    return response.data
+  },
+  resumeQueue: async (queueId: string) => {
+    const response = await api.post(`/queue/${queueId}/resume`)
+    return response.data
+  },
+  togglePriority: async (tokenId: string) => {
+    const response = await api.post(`/queue/token/${tokenId}/priority`)
+    return response.data
+  },
   alertPatient: async (queueId: string) => {
     const response = await api.post(`/queue/${queueId}/alert`)
     return response.data

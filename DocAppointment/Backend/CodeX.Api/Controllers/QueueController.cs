@@ -142,6 +142,31 @@ namespace CodeX.Api.Controllers
             return await Mediator.Send(new CodeX.Application.Features.Sessions.Queries.GetSessionsList.GetSessionsListQuery(doctorId, branchId));
         }
 
+        [HttpPost("token/{tokenId}/priority")]
+        [HasPermission($"{SystemPermissions.Queue.EditPatient},{SystemPermissions.DoctorDesk.CallNext}")]
+        public async Task<ActionResult<bool>> ToggleTokenPriority(Guid tokenId)
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Queue.Commands.ToggleTokenPriority.ToggleTokenPriorityCommand(tokenId));
+        }
+
+        public class PauseQueueDto { public int DurationMinutes { get; set; } public string? Reason { get; set; } }
+
+        [HttpPost("{queueId}/pause")]
+        [HasPermission($"{SystemPermissions.Queue.EndSession},{SystemPermissions.DoctorDesk.EndSession}")]
+        public async Task<ActionResult<bool>> Pause(Guid queueId, [FromBody] PauseQueueDto dto)
+        {
+            if (!await CanAccessQueue(queueId)) return Forbid();
+            return await Mediator.Send(new CodeX.Application.Features.Queue.Commands.PauseQueue.PauseQueueCommand(queueId, dto.DurationMinutes, dto.Reason));
+        }
+
+        [HttpPost("{queueId}/resume")]
+        [HasPermission($"{SystemPermissions.Queue.EndSession},{SystemPermissions.DoctorDesk.EndSession}")]
+        public async Task<ActionResult<bool>> Resume(Guid queueId)
+        {
+            if (!await CanAccessQueue(queueId)) return Forbid();
+            return await Mediator.Send(new CodeX.Application.Features.Queue.Commands.ResumeQueue.ResumeQueueCommand(queueId));
+        }
+
         [HttpPost("{queueId}/next")]
         [HasPermission($"{SystemPermissions.Queue.CallNext},{SystemPermissions.DoctorDesk.CallNext}")]
         public async Task<ActionResult<int>> Next(Guid queueId)
@@ -282,7 +307,11 @@ namespace CodeX.Api.Controllers
                 skippedCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
-                currentTokenId = currentToken?.Id
+                currentTokenId = currentToken?.Id,
+                startedAt = queue.CreatedAt,
+                currentTokenCalledAt = currentToken?.CalledAt,
+                pausedUntil = queue.PausedUntil,
+                pauseReason = queue.PauseReason
             });
         }
 
@@ -311,6 +340,7 @@ namespace CodeX.Api.Controllers
                     patientPhone = t.Patient?.Phone ?? "",
                     source = t.Source,
                     status = t.Status,
+                    isPriority = t.IsPriority,
                     createdAt = t.CreatedAt,
                     completedAt = t.CompletedAt,
                     updatedAt = t.UpdatedAt
@@ -372,7 +402,11 @@ namespace CodeX.Api.Controllers
                 currentTokenId = currentToken?.Id,
                 branchName = queue.Branch?.Name,
                 branchId = queue.BranchId,
-                sessionName = queue.Session?.SessionName ?? "Walk-in Session"
+                sessionName = queue.Session?.SessionName ?? "Walk-in Session",
+                startedAt = queue.CreatedAt,
+                currentTokenCalledAt = currentToken?.CalledAt,
+                pausedUntil = queue.PausedUntil,
+                pauseReason = queue.PauseReason
             });
         }
 
@@ -431,7 +465,11 @@ namespace CodeX.Api.Controllers
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
                 branchName = queue.Branch?.Name,
-                branchId = queue.BranchId
+                branchId = queue.BranchId,
+                startedAt = queue.CreatedAt,
+                currentTokenCalledAt = currentToken?.CalledAt,
+                pausedUntil = queue.PausedUntil,
+                pauseReason = queue.PauseReason
             });
         }
 
@@ -507,7 +545,11 @@ namespace CodeX.Api.Controllers
                     waitingCount = qTokens.Count(t => t.Status == TokenStatus.Pending),
                     completedCount = qTokens.Count(t => t.Status == TokenStatus.Completed),
                     skippedCount = qTokens.Count(t => t.Status == TokenStatus.Skipped),
-                    upcomingTokens = upcoming
+                    upcomingTokens = upcoming,
+                    startedAt = q.CreatedAt,
+                    currentTokenCalledAt = currentToken?.CalledAt,
+                    pausedUntil = q.PausedUntil,
+                    pauseReason = q.PauseReason
                 };
             }).ToList();
 
