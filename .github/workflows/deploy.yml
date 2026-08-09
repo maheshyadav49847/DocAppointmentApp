@@ -59,8 +59,6 @@ jobs:
           no-cache: true
           build-args: |
             VITE_API_URL=/api/v1.0
-            VITE_WHATSAPP_BRIDGE_URL=/qr
-            VITE_WHATSAPP_BRIDGE_API_KEY=codex-secret-123
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
@@ -75,17 +73,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
-
-      # Build & Push WhatsApp Bridge
-      - name: Build and push WhatsApp Bridge
-        uses: docker/build-push-action@v5
-        with:
-          context: ./DocAppointment/whatsapp-bridge
-          push: true
-          no-cache: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/whatsapp-bridge:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/whatsapp-bridge:${{ github.sha }}
 
   deploy-to-vps:
     needs: build-and-push
@@ -124,15 +111,12 @@ jobs:
             if [ "$TARGET_ENV" = "prod" ]; then
               export FRONTEND_PORT=8000
               export BACKEND_PORT=8080
-              export WHATSAPP_PORT=3101
             elif [ "$TARGET_ENV" = "dev" ]; then
               export FRONTEND_PORT=8001
               export BACKEND_PORT=8081
-              export WHATSAPP_PORT=3102
             elif [ "$TARGET_ENV" = "sandbox" ]; then
               export FRONTEND_PORT=8002
               export BACKEND_PORT=8082
-              export WHATSAPP_PORT=3103
             fi
             
             # Export variables for docker-compose file to resolve
