@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
   ArrowLeft, RotateCcw, Power, Users, CheckCircle2, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
-  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X
+  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star
 } from "lucide-react"
 // Removed unused import
 import { queueService } from "@/services/queueService"
@@ -15,6 +15,33 @@ import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePermissions } from "@/hooks/usePermissions"
 
+function LiveTimer({ startedAt }: { startedAt: string | null }) {
+  const [elapsed, setElapsed] = useState(0)
+  
+  useEffect(() => {
+    if (!startedAt) return;
+    
+    // Initial calculate
+    setElapsed(Math.max(0, Math.floor((new Date().getTime() - new Date(startedAt).getTime()) / 1000)));
+
+    const interval = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((new Date().getTime() - new Date(startedAt).getTime()) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  if (!startedAt) return null;
+
+  const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+  const secs = (elapsed % 60).toString().padStart(2, '0');
+  
+  return (
+    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-rose-50 text-rose-600 rounded-full font-mono text-sm font-bold border border-rose-100 mt-4 shadow-sm">
+      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+      {mins}:{secs}
+    </div>
+  )
+}
 
 export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
@@ -26,6 +53,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false)
   const [editingToken, setEditingToken] = useState<any>(null)
 
   const { data: queue, refetch: refetchQueue, isFetching } = useQuery({
@@ -112,6 +141,21 @@ export default function QueueManager({ sessionData, onBack }: any) {
     onSuccess: () => { refetchQueue(); refetchTokens() }
   })
 
+  const pauseMutation = useMutation({
+    mutationFn: ({ duration, reason }: { duration: number, reason: string }) => queueService.pauseQueue(queueId, duration, reason),
+    onSuccess: () => { refetchQueue(); refetchTokens(); setIsPauseModalOpen(false); }
+  })
+
+  const resumeMutation = useMutation({
+    mutationFn: () => queueService.resumeQueue(queueId),
+    onSuccess: () => { refetchQueue(); refetchTokens() }
+  })
+
+  const togglePriorityMutation = useMutation({
+    mutationFn: (tokenId: string) => queueService.togglePriority(tokenId),
+    onSuccess: () => { refetchQueue(); refetchTokens() }
+  })
+
   const markArrivedMutation = useMutation({
     mutationFn: () => queueService.markArrived(queueId),
     onSuccess: () => refetchQueue()
@@ -187,8 +231,16 @@ export default function QueueManager({ sessionData, onBack }: any) {
     </div>
   )
 
-  const isDoctorArrived = queue.status === 1
+  const isDoctorArrived = queue.status === 1 || queue.status === 2
   const hasActivePatient = queue.currentTokenNumber > 0 && queue.currentPatientName !== "No one"
+
+  // Advanced Stats
+  const totalTokens = (queue.waitingCount || 0) + (queue.completedCount || 0) + (queue.skippedCount || 0) + (hasActivePatient ? 1 : 0);
+  const elapsedMinutes = queue.startedAt ? Math.max(0, (new Date().getTime() - new Date(queue.startedAt).getTime()) / 60000) : 0;
+  const avgMinutes = queue.completedCount > 0 ? Math.round(elapsedMinutes / queue.completedCount) : 5; // default 5 min
+  const etcMinutes = (queue.waitingCount || 0) * avgMinutes;
+  const etcTime = new Date(new Date().getTime() + etcMinutes * 60000);
+  const etcString = queue.waitingCount === 0 ? '--' : etcTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
     <motion.div 
@@ -219,19 +271,61 @@ export default function QueueManager({ sessionData, onBack }: any) {
         </div>
 
         <div className="flex items-center gap-3 relative z-10">
+          {branchId && (
+            <a
+              href={`/tv/${branchId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 h-[42px] rounded-lg text-sm font-bold transition-colors border border-indigo-200 shadow-sm"
+              title="Open Queue TV Display"
+            >
+              <MonitorPlay className="w-4 h-4" />
+              <span className="hidden sm:inline">Open TV</span>
+            </a>
+          )}
+          <button 
+            onClick={() => setIsQrModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 h-[42px] rounded-lg text-sm font-bold transition-colors border border-slate-200 shadow-sm"
+            title="Share Live Tracking Link"
+          >
+            <Share2 className="w-4 h-4 text-indigo-500" />
+            <span className="hidden sm:inline">Share Link</span>
+          </button>
           <button 
             onClick={() => { refetchQueue(); refetchTokens() }} 
-            className="p-2.5 bg-white text-slate-500 rounded-lg border border-slate-200/60 hover:bg-slate-50 shadow-sm transition-colors"
+            className="flex items-center justify-center w-[42px] h-[42px] bg-white text-slate-500 rounded-lg border border-slate-200/60 hover:bg-slate-50 shadow-sm transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+          
+          {can('Queue.EndSession') && queue.status === 2 ? (
+            <button 
+              onClick={() => resumeMutation.mutate()}
+              disabled={resumeMutation.isPending}
+              className="flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 h-[42px] rounded-lg text-sm font-bold transition-colors border border-amber-200 shadow-sm"
+              title="Resume Session"
+            >
+              {resumeMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              <span className="hidden sm:inline">Resume</span>
+            </button>
+          ) : can('Queue.EndSession') && queue.status !== 2 && (
+            <button 
+              onClick={() => setIsPauseModalOpen(true)}
+              className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 h-[42px] rounded-lg text-sm font-bold transition-colors border border-slate-200 shadow-sm"
+              title="Pause Session"
+            >
+              <Pause className="w-4 h-4" />
+              <span className="hidden sm:inline">Pause</span>
+            </button>
+          )}
+
           {can('Queue.EndSession') && (
             <button 
               onClick={handleEndSession}
               disabled={endQueueMutation.isPending}
-              className="btn-danger"
+              className="btn-danger h-[42px]"
             >
-              <Power className="w-4 h-4" /> End Session
+              <Power className="w-4 h-4" /> <span className="hidden sm:inline">End Session</span>
             </button>
           )}
         </div>
@@ -248,7 +342,47 @@ export default function QueueManager({ sessionData, onBack }: any) {
               <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Now Serving</span>
             </div>
 
-            {(!hasActivePatient) && queue.waitingCount === 0 ? (
+            <div className="absolute top-6 right-6 flex items-center gap-4 text-right hidden sm:flex">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pacing</p>
+                <p className="text-sm font-black text-slate-700">{avgMinutes} min/pat</p>
+              </div>
+              <div className="w-px h-8 bg-slate-100"></div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Tokens</p>
+                <p className="text-sm font-black text-slate-700">{totalTokens}</p>
+              </div>
+              <div className="w-px h-8 bg-slate-100"></div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Est. Finish</p>
+                <p className="text-sm font-black text-slate-700">{etcString}</p>
+              </div>
+            </div>
+
+            {/* Session Progress Bar */}
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-100">
+              <div 
+                className="h-full bg-indigo-500 transition-all duration-1000" 
+                style={{ width: `${totalTokens > 0 ? ((queue.completedCount || 0) / totalTokens) * 100 : 0}%` }}
+              ></div>
+            </div>
+
+            {queue.status === 2 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-amber-50/90 z-20 backdrop-blur-sm">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 text-amber-500">
+                  <Pause className="w-12 h-12" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Session Paused</h2>
+                <p className="text-slate-500 mt-2 font-medium max-w-sm text-center">
+                  {queue.pauseReason || "The doctor is currently on a short break."}
+                </p>
+                {queue.pausedUntil && (
+                  <p className="text-amber-600 font-bold mt-4 bg-amber-100 px-4 py-2 rounded-full text-sm">
+                    Resuming at {new Date(queue.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
+            ) : (!hasActivePatient) && queue.waitingCount === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/50">
                 <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm mb-6 text-slate-200">
                   <Users className="w-12 h-12" />
@@ -279,36 +413,17 @@ export default function QueueManager({ sessionData, onBack }: any) {
                         {queue.currentPatientName || 'Waiting for next...'}
                       </span>
                     </div>
+                    
+                    {hasActivePatient && queue.currentTokenCalledAt && (
+                      <LiveTimer startedAt={queue.currentTokenCalledAt} />
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
             )}
           </div>
 
-          {/* Quick Stats Strip */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0"><Users className="w-5 h-5 sm:w-6 sm:h-6" /></div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.waitingCount || 0}</h3>
-                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Waiting</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /></div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.completedCount || 0}</h3>
-                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Served</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-3 sm:p-5 border border-slate-200/60 shadow-sm flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center shrink-0"><AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" /></div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-none mb-1">{queue.skippedCount || 0}</h3>
-                <p className="text-[9px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Skipped</p>
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Right Col: Controls */}
@@ -324,7 +439,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               can('Queue.CallNext') ? (
                 <button
                   onClick={() => callNextMutation.mutate()}
-                  disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0}
+                  disabled={callNextMutation.isPending || !isDoctorArrived || queue.waitingCount === 0 || queue.status === 2}
                   className="w-full py-6 bg-transparent border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-lg flex flex-col items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
                 >
                   {callNextMutation.isPending ? (
@@ -333,6 +448,11 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     <Play className="w-8 h-8 relative z-10 group-hover:scale-110 transition-transform" />
                   )}
                   <span className="text-xl font-bold relative z-10">Call Next Patient</span>
+                  {upcomingTokens?.find((t: any) => t.status === 0) && (
+                    <span className="text-sm font-medium text-indigo-400 relative z-10">
+                      Up Next: #{upcomingTokens.find((t: any) => t.status === 0).tokenNumber} - {upcomingTokens.find((t: any) => t.status === 0).patientName}
+                    </span>
+                  )}
                 </button>
               ) : null
             ) : (
@@ -432,7 +552,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     style={{ zIndex: -1 }}
                   />
                 )}
-                {tab}
+                {tab === 'waiting' ? `Waiting (${queue.waitingCount || 0})` :
+                 tab === 'completed' ? `Served (${queue.completedCount || 0})` :
+                 `Skipped (${queue.skippedCount || 0})`}
               </button>
             ))}
           </div>
@@ -467,6 +589,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <th className="px-6 py-5">Token Details</th>
                 <th className="px-6 py-5">Contact Info</th>
                 <th className="px-6 py-5">Arrival Time</th>
+                <th className="px-6 py-5">Wait Duration</th>
+                {activeTab === 'waiting' && <th className="px-6 py-5">Est. Turn</th>}
                 <th className="px-6 py-5">Status</th>
                 {activeTab !== 'completed' && <th className="px-6 py-5 text-right">Actions</th>}
               </tr>
@@ -505,11 +629,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-black flex items-center justify-center border border-indigo-100">
+                        <div className={`w-10 h-10 rounded-xl font-black flex items-center justify-center border ${t.isPriority ? 'bg-amber-100 text-amber-600 border-amber-200' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
                           {t.tokenNumber}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900">{t.patientName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-900">{t.patientName}</p>
+                            {t.isPriority && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" title="Priority Patient" />}
+                          </div>
                           <p className="text-[11px] font-medium text-slate-400 mt-0.5">#{t.id.substring(0,8)}</p>
                         </div>
                       </div>
@@ -527,6 +654,34 @@ export default function QueueManager({ sessionData, onBack }: any) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      {(() => {
+                         const waitMins = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
+                         const isLongWait = waitMins >= 60 && t.status === 0;
+                         if (t.status === 2) return <span className="text-slate-400 text-xs font-medium">Finished</span>;
+                         return (
+                           <div className={`flex items-center gap-2 text-sm font-bold ${isLongWait ? 'text-rose-600' : 'text-slate-600'}`}>
+                             {waitMins} mins
+                             {isLongWait && <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" title="Waiting for more than 1 hour" />}
+                           </div>
+                         );
+                      })()}
+                    </td>
+                    {activeTab === 'waiting' && (
+                      <td className="px-6 py-4 text-slate-600 font-medium">
+                        {(() => {
+                           const position = filtered.indexOf(t) + 1;
+                           const etaMins = position * avgMinutes;
+                           const etaTime = new Date(new Date().getTime() + etaMins * 60000);
+                           return (
+                             <div className="flex items-center gap-1.5">
+                               <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                               {etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </div>
+                           )
+                        })()}
+                      </td>
+                    )}
+                    <td className="px-6 py-4">
                       {t.status === 0 && <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full border border-amber-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending</span>}
                       {t.status === 2 && <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full border border-indigo-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Served</span>}
                       {t.status === 3 && <span className="px-3 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-full border border-rose-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Skipped</span>}
@@ -537,6 +692,15 @@ export default function QueueManager({ sessionData, onBack }: any) {
                           {t.status === 3 && can('Queue.RestoreToken') && (
                             <button onClick={() => requeueMutation.mutate(t.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 font-medium text-sm flex items-center gap-1" title="Requeue">
                               <RotateCcw className="w-4 h-4" /> Restore
+                            </button>
+                          )}
+                          {t.status === 0 && can('Queue.CallNext') && (
+                            <button 
+                              onClick={() => togglePriorityMutation.mutate(t.id)} 
+                              className={`p-2 rounded-lg transition-colors border border-transparent flex items-center gap-1 ${t.isPriority ? 'text-amber-500 hover:bg-amber-50 hover:border-amber-200' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50 hover:border-slate-200'}`} 
+                              title={t.isPriority ? "Remove Priority" : "Mark as Priority"}
+                            >
+                              <Star className="w-4 h-4" />
                             </button>
                           )}
                           {t.status !== 2 && (
@@ -695,6 +859,104 @@ export default function QueueManager({ sessionData, onBack }: any) {
           isPending={endQueueMutation.isPending}
         />
       )}
+      {/* Pause Queue Modal */}
+      <AnimatePresence>
+        {isPauseModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPauseModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50"
+            >
+              <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Pause className="w-5 h-5 text-amber-500"/> Pause Session</h3>
+                <button onClick={() => setIsPauseModalOpen(false)} className="text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-4 h-4"/></button>
+              </div>
+              <form noValidate 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const duration = parseInt((form.elements.namedItem('duration') as HTMLInputElement).value);
+                  const reason = (form.elements.namedItem('reason') as HTMLInputElement).value;
+                  pauseMutation.mutate({ duration, reason });
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Pause Duration (Minutes)</label>
+                  <input type="number" name="duration" defaultValue={15} min={1} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Reason (Optional)</label>
+                  <input type="text" name="reason" placeholder="e.g. Doctor on a short break" defaultValue="Doctor on a short break" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <button type="button" onClick={() => setIsPauseModalOpen(false)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                  <button type="submit" disabled={pauseMutation.isPending} className="flex-[2] bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-all shadow-sm">
+                    {pauseMutation.isPending ? "Pausing..." : "Confirm Pause"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Live Tracking Link Modal */}
+      <AnimatePresence>
+        {isQrModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsQrModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden relative z-10 border border-slate-200/50 p-8 flex flex-col items-center text-center"
+            >
+              <button onClick={() => setIsQrModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-5 h-5"/></button>
+              
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                <Share2 className="w-8 h-8" />
+              </div>
+              <h3 className="font-bold text-xl text-slate-800 mb-2">Live Tracking</h3>
+              <p className="text-slate-500 text-sm mb-6">Patients can scan this QR code or visit the link below to track the queue live from their mobile devices.</p>
+              
+              {/* Dummy QR Code Image */}
+              <div className="bg-white p-2 border-2 border-slate-200 rounded-xl mb-6">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`${window.location.origin}/track/${queueId}`)}`} alt="Tracking QR Code" className="w-[180px] h-[180px]" />
+              </div>
+              
+              <div className="w-full">
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-left">Tracking URL</label>
+                <div className="flex gap-2">
+                  <input readOnly value={`${window.location.origin}/track/${queueId}`} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600" />
+                  <button 
+                    onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/track/${queueId}`); alert("Copied to clipboard!"); }}
+                    className="px-4 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   )
 }

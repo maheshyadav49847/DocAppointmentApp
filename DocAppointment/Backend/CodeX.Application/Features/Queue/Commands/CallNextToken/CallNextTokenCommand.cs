@@ -52,10 +52,11 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
             if (queue == null) throw new Exception("Queue not found");
 
-            // Find the next Pending token
+            // Find the next Pending token, prioritizing IsPriority
             var nextToken = queue.Tokens
                 .Where(t => t.Status == TokenStatus.Pending)
-                .OrderBy(t => t.TokenNumber)
+                .OrderByDescending(t => t.IsPriority)
+                .ThenBy(t => t.TokenNumber)
                 .FirstOrDefault();
 
             // Mark the previous 'Called' token as Completed
@@ -163,7 +164,8 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 {
                     var upcomingPatient = queue.Tokens
                         .Where(t => t.Status == TokenStatus.Pending)
-                        .OrderBy(t => t.TokenNumber)
+                        .OrderByDescending(t => t.IsPriority)
+                        .ThenBy(t => t.TokenNumber)
                         .Skip(pos - 1)
                         .FirstOrDefault();
 

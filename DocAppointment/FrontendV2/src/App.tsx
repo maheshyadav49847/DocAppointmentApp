@@ -18,6 +18,7 @@ import BranchesPage from "./pages/branches/BranchesPage"
 import StaffPage from "./pages/staff/StaffPage"
 import AuditLogsPage from "./pages/audit-logs/AuditLogsPage"
 import TvDisplayPage from "./pages/display/TvDisplayPage"
+import PatientTrackingPage from "./pages/display/PatientTrackingPage"
 import RolesPermissionsPage from "./pages/settings/RolesPermissionsPage"
 import { useAuthStore } from "./store/authStore"
 
@@ -72,6 +73,7 @@ function App() {
         </Route>
 
         <Route path="/tv/:branchId" element={<TvDisplayPage />} />
+        <Route path="/track/:queueId" element={<PatientTrackingPage />} />
 
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRoute />} />

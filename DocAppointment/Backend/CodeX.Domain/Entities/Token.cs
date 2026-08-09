@@ -12,6 +12,7 @@ namespace CodeX.Domain.Entities
         public Guid PatientId { get; set; }
         public int TokenNumber { get; set; }
         public TokenStatus Status { get; set; } = TokenStatus.Pending;
+        public bool IsPriority { get; set; } = false;
         public BookingSource Source { get; set; } = BookingSource.WhatsApp;
         public DateTime BookedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CalledAt { get; set; }
