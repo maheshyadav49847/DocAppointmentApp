@@ -25,7 +25,7 @@ namespace CodeX.Infrastructure.ExternalServices
         {
             using var scope = _scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            var branch = await dbContext.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+            var branch = await dbContext.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId);
             return (branch?.MetaPhoneNumberId, branch?.MetaSystemUserToken);
         }
 
@@ -35,7 +35,7 @@ namespace CodeX.Infrastructure.ExternalServices
             {
                 using var scope = _scopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                var session = await dbContext.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
+                var session = await dbContext.ChatSessions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
                 return session?.Language ?? "1"; // Default to Hindi
             }
             catch

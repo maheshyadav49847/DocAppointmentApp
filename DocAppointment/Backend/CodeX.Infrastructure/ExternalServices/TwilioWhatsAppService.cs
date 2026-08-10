@@ -22,7 +22,7 @@ namespace CodeX.Infrastructure.ExternalServices
             using (var scope = _serviceProvider.CreateScope())
             {
                 var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                var setting = context.SystemSettings.FirstOrDefault(s => s.Key == key);
+                var setting = context.SystemSettings.IgnoreQueryFilters().FirstOrDefault(s => s.Key == key);
                 return setting?.Value ?? _config[configKey] ?? string.Empty;
             }
         }
@@ -44,7 +44,7 @@ namespace CodeX.Infrastructure.ExternalServices
             {
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                var session = await dbContext.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
+                var session = await dbContext.ChatSessions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
                 return session?.Language ?? "1"; // Default to Hindi
             }
             catch
