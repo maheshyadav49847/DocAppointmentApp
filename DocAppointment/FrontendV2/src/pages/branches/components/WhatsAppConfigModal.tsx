@@ -45,7 +45,7 @@ export default function WhatsAppConfigModal({ branch, onClose }: { branch: any, 
                 </p>
 
                 <div className="w-full pt-6 border-t border-slate-100 mt-6">
-                  <MetaEmbeddedSignup branchId={branch.id} onSuccess={() => window.location.reload()} />
+                  <MetaEmbeddedSignup branch={branch} onSuccess={() => window.location.reload()} />
                 </div>
               </div>
            </div>

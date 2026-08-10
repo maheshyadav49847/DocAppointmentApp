@@ -4,19 +4,19 @@ import { api } from '@/lib/axios';
 declare const FB: any;
 
 interface MetaEmbeddedSignupProps {
-  branchId: string;
+  branch: any;
   onSuccess: () => void;
 }
 
-export default function MetaEmbeddedSignup({ branchId, onSuccess }: MetaEmbeddedSignupProps) {
+export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSignupProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   
   // Manual credentials state
-  const [wabaId, setWabaId] = useState('');
-  const [phoneId, setPhoneId] = useState('');
-  const [systemToken, setSystemToken] = useState('');
+  const [wabaId, setWabaId] = useState(branch?.metaWabaId || '');
+  const [phoneId, setPhoneId] = useState(branch?.metaPhoneNumberId || '');
+  const [systemToken, setSystemToken] = useState(branch?.metaSystemUserToken || '');
 
   const launchWhatsAppSignup = () => {
     setLoading(true);
@@ -31,7 +31,7 @@ export default function MetaEmbeddedSignup({ branchId, onSuccess }: MetaEmbedded
     FB.login((response: any) => {
       if (response.authResponse) {
         api.post('/meta/whatsapp/save-credentials', {
-          branchId: branchId,
+          branchId: branch.id,
           wabaId: 'WABA_FROM_OAUTH', 
           phoneNumberId: 'PHONE_FROM_OAUTH', 
           systemUserToken: import.meta.env.VITE_META_CONFIG_ID || 'SYSTEM_TOKEN'
@@ -66,7 +66,7 @@ export default function MetaEmbeddedSignup({ branchId, onSuccess }: MetaEmbedded
     
     setLoading(true);
     api.post('/meta/whatsapp/save-credentials', {
-      branchId: branchId,
+      branchId: branch.id,
       wabaId: wabaId || 'MANUAL_WABA',
       phoneNumberId: phoneId,
       systemUserToken: systemToken
