@@ -512,7 +512,7 @@ namespace CodeX.Api.Controllers
         // 6. Upload Attachment
         [HttpPost("{id}/attachments")]
         [HasPermission($"{SystemPermissions.Patients.Edit},{SystemPermissions.DoctorDesk.View}")]
-        public async Task<IActionResult> UploadAttachment(Guid id, [FromForm] IFormFile file, [FromForm] string category, [FromForm] Guid? patientVisitId)
+        public async Task<IActionResult> UploadAttachment(Guid id, IFormFile file, [FromForm] string category, [FromForm] Guid? patientVisitId)
         {
             var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
             if (patient == null) return NotFound("Patient not found.");

@@ -32,20 +32,23 @@ namespace CodeX.Api.Controllers.v1_0
         [HttpPost("save-credentials")]
         public async Task<IActionResult> SaveCredentials([FromBody] SaveCredentialsRequest request)
         {
+            _logger.LogInformation("SaveCredentials called with BranchId: '{BranchId}', PhoneId: '{PhoneId}'", request.BranchId, request.PhoneNumberId);
+            
             // Optional: verify the user has access to this branch
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             // ... auth logic ...
 
-            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == request.BranchId);
+            var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == request.BranchId);
             if (branch == null)
             {
+                _logger.LogWarning("SaveCredentials: Branch not found for ID {BranchId}", request.BranchId);
                 return NotFound("Branch not found");
             }
 
             branch.WhatsAppProvider = "MetaCloud";
-            branch.MetaWabaId = request.WabaId;
-            branch.MetaPhoneNumberId = request.PhoneNumberId;
-            branch.MetaSystemUserToken = request.SystemUserToken;
+            branch.MetaWabaId = request.WabaId?.Trim();
+            branch.MetaPhoneNumberId = request.PhoneNumberId?.Trim();
+            branch.MetaSystemUserToken = request.SystemUserToken?.Trim();
             
             // To be secure, the frontend could just fetch the phone number ID from Meta and we'd store it.
             // But for this embedded signup MVP, we assume the frontend extracted these after OAuth.
