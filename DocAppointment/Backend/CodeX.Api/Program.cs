@@ -10,8 +10,17 @@ using System.Text;
 
 using Asp.Versioning;
 using CodeX.Application.Common.Settings;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/codex-api-log-.txt", rollingInterval: RollingInterval.Day, shared: true));
 
 // Startup Validation (Fail Fast)
 var jwtSettingsConfig = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();

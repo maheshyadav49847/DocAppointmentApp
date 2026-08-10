@@ -53,7 +53,7 @@ namespace CodeX.Api.Controllers
             if (mode == "subscribe" && token == verifyToken)
             {
                 _logger.LogInformation("Meta Webhook verified successfully.");
-                return Ok(challenge); // Meta strictly expects just the challenge string
+                return Content(challenge ?? string.Empty, "text/plain"); // Meta strictly expects plain text, no quotes
             }
 
             _logger.LogWarning("Meta Webhook verification failed. Received Token: {Token}", token);

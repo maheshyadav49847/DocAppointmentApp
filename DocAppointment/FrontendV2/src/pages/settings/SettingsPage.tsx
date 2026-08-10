@@ -72,14 +72,26 @@ export default function SettingsPage() {
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global configurations and your personal profile.</p>
           </div>
         </div>
-        {can('Settings.ManageWhatsapp') && (
-          <button 
-            onClick={() => setIsTwilioDrawerOpen(true)}
-            className="btn-secondary"
-          >
-            <Smartphone className="w-4 h-4" /> Global Twilio Config
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {can('Settings.ManageWhatsapp') && (
+            <button 
+              onClick={() => setIsTwilioDrawerOpen(true)}
+              className="btn-secondary"
+            >
+              <Smartphone className="w-4 h-4" /> Global Twilio Config
+            </button>
+          )}
+          {can('Settings.ManageWhatsapp') && (
+            <a 
+              href={`${import.meta.env.VITE_API_URL || "/api/v1.0"}/system/logs/download`} 
+              target="_blank" 
+              rel="noreferrer"
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Activity className="w-4 h-4" /> Download Logs
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Content Area */}
