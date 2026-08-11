@@ -89,6 +89,12 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             var tokenCount = await _context.Tokens
                 .IgnoreQueryFilters()
                 .CountAsync(t => !t.IsDeleted && t.QueueId == queue.Id, cancellationToken);
+            
+            var maxTokenNumber = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Where(t => t.QueueId == queue.Id)
+                .MaxAsync(t => (int?)t.TokenNumber, cancellationToken) ?? 0;
+
             if (queue.Session.DefaultCapacity > 0 && tokenCount >= queue.Session.DefaultCapacity)
             {
                 throw new Exception($"Queue is full. Maximum capacity of {queue.Session.DefaultCapacity} reached.");
@@ -150,7 +156,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             if (patient.Id != Guid.Empty)
             {
                 var hasActiveToken = await _context.Tokens
-                    
+                    .IgnoreQueryFilters()
                     .AnyAsync(t => !t.IsDeleted && t.QueueId == request.QueueId && 
                                    t.PatientId == patient.Id && 
                                    (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called), 
@@ -167,14 +173,14 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 var nextTokenNumber = ((await _context.Tokens
-                    
+                    .IgnoreQueryFilters()
                     .Where(t => t.QueueId == queue.Id)
                     .MaxAsync(t => (int?)t.TokenNumber, cancellationToken)) ?? 0) + 1;
 
                 token = new Token
                 {
                     QueueId = queue.Id,
-                    Patient = patient,
+                    PatientId = patient.Id,
                     TokenNumber = nextTokenNumber,
                     Status = TokenStatus.Pending,
                     Source = request.Source,
