@@ -688,7 +688,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             if (!body.Trim().Equals("skip", StringComparison.OrdinalIgnoreCase) && session.SelectedSessionId.HasValue)
             {
                 // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
-                var rating = await _context.Ratings.FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == session.SelectedSessionId.Value, ct);
+                var rating = await _context.Ratings.IgnoreQueryFilters().FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == session.SelectedSessionId.Value, ct);
                 if (rating != null)
                 {
                     rating.Comment = body.Trim();

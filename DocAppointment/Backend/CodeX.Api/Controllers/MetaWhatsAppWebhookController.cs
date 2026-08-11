@@ -90,6 +90,18 @@ namespace CodeX.Api.Controllers
                         {
                             foreach (var message in change.Value.Messages)
                             {
+                                // Deduplicate messages using message.Id
+                                if (!string.IsNullOrEmpty(message.Id))
+                                {
+                                    var msgCacheKey = $"wa_msg_id_{message.Id}";
+                                    if (_cache.TryGetValue(msgCacheKey, out _))
+                                    {
+                                        _logger.LogInformation("Skipping duplicate Meta message ID: {MessageId}", message.Id);
+                                        continue;
+                                    }
+                                    _cache.Set(msgCacheKey, true, TimeSpan.FromMinutes(2));
+                                }
+
                                 // Only process text messages for Chatbot
                                 if (message.Type == "text" && message.Text != null)
                                 {

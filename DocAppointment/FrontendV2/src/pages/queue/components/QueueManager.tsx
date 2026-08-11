@@ -49,7 +49,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const { can } = usePermissions()
   const queryClient = useQueryClient()
 
-  const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped'>('waiting')
+  const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped' | 'cancelled'>('waiting')
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEndSessionModalOpen, setIsEndSessionModalOpen] = useState(false)
@@ -536,7 +536,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
         <div className="p-4 sm:px-6 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           <div className="flex p-1 bg-slate-200/50 rounded-xl relative w-full sm:w-auto">
-            {(['waiting', 'completed', 'skipped'] as const).map((tab) => (
+            {(['waiting', 'completed', 'skipped', 'cancelled'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -554,7 +554,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 )}
                 {tab === 'waiting' ? `Waiting (${queue.waitingCount || 0})` :
                  tab === 'completed' ? `Served (${queue.completedCount || 0})` :
-                 `Skipped (${queue.skippedCount || 0})`}
+                 tab === 'skipped' ? `Skipped (${queue.skippedCount || 0})` :
+                 `Cancelled (${queue.cancelledCount || 0})`}
               </button>
             ))}
           </div>
@@ -604,6 +605,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                   if (activeTab === 'waiting') return t.status === 0
                   if (activeTab === 'completed') return t.status === 2
                   if (activeTab === 'skipped') return t.status === 3
+                  if (activeTab === 'cancelled') return t.status === 4
                   return false
                 })
 
@@ -658,6 +660,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                          const waitMins = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
                          const isLongWait = waitMins >= 60 && t.status === 0;
                          if (t.status === 2) return <span className="text-slate-400 text-xs font-medium">Finished</span>;
+                         if (t.status === 4) return <span className="text-slate-400 text-xs font-medium">Cancelled</span>;
                          return (
                            <div className={`flex items-center gap-2 text-sm font-bold ${isLongWait ? 'text-rose-600' : 'text-slate-600'}`}>
                              {waitMins} mins
@@ -685,8 +688,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
                       {t.status === 0 && <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full border border-amber-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending</span>}
                       {t.status === 2 && <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full border border-indigo-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Served</span>}
                       {t.status === 3 && <span className="px-3 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-full border border-rose-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Skipped</span>}
+                      {t.status === 4 && <span className="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-bold rounded-full border border-slate-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Cancelled</span>}
                     </td>
-                    {activeTab !== 'completed' && (
+                    {activeTab !== 'completed' && activeTab !== 'cancelled' && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           {t.status === 3 && can('Queue.RestoreToken') && (

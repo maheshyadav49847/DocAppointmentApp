@@ -192,7 +192,7 @@ namespace CodeX.Infrastructure.ExternalServices
             _ = Task.Run(async () =>
             {
                 var lang = await GetUserLanguageAsync(phoneNumber);
-                var message = WhatsAppTranslationHelper.Get(lang, "DOCTOR_ARRIVAL_ALERT", doctorName);
+                var message = WhatsAppTranslationHelper.Get(lang, "DOCTOR_ARRIVED_ALERT", doctorName);
                 await SendTextMessage(phoneNumber, message, branchId);
             });
             return Task.CompletedTask;

@@ -28,7 +28,7 @@ namespace CodeX.Application.Features.Tokens.Commands.DeleteToken
 
             if (token == null) throw new Exception("Token not found");
 
-            token.IsDeleted = true;
+            // token.IsDeleted = true; // DO NOT soft delete. We just mark it as Cancelled so it remains visible in history.
             token.Status = TokenStatus.Cancelled;
             
             if (request.DeletePatientIfOffline && token.Source == BookingSource.WalkIn)

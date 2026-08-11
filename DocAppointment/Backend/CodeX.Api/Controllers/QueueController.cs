@@ -292,6 +292,7 @@ namespace CodeX.Api.Controllers
             var waitingCount = queue.Tokens.Count(t => t.Status == TokenStatus.Pending);
             var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
             var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
+            var cancelledCount = queue.Tokens.Count(t => t.Status == TokenStatus.Cancelled);
 
             return Ok(new
             {
@@ -305,6 +306,7 @@ namespace CodeX.Api.Controllers
                 waitingCount,
                 completedCount,
                 skippedCount,
+                cancelledCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
@@ -386,6 +388,7 @@ namespace CodeX.Api.Controllers
             var waitingCount = queue.Tokens.Count(t => t.Status == TokenStatus.Pending);
             var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
             var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
+            var cancelledCount = queue.Tokens.Count(t => t.Status == TokenStatus.Cancelled);
 
             return Ok(new
             {
@@ -397,6 +400,7 @@ namespace CodeX.Api.Controllers
                 waitingCount,
                 completedCount,
                 skippedCount,
+                cancelledCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
@@ -450,6 +454,7 @@ namespace CodeX.Api.Controllers
             var waitingCount = queue.Tokens.Count(t => t.TokenNumber > queue.CurrentTokenNumber && t.Status == TokenStatus.Pending);
             var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
             var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
+            var cancelledCount = queue.Tokens.Count(t => t.Status == TokenStatus.Cancelled);
 
             return Ok(new
             {
@@ -461,6 +466,7 @@ namespace CodeX.Api.Controllers
                 waitingCount,
                 completedCount,
                 skippedCount,
+                cancelledCount,
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
@@ -545,6 +551,7 @@ namespace CodeX.Api.Controllers
                     waitingCount = qTokens.Count(t => t.Status == TokenStatus.Pending),
                     completedCount = qTokens.Count(t => t.Status == TokenStatus.Completed),
                     skippedCount = qTokens.Count(t => t.Status == TokenStatus.Skipped),
+                    cancelledCount = qTokens.Count(t => t.Status == TokenStatus.Cancelled),
                     upcomingTokens = upcoming,
                     startedAt = q.CreatedAt,
                     currentTokenCalledAt = currentToken?.CalledAt,
