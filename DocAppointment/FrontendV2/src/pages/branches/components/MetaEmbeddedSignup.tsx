@@ -12,18 +12,51 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
-  
   // Manual credentials state
   const [wabaId, setWabaId] = useState(branch?.metaWabaId || '');
   const [phoneId, setPhoneId] = useState(branch?.metaPhoneNumberId || '');
   const [systemToken, setSystemToken] = useState(branch?.metaSystemUserToken || '');
 
+  const [appId, setAppId] = useState<string>('');
+  const [configId, setConfigId] = useState<string>('');
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+
+  useEffect(() => {
+    // Fetch Meta Settings from backend
+    api.get('/system/meta-settings').then(res => {
+      const { appId, configId } = res.data;
+      setAppId(appId);
+      setConfigId(configId);
+
+      if (appId && !document.getElementById('facebook-jssdk')) {
+        (window as any).fbAsyncInit = function() {
+          FB.init({
+            appId      : appId,
+            cookie     : true,
+            xfbml      : true,
+            version    : 'v19.0'
+          });
+          setSdkLoaded(true);
+        };
+
+        const js = document.createElement('script');
+        js.id = 'facebook-jssdk';
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        document.head.appendChild(js);
+      } else if (typeof FB !== 'undefined') {
+        setSdkLoaded(true);
+      }
+    }).catch(err => {
+      console.error("Failed to load meta settings", err);
+    });
+  }, []);
+
   const launchWhatsAppSignup = () => {
     setLoading(true);
     setError(null);
 
-    if (typeof FB === 'undefined') {
-      setError('Facebook SDK is not loaded. Please try refreshing the page.');
+    if (!sdkLoaded || typeof FB === 'undefined') {
+      setError('Facebook SDK is not loaded. Please ensure App ID is configured in system settings.');
       setLoading(false);
       return;
     }
@@ -48,7 +81,7 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
         setLoading(false);
       }
     }, {
-      config_id: import.meta.env.VITE_META_CONFIG_ID || '997644046376125',
+      config_id: configId,
       response_type: 'code',
       override_default_response_type: true,
       extras: {

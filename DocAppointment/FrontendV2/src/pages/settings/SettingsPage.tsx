@@ -17,10 +17,17 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
 
   const [isTwilioDrawerOpen, setIsTwilioDrawerOpen] = useState(false)
+  const [isMetaDrawerOpen, setIsMetaDrawerOpen] = useState(false)
 
   const { data: twilioData } = useQuery({
     queryKey: ['twilioConfig'],
     queryFn: whatsappConfigService.getConfig,
+    enabled: !!orgId && can('Settings.ManageWhatsapp')
+  })
+
+  const { data: metaData } = useQuery({
+    queryKey: ['metaConfig'],
+    queryFn: () => api.get('/system/meta-settings').then(res => res.data),
     enabled: !!orgId && can('Settings.ManageWhatsapp')
   })
 
@@ -31,6 +38,16 @@ export default function SettingsPage() {
       setIsTwilioDrawerOpen(false)
       alert("Twilio settings saved successfully.")
     }
+  })
+
+  const saveMetaMutation = useMutation({
+    mutationFn: (data: any) => api.post('/system/meta-settings', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metaConfig'] })
+      setIsMetaDrawerOpen(false)
+      alert("Meta settings saved successfully.")
+    },
+    onError: () => alert("Failed to save Meta settings.")
   })
 
   const testTwilioMutation = useMutation({
@@ -56,6 +73,16 @@ export default function SettingsPage() {
     saveTwilioMutation.mutate(data)
   }
 
+  const handleMetaSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const data = {
+      appId: formData.get('appId') as string,
+      configId: formData.get('configId') as string
+    }
+    saveMetaMutation.mutate(data)
+  }
+
   return (
     <div className="animate-in fade-in duration-500 pb-12">
       {/* Header */}
@@ -74,12 +101,20 @@ export default function SettingsPage() {
         </div>
         <div className="flex items-center gap-2">
           {can('Settings.ManageWhatsapp') && (
-            <button 
-              onClick={() => setIsTwilioDrawerOpen(true)}
-              className="btn-secondary"
-            >
-              <Smartphone className="w-4 h-4" /> Global Twilio Config
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsMetaDrawerOpen(true)}
+                className="btn-secondary"
+              >
+                <Smartphone className="w-4 h-4" /> Global Meta Config
+              </button>
+              <button 
+                onClick={() => setIsTwilioDrawerOpen(true)}
+                className="btn-secondary"
+              >
+                <Smartphone className="w-4 h-4" /> Global Twilio Config
+              </button>
+            </div>
           )}
           {can('Settings.ManageWhatsapp') && (
             <a 
@@ -242,6 +277,70 @@ export default function SettingsPage() {
                     {saveTwilioMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+        
+        {isMetaDrawerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMetaDrawerOpen(false)}
+              className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l border-zinc-200"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                      <span className="text-slate-900">Global</span>
+                      <span className="text-indigo-600">Meta Config</span>
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">Configure Meta App ID and Config ID.</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsMetaDrawerOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                <form noValidate id="meta-form" onSubmit={handleMetaSubmit} className="space-y-5">
+                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-6 flex gap-3">
+                    <Shield className="w-5 h-5 text-indigo-500 shrink-0" />
+                    <p className="text-sm text-indigo-800">These credentials securely connect your application to Meta's Embedded Signup for WhatsApp.</p>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                      <Hash className="w-4 h-4 text-blue-500" /> Meta App ID
+                    </label>
+                    <input required name="appId" defaultValue={metaData?.appId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                      <Hash className="w-4 h-4 text-green-500" /> Configuration ID
+                    </label>
+                    <input required name="configId" defaultValue={metaData?.configId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                  </div>
+                </form>
+              </div>
+
+              <div className="p-6 border-t bg-white flex justify-end">
+                <button type="submit" form="meta-form" disabled={saveMetaMutation.isPending} className="btn-primary w-full sm:w-auto justify-center">
+                  {saveMetaMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save
+                </button>
               </div>
             </motion.div>
           </>

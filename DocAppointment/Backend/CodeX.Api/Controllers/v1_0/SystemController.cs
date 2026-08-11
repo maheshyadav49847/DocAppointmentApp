@@ -1,3 +1,5 @@
+using CodeX.Application.Common.Interfaces;
+using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
@@ -12,11 +14,13 @@ public class SystemController : ControllerBase
 {
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<SystemController> _logger;
+    private readonly IApplicationDbContext _context;
 
-    public SystemController(IWebHostEnvironment env, ILogger<SystemController> logger)
+    public SystemController(IWebHostEnvironment env, ILogger<SystemController> logger, IApplicationDbContext context)
     {
         _env = env;
         _logger = logger;
+        _context = context;
     }
 
     [HttpGet("logs/download")]
@@ -73,4 +77,43 @@ public class SystemController : ControllerBase
             return StatusCode(500, new { Message = "Failed to download logs." });
         }
     }
+
+    [HttpGet("meta-settings")]
+    public IActionResult GetMetaSettings()
+    {
+        var appId = _context.SystemSettings.FirstOrDefault(s => s.Key == "Meta_AppId")?.Value ?? "";
+        var configId = _context.SystemSettings.FirstOrDefault(s => s.Key == "Meta_ConfigId")?.Value ?? "";
+        return Ok(new { AppId = appId, ConfigId = configId });
+    }
+
+    [HttpPost("meta-settings")]
+    public async Task<IActionResult> SaveMetaSettings([FromBody] MetaSettingsDto dto)
+    {
+        var appIdSetting = _context.SystemSettings.FirstOrDefault(s => s.Key == "Meta_AppId");
+        if (appIdSetting == null)
+        {
+            appIdSetting = new SystemSetting { Key = "Meta_AppId", Description = "Meta App ID for Embedded Signup" };
+            _context.SystemSettings.Add(appIdSetting);
+        }
+        appIdSetting.Value = dto.AppId;
+        appIdSetting.LastModified = DateTime.UtcNow;
+
+        var configIdSetting = _context.SystemSettings.FirstOrDefault(s => s.Key == "Meta_ConfigId");
+        if (configIdSetting == null)
+        {
+            configIdSetting = new SystemSetting { Key = "Meta_ConfigId", Description = "Meta Config ID for Embedded Signup" };
+            _context.SystemSettings.Add(configIdSetting);
+        }
+        configIdSetting.Value = dto.ConfigId;
+        configIdSetting.LastModified = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(CancellationToken.None);
+        return Ok();
+    }
+}
+
+public class MetaSettingsDto
+{
+    public string AppId { get; set; } = string.Empty;
+    public string ConfigId { get; set; } = string.Empty;
 }
