@@ -9,6 +9,7 @@ import { whatsappConfigService } from "@/services/whatsappConfigService"
 import { useAuthStore } from "@/store/authStore"
 import { Link } from "react-router-dom"
 import { usePermissions } from "@/hooks/usePermissions"
+import { api } from "@/lib/axios"
 
 export default function SettingsPage() {
   const { user } = useAuthStore()
@@ -47,7 +48,10 @@ export default function SettingsPage() {
       setIsMetaDrawerOpen(false)
       alert("Meta settings saved successfully.")
     },
-    onError: () => alert("Failed to save Meta settings.")
+    onError: (err: any) => {
+      console.error("Save Meta Error:", err)
+      alert("Failed to save Meta settings. Error: " + (err?.response?.data?.message || err?.message || JSON.stringify(err)))
+    }
   })
 
   const testTwilioMutation = useMutation({
