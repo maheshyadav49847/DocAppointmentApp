@@ -82,6 +82,13 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "EMERGENCY_ALERT");
             }
 
+            // Global Zero Command to change language
+            if (bodyLower == "0")
+            {
+                session.CurrentState = "LANGUAGE_SELECTION";
+                return CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(request.BranchId, cancellationToken));
+            }
+
             // Only allow "hi" or "hello" to reset the session. No other text commands allowed.
             if (bodyLower == "hi" || bodyLower == "hello")
             {
