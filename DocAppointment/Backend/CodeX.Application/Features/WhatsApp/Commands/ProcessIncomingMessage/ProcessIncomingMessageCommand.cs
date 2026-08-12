@@ -82,19 +82,6 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "EMERGENCY_ALERT");
             }
 
-            // Global Commands
-            if (bodyLower == "help" || bodyLower == "menu") return await HandleHelp(session, cancellationToken);
-            if (bodyLower == "language")
-            {
-                session.CurrentState = "LANGUAGE_SELECTION";
-                return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(request.BranchId, cancellationToken));
-            }
-            if (bodyLower == "status") return await HandleStatus(session, cancellationToken);
-            if (bodyLower == "appointment") return await HandleAppointmentDetails(session, cancellationToken);
-            if (bodyLower == "reschedule") return await HandleReschedule(session, cancellationToken);
-            if (bodyLower == "cancel") return await HandleCancel(session, cancellationToken);
-            if (bodyLower == "rejoin") return await HandleRejoin(session, cancellationToken);
-
             // Only allow "hi" or "hello" to reset the session. No other text commands allowed.
             if (bodyLower == "hi" || bodyLower == "hello")
             {
@@ -111,6 +98,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 "LANGUAGE_SELECTION" => await HandleLanguageSelection(session, body, cancellationToken),
                 "AWAITING_NAME" => await HandleRegistration(session, body, cancellationToken),
                 "ACTIVE_APPOINTMENT_MENU" => await HandleActiveAppointmentMenu(session, body, cancellationToken),
+                "SKIPPED_APPOINTMENT_MENU" => await HandleSkippedAppointmentMenu(session, body, cancellationToken),
                 "SELECT_DOCTOR" => await HandleSelectDoctor(session, bodyLower, cancellationToken),
                 "SELECT_SESSION" => await HandleSelectSession(session, bodyLower, cancellationToken),
                 "CONFIRM" => await HandleConfirm(session, bodyLower, cancellationToken),
@@ -210,6 +198,16 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             return sb.ToString();
+        }
+
+        
+        private async Task<string> HandleSkippedAppointmentMenu(ChatSession session, string body, CancellationToken ct)
+        {
+            if (body == "1")
+            {
+                return await HandleRejoin(session, ct);
+            }
+            return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
         }
 
         private async Task<string> HandleActiveAppointmentMenu(ChatSession session, string body, CancellationToken ct)
@@ -561,6 +559,24 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "ACTIVE_APPOINTMENT",
                     activeToken.Queue.Doctor?.Name ?? "Unknown",
                     activeToken.TokenNumber.ToString());
+            }
+
+            // Check for skipped appointment
+            var skippedToken = await _context.Tokens
+                .Include(t => t.Queue)
+                .ThenInclude(q => q.Doctor)
+                .Where(t => !t.IsDeleted && t.PatientId == patient.Id &&
+                            t.Queue.BranchId == session.BranchId &&
+                            t.Status == TokenStatus.Skipped)
+                .OrderByDescending(t => t.BookedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (skippedToken != null)
+            {
+                session.CurrentState = "SKIPPED_APPOINTMENT_MENU";
+                return WhatsAppTranslationHelper.Get(session.Language, "MISSED_APP_MENU",
+                    skippedToken.Queue.Doctor?.Name ?? "Unknown",
+                    skippedToken.TokenNumber.ToString());
             }
 
             var doctors = await GetAvailableDoctors(session.BranchId, ct);
