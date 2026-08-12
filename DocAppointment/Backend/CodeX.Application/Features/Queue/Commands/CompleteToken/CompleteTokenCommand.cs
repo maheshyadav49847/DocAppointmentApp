@@ -72,7 +72,7 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
 
                     var languagePreference = session.Language ?? "1";
 
-                    string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name, currentToken.Id);
+                    string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 
                     try {
                         await _whatsappService.SendTextMessage(currentToken.Patient.Phone, translatedMsg, queue.BranchId);

@@ -82,6 +82,19 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return WhatsAppTranslationHelper.Get(session.Language, "EMERGENCY_ALERT");
             }
 
+            // Global Commands
+            if (bodyLower == "help" || bodyLower == "menu") return await HandleHelp(session, cancellationToken);
+            if (bodyLower == "language")
+            {
+                session.CurrentState = "LANGUAGE_SELECTION";
+                return WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(request.BranchId, cancellationToken));
+            }
+            if (bodyLower == "status") return await HandleStatus(session, cancellationToken);
+            if (bodyLower == "appointment") return await HandleAppointmentDetails(session, cancellationToken);
+            if (bodyLower == "reschedule") return await HandleReschedule(session, cancellationToken);
+            if (bodyLower == "cancel") return await HandleCancel(session, cancellationToken);
+            if (bodyLower == "rejoin") return await HandleRejoin(session, cancellationToken);
+
             // Only allow "hi" or "hello" to reset the session. No other text commands allowed.
             if (bodyLower == "hi" || bodyLower == "hello")
             {
