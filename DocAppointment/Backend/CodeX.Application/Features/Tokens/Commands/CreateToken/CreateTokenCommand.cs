@@ -232,8 +232,11 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
                 try 
                 {
-                    await whatsapp.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
-                    await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+                    if (request.Source != BookingSource.WhatsApp)
+                    {
+                        await whatsapp.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
+                        await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+                    }
                 }
                 catch (System.Exception ex)
                 {

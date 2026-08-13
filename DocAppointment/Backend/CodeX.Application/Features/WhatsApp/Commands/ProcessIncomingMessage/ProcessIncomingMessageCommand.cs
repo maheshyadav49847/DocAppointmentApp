@@ -89,10 +89,12 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 return CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get("3", "WELCOME_LANGUAGE", await GetHospitalName(request.BranchId, cancellationToken));
             }
 
-            // Only allow "hi" or "hello" to reset the session. No other text commands allowed.
-            if (bodyLower == "hi" || bodyLower == "hello")
+            // Global commands to reset session (Main Menu)
+            if (bodyLower == "9" || bodyLower == "hi" || bodyLower == "hello" || bodyLower == "status" || bodyLower == "menu" || bodyLower == "back")
             {
                 ResetSession(session);
+                
+                // If they explicitly typed status, let's log it but it will just reset and show them the main menu (which has the status option)
             }
 
             // Log Incoming Message
@@ -350,7 +352,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             if (activeToken != null)
             {
-                activeToken.Status = TokenStatus.Cancelled;
+                // DO NOT cancel the token here! If they abort, they should keep their appointment.
+                // We will cancel it ONLY if they successfully confirm a new appointment.
                 session.SelectedDoctorId = activeToken.Queue.DoctorId;
             }
 
@@ -441,6 +444,22 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 }, ct);
 
                 var tokenNum = result.TokenNumber;
+
+                // Now that the new appointment is confirmed, cancel any old active appointments for this patient
+                var oldTokens = await scopedContext.Tokens
+                    .Where(t => !t.IsDeleted && t.PatientId == patient.Id && t.Id != result.TokenId &&
+                                t.Queue.BranchId == session.BranchId &&
+                                (t.Status == TokenStatus.Pending || t.Status == TokenStatus.Called))
+                    .ToListAsync(ct);
+                
+                foreach(var oldToken in oldTokens)
+                {
+                    oldToken.Status = TokenStatus.Cancelled;
+                }
+                if (oldTokens.Any())
+                {
+                    await scopedContext.SaveChangesAsync(ct);
+                }
 
                 ResetSession(session);
 
