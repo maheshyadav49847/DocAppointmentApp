@@ -6,7 +6,7 @@ import { Users, Edit, X, User, Calendar, Droplet, Ruler, Phone, Mail, MapPin, He
 import { patientService, type Patient } from "@/services/patientService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
-import api from "@/lib/api"
+import { api } from "@/lib/axios"
 import toast from "react-hot-toast"
 
 interface PatientProfileDrawerProps {

@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import { Star, X, MessageSquare, Clock } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import api from "@/lib/api"
-import { Doctor } from "@/services/doctorService"
+import { api } from "@/lib/axios"
+import type { Doctor } from "@/services/doctorService"
 
 interface DoctorRatingDto {
   id: string
