@@ -11,7 +11,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Stethoscope, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
-  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2
+  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -23,12 +23,15 @@ import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
+import DoctorFeedbacksDrawer from "./components/DoctorFeedbacksDrawer"
 
 export default function DoctorsPage() {
   const [globalFilter, setGlobalFilter] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingDoctor, setEditingDoctor] = useState<any>(null)
+  const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
+  const [selectedDoctorForFeedbacks, setSelectedDoctorForFeedbacks] = useState<Doctor | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
@@ -167,6 +170,13 @@ export default function DoctorsPage() {
       id: "actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSelectedDoctorForFeedbacks(row.original); setIsFeedbacksDrawerOpen(true); }}
+            className="p-2 text-zinc-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+            title="View Feedbacks"
+          >
+            <Star className="w-4 h-4" />
+          </button>
           {can('Doctors.Edit') && (
             <button
               onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
@@ -384,7 +394,17 @@ export default function DoctorsPage() {
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
+                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto flex-wrap">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedDoctorForFeedbacks(row.original)
+                        setIsFeedbacksDrawerOpen(true)
+                      }}
+                      className="flex-1 px-3 py-2 text-xs font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Star className="w-4 h-4" /> Feedbacks
+                    </button>
                     {can('Doctors.Edit') && (
                       <button
                         onClick={(e) => {
@@ -653,6 +673,15 @@ export default function DoctorsPage() {
           </>
         )}
       </AnimatePresence>
+
+      <DoctorFeedbacksDrawer 
+        isOpen={isFeedbacksDrawerOpen} 
+        onClose={() => {
+          setIsFeedbacksDrawerOpen(false);
+          setSelectedDoctorForFeedbacks(null);
+        }} 
+        doctor={selectedDoctorForFeedbacks} 
+      />
     </div>
   )
 }

@@ -39,7 +39,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             _chatSessionCache = chatSessionCache;
         }
 
-        private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
+        private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null, string? messageBody = null)
         {
             var log = new MessageLog
             {
@@ -48,7 +48,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 MessageType = type,
                 Status = status,
                 ErrorMessage = error,
-                TokenId = tokenId
+                TokenId = tokenId,
+                MessageBody = messageBody
             };
             _context.MessageLogs.Add(log);
             await _context.SaveChangesAsync(default);
@@ -98,7 +99,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             // Log Incoming Message
-            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received");
+            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received", messageBody: body);
 
             var response = session.CurrentState switch
             {
@@ -114,6 +115,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 "CONFIRM_CANCEL" => await HandleConfirmCancel(session, body, cancellationToken),
                 "AWAITING_RATING_SCORE" => await HandleRatingScore(session, bodyLower, cancellationToken),
                 "AWAITING_RATING_COMMENT" => await HandleRatingComment(session, body, cancellationToken),
+                "CONFIRM_DISCONTINUE" => await HandleConfirmDiscontinue(session, body, cancellationToken),
                 _ => HandleUnknown(session)
             };
 
@@ -142,10 +144,41 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
         private static string HandleUnknown(ChatSession session)
         {
+            if (session.CurrentState != "START" && session.CurrentState != "CONFIRM_DISCONTINUE")
+            {
+                // Temporarily store current state in LastMessage so we can resume if they select 2
+                session.LastMessage = session.CurrentState;
+                session.CurrentState = "CONFIRM_DISCONTINUE";
+                return WhatsAppTranslationHelper.Get(session.Language, "CONFIRM_DISCONTINUE_PROMPT");
+            }
+
             ResetSession(session);
             return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT_HELP");
         }
 
+        private async Task<string> HandleConfirmDiscontinue(ChatSession session, string body, CancellationToken ct)
+        {
+            if (body == "2") // No, Continue
+            {
+                // Restore previous state
+                session.CurrentState = session.LastMessage ?? "START";
+                session.LastMessage = "";
+
+                // Return a generic 'please continue' message, or we could re-trigger the previous prompt
+                // But since we can't easily re-trigger without duplicating state logic, we just ask them to provide input again.
+                return WhatsAppTranslationHelper.Get(session.Language, "INVALID_INPUT");
+            }
+
+            if (body == "1") // Yes, Discontinue
+            {
+                ResetSession(session);
+                // The user requested to see the menu based on their booking status
+                return await HandleStart(session, ct);
+            }
+
+            // Still invalid
+            return WhatsAppTranslationHelper.Get(session.Language, "CONFIRM_DISCONTINUE_PROMPT");
+        }
         private async Task<string> HandleLanguageSelection(ChatSession session, string body, CancellationToken ct)
         {
             if (body == "1" || body == "2" || body == "3")

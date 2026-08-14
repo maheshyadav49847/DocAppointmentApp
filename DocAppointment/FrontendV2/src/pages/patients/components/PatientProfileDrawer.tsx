@@ -1,11 +1,13 @@
-import React from "react"
+import React, { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Edit, X, User, Calendar, Droplet, Ruler, Phone, Mail, MapPin, HeartPulse, UserPlus, Activity, Save } from "lucide-react"
+import { Users, Edit, X, User, Calendar, Droplet, Ruler, Phone, Mail, MapPin, HeartPulse, UserPlus, Activity, Save, Download } from "lucide-react"
 
 import { patientService, type Patient } from "@/services/patientService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import api from "@/lib/api"
+import toast from "react-hot-toast"
 
 interface PatientProfileDrawerProps {
   isOpen: boolean
@@ -18,6 +20,28 @@ interface PatientProfileDrawerProps {
 export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, selectedBranch, onSaved }: PatientProfileDrawerProps) {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const handleDownloadChats = async () => {
+    if (!editingPatient) return;
+    try {
+      setIsDownloading(true);
+      const response = await api.get(`/whatsapp/messages/${editingPatient.id}/download`, { responseType: 'blob' });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = `WhatsApp_Chat_${editingPatient.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.txt`;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      toast.error("Failed to download chat history");
+    } finally {
+      setIsDownloading(false);
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: async (data: Partial<Patient>) => {
@@ -102,12 +126,28 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
                   <p className="text-sm text-slate-500 mt-1">{editingPatient ? 'Update patient clinical and contact details.' : 'Enter details to create a new patient record.'}</p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {editingPatient && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDownloadChats();
+                    }}
+                    disabled={isDownloading}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200"
+                    title="Download WhatsApp Chats"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">{isDownloading ? "Downloading..." : "Chats"}</span>
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">

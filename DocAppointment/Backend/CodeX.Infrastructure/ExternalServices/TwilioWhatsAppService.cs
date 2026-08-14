@@ -76,6 +76,25 @@ namespace CodeX.Infrastructure.ExternalServices
                         to:   new PhoneNumber(to)
                     );
                     _logger.LogInformation("WhatsApp message sent from {From} to {To} (Branch: {BranchId}).", from, to, branchId);
+                    
+                    try
+                    {
+                        using var scope = _serviceProvider.CreateScope();
+                        var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                        db.MessageLogs.Add(new CodeX.Domain.Entities.MessageLog
+                        {
+                            BranchId = branchId,
+                            RecipientPhone = toPhoneNumber,
+                            MessageType = "OutgoingWhatsApp",
+                            Status = "Sent",
+                            MessageBody = message
+                        });
+                        await db.SaveChangesAsync(default);
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogError(logEx, "Failed to log outgoing Twilio message to database.");
+                    }
                 }
                 catch (Exception ex)
                 {

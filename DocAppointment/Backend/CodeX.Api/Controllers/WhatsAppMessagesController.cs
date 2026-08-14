@@ -61,6 +61,56 @@ namespace CodeX.Api.Controllers
                 return BadRequest(new { error = ex.ToString() });
             }
         }
+
+        [HttpGet("{patientId}/download")]
+        [HasPermission(SystemPermissions.Patients.View)]
+        public async Task<IActionResult> DownloadChatHistory(Guid patientId)
+        {
+            try
+            {
+                var patient = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_context.Patients, p => p.Id == patientId);
+                if (patient == null) return NotFound("Patient not found");
+
+                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, patient.OrganizationId);
+
+                var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(patient.Phone);
+
+                var messages = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                    System.Linq.Queryable.OrderBy(
+                        System.Linq.Queryable.Where(_context.MessageLogs, m => m.RecipientPhone == normalizedPhone),
+                        m => m.CreatedAt
+                    )
+                );
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"WhatsApp Chat History - {patient.Name} ({patient.Phone})");
+                sb.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+                sb.AppendLine(new string('-', 50));
+
+                foreach (var msg in messages)
+                {
+                    var direction = msg.MessageType == "IncomingWhatsApp" ? "Patient -> Clinic" : "Clinic -> Patient";
+                    sb.AppendLine($"[{msg.CreatedAt:yyyy-MM-dd HH:mm:ss}] {direction}");
+                    sb.AppendLine($"Type: {msg.MessageType} | Status: {msg.Status}");
+                    if (!string.IsNullOrEmpty(msg.MessageBody))
+                    {
+                        sb.AppendLine($"Message: {msg.MessageBody}");
+                    }
+                    if (!string.IsNullOrEmpty(msg.ErrorMessage))
+                    {
+                        sb.AppendLine($"Error: {msg.ErrorMessage}");
+                    }
+                    sb.AppendLine(new string('-', 50));
+                }
+
+                var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+                return File(bytes, "text/plain", $"WhatsApp_Chat_{patient.Name.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}.txt");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 
     public class SendMessageRequest

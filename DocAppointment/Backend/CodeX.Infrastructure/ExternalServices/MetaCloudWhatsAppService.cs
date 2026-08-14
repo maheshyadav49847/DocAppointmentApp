@@ -77,6 +77,26 @@ namespace CodeX.Infrastructure.ExternalServices
                 else
                 {
                     _logger.LogInformation("Meta message sent successfully to {PhoneNumber}", cleanPhone);
+                    
+                    // Log outgoing message body
+                    try
+                    {
+                        using var logScope = _scopeFactory.CreateScope();
+                        var db = logScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                        db.MessageLogs.Add(new CodeX.Domain.Entities.MessageLog
+                        {
+                            BranchId = branchId,
+                            RecipientPhone = cleanPhone,
+                            MessageType = "OutgoingWhatsApp",
+                            Status = "Sent",
+                            MessageBody = messagePayload is string s ? s : System.Text.Json.JsonSerializer.Serialize(messagePayload)
+                        });
+                        await db.SaveChangesAsync(default);
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogError(logEx, "Failed to log outgoing Meta message to database.");
+                    }
                 }
             }
             catch (Exception ex)

@@ -10,6 +10,7 @@ namespace CodeX.Domain.Entities
         public string MessageType { get; set; } = string.Empty; // e.g., "BookingConfirmation", "Reminder"
         public string Status { get; set; } = "Sent"; // Sent, Delivered, Failed
         public string? ErrorMessage { get; set; }
+        public string? MessageBody { get; set; }
 
         // Navigation Properties
         public virtual Branch Branch { get; set; } = null!;

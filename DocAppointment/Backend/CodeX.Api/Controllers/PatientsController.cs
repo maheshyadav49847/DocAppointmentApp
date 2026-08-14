@@ -68,7 +68,7 @@ namespace CodeX.Api.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var searchTerm = search.ToLower();
-                query = query.Where(p => p.Name.ToLower().Contains(searchTerm) || p.Phone.Contains(searchTerm));
+                query = query.Where(p => p.Name.ToLower().Contains(searchTerm) || p.Phone.Contains(searchTerm) || (p.PatientCode != null && p.PatientCode.ToLower().Contains(searchTerm)));
             }
 
             var totalCount = await query.CountAsync();
