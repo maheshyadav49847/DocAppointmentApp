@@ -168,6 +168,7 @@ namespace CodeX.Api.Controllers
             branch.WhatsAppNumber = updatedBranch.WhatsAppNumber;
             branch.IsActive = updatedBranch.IsActive;
             branch.LogoBase64 = updatedBranch.LogoBase64;
+            branch.TelegramBotToken = updatedBranch.TelegramBotToken;
 
             await _context.SaveChangesAsync(default);
             return NoContent();

@@ -11,7 +11,7 @@ import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Building2, MapPin, Smartphone, Activity, ArrowRight,
   Edit, Trash2, Plus, X, Search, MessageSquare,
-  LayoutGrid, List, Save, Image
+  LayoutGrid, List, Save, Image, Send
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -20,6 +20,7 @@ import { branchService } from "@/services/branchService"
 import { PageLoader } from "@/components/ui/PageLoader"
 import { useAuthStore } from "@/store/authStore"
 import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
+import TelegramConfigModal from "./components/TelegramConfigModal"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
@@ -37,6 +38,7 @@ export default function BranchesPage() {
   const [editingBranch, setEditingBranch] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [whatsappConfigBranch, setWhatsappConfigBranch] = useState<any>(null)
+  const [telegramConfigBranch, setTelegramConfigBranch] = useState<any>(null)
   const [logoBase64, setLogoBase64] = useState<string>('')
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
@@ -198,6 +200,13 @@ export default function BranchesPage() {
                   title="WhatsApp Configuration"
                 >
                   <MessageSquare className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => { setTelegramConfigBranch(branch) }}
+                  className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-transparent hover:border-sky-100"
+                  title="Telegram Configuration"
+                >
+                  <Send className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -404,6 +413,13 @@ export default function BranchesPage() {
                           >
                             <MessageSquare className="w-4.5 h-4.5" />
                           </button>
+                          <button
+                            onClick={() => { setTelegramConfigBranch(branch) }}
+                            className="p-2.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-transparent hover:border-sky-100 bg-slate-50 hover:shadow-sm"
+                            title="Telegram Configuration"
+                          >
+                            <Send className="w-4.5 h-4.5" />
+                          </button>
                         </>
                       )}
                       {can('Branches.Delete') && (
@@ -578,6 +594,14 @@ export default function BranchesPage() {
         <WhatsAppConfigModal
           branch={whatsappConfigBranch}
           onClose={() => setWhatsappConfigBranch(null)}
+        />
+      )}
+
+      {/* Telegram Configuration Modal */}
+      {telegramConfigBranch && (
+        <TelegramConfigModal
+          branch={telegramConfigBranch}
+          onClose={() => setTelegramConfigBranch(null)}
         />
       )}
     </div>

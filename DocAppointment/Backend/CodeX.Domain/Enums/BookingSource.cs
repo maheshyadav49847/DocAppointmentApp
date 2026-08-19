@@ -4,6 +4,7 @@ namespace CodeX.Domain.Enums
     {
         WhatsApp = 0,
         Phone = 1,
-        WalkIn = 2
+        WalkIn = 2,
+        Telegram = 3
     }
 }

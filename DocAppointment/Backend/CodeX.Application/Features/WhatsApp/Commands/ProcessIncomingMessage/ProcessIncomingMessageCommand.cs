@@ -16,6 +16,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
         public Guid? BranchId { get; init; }
         public string From { get; init; } = string.Empty;
         public string MessageBody { get; init; } = string.Empty;
+        public BookingSource Source { get; init; } = BookingSource.WhatsApp;
     }
 
     public class ProcessIncomingMessageCommandHandler : IRequestHandler<ProcessIncomingMessageCommand, string>
@@ -111,7 +112,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 "SKIPPED_APPOINTMENT_MENU" => await HandleSkippedAppointmentMenu(session, body, cancellationToken),
                 "SELECT_DOCTOR" => await HandleSelectDoctor(session, bodyLower, cancellationToken),
                 "SELECT_SESSION" => await HandleSelectSession(session, bodyLower, cancellationToken),
-                "CONFIRM" => await HandleConfirm(session, bodyLower, cancellationToken),
+                "CONFIRM" => await HandleConfirm(session, bodyLower, request.Source, cancellationToken),
                 "CONFIRM_CANCEL" => await HandleConfirmCancel(session, body, cancellationToken),
                 "AWAITING_RATING_SCORE" => await HandleRatingScore(session, bodyLower, cancellationToken),
                 "AWAITING_RATING_COMMENT" => await HandleRatingComment(session, body, cancellationToken),
@@ -413,7 +414,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             return await HandleStart(session, ct);
         }
 
-        private async Task<string> HandleConfirm(ChatSession session, string body, CancellationToken ct)
+        private async Task<string> HandleConfirm(ChatSession session, string body, BookingSource source, CancellationToken ct)
         {
             if (body == "2")
             {
@@ -473,7 +474,7 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                     QueueId = queue.Id,
                     PatientName = patient?.Name ?? "WhatsApp User",
                     PatientPhone = session.PhoneNumber,
-                    Source = BookingSource.WhatsApp
+                    Source = source
                 }, ct);
 
                 var tokenNum = result.TokenNumber;

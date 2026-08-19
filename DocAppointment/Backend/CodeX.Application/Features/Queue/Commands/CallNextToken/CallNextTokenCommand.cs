@@ -13,14 +13,16 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ITelegramService _telegramService;
         private readonly ISmsService _smsService;
         private readonly IChatSessionCache _chatSessionCache;
 
-        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService, IChatSessionCache chatSessionCache)
+        public CallNextTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ISmsService smsService, IChatSessionCache chatSessionCache, ITelegramService telegramService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _telegramService = telegramService;
             _smsService = smsService;
             _chatSessionCache = chatSessionCache;
         }
@@ -82,7 +84,18 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                         _chatSessionCache.SetSession(chatSession);
 
-                        await _whatsappService.SendFeedbackRequest(currentToken.Patient.Phone, queue.Doctor.Name, currentToken.Id, queue.BranchId);
+                        if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                        {
+                            var language = chatSession.Language ?? "3";
+                            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
+                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId, msg, queue.BranchId);
+                        }
+                        else if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
+                        {
+                            var language = chatSession.Language ?? "3";
+                            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
+                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, msg, queue.BranchId);
+                        }
                     }
                     catch { /* Log and ignore */ }
                 }
@@ -123,7 +136,18 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 {
                     try
                     {
-                        await _whatsappService.SendYourTurnAlert(nextToken.Patient.Phone, nextToken.TokenNumber, queue.BranchId);
+                        var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == nextToken.Patient.Phone, cancellationToken);
+                        var language = session?.Language ?? "3";
+                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "YOUR_TURN_ALERT", nextToken.TokenNumber);
+
+                        if (!string.IsNullOrWhiteSpace(nextToken.Patient.TelegramChatId))
+                        {
+                            await _telegramService.SendTextMessage(nextToken.Patient.TelegramChatId, msg, queue.BranchId);
+                        }
+                        else if (!string.IsNullOrWhiteSpace(nextToken.Patient.Phone))
+                        {
+                            await _whatsappService.SendTextMessage(nextToken.Patient.Phone, msg, queue.BranchId);
+                        }
                         await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Delivered", tokenId: nextToken.Id);
                     }
                     catch (Exception ex)
@@ -171,7 +195,18 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                     if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
                     {
-                        await _whatsappService.SendUpcomingTurnAlert(upcomingPatient.Patient.Phone, pos, queue.BranchId);
+                        var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == upcomingPatient.Patient.Phone, cancellationToken);
+                        var language = session?.Language ?? "3";
+                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "UPCOMING_TURN_ALERT", pos);
+
+                        if (!string.IsNullOrWhiteSpace(upcomingPatient.Patient.TelegramChatId))
+                        {
+                            await _telegramService.SendTextMessage(upcomingPatient.Patient.TelegramChatId, msg, queue.BranchId);
+                        }
+                        else if (!string.IsNullOrWhiteSpace(upcomingPatient.Patient.Phone))
+                        {
+                            await _whatsappService.SendTextMessage(upcomingPatient.Patient.Phone, msg, queue.BranchId);
+                        }
                     }
                 }
             }

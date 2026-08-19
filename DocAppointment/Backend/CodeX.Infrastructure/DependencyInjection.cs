@@ -24,6 +24,7 @@ namespace CodeX.Infrastructure
             services.AddHttpClient<MetaCloudWhatsAppService>();
 
             services.AddSingleton<IWhatsAppService, WhatsAppServiceResolver>();
+            services.AddScoped<ITelegramService, TelegramService>();
 
             services.AddScoped<ISmsService, TwilioSmsService>();
             services.AddScoped<IEmailService, ConsoleEmailService>();

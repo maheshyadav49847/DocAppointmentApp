@@ -19,6 +19,8 @@ namespace CodeX.Domain.Entities
         public string Timezone { get; set; } = "India Standard Time";
         public string? LogoBase64 { get; set; }
 
+        public string? TelegramBotToken { get; set; }
+
         // Navigation Properties
         public virtual Organization? Organization { get; set; }
         public virtual ICollection<Doctor>? Doctors { get; set; } = new List<Doctor>();

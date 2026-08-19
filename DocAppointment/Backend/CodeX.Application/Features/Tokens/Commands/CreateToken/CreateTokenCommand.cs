@@ -232,10 +232,23 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
 
                 try 
                 {
-                    if (request.Source != BookingSource.WhatsApp)
+                    if (request.Source != BookingSource.WhatsApp && request.Source != BookingSource.Telegram)
                     {
-                        await whatsapp.SendWelcomeMessage(patient.Phone, patient.Name, token.TokenNumber, queue.BranchId, estimatedWaitMinutes);
-                        await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+                        var session = await dbContext.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone);
+                        var language = session?.Language ?? "1";
+                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "BOOKING_CONFIRMED", patient.Name, token.TokenNumber, estimatedWaitMinutes);
+                        
+                        if (!string.IsNullOrWhiteSpace(patient.TelegramChatId))
+                        {
+                            var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
+                            await telegram.SendTextMessage(patient.TelegramChatId, msg, queue.BranchId);
+                            await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation_Telegram", "Delivered", tokenId: token.Id);
+                        }
+                        else
+                        {
+                            await whatsapp.SendTextMessage(patient.Phone, msg, queue.BranchId);
+                            await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+                        }
                     }
                 }
                 catch (System.Exception ex)

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
-  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope, Clock
+  Loader2, Bell, Play, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope, Clock, Smartphone, Send, Phone
 } from "lucide-react"
 import { useAuthStore } from "@/store/authStore"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -518,7 +518,12 @@ export default function DoctorDeskPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
-                          <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" title="WhatsApp Booking" /> :
+                             token.source === 3 ? <Send className="w-3 h-3 text-sky-500" title="Telegram Booking" /> :
+                             <Phone className="w-3 h-3 text-slate-400" title="Walk-in/Phone Booking" />}
+                            <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -537,7 +542,12 @@ export default function DoctorDeskPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
-                          <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" title="WhatsApp Booking" /> :
+                             token.source === 3 ? <Send className="w-3 h-3 text-sky-500" title="Telegram Booking" /> :
+                             <Phone className="w-3 h-3 text-slate-400" title="Walk-in/Phone Booking" />}
+                            <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
+                          </div>
                         </div>
                         {can('DoctorDesk.RestoreToken') && (
                           <button

@@ -12,12 +12,14 @@ namespace CodeX.Application.Features.Queue.Commands.PauseQueue
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ITelegramService _telegramService;
 
-        public PauseQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService)
+        public PauseQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ITelegramService telegramService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _telegramService = telegramService;
         }
 
         public async Task<bool> Handle(PauseQueueCommand request, CancellationToken cancellationToken)
@@ -76,7 +78,14 @@ namespace CodeX.Application.Features.Queue.Commands.PauseQueue
                             request.DurationMinutes.ToString(), 
                             reasonStr);
 
-                        await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                        {
+                            await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
+                        }
+                        else
+                        {
+                            await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        }
                     }
                 }
             }

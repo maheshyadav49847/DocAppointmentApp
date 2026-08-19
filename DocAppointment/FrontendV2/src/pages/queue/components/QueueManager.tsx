@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
   ArrowLeft, RotateCcw, Power, Users, CheckCircle2, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
-  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star
+  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
 } from "lucide-react"
 // Removed unused import
 import { queueService } from "@/services/queueService"
@@ -645,7 +645,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        {t.source === 0 ? <Smartphone className="w-3.5 h-3.5 text-emerald-500" title="WhatsApp Booking" /> :
+                         t.source === 3 ? <Send className="w-3.5 h-3.5 text-sky-500" title="Telegram Booking" /> :
+                         <Phone className="w-3.5 h-3.5 text-slate-400" title="Walk-in/Phone Booking" />}
                         {t.patientPhone}
                       </div>
                     </td>

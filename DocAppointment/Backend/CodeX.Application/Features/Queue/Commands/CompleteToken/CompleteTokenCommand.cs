@@ -13,13 +13,15 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ITelegramService _telegramService;
         private readonly IChatSessionCache _chatSessionCache;
 
-        public CompleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, IChatSessionCache chatSessionCache)
+        public CompleteTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, IChatSessionCache chatSessionCache, ITelegramService telegramService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _telegramService = telegramService;
             _chatSessionCache = chatSessionCache;
         }
 
@@ -75,7 +77,14 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                     string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 
                     try {
-                        await _whatsappService.SendTextMessage(currentToken.Patient.Phone, translatedMsg, queue.BranchId);
+                        if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                        {
+                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId, translatedMsg, queue.BranchId);
+                        }
+                        else
+                        {
+                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, translatedMsg, queue.BranchId);
+                        }
                     } catch { }
                 }
                 

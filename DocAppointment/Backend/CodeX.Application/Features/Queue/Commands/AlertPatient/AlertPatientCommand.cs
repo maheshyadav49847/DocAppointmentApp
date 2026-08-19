@@ -11,12 +11,14 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
     {
         private readonly IApplicationDbContext _context;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ITelegramService _telegramService;
         private readonly ISmsService _smsService;
 
-        public AlertPatientCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, ISmsService smsService)
+        public AlertPatientCommandHandler(IApplicationDbContext context, IWhatsAppService whatsappService, ISmsService smsService, ITelegramService telegramService)
         {
             _context = context;
             _whatsappService = whatsappService;
+            _telegramService = telegramService;
             _smsService = smsService;
         }
 
@@ -56,7 +58,14 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
 
             try 
             {
-                await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
+                if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                    {
+                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
+                    {
+                        await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
+                    }
                 await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient", "Delivered", tokenId: currentToken.Id);
                 return true;
             }

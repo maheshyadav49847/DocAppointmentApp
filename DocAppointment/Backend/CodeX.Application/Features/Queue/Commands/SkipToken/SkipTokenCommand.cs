@@ -12,12 +12,14 @@ namespace CodeX.Application.Features.Queue.Commands.SkipToken
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsappService;
+        private readonly ITelegramService _telegramService;
 
-        public SkipTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService)
+        public SkipTokenCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsappService, ITelegramService telegramService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsappService = whatsappService;
+            _telegramService = telegramService;
         }
 
         public async Task<bool> Handle(SkipTokenCommand request, CancellationToken cancellationToken)

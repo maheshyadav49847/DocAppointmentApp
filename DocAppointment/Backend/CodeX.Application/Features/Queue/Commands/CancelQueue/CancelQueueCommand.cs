@@ -12,12 +12,14 @@ namespace CodeX.Application.Features.Queue.Commands.CancelQueue
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
         private readonly IWhatsAppService _whatsAppService;
+        private readonly ITelegramService _telegramService;
 
-        public CancelQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsAppService)
+        public CancelQueueCommandHandler(IApplicationDbContext context, IQueueNotificationService notificationService, IWhatsAppService whatsAppService, ITelegramService telegramService)
         {
             _context = context;
             _notificationService = notificationService;
             _whatsAppService = whatsAppService;
+            _telegramService = telegramService;
         }
 
         public async Task<bool> Handle(CancelQueueCommand request, CancellationToken cancellationToken)
@@ -56,7 +58,14 @@ namespace CodeX.Application.Features.Queue.Commands.CancelQueue
 
                         string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "APPOINTMENT_CANCELLED_ALERT", hospitalName.ToUpper(), token.Patient.Name, doctorName, token.TokenNumber);
 
-                        await _whatsAppService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                        {
+                            await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
+                        }
+                        else
+                        {
+                            await _whatsAppService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        }
                     }
                     catch { /* Log and continue gracefully */ }
                 }
