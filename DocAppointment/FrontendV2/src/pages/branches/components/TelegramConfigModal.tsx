@@ -112,11 +112,28 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
 
                  {botInfo && botInfo.success && (
                     <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-                        <h4 className="text-sm font-bold text-emerald-800 mb-2">Connection Successful</h4>
+                        <div className="flex justify-between items-start mb-2">
+                            <h4 className="text-sm font-bold text-emerald-800">Connection Successful</h4>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const webhookUrl = `${import.meta.env.VITE_API_URL}/telegramwebhook/telegram`;
+                                        await branchService.setTelegramWebhook(token, webhookUrl);
+                                        toast.success("Webhook configured successfully!");
+                                        handleTest(); // Refresh info
+                                    } catch (e: any) {
+                                        toast.error("Failed to set webhook: " + (e.response?.data?.message || e.message));
+                                    }
+                                }}
+                                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded shadow-sm transition-colors"
+                            >
+                                Set Webhook Automatically
+                            </button>
+                        </div>
                         <div className="space-y-1 text-sm text-emerald-700">
                             <p><span className="font-medium">Bot Name:</span> {botInfo.bot?.result?.first_name}</p>
                             <p><span className="font-medium">Username:</span> @{botInfo.bot?.result?.username}</p>
-                            <p><span className="font-medium">Webhook URL:</span> {botInfo.webhook?.result?.url || "Not set"}</p>
+                            <p className="break-all"><span className="font-medium">Webhook URL:</span> {botInfo.webhook?.result?.url || "Not set"}</p>
                         </div>
                     </div>
                  )}

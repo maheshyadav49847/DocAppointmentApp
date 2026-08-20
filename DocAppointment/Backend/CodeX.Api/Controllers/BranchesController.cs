@@ -249,10 +249,47 @@ namespace CodeX.Api.Controllers
                 return StatusCode(500, $"Error connecting to Telegram: {ex.Message}");
             }
         }
+
+        [HttpPost("telegram/set-webhook")]
+        public async Task<IActionResult> SetTelegramWebhook([FromBody] TelegramWebhookRequest request, [FromServices] IHttpClientFactory httpClientFactory)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.WebhookUrl))
+            {
+                return BadRequest("Token and WebhookUrl are required.");
+            }
+
+            try
+            {
+                using var client = httpClientFactory.CreateClient();
+                var url = $"https://api.telegram.org/bot{request.Token}/setWebhook?url={request.WebhookUrl}";
+                var response = await client.GetAsync(url);
+                var json = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return BadRequest(new { message = "Failed to set webhook on Telegram.", details = json });
+                }
+
+                return Ok(new {
+                    success = true,
+                    result = System.Text.Json.JsonSerializer.Deserialize<object>(json)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error setting webhook: {ex.Message}");
+            }
+        }
     }
 
     public class TelegramTestRequest
     {
         public string Token { get; set; } = string.Empty;
+    }
+
+    public class TelegramWebhookRequest
+    {
+        public string Token { get; set; } = string.Empty;
+        public string WebhookUrl { get; set; } = string.Empty;
     }
 }

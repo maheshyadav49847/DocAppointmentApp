@@ -29,6 +29,10 @@ export const branchService = {
     const response = await api.post('/branches/telegram/test', { token })
     return response.data
   },
+  setTelegramWebhook: async (token: string, webhookUrl: string) => {
+    const response = await api.post('/branches/telegram/set-webhook', { token, webhookUrl })
+    return response.data
+  },
   deleteBranch: async (id: string) => {
     const response = await api.delete(`/branches/${id}`)
     return response.data
