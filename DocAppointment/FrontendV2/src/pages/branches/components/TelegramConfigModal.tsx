@@ -117,7 +117,13 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
                             <button
                                 onClick={async () => {
                                     try {
-                                        const webhookUrl = `${import.meta.env.VITE_API_URL}/telegramwebhook/telegram`;
+                                        const apiPath = import.meta.env.VITE_API_URL;
+                                        let webhookUrl = "";
+                                        if (apiPath.startsWith("http")) {
+                                            webhookUrl = `${apiPath}/telegram/webhook/${branch.id}`;
+                                        } else {
+                                            webhookUrl = `${window.location.origin}${apiPath}/telegram/webhook/${branch.id}`;
+                                        }
                                         await branchService.setTelegramWebhook(token, webhookUrl);
                                         toast.success("Webhook configured successfully!");
                                         handleTest(); // Refresh info
