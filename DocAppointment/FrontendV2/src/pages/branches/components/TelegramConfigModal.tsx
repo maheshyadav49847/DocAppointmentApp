@@ -10,6 +10,29 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
   const [token, setToken] = useState(branch?.telegramBotToken || "")
   const [apiError, setApiError] = useState<any>(null)
 
+  const [botInfo, setBotInfo] = useState<any>(null)
+
+  const testConnectionMutation = useMutation({
+    mutationFn: (t: string) => branchService.testTelegramConnection(t),
+    onSuccess: (data) => {
+      setBotInfo(data)
+      toast.success("Bot connected successfully!")
+      setApiError(null)
+    },
+    onError: (error: any) => {
+      setBotInfo(null)
+      setApiError(error)
+    }
+  })
+
+  const handleTest = () => {
+    if (!token) {
+        toast.error("Please enter a bot token first.")
+        return
+    }
+    testConnectionMutation.mutate(token)
+  }
+
   const updateMutation = useMutation({
     mutationFn: (data: any) => branchService.updateBranch(branch.id, data),
     onSuccess: () => {
@@ -64,18 +87,39 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
                  </h3>
                  <p className="text-sm text-slate-600 mb-4">
                     Create a new bot via <strong>BotFather</strong> on Telegram and paste the HTTP API Token below. 
-                    Once saved, configure the webhook using the Telegram API to point to your backend.
+                    Telegram bots do not have phone numbers, they are accessed via their `@username`.
                  </p>
                  <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Bot Token</label>
-                    <input 
-                      type="text" 
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      placeholder="e.g. 123456789:ABCdefGHIjklmnoPQRstuvWXYZ" 
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none font-mono text-sm"
-                    />
+                    <div className="flex gap-2">
+                        <input 
+                        type="text" 
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        placeholder="e.g. 123456789:ABCdefGHIjklmnoPQRstuvWXYZ" 
+                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none font-mono text-sm"
+                        />
+                        <button 
+                            onClick={handleTest}
+                            disabled={testConnectionMutation.isPending}
+                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap"
+                        >
+                            {testConnectionMutation.isPending && <Activity className="w-4 h-4 animate-spin" />}
+                            Test Connection
+                        </button>
+                    </div>
                  </div>
+
+                 {botInfo && botInfo.success && (
+                    <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
+                        <h4 className="text-sm font-bold text-emerald-800 mb-2">Connection Successful</h4>
+                        <div className="space-y-1 text-sm text-emerald-700">
+                            <p><span className="font-medium">Bot Name:</span> {botInfo.bot?.result?.first_name}</p>
+                            <p><span className="font-medium">Username:</span> @{botInfo.bot?.result?.username}</p>
+                            <p><span className="font-medium">Webhook URL:</span> {botInfo.webhook?.result?.url || "Not set"}</p>
+                        </div>
+                    </div>
+                 )}
               </div>
            </div>
         </div>

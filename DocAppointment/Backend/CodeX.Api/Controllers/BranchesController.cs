@@ -114,6 +114,16 @@ namespace CodeX.Api.Controllers
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(branch.TelegramBotToken))
+            {
+                var botToken = branch.TelegramBotToken.Trim();
+                var duplicateBotExists = await _context.Branches.AnyAsync(b => b.TelegramBotToken == botToken && !b.IsDeleted);
+                if (duplicateBotExists)
+                {
+                    return BadRequest(new { message = $"This Telegram Bot Token is already registered with another branch." });
+                }
+            }
+
             _context.Branches.Add(branch);
             await _context.SaveChangesAsync(default);
             return branch.Id;
@@ -163,6 +173,16 @@ namespace CodeX.Api.Controllers
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(updatedBranch.TelegramBotToken))
+            {
+                var botToken = updatedBranch.TelegramBotToken.Trim();
+                var duplicateBotExists = await _context.Branches.AnyAsync(b => b.Id != id && b.TelegramBotToken == botToken && !b.IsDeleted);
+                if (duplicateBotExists)
+                {
+                    return BadRequest(new { message = $"This Telegram Bot Token is already registered with another branch." });
+                }
+            }
+
             branch.Name = name;
             branch.Address = updatedBranch.Address;
             branch.WhatsAppNumber = updatedBranch.WhatsAppNumber;
@@ -194,5 +214,45 @@ namespace CodeX.Api.Controllers
             
             return NoContent();
         }
+
+        [HttpPost("telegram/test")]
+        public async Task<IActionResult> TestTelegramConnection([FromBody] TelegramTestRequest request, [FromServices] IHttpClientFactory httpClientFactory)
+        {
+            if (string.IsNullOrWhiteSpace(request.Token))
+            {
+                return BadRequest("Token is required.");
+            }
+
+            try
+            {
+                using var client = httpClientFactory.CreateClient();
+                // 1. GetMe
+                var meResponse = await client.GetAsync($"https://api.telegram.org/bot{request.Token}/getMe");
+                if (!meResponse.IsSuccessStatusCode)
+                {
+                    return BadRequest("Invalid Telegram Bot Token.");
+                }
+                var meJson = await meResponse.Content.ReadAsStringAsync();
+                
+                // 2. GetWebhookInfo
+                var webhookResponse = await client.GetAsync($"https://api.telegram.org/bot{request.Token}/getWebhookInfo");
+                var webhookJson = await webhookResponse.Content.ReadAsStringAsync();
+
+                return Ok(new {
+                    success = true,
+                    bot = System.Text.Json.JsonSerializer.Deserialize<object>(meJson),
+                    webhook = System.Text.Json.JsonSerializer.Deserialize<object>(webhookJson)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error connecting to Telegram: {ex.Message}");
+            }
+        }
+    }
+
+    public class TelegramTestRequest
+    {
+        public string Token { get; set; } = string.Empty;
     }
 }

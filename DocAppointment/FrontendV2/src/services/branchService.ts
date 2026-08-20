@@ -25,6 +25,10 @@ export const branchService = {
     const response = await api.put(`/branches/${id}`, data)
     return response.data
   },
+  testTelegramConnection: async (token: string) => {
+    const response = await api.post('/branches/telegram/test', { token })
+    return response.data
+  },
   deleteBranch: async (id: string) => {
     const response = await api.delete(`/branches/${id}`)
     return response.data
