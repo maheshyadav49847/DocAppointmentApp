@@ -7,6 +7,7 @@ import RegisterPage from "./pages/auth/RegisterPage"
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage"
 import QueueDashboardPage from "./pages/queue/QueueDashboardPage"
 import AnalyticsPage from "./pages/analytics/AnalyticsPage"
+import ChatbotAnalyticsPage from "./pages/analytics/ChatbotAnalyticsPage"
 import DoctorsPage from "./pages/doctors/DoctorsPage"
 import PatientsPage from "./pages/patients/PatientsPage"
 import ConsultationPage from "./pages/consultation/ConsultationPage"
@@ -80,6 +81,7 @@ function App() {
           <Route path="/queue" element={<PermissionRoute permissions={["Queue.View"]}><QueueDashboardPage /></PermissionRoute>} />
           <Route path="/doctor-desk" element={<PermissionRoute permissions={["DoctorDesk.View"]}><DoctorDeskPage /></PermissionRoute>} />
           <Route path="/analytics" element={<PermissionRoute permissions={["Analytics.View"]}><AnalyticsPage /></PermissionRoute>} />
+          <Route path="/analytics/chatbot" element={<PermissionRoute permissions={["Analytics.View"]}><ChatbotAnalyticsPage /></PermissionRoute>} />
           <Route path="/doctors" element={<PermissionRoute permissions={["Doctors.View"]}><DoctorsPage /></PermissionRoute>} />
           <Route path="/patients" element={<PermissionRoute permissions={["Patients.View"]}><PatientsPage /></PermissionRoute>} />
           <Route path="/consult/:patientId" element={<PermissionRoute permissions={["Patients.ViewHistory"]}><ConsultationPage /></PermissionRoute>} />

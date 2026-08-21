@@ -62,6 +62,45 @@ namespace CodeX.Api.Controllers
             }
         }
 
+        [HttpGet("{patientId}/logs")]
+        [HasPermission(SystemPermissions.Patients.View)]
+        public async Task<IActionResult> GetChatHistoryLogs(Guid patientId)
+        {
+            try
+            {
+                var patient = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_context.Patients, p => p.Id == patientId);
+                if (patient == null) return NotFound("Patient not found");
+
+                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, patient.OrganizationId);
+
+                var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(patient.Phone);
+
+                var messages = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                    System.Linq.Queryable.OrderBy(
+                        System.Linq.Queryable.Where(_context.MessageLogs, m => m.RecipientPhone == normalizedPhone),
+                        m => m.CreatedAt
+                    )
+                );
+
+                var formattedLogs = messages.Select(m => new {
+                    id = m.Id,
+                    type = m.MessageType,
+                    status = m.Status,
+                    body = m.MessageBody,
+                    error = m.ErrorMessage,
+                    createdAt = m.CreatedAt,
+                    direction = m.MessageType.StartsWith("Incoming") ? "inbound" : "outbound",
+                    platform = m.MessageType.Contains("Telegram") ? "telegram" : "whatsapp"
+                });
+
+                return Ok(formattedLogs);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpGet("{patientId}/download")]
         [HasPermission(SystemPermissions.Patients.View)]
         public async Task<IActionResult> DownloadChatHistory(Guid patientId)

@@ -33,7 +33,7 @@ namespace CodeX.Infrastructure.ExternalServices
             return branch?.TelegramBotToken;
         }
 
-        private async Task SendMessageInternal(Guid branchId, object payload, string method = "sendMessage")
+        private async Task SendMessageInternal(Guid branchId, object payload, string method = "sendMessage", string? textContent = null)
         {
             var token = await GetBotTokenAsync(branchId);
             if (string.IsNullOrWhiteSpace(token))
@@ -48,6 +48,24 @@ namespace CodeX.Infrastructure.ExternalServices
 
             var client = _httpClientFactory.CreateClient();
             var response = await client.PostAsync(url, content);
+
+            string? chatId = null;
+            if (payload is System.Collections.Generic.IDictionary<string, object> dict && dict.TryGetValue("chat_id", out var chatVal)) chatId = chatVal?.ToString();
+            else if (payload.GetType().GetProperty("chat_id")?.GetValue(payload)?.ToString() is string cId) chatId = cId;
+
+            var patient = chatId != null ? await _context.Patients.FirstOrDefaultAsync(p => p.TelegramChatId == chatId) : null;
+            var phone = patient?.Phone ?? chatId ?? "unknown";
+
+            _context.MessageLogs.Add(new CodeX.Domain.Entities.MessageLog
+            {
+                BranchId = branchId,
+                RecipientPhone = phone,
+                MessageType = "OutgoingTelegram",
+                Status = response.IsSuccessStatusCode ? "Sent" : "Failed",
+                ErrorMessage = response.IsSuccessStatusCode ? null : await response.Content.ReadAsStringAsync(),
+                MessageBody = textContent ?? "Media/Complex message"
+            });
+            await _context.SaveChangesAsync(default);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -64,7 +82,7 @@ namespace CodeX.Infrastructure.ExternalServices
                 text = message,
                 parse_mode = "Markdown"
             };
-            await SendMessageInternal(branchId, payload);
+            await SendMessageInternal(branchId, payload, "sendMessage", message);
         }
 
         public async Task SendWelcomeMessage(string chatId, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)

@@ -100,7 +100,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             }
 
             // Log Incoming Message
-            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, "IncomingWhatsApp", "Received", messageBody: body);
+            var incomingLogType = request.Source == BookingSource.Telegram ? "IncomingTelegram" : "IncomingWhatsApp";
+            await LogMessage(request.BranchId ?? Guid.Empty, fromPhone, incomingLogType, "Received", messageBody: body);
 
             var response = session.CurrentState switch
             {
@@ -524,7 +525,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 response += waitTimeStr;
 
                 // Log and Send Outgoing Notification (Handled by Webhook Controller usually, but logging for internal flow)
-                await LogMessage(session.BranchId.Value, session.PhoneNumber, "BookingConfirmation", "Sent", tokenId: result.TokenId);
+                var confirmationType = source == BookingSource.Telegram ? "BookingConfirmation_Telegram" : "BookingConfirmation_WhatsApp";
+                await LogMessage(session.BranchId.Value, session.PhoneNumber, confirmationType, "Sent", tokenId: result.TokenId, messageBody: response);
 
                 return response;
             }
