@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Generic;
 
 namespace CodeX.Infrastructure.ExternalServices
@@ -16,21 +17,63 @@ namespace CodeX.Infrastructure.ExternalServices
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IApplicationDbContext _context;
         private readonly ILogger<TelegramService> _logger;
+        private readonly IMemoryCache _cache;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
         public TelegramService(
             IHttpClientFactory httpClientFactory,
             IApplicationDbContext context,
-            ILogger<TelegramService> logger)
+            ILogger<TelegramService> logger,
+            IMemoryCache cache,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
             _context = context;
             _logger = logger;
+            _cache = cache;
+            _configuration = configuration;
         }
 
         private async Task<string?> GetBotTokenAsync(Guid branchId)
         {
-            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
-            return branch?.TelegramBotToken;
+            var cacheKey = $"Branch_{branchId}_TelegramBotToken";
+            if (!_cache.TryGetValue(cacheKey, out string? token))
+            {
+                var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+                token = branch?.TelegramBotToken;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    _cache.Set(cacheKey, token, TimeSpan.FromMinutes(5));
+                }
+            }
+            return token;
+        }
+
+        private async Task<string?> GetGlobalSettingAsync(string key)
+        {
+            var cacheKey = $"AppSetting_{key}";
+            if (!_cache.TryGetValue(cacheKey, out string? value))
+            {
+                var setting = await _context.ApplicationSettings.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Key == key);
+                value = setting?.Value;
+                
+                if (setting != null && setting.IsSensitive && !string.IsNullOrEmpty(value))
+                {
+                    var encKey = _configuration["EncryptionSettings:Key"];
+                    if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                    {
+                        var encrypter = new CodeX.Infrastructure.Persistence.Converters.EncryptedStringConverter(encKey);
+                        var decrypt = encrypter.ConvertFromProviderExpression.Compile();
+                        value = decrypt(value) ?? string.Empty;
+                    }
+                }
+                
+                if (value != null)
+                {
+                    _cache.Set(cacheKey, value, TimeSpan.FromMinutes(5));
+                }
+            }
+            return value;
         }
 
         private async Task SendMessageInternal(Guid branchId, object payload, string method = "sendMessage", string? textContent = null)

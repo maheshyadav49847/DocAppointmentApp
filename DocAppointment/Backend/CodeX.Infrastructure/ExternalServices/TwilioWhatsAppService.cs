@@ -4,6 +4,7 @@ using CodeX.Application.Common.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
@@ -19,12 +20,35 @@ namespace CodeX.Infrastructure.ExternalServices
         // Config keys — prioritises DB over appsettings.json
         private string GetSetting(string key, string configKey)
         {
-            using (var scope = _serviceProvider.CreateScope())
+            using var scope = _serviceProvider.CreateScope();
+            var cache = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var cacheKey = $"AppSetting_{key}";
+
+            if (!cache.TryGetValue(cacheKey, out string? value))
             {
                 var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                var setting = context.SystemSettings.IgnoreQueryFilters().FirstOrDefault(s => s.Key == key);
-                return setting?.Value ?? _config[configKey] ?? string.Empty;
+                var setting = context.ApplicationSettings.IgnoreQueryFilters().FirstOrDefault(s => s.Key == key);
+                value = setting?.Value;
+
+                if (setting != null && setting.IsSensitive && !string.IsNullOrEmpty(value))
+                {
+                    var encKey = _config["EncryptionSettings:Key"];
+                    if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                    {
+                        var encrypter = new CodeX.Infrastructure.Persistence.Converters.EncryptedStringConverter(encKey);
+                        var decrypt = encrypter.ConvertFromProviderExpression.Compile();
+                        value = decrypt(value) ?? string.Empty;
+                    }
+                }
+
+                value ??= _config[configKey] ?? string.Empty;
+                
+                if (!string.IsNullOrEmpty(value))
+                {
+                    cache.Set(cacheKey, value, TimeSpan.FromMinutes(5));
+                }
             }
+            return value ?? string.Empty;
         }
 
         private string AccountSid => GetSetting("Twilio:AccountSid", "Twilio:AccountSid");

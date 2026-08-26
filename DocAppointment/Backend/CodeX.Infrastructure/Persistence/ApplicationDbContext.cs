@@ -33,7 +33,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Rating> Ratings => Set<Rating>();
         public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
         public DbSet<MessageLog> MessageLogs => Set<MessageLog>();
-        public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+        public DbSet<ApplicationSetting> ApplicationSettings => Set<ApplicationSetting>();
         public DbSet<Staff> Staffs => Set<Staff>();
         public DbSet<PatientVisit> PatientVisits => Set<PatientVisit>();
         public DbSet<VisitMedicine> VisitMedicines => Set<VisitMedicine>();
@@ -100,7 +100,7 @@ namespace CodeX.Infrastructure.Persistence
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<SystemSetting>().HasKey(x => x.Key);
+            modelBuilder.Entity<ApplicationSetting>().HasKey(x => x.Id);
             
             modelBuilder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.Permission });

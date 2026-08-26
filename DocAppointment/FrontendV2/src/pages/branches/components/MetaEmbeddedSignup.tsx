@@ -22,8 +22,8 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
   useEffect(() => {
-    // Fetch Meta Settings from backend
-    api.get('/system/meta-settings').then(res => {
+    // Fetch Meta Settings from backend (AppId and ConfigId)
+    api.get('/meta/whatsapp/config').then(res => {
       const { appId, configId } = res.data;
       setAppId(appId);
       setConfigId(configId);
@@ -66,8 +66,7 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
         api.post('/meta/whatsapp/save-credentials', {
           branchId: branch.id,
           wabaId: 'WABA_FROM_OAUTH', 
-          phoneNumberId: 'PHONE_FROM_OAUTH', 
-          systemUserToken: import.meta.env.VITE_META_CONFIG_ID || 'SYSTEM_TOKEN'
+          phoneNumberId: 'PHONE_FROM_OAUTH'
         }).then(() => {
           onSuccess();
           setLoading(false);
@@ -92,8 +91,8 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
   };
 
   const saveManualCredentials = () => {
-    if (!phoneId || !systemToken) {
-      setError("Phone Number ID and System Token are required.");
+    if (!phoneId) {
+      setError("Phone Number ID is required.");
       return;
     }
     
@@ -101,8 +100,7 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
     api.post('/meta/whatsapp/save-credentials', {
       branchId: branch.id,
       wabaId: wabaId || 'MANUAL_WABA',
-      phoneNumberId: phoneId,
-      systemUserToken: systemToken
+      phoneNumberId: phoneId
     }).then(() => {
       onSuccess();
       setLoading(false);
@@ -126,22 +124,21 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
           </div>
         )}
 
-        <div className="w-full space-y-3 mb-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Business Account ID (Optional)</label>
-            <input type="text" value={wabaId} onChange={e => setWabaId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 10123456789" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number ID</label>
-            <input type="text" value={phoneId} onChange={e => setPhoneId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 20123456789" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">System User Permanent Token</label>
-            <input type="password" value={systemToken} onChange={e => setSystemToken(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="EAAG..." />
-          </div>
+        <div className="space-y-3 mt-4 p-4 border border-slate-200 rounded-lg bg-slate-50 w-full">
+            <h4 className="font-semibold text-sm text-slate-800">Advanced: Manual Configuration</h4>
+            <p className="text-xs text-slate-500 mb-2">Only use this if Embedded Signup fails.</p>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Business Account ID</label>
+              <input value={wabaId} onChange={e => setWabaId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1024..." />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number ID</label>
+              <input value={phoneId} onChange={e => setPhoneId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1039..." />
+            </div>
+            <p className="text-xs text-indigo-600 mt-2 font-medium">System User Token is managed globally by SaaS Manager.</p>
         </div>
 
-        <div className="flex gap-2 w-full">
+        <div className="flex gap-2 w-full mt-4">
           <button onClick={() => setShowManual(false)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg w-1/3">Back</button>
           <button onClick={saveManualCredentials} disabled={loading} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg w-2/3 flex justify-center items-center">
             {loading ? 'Saving...' : 'Save Credentials'}

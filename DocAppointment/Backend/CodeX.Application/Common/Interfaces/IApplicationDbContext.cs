@@ -11,7 +11,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<Branch> Branches { get; }
         DbSet<Doctor> Doctors { get; }
         DbSet<Staff> Staff { get; }
-        DbSet<SystemSetting> SystemSettings { get; }
+        DbSet<ApplicationSetting> ApplicationSettings { get; }
         DbSet<Patient> Patients { get; }
         DbSet<Session> Sessions { get; }
         DbSet<DailyQueue> DailyQueues { get; }

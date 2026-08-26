@@ -43,12 +43,31 @@ namespace CodeX.Api.Controllers
 
         [AllowAnonymous]
         [HttpGet]
-        public IActionResult VerifyWebhook(
+        public async Task<IActionResult> VerifyWebhook(
             [FromQuery(Name = "hub.mode")] string? mode,
             [FromQuery(Name = "hub.verify_token")] string? token,
             [FromQuery(Name = "hub.challenge")] string? challenge)
         {
-            var verifyToken = _config["WhatsApp:MetaWebhookVerifyToken"] ?? "myqcare_meta_webhook_secret";
+            var cacheKey = "AppSetting_WhatsApp_WebhookVerifyToken";
+            if (!_cache.TryGetValue(cacheKey, out string? verifyToken))
+            {
+                var dbTokenSetting = await _context.ApplicationSettings.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Key == "WhatsApp_WebhookVerifyToken");
+                verifyToken = dbTokenSetting?.Value;
+
+                if (dbTokenSetting != null && dbTokenSetting.IsSensitive && !string.IsNullOrEmpty(verifyToken))
+                {
+                    var encKey = _config["EncryptionSettings:Key"];
+                    if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                    {
+                        var encrypter = new CodeX.Infrastructure.Persistence.Converters.EncryptedStringConverter(encKey);
+                        var decrypt = encrypter.ConvertFromProviderExpression.Compile();
+                        verifyToken = decrypt(verifyToken) ?? string.Empty;
+                    }
+                }
+
+                verifyToken ??= _config["WhatsApp:MetaWebhookVerifyToken"] ?? "myqcare_meta_webhook_secret";
+                _cache.Set(cacheKey, verifyToken, TimeSpan.FromMinutes(5));
+            }
 
             if (mode == "subscribe" && token == verifyToken)
             {

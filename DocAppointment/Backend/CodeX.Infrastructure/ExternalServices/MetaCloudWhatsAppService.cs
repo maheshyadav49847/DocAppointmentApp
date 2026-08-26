@@ -5,6 +5,7 @@ using CodeX.Application.Common.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CodeX.Infrastructure.ExternalServices
 {
@@ -24,9 +25,18 @@ namespace CodeX.Infrastructure.ExternalServices
         private async Task<(string? PhoneNumberId, string? SystemUserToken)> GetBranchMetaCredentialsAsync(Guid branchId)
         {
             using var scope = _scopeFactory.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            var branch = await dbContext.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId);
-            return (branch?.MetaPhoneNumberId, branch?.MetaSystemUserToken);
+            var cache = scope.ServiceProvider.GetRequiredService<IMemoryCache>();
+            var cacheKey = $"Branch_{branchId}_MetaCredentials";
+
+            if (!cache.TryGetValue(cacheKey, out (string? PhoneId, string? Token) creds))
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                var branch = await dbContext.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId);
+                creds = (branch?.MetaPhoneNumberId, branch?.MetaSystemUserToken);
+                
+                cache.Set(cacheKey, creds, TimeSpan.FromMinutes(5));
+            }
+            return creds;
         }
 
         private async Task<string> GetUserLanguageAsync(string phoneNumber)
@@ -44,6 +54,38 @@ namespace CodeX.Infrastructure.ExternalServices
             }
         }
 
+        private async Task<string?> GetGlobalSettingAsync(string key)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var cache = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+            var cacheKey = $"AppSetting_{key}";
+            
+            if (!cache.TryGetValue(cacheKey, out string? value))
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+                var setting = await dbContext.ApplicationSettings.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Key == key);
+                value = setting?.Value;
+                
+                if (setting != null && setting.IsSensitive && !string.IsNullOrEmpty(value))
+                {
+                    var config = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+                    var encKey = config["EncryptionSettings:Key"];
+                    if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                    {
+                        var encrypter = new CodeX.Infrastructure.Persistence.Converters.EncryptedStringConverter(encKey);
+                        var decrypt = encrypter.ConvertFromProviderExpression.Compile();
+                        value = decrypt(value) ?? string.Empty;
+                    }
+                }
+                
+                if (value != null)
+                {
+                    cache.Set(cacheKey, value, TimeSpan.FromMinutes(5));
+                }
+            }
+            return value;
+        }
+
         private async Task SendMetaMessageAsync(string toPhoneNumber, object messagePayload, Guid branchId)
         {
             var (phoneNumberId, systemUserToken) = await GetBranchMetaCredentialsAsync(branchId);
@@ -58,8 +100,8 @@ namespace CodeX.Infrastructure.ExternalServices
             while (cleanPhone.StartsWith("0")) cleanPhone = cleanPhone.Substring(1);
             if (cleanPhone.Length == 10) cleanPhone = "91" + cleanPhone;
 
-
-            var url = $"https://graph.facebook.com/v19.0/{phoneNumberId}/messages";
+            var baseUrl = await GetGlobalSettingAsync("Meta_BaseUrl") ?? "https://graph.facebook.com/v19.0";
+            var url = $"{baseUrl}/{phoneNumberId}/messages";
             
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", systemUserToken);
@@ -149,7 +191,8 @@ namespace CodeX.Infrastructure.ExternalServices
                 form.Add(fileContent, "file", fileName);
                 form.Add(new StringContent("whatsapp"), "messaging_product");
                 
-                var uploadUrl = $"https://graph.facebook.com/v19.0/{phoneNumberId}/media";
+                var baseUrl = await GetGlobalSettingAsync("Meta_BaseUrl") ?? "https://graph.facebook.com/v19.0";
+                var uploadUrl = $"{baseUrl}/{phoneNumberId}/media";
                 var uploadRequest = new HttpRequestMessage(HttpMethod.Post, uploadUrl);
                 uploadRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", systemUserToken);
                 uploadRequest.Content = form;
