@@ -78,13 +78,20 @@ namespace CodeX.Application.Features.Queue.Commands.PauseQueue
                             request.DurationMinutes.ToString(), 
                             reasonStr);
 
-                        if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                        if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
                         {
                             await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
                         }
-                        else
+                        else if (token.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(token.Patient.Phone))
                         {
                             await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(token.Patient.Phone))
+                                await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                            else if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                                await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
                         }
                     }
                 }

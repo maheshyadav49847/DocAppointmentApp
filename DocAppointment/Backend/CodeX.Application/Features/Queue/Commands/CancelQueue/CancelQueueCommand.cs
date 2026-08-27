@@ -58,13 +58,20 @@ namespace CodeX.Application.Features.Queue.Commands.CancelQueue
 
                         string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "APPOINTMENT_CANCELLED_ALERT", hospitalName.ToUpper(), token.Patient.Name, doctorName, token.TokenNumber);
 
-                        if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                        if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
                         {
                             await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
                         }
-                        else
+                        else if (token.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(token.Patient.Phone))
                         {
                             await _whatsAppService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(token.Patient.Phone))
+                                await _whatsAppService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
+                            else if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                                await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
                         }
                     }
                     catch { /* Log and continue gracefully */ }

@@ -58,14 +58,21 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
 
             try 
             {
-                if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
-                    {
-                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
-                    }
-                    else if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
-                    {
+                if (currentToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                {
+                    await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
+                }
+                else if (currentToken.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
+                {
+                    await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
                         await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
-                    }
+                    else if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
+                }
                 await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient", "Delivered", tokenId: currentToken.Id);
                 return true;
             }
