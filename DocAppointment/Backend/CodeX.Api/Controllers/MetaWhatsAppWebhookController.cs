@@ -169,26 +169,45 @@ namespace CodeX.Api.Controllers
                 _logger.LogWarning("Rate limit exceeded for {Phone}", fromPhone);
                 return;
             }
-
             _cache.Set(cacheKey, currentCount + 1, TimeSpan.FromMinutes(1));
 
-            var response = await _mediator.Send(new ProcessIncomingMessageCommand
+            // Processing Lock (Anti-Spam / Idempotency)
+            // If the user sends multiple messages quickly, ignore the subsequent ones until the first is processed.
+            var lockKey = $"wa_lock_{fromPhone}";
+            if (_cache.TryGetValue(lockKey, out _))
             {
-                BranchId = branch.Id,
-                From = fromPhone,
-                MessageBody = body
-            });
+                _logger.LogInformation("Message ignored because previous message from {Phone} is still processing.", fromPhone);
+                return;
+            }
+            
+            // Set lock for max 5 seconds as a safety net
+            _cache.Set(lockKey, true, TimeSpan.FromSeconds(5));
 
-            if (!string.IsNullOrWhiteSpace(response))
+            try
             {
-                try
+                var response = await _mediator.Send(new ProcessIncomingMessageCommand
                 {
-                    await _whatsApp.SendTextMessage(fromPhone, response, branch.Id);
-                }
-                catch (Exception ex)
+                    BranchId = branch.Id,
+                    From = fromPhone,
+                    MessageBody = body
+                });
+
+                if (!string.IsNullOrWhiteSpace(response))
                 {
-                    _logger.LogError(ex, "Failed to send webhook reply for branch {BranchId}.", branch.Id);
+                    try
+                    {
+                        await _whatsApp.SendTextMessage(fromPhone, response, branch.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send webhook reply for branch {BranchId}.", branch.Id);
+                    }
                 }
+            }
+            finally
+            {
+                // Always release the lock when done, so they can send the next message
+                _cache.Remove(lockKey);
             }
         }
     }
