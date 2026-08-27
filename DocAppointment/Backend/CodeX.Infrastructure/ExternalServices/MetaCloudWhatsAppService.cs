@@ -32,7 +32,11 @@ namespace CodeX.Infrastructure.ExternalServices
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
                 var branch = await dbContext.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId);
-                creds = (branch?.MetaPhoneNumberId, branch?.MetaSystemUserToken);
+                
+                // Fetch the token directly from ApplicationSettings to utilize proper decryption logic
+                var systemUserToken = await GetGlobalSettingAsync("Meta_SystemUserToken");
+                
+                creds = (branch?.MetaPhoneNumberId, systemUserToken);
                 
                 cache.Set(cacheKey, creds, TimeSpan.FromMinutes(5));
             }
