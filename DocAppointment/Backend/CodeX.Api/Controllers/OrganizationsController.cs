@@ -12,5 +12,12 @@ namespace CodeX.Api.Controllers
         {
             return await Mediator.Send(command);
         }
+
+        [AllowAnonymous] // Ideally secured via an API Key or internal network policy in production
+        [HttpPost("provision")]
+        public async Task<ActionResult<Guid>> Provision(CodeX.Application.Features.Organizations.Commands.ProvisionTenant.ProvisionTenantCommand command)
+        {
+            return await Mediator.Send(command);
+        }
     }
 }
