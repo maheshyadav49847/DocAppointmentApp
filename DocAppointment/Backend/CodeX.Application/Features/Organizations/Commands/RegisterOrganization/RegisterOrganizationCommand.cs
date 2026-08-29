@@ -49,6 +49,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
 
             // Clone system roles for the new organization
             var systemRoles = await _context.Roles
+                .IgnoreQueryFilters()
                 .Include(r => r.RolePermissions)
                 .Where(r => r.OrganizationId == Guid.Empty && r.Name != "SuperAdmin")
                 .ToListAsync(cancellationToken);
