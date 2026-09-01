@@ -3,6 +3,9 @@ using CodeX.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+using System.Net.Http;
 
 namespace CodeX.Infrastructure.Persistence
 {
@@ -25,6 +28,7 @@ namespace CodeX.Infrastructure.Persistence
                 await AssignRolesToExistingStaffAsync(context);
                 await MigrateTenantRolesAsync(context);
                 await SyncOrgAdminPermissionsAsync(context);
+                await SyncCountriesFromSaaSAsync(context, scope.ServiceProvider, logger);
             }
             catch (Exception ex)
             {
@@ -271,6 +275,100 @@ namespace CodeX.Infrastructure.Persistence
             {
                 await context.SaveChangesAsync();
             }
+        }
+
+        private static async Task SyncCountriesFromSaaSAsync(ApplicationDbContext context, IServiceProvider serviceProvider, ILogger logger)
+        {
+            try
+            {
+                var urlSetting = await context.ApplicationSettings.FirstOrDefaultAsync(s => s.Key == "SaaSManagerUrl");
+                var keySetting = await context.ApplicationSettings.FirstOrDefaultAsync(s => s.Key == "SaaSManagerApiKey");
+
+                var config = serviceProvider.GetRequiredService<IConfiguration>();
+                
+                string saasUrl = urlSetting?.Value ?? config["SaaSManager:Url"] ?? "http://localhost:5048";
+                string saasKey = keySetting?.Value ?? config["SaaSManager:ApiKey"] ?? "";
+
+                if (urlSetting == null)
+                {
+                    context.ApplicationSettings.Add(new ApplicationSetting { Key = "SaaSManagerUrl", Value = saasUrl });
+                }
+                if (keySetting == null)
+                {
+                    context.ApplicationSettings.Add(new ApplicationSetting { Key = "SaaSManagerApiKey", Value = saasKey, IsSensitive = true });
+                }
+                await context.SaveChangesAsync();
+
+                if (string.IsNullOrEmpty(saasKey))
+                {
+                    logger.LogWarning("SaaSManagerApiKey is empty. Skipping countries sync.");
+                    return;
+                }
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-app-key", saasKey);
+
+                var endpoint = $"{saasUrl.TrimEnd('/')}/api/countries/public";
+                var response = await httpClient.GetAsync(endpoint);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    logger.LogWarning("Failed to fetch countries from SaaS manager: {StatusCode} {ErrorMsg}", response.StatusCode, errorMsg);
+                    return;
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var countries = JsonSerializer.Deserialize<List<CountryDto>>(content, options);
+
+                if (countries != null && countries.Any())
+                {
+                    var existingCountries = await context.Countries.ToDictionaryAsync(c => c.IsoCode);
+                    foreach (var c in countries)
+                    {
+                        var isoCode = string.IsNullOrEmpty(c.IsoCode) ? (string.IsNullOrEmpty(c.Code) ? "UNKNOWN" : c.Code) : c.IsoCode;
+                        
+                        if (existingCountries.TryGetValue(isoCode, out var existing))
+                        {
+                            existing.Name = c.Name ?? existing.Name;
+                            existing.DialCode = c.DialCode ?? existing.DialCode;
+                            existing.CurrencyCode = c.Currency ?? existing.CurrencyCode;
+                            existing.CurrencySymbol = c.CurrencySymbol ?? existing.CurrencySymbol;
+                            existing.IsActive = true;
+                        }
+                        else
+                        {
+                            context.Countries.Add(new Country
+                            {
+                                Name = c.Name ?? "Unknown",
+                                IsoCode = isoCode,
+                                DialCode = c.DialCode ?? "",
+                                CurrencyCode = c.Currency ?? "",
+                                CurrencySymbol = c.CurrencySymbol ?? "",
+                                IsActive = true
+                            });
+                        }
+                    }
+                    await context.SaveChangesAsync();
+                    logger.LogInformation("Successfully synced {Count} countries from SaaS manager.", countries.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error occurred while syncing countries from SaaS manager.");
+            }
+        }
+
+        private class CountryDto
+        {
+            public string? Name { get; set; }
+            public string? Code { get; set; }
+            public string? IsoCode { get; set; }
+            public string? DialCode { get; set; }
+            public string? Currency { get; set; }
+            public string? CurrencySymbol { get; set; }
         }
     }
 }

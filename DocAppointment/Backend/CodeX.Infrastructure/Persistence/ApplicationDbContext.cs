@@ -34,6 +34,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<ChatSession> ChatSessions => Set<ChatSession>();
         public DbSet<MessageLog> MessageLogs => Set<MessageLog>();
         public DbSet<ApplicationSetting> ApplicationSettings => Set<ApplicationSetting>();
+        public DbSet<Country> Countries => Set<Country>();
         public DbSet<Staff> Staffs => Set<Staff>();
         public DbSet<PatientVisit> PatientVisits => Set<PatientVisit>();
         public DbSet<VisitMedicine> VisitMedicines => Set<VisitMedicine>();
