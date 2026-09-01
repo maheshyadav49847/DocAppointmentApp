@@ -1,6 +1,7 @@
-﻿import { useAuthStore } from "@/store/authStore"
+import { useAuthStore } from "@/store/authStore"
 import { usePermissions } from "@/hooks/usePermissions"
 import { Shield, User, Activity } from "lucide-react"
+import { Link } from "react-router-dom"
 
 export default function SettingsPage() {
   const { user } = useAuthStore()
@@ -19,7 +20,7 @@ export default function SettingsPage() {
               <span className="text-slate-900">Organization</span>
               <span className="text-indigo-600">Settings</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage personal profile.</p>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global configurations and your personal profile.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -55,17 +56,45 @@ export default function SettingsPage() {
               </div>
             </div>
             
-            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 flex gap-3">
-              <Shield className="w-5 h-5 text-amber-500 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-amber-800">Security Info</p>
-                <p className="text-sm text-amber-700/80 mt-1">
-                  For security reasons, passwords can only be changed via the "Forgot Password" flow on the login screen.
-                </p>
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-3 mb-2">
+                <Shield className="w-4 h-4 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Access Role</p>
               </div>
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                {user?.role}
+              </span>
             </div>
           </div>
         </div>
+
+        <div className="saas-card overflow-hidden">
+          <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-indigo-500" />
+            <h3 className="font-semibold text-slate-900">Security</h3>
+          </div>
+          <div className="p-6">
+            <p className="text-sm text-slate-600 leading-relaxed">
+              To change your password or update sensitive security credentials, please contact your organization administrator or use the forgot password flow on the login screen.
+            </p>
+          </div>
+        </div>
+
+        {can('Settings.ManageRoles') && (
+          <div className="saas-card overflow-hidden">
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-indigo-500" /> Roles & Permissions
+              </h3>
+              <Link to="/settings/roles" className="btn-secondary text-xs">Manage Roles</Link>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Create custom roles and configure granular access permissions for your organization's staff members.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
