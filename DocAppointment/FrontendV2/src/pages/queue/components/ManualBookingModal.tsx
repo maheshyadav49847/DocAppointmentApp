@@ -3,10 +3,12 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, Printer } from "lucide-react"
 import { queueService } from "@/services/queueService"
 import { motion, AnimatePresence } from "framer-motion"
+import PhoneInput from "@/components/PhoneInput"
 
 export default function ManualBookingModal({ isOpen, onClose, queueId, branchId, onSuccess }: any) {
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
+  const [phoneDialCode, setPhoneDialCode] = useState("+91")
   const [error, setError] = useState("")
 
   const [activeField, setActiveField] = useState<"name" | "phone" | null>(null)
@@ -34,6 +36,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
     setSelectedPatientId(patient.id)
     setName(patient.name)
     setPhone(patient.phone)
+    setPhoneDialCode(patient.phoneDialCode || '+91')
     setActiveField(null)
   }
 
@@ -50,6 +53,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
         patientId: selectedPatientId,
         patientName: name.trim(),
         patientPhone: phone,
+        patientPhoneDialCode: phoneDialCode,
         source: 2 // Manual source
       })
     },
@@ -167,18 +171,19 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
 
                 <div className="relative z-10">
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">WhatsApp Number <span className="text-zinc-400 font-normal ml-1">Opt</span></label>
-                  <div className="relative group">
-                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
-                    <input 
-                      type="tel" 
-                      value={phone}
-                      onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setSelectedPatientId(null); }}
-                      onFocus={() => setActiveField("phone")}
-                      onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                      placeholder="10-digit number"
-                      className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
-                      autoComplete="off"
-                    />
+                    <div className="relative group">
+                      <PhoneInput
+                        phone={phone}
+                        dialCode={phoneDialCode}
+                        onChange={(p, dc) => {
+                          setPhone(p);
+                          setPhoneDialCode(dc);
+                          setSelectedPatientId(null);
+                        }}
+                        onFocus={() => setActiveField("phone")}
+                        onBlur={() => setTimeout(() => setActiveField(null), 200)}
+                        placeholder="10-digit number"
+                      />
                     {activeField === "phone" && searchResults && searchResults.length > 0 && (
                       <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto py-2 z-50">
                         {searchResults.map((patient: any) => (

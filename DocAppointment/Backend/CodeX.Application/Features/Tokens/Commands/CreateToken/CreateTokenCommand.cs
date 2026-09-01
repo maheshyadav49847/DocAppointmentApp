@@ -23,6 +23,8 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
         [RegularExpression(@"^\+?\d{10,15}$", ErrorMessage = "Invalid phone number format. Use 10-15 digits.")]
         public string PatientPhone { get; init; } = string.Empty;
 
+        public string PatientPhoneDialCode { get; init; } = "+91";
+
         [Required]
         public BookingSource Source { get; init; } = BookingSource.WhatsApp;
 
@@ -100,7 +102,8 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception($"Queue is full. Maximum capacity of {queue.Session.DefaultCapacity} reached.");
             }
 
-            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone);
+            var dc = (request.PatientPhoneDialCode ?? "+91").Replace("+", "");
+            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.PatientPhone, dc);
 
             // 1. Find Patient
             Patient? patient = null;
@@ -140,6 +143,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                     {
                         Name = request.PatientName,
                         Phone = normalizedPhone,
+                        PhoneDialCode = request.PatientPhoneDialCode ?? "+91",
                         OrganizationId = queue.Branch?.OrganizationId ?? Guid.Empty
                     };
                     _context.Patients.Add(patient);

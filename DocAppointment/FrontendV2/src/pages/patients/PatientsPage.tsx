@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import PhoneInput from "@/components/PhoneInput"
 
 import {
   useReactTable,
@@ -81,6 +82,7 @@ export default function PatientsPage() {
     const data = {
       name: formData.get('name') as string,
       phone: (formData.get('phone') as string) || undefined,
+      phoneDialCode: (formData.get('phoneDialCode') as string) || undefined,
       age: formData.get('age') as string,
       gender: formData.get('gender') as string,
       maritalStatus: formData.get('maritalStatus') as string,
@@ -91,6 +93,7 @@ export default function PatientsPage() {
       height: parseInt(formData.get('height') as string) || 0,
       emergencyContactName: formData.get('emergencyContactName') as string,
       emergencyContactPhone: formData.get('emergencyContactPhone') as string,
+      emergencyContactPhoneDialCode: formData.get('emergencyContactPhoneDialCode') as string,
       organizationId: user?.orgId!,
       branchId: (selectedBranch === 'all' ? undefined : selectedBranch) as string | undefined
     }
@@ -157,7 +160,7 @@ export default function PatientsPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
           <Phone className="w-4 h-4 text-slate-400" />
-          {row.original.phone || 'N/A'}
+          {row.original.phone ? `${row.original.phoneDialCode || ''} ${row.original.phone}` : 'N/A'}
         </div>
       )
     },
@@ -435,7 +438,7 @@ export default function PatientsPage() {
                           <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Phone className="w-4 h-4" /></div>
                           <div className="min-w-0">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.phone || 'N/A'}</p>
+                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.phone ? `${patient.phoneDialCode || ''} ${patient.phone}` : 'N/A'}</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -449,7 +452,7 @@ export default function PatientsPage() {
                           <div className="p-2 rounded-xl bg-rose-50 text-rose-600 shrink-0"><Phone className="w-4 h-4" /></div>
                           <div className="min-w-0">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Emergency</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.emergencyContactPhone || '--'}</p>
+                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.emergencyContactPhone ? `${patient.emergencyContactPhoneDialCode || ''} ${patient.emergencyContactPhone}` : '--'}</p>
                           </div>
                         </div>
                       </div>
@@ -650,7 +653,12 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
-                          <input defaultValue={editingPatient?.phone} name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
+                          <PhoneInput
+                            name="phone"
+                            dialCodeName="phoneDialCode"
+                            defaultValue={editingPatient?.phone}
+                            defaultDialCode={editingPatient?.phoneDialCode}
+                          />
                         <FieldError errors={validationErrors} field="Phone" />
                         </div>
                         <div>
@@ -696,7 +704,12 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
-                          <input defaultValue={editingPatient?.emergencyContactPhone} name="emergencyContactPhone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Phone Number" />
+                          <PhoneInput
+                            name="emergencyContactPhone"
+                            dialCodeName="emergencyContactPhoneDialCode"
+                            defaultValue={editingPatient?.emergencyContactPhone}
+                            defaultDialCode={editingPatient?.emergencyContactPhoneDialCode}
+                          />
                         <FieldError errors={validationErrors} field="EmergencyContactPhone" />
                         </div>
                       </div>

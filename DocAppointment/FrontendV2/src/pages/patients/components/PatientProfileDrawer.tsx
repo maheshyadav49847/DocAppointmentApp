@@ -6,6 +6,7 @@ import { Users, Edit, X, User, Calendar, Droplet, Ruler, Phone, Mail, MapPin, He
 import { patientService, type Patient } from "@/services/patientService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import PhoneInput from "@/components/PhoneInput"
 import { api } from "@/lib/axios"
 import toast from "react-hot-toast"
 
@@ -233,7 +234,12 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Phone className="w-4 h-4 text-green-500" /> Phone Number
                         </label>
-                        <input defaultValue={editingPatient?.phone} name="phone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 9876543210" />
+                        <PhoneInput
+                          name="phone"
+                          dialCodeName="phoneDialCode"
+                          defaultValue={editingPatient?.phone}
+                          defaultDialCode={editingPatient?.phoneDialCode}
+                        />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
@@ -274,7 +280,12 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input defaultValue={editingPatient?.emergencyContactPhone} name="emergencyContactPhone" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Phone Number" />
+                        <PhoneInput
+                          name="emergencyContactPhone"
+                          dialCodeName="emergencyContactPhoneDialCode"
+                          defaultValue={editingPatient?.emergencyContactPhone}
+                          defaultDialCode={editingPatient?.emergencyContactPhoneDialCode}
+                        />
                       </div>
                     </div>
                   </div>

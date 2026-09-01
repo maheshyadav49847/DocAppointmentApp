@@ -14,6 +14,7 @@ namespace CodeX.Domain.Entities
         }
 
         public string PatientCode { get; set; } = string.Empty;
+        public string? PhoneDialCode { get; set; } = "+91";
         public string? Phone { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? TelegramChatId { get; set; }
@@ -28,6 +29,7 @@ namespace CodeX.Domain.Entities
         public string? AadhaarNumber { get; set; }
         public string? Address { get; set; }
         public string? EmergencyContactName { get; set; }
+        public string? EmergencyContactPhoneDialCode { get; set; } = "+91";
         public string? EmergencyContactPhone { get; set; }
 
         // Navigation Properties

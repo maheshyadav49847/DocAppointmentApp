@@ -7,6 +7,7 @@ namespace CodeX.Domain.Entities
         public Guid OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string WhatsAppDialCode { get; set; } = "+91";
         public string WhatsAppNumber { get; set; } = string.Empty;
         public string? WhatsAppApiKey { get; set; }
 

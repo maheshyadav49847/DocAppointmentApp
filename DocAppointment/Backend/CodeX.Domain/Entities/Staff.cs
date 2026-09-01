@@ -15,6 +15,7 @@ namespace CodeX.Domain.Entities
         public virtual Role? Role { get; set; }
         public string? PasswordResetToken { get; set; }
         public DateTime? ResetTokenExpiry { get; set; }
+        public string PhoneNumberDialCode { get; set; } = "+91";
         public string PhoneNumber { get; set; } = string.Empty;
 
         // Account Lockout

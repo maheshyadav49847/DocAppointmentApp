@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import PhoneInput from "@/components/PhoneInput"
 import {
   useReactTable,
   getCoreRowModel,
@@ -105,6 +106,7 @@ export default function BranchesPage() {
       name: formData.get('name'),
       address: formData.get('address'),
       whatsAppNumber: formData.get('whatsAppNumber'),
+      whatsAppDialCode: formData.get('whatsAppDialCode'),
       timezone: formData.get('timezone'),
       isActive: formData.get('isActive') === 'on',
       logoBase64
@@ -162,10 +164,10 @@ export default function BranchesPage() {
               <MapPin className="w-3.5 h-3.5 text-slate-400" />
               <span className="truncate max-w-[200px]" title={branch.address}>{branch.address || 'No address'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-              <span>{branch.whatsAppNumber || 'Not configured'}</span>
-            </div>
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                <span>{branch.whatsAppNumber ? `${branch.whatsAppDialCode || ''} ${branch.whatsAppNumber}` : 'Not configured'}</span>
+              </div>
           </div>
         )
       }
@@ -381,7 +383,7 @@ export default function BranchesPage() {
                         <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-green-500 shrink-0">
                           <Smartphone className="w-4 h-4" />
                         </div>
-                        <span className="font-medium">{branch.whatsAppNumber || 'Not configured'}</span>
+                        <span className="font-medium">{branch.whatsAppNumber ? `${branch.whatsAppDialCode || ''} ${branch.whatsAppNumber}` : 'Not configured'}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 pt-4 border-t border-slate-100 relative z-10">
@@ -546,7 +548,12 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Smartphone className="w-4 h-4 text-green-500" /> WhatsApp Number
                     </label>
-                    <input name="whatsAppNumber" defaultValue={editingBranch?.whatsAppNumber} placeholder="e.g. +1234567890" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <PhoneInput
+                      name="whatsAppNumber"
+                      dialCodeName="whatsAppDialCode"
+                      defaultValue={editingBranch?.whatsAppNumber}
+                      defaultDialCode={editingBranch?.whatsAppDialCode}
+                    />
                     <FieldError errors={validationErrors} field="WhatsAppNumber" />
                     <p className="text-xs text-slate-500 mt-1">Include country code. Used for automated bot communications.</p>
                   </div>

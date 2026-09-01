@@ -15,6 +15,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
         public string EmployeeId { get; init; } = string.Empty;
         public string RoleName { get; init; } = "Receptionist";
         public string? NewPassword { get; init; } // Optional — only update if provided
+        public string PhoneNumberDialCode { get; init; } = "+91";
         public string PhoneNumber { get; init; } = string.Empty;
     }
 
@@ -55,6 +56,7 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             staff.LastName = request.LastName.Trim();
             staff.EmployeeId = request.EmployeeId.Trim();
             staff.RoleId = targetRole?.Id;
+            staff.PhoneNumberDialCode = request.PhoneNumberDialCode ?? "+91";
             staff.PhoneNumber = request.PhoneNumber.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.NewPassword))

@@ -12,6 +12,7 @@ namespace CodeX.Domain.Entities
         public string? Gender { get; set; }
         public string? Qualification { get; set; }
         public string? Experience { get; set; }
+        public string? MobileDialCode { get; set; } = "+91";
         public string? Mobile { get; set; }
         public string? EmailId { get; set; }
 

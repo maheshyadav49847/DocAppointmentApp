@@ -33,6 +33,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<UserSession> UserSessions { get; }
         DbSet<RefreshToken> RefreshTokens { get; }
         DbSet<IdempotencyLog> IdempotencyLogs { get; }
+        DbSet<Country> Countries { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

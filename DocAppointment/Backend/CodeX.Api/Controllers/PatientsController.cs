@@ -150,6 +150,7 @@ namespace CodeX.Api.Controllers
             {
                 Name = dto.Name,
                 Phone = dto.Phone,
+                PhoneDialCode = dto.PhoneDialCode ?? "+91",
                 Age = dto.Age,
                 Gender = dto.Gender,
                 MaritalStatus = dto.MaritalStatus,
@@ -160,6 +161,7 @@ namespace CodeX.Api.Controllers
                 Address = dto.Address,
                 EmergencyContactName = dto.EmergencyContactName,
                 EmergencyContactPhone = dto.EmergencyContactPhone,
+                EmergencyContactPhoneDialCode = dto.EmergencyContactPhoneDialCode ?? "+91",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -222,6 +224,7 @@ namespace CodeX.Api.Controllers
 
         [System.ComponentModel.DataAnnotations.RegularExpression(@"^\+?[1-9]\d{1,14}$", ErrorMessage = "Invalid phone number format.")]
         public string? Phone { get; set; }
+        public string? PhoneDialCode { get; set; } = "+91";
 
         public string? Age { get; set; }
         public string? Gender { get; set; }
@@ -235,5 +238,6 @@ namespace CodeX.Api.Controllers
         public string? Address { get; set; }
         public string? EmergencyContactName { get; set; }
         public string? EmergencyContactPhone { get; set; }
+        public string? EmergencyContactPhoneDialCode { get; set; } = "+91";
     }
 }

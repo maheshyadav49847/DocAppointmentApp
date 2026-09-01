@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import PhoneInput from "@/components/PhoneInput"
 import {
   useReactTable,
   getCoreRowModel,
@@ -107,6 +108,7 @@ export default function DoctorsPage() {
       name: formData.get('name') as string,
       specialization: formData.get('specialization') as string,
       mobile: formData.get('mobile') as string,
+      mobileDialCode: formData.get('mobileDialCode') as string,
       emailId: formData.get('emailId') as string,
       gender: formData.get('gender') as string,
       qualification: formData.get('qualification') as string,
@@ -139,13 +141,13 @@ export default function DoctorsPage() {
     },
     {
       accessorKey: "mobile",
-      header: "Contact",
-      cell: ({ row }) => (
-        <div>
-          <div className="text-sm font-medium text-zinc-700">{row.original.mobile || 'N/A'}</div>
-          <div className="text-xs text-zinc-500">{row.original.emailId || 'N/A'}</div>
-        </div>
-      )
+        header: "Contact",
+        cell: ({ row }) => (
+          <div>
+            <div className="text-sm font-medium text-zinc-700">{row.original.mobile ? `${row.original.mobileDialCode || ''} ${row.original.mobile}` : 'N/A'}</div>
+            <div className="text-xs text-zinc-500">{row.original.emailId || 'N/A'}</div>
+          </div>
+        )
     },
     {
       accessorKey: "qualification",
@@ -374,7 +376,7 @@ export default function DoctorsPage() {
                       <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Phone className="w-4 h-4" /></div>
                       <div className="min-w-0">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact</p>
-                        <p className="text-xs font-semibold text-slate-700 truncate">{row.original.mobile || 'N/A'}</p>
+                        <p className="text-xs font-semibold text-slate-700 truncate">{row.original.mobile ? `${row.original.mobileDialCode || ''} ${row.original.mobile}` : 'N/A'}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -575,7 +577,12 @@ export default function DoctorsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Phone className="w-4 h-4 text-green-500" /> Mobile
                       </label>
-                      <input name="mobile" type="tel" defaultValue={editingDoctor?.mobile} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="10 digit number" />
+                      <PhoneInput
+                        name="mobile"
+                        dialCodeName="mobileDialCode"
+                        defaultValue={editingDoctor?.mobile}
+                        defaultDialCode={editingDoctor?.mobileDialCode}
+                      />
                       <FieldError errors={validationErrors} field="Mobile" />
                     </div>
                     <div>

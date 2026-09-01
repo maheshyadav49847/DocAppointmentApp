@@ -11,6 +11,7 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
         public string FirstName { get; init; } = string.Empty;
         public string LastName { get; init; } = string.Empty;
         public string EmployeeId { get; init; } = string.Empty;
+        public string PhoneNumberDialCode { get; init; } = "+91";
         public string PhoneNumber { get; init; } = string.Empty;
         public string Role { get; init; } = string.Empty;
         public Guid OrganizationId { get; init; }
@@ -54,6 +55,7 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
                     FirstName = s.FirstName,
                     LastName = s.LastName,
                     EmployeeId = s.EmployeeId,
+                    PhoneNumberDialCode = s.PhoneNumberDialCode,
                     PhoneNumber = s.PhoneNumber,
                     Role = s.Role != null ? s.Role.Name : string.Empty,
                     OrganizationId = s.OrganizationId,

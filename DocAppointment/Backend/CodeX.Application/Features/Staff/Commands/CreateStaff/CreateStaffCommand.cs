@@ -16,6 +16,7 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
         public string LastName { get; init; } = string.Empty;
         public string EmployeeId { get; init; } = string.Empty;
         public string RoleName { get; init; } = "Receptionist";
+        public string PhoneNumberDialCode { get; init; } = "+91";
         public string PhoneNumber { get; init; } = string.Empty;
     }
 
@@ -72,6 +73,7 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
                 LastName = request.LastName.Trim(),
                 EmployeeId = request.EmployeeId.Trim(),
                 RoleId = targetRole?.Id,
+                PhoneNumberDialCode = request.PhoneNumberDialCode ?? "+91",
                 PhoneNumber = request.PhoneNumber.Trim()
             };
 

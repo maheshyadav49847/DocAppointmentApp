@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import PhoneInput from "@/components/PhoneInput"
 import {
   useReactTable,
   getCoreRowModel,
@@ -123,7 +124,8 @@ export default function StaffPage() {
       lastName: formData.get('lastName'),
       employeeId: formData.get('employeeId'),
       phoneNumber: formData.get('phoneNumber'),
-      roleId: formData.get('role') as string
+      phoneNumberDialCode: formData.get('phoneNumberDialCode'),
+      roleName: formData.get('role') as string // Backend expects RoleName!
     }
     if (editingStaff) {
       updateMutation.mutate({ ...data, id: editingStaff.id })
@@ -178,7 +180,7 @@ export default function StaffPage() {
       cell: ({ row }) => (
         <div className="flex flex-col gap-1 text-sm text-slate-600 font-medium">
           <div className="flex items-center gap-2">
-            <Phone className="w-3.5 h-3.5 text-slate-400" /> {row.original.phoneNumber || 'N/A'}
+            <Phone className="w-3.5 h-3.5 text-slate-400" /> {row.original.phoneNumber ? `${row.original.phoneNumberDialCode || ''} ${row.original.phoneNumber}` : 'N/A'}
           </div>
           <div className="flex items-center gap-2">
             <Mail className="w-3.5 h-3.5 text-slate-400" /> {row.original.email}
@@ -391,7 +393,7 @@ export default function StaffPage() {
                         <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Phone className="w-4 h-4" /></div>
                         <div className="min-w-0">
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact</p>
-                          <p className="text-xs font-semibold text-slate-700 truncate">{member.phoneNumber || 'N/A'}</p>
+                          <p className="text-xs font-semibold text-slate-700 truncate">{member.phoneNumber ? `${member.phoneNumberDialCode || ''} ${member.phoneNumber}` : 'N/A'}</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
@@ -550,7 +552,12 @@ export default function StaffPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone
                     </label>
-                    <input type="tel" name="phoneNumber" defaultValue={editingStaff?.phoneNumber} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <PhoneInput
+                      name="phoneNumber"
+                      dialCodeName="phoneNumberDialCode"
+                      defaultValue={editingStaff?.phoneNumber}
+                      defaultDialCode={editingStaff?.phoneNumberDialCode}
+                    />
                     <FieldError errors={validationErrors} field="PhoneNumber" />
                   </div>
 
