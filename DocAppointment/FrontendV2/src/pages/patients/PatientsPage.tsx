@@ -648,25 +648,27 @@ export default function PatientsPage() {
                   <div>
                     <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact Details</h3>
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                          </label>
-                          <PhoneInput
-                            name="phone"
-                            dialCodeName="phoneDialCode"
-                            defaultValue={editingPatient?.phone}
-                            defaultDialCode={editingPatient?.phoneDialCode}
-                          />
-                        <FieldError errors={validationErrors} field="Phone" />
-                        </div>
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                          </label>
-                          <input defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
-                        <FieldError errors={validationErrors} field="Email" />
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                              <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                            </label>
+                            <PhoneInput
+                              name="phone"
+                              dialCodeName="phoneDialCode"
+                              defaultValue={editingPatient?.phone}
+                              defaultDialCode={editingPatient?.phoneDialCode}
+                            />
+                          <FieldError errors={validationErrors} field="Phone" />
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                              <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                            </label>
+                            <input defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
+                          <FieldError errors={validationErrors} field="Email" />
+                          </div>
                         </div>
                       </div>
 
@@ -692,7 +694,7 @@ export default function PatientsPage() {
                         <FieldError errors={validationErrors} field="PreExistingConditions" />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>

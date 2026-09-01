@@ -573,18 +573,18 @@ export default function DoctorsPage() {
                       </select>
                       <FieldError errors={validationErrors} field="Gender" />
                     </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Phone className="w-4 h-4 text-green-500" /> Mobile
-                      </label>
-                      <PhoneInput
-                        name="mobile"
-                        dialCodeName="mobileDialCode"
-                        defaultValue={editingDoctor?.mobile}
-                        defaultDialCode={editingDoctor?.mobileDialCode}
-                      />
-                      <FieldError errors={validationErrors} field="Mobile" />
-                    </div>
+                    <div className="col-span-1 sm:col-span-2">
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                          <Phone className="w-4 h-4 text-green-500" /> Mobile
+                        </label>
+                        <PhoneInput
+                          name="mobile"
+                          dialCodeName="mobileDialCode"
+                          defaultValue={editingDoctor?.mobile}
+                          defaultDialCode={editingDoctor?.mobileDialCode}
+                        />
+                        <FieldError errors={validationErrors} field="Mobile" />
+                      </div>
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
