@@ -281,17 +281,17 @@ namespace CodeX.Infrastructure.Persistence
         {
             try
             {
-                var urlSetting = await context.ApplicationSettings.FirstOrDefaultAsync(s => s.Key == "SaaSManagerUrl");
+                var urlSetting = await context.ApplicationSettings.FirstOrDefaultAsync(s => s.Key == "SaaSManagerCountriesUrl");
                 var keySetting = await context.ApplicationSettings.FirstOrDefaultAsync(s => s.Key == "SaaSManagerApiKey");
 
                 var config = serviceProvider.GetRequiredService<IConfiguration>();
                 
-                string saasUrl = urlSetting?.Value ?? config["SaaSManager:Url"] ?? "http://localhost:5048";
+                string saasCountriesUrl = urlSetting?.Value ?? config["SaaSManager:CountriesUrl"] ?? "http://localhost:5048/api/countries/public";
                 string saasKey = keySetting?.Value ?? config["SaaSManager:ApiKey"] ?? "";
 
                 if (urlSetting == null)
                 {
-                    context.ApplicationSettings.Add(new ApplicationSetting { Key = "SaaSManagerUrl", Value = saasUrl });
+                    context.ApplicationSettings.Add(new ApplicationSetting { Key = "SaaSManagerCountriesUrl", Value = saasCountriesUrl });
                 }
                 if (keySetting == null)
                 {
@@ -308,8 +308,7 @@ namespace CodeX.Infrastructure.Persistence
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Add("x-app-key", saasKey);
 
-                var endpoint = $"{saasUrl.TrimEnd('/')}/api/countries/public";
-                var response = await httpClient.GetAsync(endpoint);
+                var response = await httpClient.GetAsync(saasCountriesUrl);
 
                 if (!response.IsSuccessStatusCode)
                 {
