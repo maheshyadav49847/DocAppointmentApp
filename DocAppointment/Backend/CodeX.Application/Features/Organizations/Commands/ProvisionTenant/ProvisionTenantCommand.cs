@@ -31,6 +31,7 @@ namespace CodeX.Application.Features.Organizations.Commands.ProvisionTenant
         public string Name { get; init; } = string.Empty;
         public string Email { get; init; } = string.Empty;
         public string Phone { get; init; } = string.Empty;
+        public string PhoneCountryCode { get; init; } = "+91";
         public string PasswordHash { get; init; } = string.Empty;
     }
 
@@ -73,7 +74,8 @@ namespace CodeX.Application.Features.Organizations.Commands.ProvisionTenant
             var planData = request.Data.Plan;
 
             var normalizedEmail = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(t.Email);
-            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(t.Phone);
+            var dc = t.PhoneCountryCode?.Replace("+", "") ?? "91";
+            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(t.Phone, dc);
 
             // 0. Uniqueness Checks
             var emailExists = await _context.Staff.IgnoreQueryFilters().AnyAsync(s => s.Email == normalizedEmail, cancellationToken);
@@ -139,6 +141,7 @@ namespace CodeX.Application.Features.Organizations.Commands.ProvisionTenant
                 PasswordHash = t.PasswordHash,
                 RoleId = orgAdminRole?.Id,
                 PhoneNumber = normalizedPhone,
+                PhoneNumberDialCode = t.PhoneCountryCode ?? "+91",
                 IsActive = true
             };
 

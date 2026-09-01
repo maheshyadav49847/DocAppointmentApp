@@ -14,6 +14,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
         public string AdminEmail { get; init; } = string.Empty;
         public string AdminPassword { get; init; } = string.Empty;
         public string AdminPhoneNumber { get; init; } = string.Empty;
+        public string AdminPhoneNumberDialCode { get; init; } = "+91";
     }
 
     public class RegisterOrganizationCommandHandler : IRequestHandler<RegisterOrganizationCommand, Guid>
@@ -30,7 +31,8 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
         public async Task<Guid> Handle(RegisterOrganizationCommand request, CancellationToken cancellationToken)
         {
             var normalizedEmail = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizeEmail(request.AdminEmail);
-            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.AdminPhoneNumber);
+            var dc = request.AdminPhoneNumberDialCode?.Replace("+", "") ?? "91";
+            var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(request.AdminPhoneNumber, dc);
 
             // 0. Uniqueness Checks
             var emailExists = await _context.Staff.AnyAsync(s => s.Email == normalizedEmail, cancellationToken);
@@ -98,7 +100,8 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
                 LastName = lastName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.AdminPassword),
                 RoleId = orgAdminRole?.Id,
-                PhoneNumber = normalizedPhone
+                PhoneNumber = normalizedPhone,
+                PhoneNumberDialCode = request.AdminPhoneNumberDialCode ?? "+91"
             };
 
             _context.Staff.Add(admin);

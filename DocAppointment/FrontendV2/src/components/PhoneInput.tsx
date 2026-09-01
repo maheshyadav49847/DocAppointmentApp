@@ -64,34 +64,38 @@ export default function PhoneInput({
   }, [dialCode, countries, phone]);
 
   return (
-    <div className={`relative flex items-center w-full group ${className}`}>
-      <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 z-10 group-focus-within:text-indigo-500 transition-colors" />
+    <div className={`flex items-center w-full bg-slate-50 border border-slate-200 rounded-xl focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all ${disabled ? 'opacity-50 bg-slate-100' : ''} ${className}`}>
+      {/* Icon */}
+      <div className="pl-3.5 pr-2 text-slate-400 group-focus-within:text-indigo-500 transition-colors flex items-center justify-center shrink-0">
+        <Phone className="w-4 h-4" />
+      </div>
       
-      {/* Dial Code Dropdown */}
-      <select
-        value={dialCode || '+91'}
-        onChange={(e) => handleChange(phone || '', e.target.value)}
-        disabled={disabled}
-        className="absolute left-10 z-10 h-full bg-transparent text-sm text-slate-700 font-medium border-none focus:ring-0 cursor-pointer appearance-none outline-none"
-        style={{ paddingRight: '20px' }}
-      >
-        {countries?.map((c: any) => (
-          <option key={c.isoCode} value={c.dialCode}>
-            {c.isoCode} {c.dialCode}
-          </option>
-        ))}
-        {!countries && <option value="+91">IN +91</option>}
-      </select>
+      {/* Dial Code Dropdown Container */}
+      <div className="relative flex items-center shrink-0">
+        <select
+          value={dialCode || '+91'}
+          onChange={(e) => handleChange(phone || '', e.target.value)}
+          disabled={disabled}
+          className="h-10 bg-transparent text-sm text-slate-700 font-medium border-none focus:ring-0 cursor-pointer appearance-none outline-none pl-1 pr-6"
+        >
+          {countries?.map((c: any) => (
+            <option key={c.isoCode} value={c.dialCode}>
+              {c.isoCode} {c.dialCode}
+            </option>
+          ))}
+          {!countries && <option value="+91">IN +91</option>}
+        </select>
 
-      {/* Down chevron for custom select appearance */}
-      <div className="absolute left-[85px] z-10 pointer-events-none">
-        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        {/* Down chevron */}
+        <div className="absolute right-2 pointer-events-none flex items-center justify-center">
+          <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
       
       {/* Divider */}
-      <div className="absolute left-[105px] z-10 w-px h-5 bg-slate-200"></div>
+      <div className="w-px h-5 bg-slate-200 mx-1 shrink-0"></div>
 
       {name && <input type="hidden" name={name} value={phone} />}
       {dialCodeName && <input type="hidden" name={dialCodeName} value={dialCode || '+91'} />}
@@ -101,7 +105,6 @@ export default function PhoneInput({
         type="tel"
         value={phone}
         onChange={(e) => {
-          // Allow only digits and limit to 15 characters
           const val = e.target.value.replace(/\D/g, '').slice(0, 15);
           handleChange(val, dialCode || '+91');
         }}
@@ -109,7 +112,7 @@ export default function PhoneInput({
         onBlur={onBlur}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full pl-[120px] pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400 disabled:opacity-50 disabled:bg-slate-100"
+        className="flex-1 min-w-0 px-2 py-2.5 text-sm bg-transparent border-none outline-none text-slate-900 font-medium placeholder:text-slate-400"
         autoComplete="off"
       />
     </div>
