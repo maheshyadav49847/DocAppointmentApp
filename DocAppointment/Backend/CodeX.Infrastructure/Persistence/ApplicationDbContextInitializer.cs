@@ -328,13 +328,13 @@ namespace CodeX.Infrastructure.Persistence
                     var existingCountries = await context.Countries.ToDictionaryAsync(c => c.IsoCode);
                     foreach (var c in countries)
                     {
-                        var isoCode = string.IsNullOrEmpty(c.IsoCode) ? (string.IsNullOrEmpty(c.Code) ? "UNKNOWN" : c.Code) : c.IsoCode;
+                        var isoCode = string.IsNullOrEmpty(c.IsoCode) ? "UNKNOWN" : c.IsoCode;
                         
                         if (existingCountries.TryGetValue(isoCode, out var existing))
                         {
-                            existing.Name = c.Name ?? existing.Name;
+                            existing.Name = c.CountryName ?? existing.Name;
                             existing.DialCode = c.DialCode ?? existing.DialCode;
-                            existing.CurrencyCode = c.Currency ?? existing.CurrencyCode;
+                            existing.CurrencyCode = c.CurrencyCode ?? existing.CurrencyCode;
                             existing.CurrencySymbol = c.CurrencySymbol ?? existing.CurrencySymbol;
                             existing.IsActive = true;
                         }
@@ -342,10 +342,10 @@ namespace CodeX.Infrastructure.Persistence
                         {
                             context.Countries.Add(new Country
                             {
-                                Name = c.Name ?? "Unknown",
+                                Name = c.CountryName ?? "Unknown",
                                 IsoCode = isoCode,
                                 DialCode = c.DialCode ?? "",
-                                CurrencyCode = c.Currency ?? "",
+                                CurrencyCode = c.CurrencyCode ?? "",
                                 CurrencySymbol = c.CurrencySymbol ?? "",
                                 IsActive = true
                             });
@@ -363,11 +363,10 @@ namespace CodeX.Infrastructure.Persistence
 
         private class CountryDto
         {
-            public string? Name { get; set; }
-            public string? Code { get; set; }
+            public string? CountryName { get; set; }
             public string? IsoCode { get; set; }
             public string? DialCode { get; set; }
-            public string? Currency { get; set; }
+            public string? CurrencyCode { get; set; }
             public string? CurrencySymbol { get; set; }
         }
     }
