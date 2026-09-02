@@ -5,6 +5,7 @@ export interface Patient {
   patientCode: string
   name: string
   phone: string
+  phoneDialCode?: string
   email: string
   address: string
   age: string | number
@@ -15,6 +16,7 @@ export interface Patient {
   height: number
   emergencyContactName: string
   emergencyContactPhone: string
+  emergencyContactPhoneDialCode?: string
   organizationId: string
   branchId?: string
 }

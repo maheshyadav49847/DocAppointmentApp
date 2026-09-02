@@ -1,11 +1,12 @@
 import React, { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
-import { User, Calendar, Users, Droplet, MapPin, HeartPulse, UserPlus, Phone, Mail, Activity, Save, X, Ruler } from "lucide-react"
+import { User, Calendar, Users, Droplet, MapPin, HeartPulse, UserPlus, Phone, Mail, Activity, Save, X, Ruler, Pencil, Download } from "lucide-react"
 
 import { patientService, type Patient } from "@/services/patientService"
 import { useAuthStore } from "@/store/authStore"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
+import { FieldError } from "@/components/ui/FieldError"
 import PhoneInput from "@/components/PhoneInput"
 import { api } from "@/lib/axios"
 import toast from "react-hot-toast"
@@ -22,6 +23,7 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
   const [isDownloading, setIsDownloading] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<any>(null)
 
   const handleDownloadChats = async () => {
     if (!editingPatient) return;
@@ -120,7 +122,7 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
             <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
-                  {editingPatient ? <Edit className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+                  {editingPatient ? <Pencil className="w-6 h-6" /> : <Users className="w-6 h-6" />}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -249,7 +251,7 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
                               name="phone"
                               dialCodeName="phoneDialCode"
                               defaultValue={editingPatient?.phone}
-                              defaultDialCode={editingPatient?.phoneDialCode}
+                              defaultDialCode={(editingPatient as any)?.phoneDialCode}
                             />
                           <FieldError errors={validationErrors} field="Phone" />
                           </div>
@@ -301,7 +303,7 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
                             name="emergencyContactPhone"
                             dialCodeName="emergencyContactPhoneDialCode"
                             defaultValue={editingPatient?.emergencyContactPhone}
-                            defaultDialCode={editingPatient?.emergencyContactPhoneDialCode}
+                            defaultDialCode={(editingPatient as any)?.emergencyContactPhoneDialCode}
                           />
                         <FieldError errors={validationErrors} field="EmergencyContactPhone" />
                         </div>

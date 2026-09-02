@@ -38,7 +38,7 @@ export default function PhoneInput({
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const typeaheadBuffer = useRef("");
-  const typeaheadTimeout = useRef<NodeJS.Timeout>();
+  const typeaheadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isControlled = controlledPhone !== undefined;
   
@@ -199,13 +199,13 @@ export default function PhoneInput({
       {/* Divider */}
       <div className="w-px h-5 bg-slate-200 mx-1 shrink-0"></div>
 
-      {name && <input autoComplete="off" type="hidden" name={name} value={phone} />}
+      {name && <input autoComplete="off" type="hidden" name={name} value={phone || ''} />}
       {dialCodeName && <input autoComplete="off" type="hidden" name={dialCodeName} value={dialCode || '+91'} />}
 
       {/* Phone Number Input */}
       <input
         type="tel"
-        value={phone}
+        value={phone || ''}
         onChange={(e) => {
           const val = e.target.value.replace(/\D/g, '').slice(0, 15);
           handleChange(val, dialCode || '+91');

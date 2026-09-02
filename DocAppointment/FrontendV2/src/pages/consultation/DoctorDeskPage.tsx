@@ -519,9 +519,9 @@ export default function DoctorDeskPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
                           <div className="flex items-center gap-1 mt-0.5">
-                            {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" title="WhatsApp Booking" /> :
-                             token.source === 3 ? <Send className="w-3 h-3 text-sky-500" title="Telegram Booking" /> :
-                             <Phone className="w-3 h-3 text-slate-400" title="Walk-in/Phone Booking" />}
+                            {token.source === 0 ? <span title="WhatsApp Booking"><Smartphone className="w-3 h-3 text-emerald-500" /></span> :
+                             token.source === 3 ? <span title="Telegram Booking"><Send className="w-3 h-3 text-sky-500" /></span> :
+                             <span title="Walk-in/Phone Booking"><Phone className="w-3 h-3 text-slate-400" /></span>}
                             <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
                           </div>
                         </div>
@@ -543,9 +543,9 @@ export default function DoctorDeskPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-slate-800 text-sm truncate">{token.patientName}</p>
                           <div className="flex items-center gap-1 mt-0.5">
-                            {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" title="WhatsApp Booking" /> :
-                             token.source === 3 ? <Send className="w-3 h-3 text-sky-500" title="Telegram Booking" /> :
-                             <Phone className="w-3 h-3 text-slate-400" title="Walk-in/Phone Booking" />}
+                            {token.source === 0 ? <span title="WhatsApp Booking"><Smartphone className="w-3 h-3 text-emerald-500" /></span> :
+                             token.source === 3 ? <span title="Telegram Booking"><Send className="w-3 h-3 text-sky-500" /></span> :
+                             <span title="Walk-in/Phone Booking"><Phone className="w-3 h-3 text-slate-400" /></span>}
                             <p className="text-xs text-slate-500 truncate">{token.patientPhone || 'No Phone'}</p>
                           </div>
                         </div>

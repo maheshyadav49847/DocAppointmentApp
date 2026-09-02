@@ -6,6 +6,7 @@ export interface Doctor {
   specialization: string
   contactNumber?: string
   mobile?: string
+  mobileDialCode?: string
   emailId?: string
   gender?: string
   qualification?: string
