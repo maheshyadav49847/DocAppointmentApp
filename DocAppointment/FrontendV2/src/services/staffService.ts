@@ -47,5 +47,9 @@ export const staffService = {
   deleteStaff: async (id: string) => {
     const response = await api.delete(`/staff/${id}`);
     return response.data;
+  },
+  toggleStatus: async (id: string) => {
+    const response = await api.post(`/staff/${id}/toggle-status`);
+    return response.data;
   }
 };

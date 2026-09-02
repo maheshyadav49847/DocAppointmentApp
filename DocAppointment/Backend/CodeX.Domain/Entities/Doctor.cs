@@ -7,7 +7,7 @@ namespace CodeX.Domain.Entities
         public Guid OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Specialization { get; set; } = string.Empty;
-        public string? RegistrationNumber { get; set; }
+        public string RegistrationNumber { get; set; } = string.Empty;
         public decimal ConsultationFee { get; set; } = 0;
         public string? Gender { get; set; }
         public string? Qualification { get; set; }

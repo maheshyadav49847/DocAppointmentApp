@@ -3,6 +3,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Staff.Commands.CreateStaff;
 using CodeX.Application.Features.Staff.Commands.DeleteStaff;
 using CodeX.Application.Features.Staff.Commands.UpdateStaff;
+using CodeX.Application.Features.Staff.Commands.UnlockStaff;
 using CodeX.Application.Features.Staff.Queries.GetStaffList;
 using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -86,6 +87,14 @@ namespace CodeX.Api.Controllers
         {
             await Mediator.Send(new DeleteStaffCommand(id));
             return NoContent();
+        }
+
+        [HttpPost("{id}/toggle-status")]
+        [HasPermission(SystemPermissions.Staff.Edit)]
+        public async Task<ActionResult> ToggleStatus(Guid id)
+        {
+            var newStatus = await Mediator.Send(new CodeX.Application.Features.Staff.Commands.ToggleStaffStatus.ToggleStaffStatusCommand(id));
+            return Ok(new { isActive = newStatus });
         }
     }
 }

@@ -44,9 +44,11 @@ namespace CodeX.Application.Features.Auth.Commands.ResetPassword
             PasswordValidator.Validate(request.NewPassword, _configuration);
             staff.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
-            // Clear token
+            // Clear token and unlock account
             staff.PasswordResetToken = null;
             staff.ResetTokenExpiry = null;
+            staff.FailedLoginAttempts = 0;
+            staff.LockoutEnd = null;
 
             await _context.SaveChangesAsync(cancellationToken);
 

@@ -18,6 +18,9 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
         public Guid? BranchId { get; init; }
         public string? BranchName { get; init; }
         public DateTime CreatedAt { get; init; }
+        public bool IsLockedOut { get; init; }
+        public DateTime? LockoutEnd { get; init; }
+        public bool IsActive { get; init; }
     }
 
     public record GetStaffListQuery(Guid OrganizationId, Guid? BranchId) : IRequest<List<StaffDto>>;
@@ -47,6 +50,8 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
                 query = query.Where(s => s.BranchId == null);
             }
 
+            var now = DateTime.UtcNow;
+
             return await query
                 .Select(s => new StaffDto
                 {
@@ -61,7 +66,10 @@ namespace CodeX.Application.Features.Staff.Queries.GetStaffList
                     OrganizationId = s.OrganizationId,
                     BranchId = s.BranchId,
                     BranchName = s.Branch != null ? s.Branch.Name : null,
-                    CreatedAt = s.CreatedAt
+                    CreatedAt = s.CreatedAt,
+                    IsLockedOut = s.LockoutEnd.HasValue && s.LockoutEnd > now,
+                    LockoutEnd = s.LockoutEnd,
+                    IsActive = s.IsActive
                 })
                 .ToListAsync(cancellationToken);
         }

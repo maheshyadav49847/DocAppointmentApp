@@ -9,7 +9,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
         public Guid Id { get; init; }
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
-        public string? RegistrationNumber { get; init; }
+        public string RegistrationNumber { get; init; } = string.Empty;
         public string? Gender { get; init; }
         public string? Qualification { get; init; }
         public string? Experience { get; init; }

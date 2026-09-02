@@ -13,7 +13,7 @@ import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 
 import {
   UserCog, Search, Plus, Edit, Trash2,
-  X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, Building2, CheckCircle
+  X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, CheckCircle, LockKeyholeOpen, Lock
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -25,7 +25,7 @@ import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
 
 export default function StaffPage() {
-  const { user, activeBranchId, setActiveBranchId } = useAuthStore()
+  const { user, activeBranchId } = useAuthStore()
   const { can } = usePermissions()
   const orgId = user?.orgId
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || ''
@@ -33,7 +33,7 @@ export default function StaffPage() {
 
   const queryClient = useQueryClient()
   const selectedBranchId = role === 'orgadmin' ? (activeBranchId || 'org') : (globalBranchId || 'org');
-  const setSelectedBranchId = setActiveBranchId
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingStaff, setEditingStaff] = useState<any>(null)
@@ -44,12 +44,6 @@ export default function StaffPage() {
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  })
-
-  const { data: branches } = useQuery({
-    queryKey: ['staff-branches', orgId],
-    queryFn: () => staffService.getBranches(),
-    enabled: !!orgId
   })
 
   const { data: staff, isLoading } = useQuery({
@@ -111,6 +105,17 @@ export default function StaffPage() {
     },
     onError: (error: any) => {
       handleApiError(error, 'Failed to delete staff')
+    }
+  })
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (id: string) => staffService.toggleStatus(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] })
+      toast.success(data?.isActive ? 'Staff account unlocked & activated' : 'Staff account locked & deactivated')
+    },
+    onError: (error: any) => {
+      handleApiError(error, 'Failed to change staff status')
     }
   })
 
@@ -186,7 +191,19 @@ export default function StaffPage() {
               {row.original.firstName?.[0]?.toUpperCase() || row.original.email[0].toUpperCase()}
             </div>
             <div>
-              <div className="font-bold text-slate-800">{row.original.firstName} {row.original.lastName}</div>
+              <div className="font-bold text-slate-800 flex items-center gap-2">
+                {row.original.firstName} {row.original.lastName}
+                {row.original.isLockedOut && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 uppercase">
+                    <Lock className="w-3 h-3" /> Locked
+                  </span>
+                )}
+                {!row.original.isActive && !row.original.isLockedOut && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">
+                    <Lock className="w-3 h-3" /> Deactivated
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-slate-500 mt-0.5 font-medium flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-indigo-400" /> {displayRole}
               </div>
@@ -243,10 +260,21 @@ export default function StaffPage() {
               <Trash2 className="w-4 h-4" />
             </button>
           )}
+          {can('Staff.Edit') && (
+            <button
+              onClick={() => {
+                if (confirm(row.original.isActive ? 'Manually lock this staff member?' : 'Unlock & activate this staff member?')) toggleStatusMutation.mutate(row.original.id)
+              }}
+              className={`p-2 rounded-lg transition-colors ${row.original.isActive ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
+              title={row.original.isActive ? "Lock Staff" : "Unlock Staff"}
+            >
+              {row.original.isActive ? <Lock className="w-4 h-4" /> : <LockKeyholeOpen className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       )
     }
-  ], [role, deleteMutation, setEditingStaff, setIsDrawerOpen, setResettingStaff, can])
+  ], [role, deleteMutation, toggleStatusMutation, setEditingStaff, setIsDrawerOpen, setResettingStaff, can])
 
   const table = useReactTable({
     data: filteredStaff,
@@ -391,7 +419,19 @@ export default function StaffPage() {
                             {member.firstName?.[0]?.toUpperCase() || member.email[0].toUpperCase()}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{member.firstName} {member.lastName}</h3>
+                            <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                              {member.firstName} {member.lastName}
+                              {member.isLockedOut && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 uppercase">
+                                  <Lock className="w-3 h-3" /> Locked
+                                </span>
+                              )}
+                              {!member.isActive && !member.isLockedOut && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase">
+                                  <Lock className="w-3 h-3" /> Deactivated
+                                </span>
+                              )}
+                            </h3>
                             <div className="flex items-center gap-2 mt-2">
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
                                 <ShieldCheck className="w-3 h-3" /> {displayRole}
@@ -460,6 +500,24 @@ export default function StaffPage() {
                           className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
                         >
                           <Trash2 className="w-4 h-4" /> Delete
+                        </button>
+                      )}
+                      {can('Staff.Edit') && (
+                        <button
+                          onClick={() => {
+                            if (confirm(member.isActive ? 'Manually lock this staff member?' : 'Unlock & activate this staff member?')) toggleStatusMutation.mutate(member.id)
+                          }}
+                          className={`flex-1 px-3 py-2 text-xs font-bold border rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                            member.isActive
+                              ? 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100'
+                              : 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {member.isActive ? (
+                            <><Lock className="w-4 h-4" /> Lock</>
+                          ) : (
+                            <><LockKeyholeOpen className="w-4 h-4" /> Unlock</>
+                          )}
                         </button>
                       )}
                     </div>

@@ -53,6 +53,11 @@ namespace CodeX.Application.Features.Auth.Commands.Login
                 throw new Exception("This organization does not exist or has been disabled. Please contact support.");
             }
 
+            if (!staff.IsActive)
+            {
+                throw new Exception("Your account has been locked by an administrator. Please contact support.");
+            }
+
             // Check Account Lockout
             if (staff.LockoutEnd.HasValue && staff.LockoutEnd > DateTime.UtcNow)
             {

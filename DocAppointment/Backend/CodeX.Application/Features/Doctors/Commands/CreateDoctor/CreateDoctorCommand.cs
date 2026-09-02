@@ -11,7 +11,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
         public List<Guid> BranchIds { get; init; } = new List<Guid>();
         public string Name { get; init; } = string.Empty;
         public string Specialization { get; init; } = string.Empty;
-        public string? RegistrationNumber { get; init; }
+        public string RegistrationNumber { get; init; } = string.Empty;
         public string? Gender { get; init; }
         public string? Qualification { get; init; }
         public string? Experience { get; init; }
@@ -38,7 +38,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
             
             var name = request.Name.Trim();
             var specialization = request.Specialization.Trim();
-            var regNum = request.RegistrationNumber?.Trim();
+            var regNum = request.RegistrationNumber.Trim();
 
             // Code-level check: Prevent duplicate doctor name in the same Organization
             var duplicateExists = await _context.Doctors

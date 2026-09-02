@@ -1,11 +1,11 @@
-﻿namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
+namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
 {
     public class DoctorDto
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Specialization { get; set; } = string.Empty;
-        public string? RegistrationNumber { get; set; }
+        public string RegistrationNumber { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
         public List<Guid> BranchIds { get; set; } = new();
         public string? Gender { get; set; }
