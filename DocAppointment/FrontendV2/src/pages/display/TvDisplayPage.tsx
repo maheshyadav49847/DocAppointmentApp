@@ -143,7 +143,7 @@ function SingleDoctorView({ queue }: { queue: any }) {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-indigo-50/50 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
       {/* Doctor Header */}
-      <div className="px-12 py-10 flex items-center justify-between border-b border-slate-100 bg-white/60 backdrop-blur-md z-10 relative">
+      <div className="px-12 py-10 flex items-center justify-between border-b border-slate-100 bg-white/60 backdrop-blur-md z-10 relative shrink-0">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 rounded-[1.5rem] bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-4xl font-black text-white shadow-lg shadow-indigo-200">
             {queue.doctorName?.charAt(0) || "D"}
@@ -161,22 +161,22 @@ function SingleDoctorView({ queue }: { queue: any }) {
       </div>
 
       {/* Giant Token Display */}
-      <div className="flex-1 flex items-center justify-center relative z-10">
+      <div className="flex-1 min-h-0 flex items-center justify-center relative z-10">
         {queue.status === 2 ? (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center bg-amber-50 border-2 border-amber-200 px-24 py-16 rounded-[3rem] shadow-xl text-center"
+            className="flex flex-col items-center bg-amber-50 border-2 border-amber-200 px-16 py-10 rounded-[3rem] shadow-xl text-center"
           >
-            <div className="w-32 h-32 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-8">
-              <Pause className="w-16 h-16" />
+            <div className="w-24 h-24 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-6">
+              <Pause className="w-12 h-12" />
             </div>
-            <h2 className="text-6xl font-black text-amber-800 tracking-tight mb-4">Doctor on Break</h2>
-            <p className="text-3xl text-amber-600 font-medium max-w-xl">
+            <h2 className="text-5xl font-black text-amber-800 tracking-tight mb-3">Doctor on Break</h2>
+            <p className="text-2xl text-amber-600 font-medium max-w-xl">
               {queue.pauseReason || "The session is temporarily paused. We will resume shortly."}
             </p>
             {queue.pausedUntil && (
-              <p className="text-2xl text-amber-700 font-bold mt-8 bg-amber-200/50 px-8 py-4 rounded-full">
+              <p className="text-xl text-amber-700 font-bold mt-6 bg-amber-200/50 px-6 py-3 rounded-full">
                 Resuming at {new Date(queue.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
@@ -189,7 +189,7 @@ function SingleDoctorView({ queue }: { queue: any }) {
             transition={{ type: "spring", damping: 18, stiffness: 100 }}
             className="flex flex-col items-center"
           >
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-4">
               <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
               <p className="text-slate-400 uppercase tracking-[0.4em] text-2xl font-bold">Now Serving</p>
               <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -197,25 +197,25 @@ function SingleDoctorView({ queue }: { queue: any }) {
             
             <div className="relative group">
               <div className="absolute inset-0 bg-indigo-500/10 blur-[100px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-1000"></div>
-              <div className="relative text-[20rem] font-black leading-none text-indigo-600 tracking-tighter drop-shadow-sm tabular-nums">
+              <div className="relative text-[12rem] font-black leading-none text-indigo-600 tracking-tighter drop-shadow-sm tabular-nums">
                 {queue.currentTokenNumber}
               </div>
             </div>
 
-            <div className="mt-8 bg-slate-50 border border-slate-100 rounded-lg px-12 py-4 shadow-sm">
+            <div className="mt-6 bg-slate-50 border border-slate-100 rounded-lg px-12 py-4 shadow-sm">
               <p className="text-4xl font-bold text-slate-700 tracking-tight">{queue.currentPatientName}</p>
             </div>
           </motion.div>
         ) : (
           <div className="flex flex-col items-center text-center">
-            <div className="text-[12rem] font-black text-slate-100 mb-4 leading-none">—</div>
+            <div className="text-[6rem] font-black text-slate-100 mb-4 leading-none">—</div>
             <p className="text-3xl text-slate-400 font-bold uppercase tracking-widest">Waiting to start</p>
           </div>
         )}
       </div>
 
       {/* Upcoming Tokens Strip */}
-      <div className="px-12 py-8 bg-slate-50/80 border-t border-slate-100 flex items-center gap-8 z-10 backdrop-blur-sm">
+      <div className="px-12 py-8 bg-slate-50/80 border-t border-slate-100 flex items-center gap-8 z-10 backdrop-blur-sm shrink-0">
         <div className="shrink-0 flex items-center gap-4">
           <div className="w-2.5 h-12 rounded-full bg-indigo-400"></div>
           <p className="text-slate-500 uppercase tracking-[0.25em] text-xl font-black">Up Next</p>
