@@ -105,6 +105,24 @@ export default function DoctorsPage() {
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
+    
+    const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+    
+    if (password && password.length < 8) {
+      setValidationErrors({
+        Password: ["Password must be at least 8 characters."]
+      });
+      return;
+    }
+
+    if (password && password !== confirmPassword) {
+      setValidationErrors({
+        ConfirmPassword: ["Passwords do not match."]
+      });
+      return;
+    }
+
     const data = {
       name: formData.get('name') as string,
       specialization: formData.get('specialization') as string,
@@ -116,7 +134,7 @@ export default function DoctorsPage() {
       experience: formData.get('experience') as string,
       registrationNumber: formData.get('registrationNumber') as string,
       branchIds: formData.getAll('branchIds') as string[],
-      password: formData.get('password') as string || undefined,
+      password: password || undefined,
       organizationId: orgId!,
     }
     mutation.mutate(data)
@@ -555,126 +573,134 @@ export default function DoctorsPage() {
                 <form noValidate autoComplete="off" id="doctor-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={apiError} />
                   
-                  {/* Section 1: Personal Details */}
-                  <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Personal Details</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="col-span-1 sm:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <User className="w-4 h-4 text-blue-500" /> Full Name
-                        </label>
-                        <input autoComplete="off" name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
-                        <FieldError errors={validationErrors} field="Name" />
-                      </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Users className="w-4 h-4 text-pink-500" /> Gender
-                        </label>
-                        <select name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                        </select>
-                        <FieldError errors={validationErrors} field="Gender" />
-                      </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
-                        </label>
-                        <Input autoComplete="new-password" name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
-                        <FieldError errors={validationErrors} field="Password" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 2: Contact Details */}
-                  <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact Details</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="col-span-1 sm:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Phone className="w-4 h-4 text-green-500" /> Mobile
-                        </label>
-                        <PhoneInput
-                          name="mobile"
-                          dialCodeName="mobileDialCode"
-                          defaultValue={editingDoctor?.mobile}
-                          defaultDialCode={editingDoctor?.mobileDialCode}
-                        />
-                        <FieldError errors={validationErrors} field="Mobile" />
-                      </div>
-                      <div className="col-span-1 sm:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Mail className="w-4 h-4 text-rose-500" /> Email
-                        </label>
-                        <input autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
-                        <FieldError errors={validationErrors} field="EmailId" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Section 3: Qualification Details */}
-                  <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Qualification Details</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="col-span-1 sm:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
-                        </label>
-                        <input autoComplete="off" name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
-                        <FieldError errors={validationErrors} field="Specialization" />
-                      </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
-                        </label>
-                        <input autoComplete="off" name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
-                        <FieldError errors={validationErrors} field="Qualification" />
-                      </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs)
-                        </label>
-                        <input autoComplete="off" name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
-                        <FieldError errors={validationErrors} field="Experience" />
-                      </div>
-                      <div className="col-span-1 sm:col-span-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <ShieldCheck className="w-4 h-4 text-teal-500" /> Registration No.
-                        </label>
-                        <input autoComplete="off" name="registrationNumber" defaultValue={editingDoctor?.registrationNumber} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MCI-12345" />
-                        <FieldError errors={validationErrors} field="RegistrationNumber" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-zinc-100">
-                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-3">
-                      <Building2 className="w-4 h-4 text-emerald-500" /> Assign to Branches
-                    </label>
-                    {!branches ? (
-                      <div className="text-sm text-zinc-500">Loading branches...</div>
-                    ) : branches.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        {branches.map((branch: any) => (
-                          <label key={branch.id} className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              name="branchIds"
-                              value={branch.id}
-                              defaultChecked={editingDoctor?.branchIds?.some((id: string) => id.toLowerCase() === branch.id.toLowerCase())}
-                              className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
-                            />
-                            {branch.name}
+                    {/* Section 1: Personal Details */}
+                    <div>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Personal Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <User className="w-4 h-4 text-blue-500" /> Full Name
                           </label>
-                        ))}
+                          <input autoComplete="off" name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
+                          <FieldError errors={validationErrors} field="Name" />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Users className="w-4 h-4 text-pink-500" /> Gender
+                          </label>
+                          <select name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <FieldError errors={validationErrors} field="Gender" />
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-sm text-amber-600">No branches found. Please create a branch first.</div>
-                    )}
-                    <FieldError errors={validationErrors} field="BranchIds" />
-                  </div>
+                    </div>
+
+                    {/* Section 2: Contact & Login Details */}
+                    <div>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact & Login Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Phone className="w-4 h-4 text-green-500" /> Mobile
+                          </label>
+                          <PhoneInput
+                            name="mobile"
+                            dialCodeName="mobileDialCode"
+                            defaultValue={editingDoctor?.mobile}
+                            defaultDialCode={editingDoctor?.mobileDialCode}
+                          />
+                          <FieldError errors={validationErrors} field="Mobile" />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Mail className="w-4 h-4 text-rose-500" /> Email
+                          </label>
+                          <input autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
+                          <FieldError errors={validationErrors} field="EmailId" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
+                          </label>
+                          <Input autoComplete="new-password" name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank if unchanged" : "••••••••"} />
+                          <FieldError errors={validationErrors} field="Password" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Confirm Password
+                          </label>
+                          <Input autoComplete="new-password" name="confirmPassword" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="••••••••" />
+                          <FieldError errors={validationErrors} field="ConfirmPassword" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Qualification Details */}
+                    <div>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Qualification Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
+                          </label>
+                          <input autoComplete="off" name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
+                          <FieldError errors={validationErrors} field="Specialization" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
+                          </label>
+                          <input autoComplete="off" name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
+                          <FieldError errors={validationErrors} field="Qualification" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs)
+                          </label>
+                          <input autoComplete="off" name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
+                          <FieldError errors={validationErrors} field="Experience" />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <ShieldCheck className="w-4 h-4 text-teal-500" /> Registration No.
+                          </label>
+                          <input autoComplete="off" name="registrationNumber" defaultValue={editingDoctor?.registrationNumber} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MCI-12345" />
+                          <FieldError errors={validationErrors} field="RegistrationNumber" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 4: Assigned Branches */}
+                    <div>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Assigned Branches</h3>
+                      <div>
+                        {!branches ? (
+                          <div className="text-sm text-zinc-500">Loading branches...</div>
+                        ) : branches.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {branches.map((branch: any) => (
+                              <label key={branch.id} className="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name="branchIds"
+                                  value={branch.id}
+                                  defaultChecked={editingDoctor?.branchIds?.some((id: string) => id.toLowerCase() === branch.id.toLowerCase())}
+                                  className="rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                                />
+                                {branch.name}
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-amber-600">No branches found. Please create a branch first.</div>
+                        )}
+                        <FieldError errors={validationErrors} field="BranchIds" />
+                      </div>
+                    </div>
                 </form>
               </div>
 
@@ -712,3 +738,4 @@ export default function DoctorsPage() {
     </div>
   )
 }
+

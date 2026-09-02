@@ -119,6 +119,26 @@ export default function StaffPage() {
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
+
+    if (!editingStaff) {
+      const password = formData.get('password') as string;
+      const confirmPassword = formData.get('confirmPassword') as string;
+      
+      if (!password || password.length < 8) {
+        setValidationErrors({
+          Password: ["Password must be at least 8 characters."]
+        });
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setValidationErrors({
+          ConfirmPassword: ["Passwords do not match."]
+        });
+        return;
+      }
+    }
+
     const data: any = {
       email: formData.get('email'),
       firstName: formData.get('firstName'),
@@ -203,7 +223,7 @@ export default function StaffPage() {
                 <Edit className="w-4 h-4" />
               </button>
               <button
-                onClick={() => { setResettingStaff(row.original); }}
+                onClick={() => { setValidationErrors({}); setResettingStaff(row.original); }}
                 className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                 title="Reset Password"
               >
@@ -424,7 +444,7 @@ export default function StaffPage() {
                             <Edit className="w-4 h-4" /> Edit
                           </button>
                           <button
-                            onClick={() => { setResettingStaff(member); }}
+                            onClick={() => { setValidationErrors({}); setResettingStaff(member); }}
                             className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
                           >
                             <Key className="w-4 h-4" /> Reset
@@ -567,13 +587,22 @@ export default function StaffPage() {
                           <FieldError errors={validationErrors} field="PhoneNumber" />
                         </div>
                         {!editingStaff && (
-                          <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                              <Key className="w-4 h-4 text-amber-500" /> Password
-                            </label>
-                            <Input autoComplete="new-password" type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
-                            <FieldError errors={validationErrors} field="Password" />
-                          </div>
+                          <>
+                            <div>
+                              <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                                <Key className="w-4 h-4 text-amber-500" /> Password
+                              </label>
+                              <Input autoComplete="new-password" type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                              <FieldError errors={validationErrors} field="Password" />
+                            </div>
+                            <div>
+                              <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                                <Key className="w-4 h-4 text-amber-500" /> Confirm Password
+                              </label>
+                              <Input autoComplete="new-password" type="password" name="confirmPassword" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                              <FieldError errors={validationErrors} field="ConfirmPassword" />
+                            </div>
+                          </>
                         )}
                       </div>
                     </div>
@@ -636,28 +665,55 @@ export default function StaffPage() {
               </div>
               <form noValidate autoComplete="off" onSubmit={(e) => {
                 e.preventDefault()
+                setValidationErrors({})
                 const formData = new FormData(e.currentTarget)
                 const newPassword = formData.get('password') as string
+                const confirmPassword = formData.get('confirmPassword') as string
+                
+                if (!newPassword || newPassword.length < 8) {
+                  setValidationErrors({ Password: ["Password must be at least 8 characters."] });
+                  return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                  setValidationErrors({ ConfirmPassword: ["Passwords do not match."] });
+                  return;
+                }
+
                 updateMutation.mutate({
                   ...resettingStaff,
                   newPassword
                 })
                 setResettingStaff(null)
               }}>
-                <div className="p-6">
+                <div className="p-6 space-y-4">
                   <ApiErrorAlert error={updateMutation.error} className="mb-4" />
-                  <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
-                  <Input
-                    type="password"
-                    name="password"
-                    minLength={8}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Min 8 characters"
-                    autoFocus
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                    <Input
+                      type="password"
+                      name="password"
+                      minLength={8}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="••••••••"
+                      autoFocus
+                    />
+                    <FieldError errors={validationErrors} field="Password" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
+                    <Input
+                      type="password"
+                      name="confirmPassword"
+                      minLength={8}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="••••••••"
+                    />
+                    <FieldError errors={validationErrors} field="ConfirmPassword" />
+                  </div>
                 </div>
                 <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                  <button type="button" onClick={() => setResettingStaff(null)} className="btn-danger">Cancel</button>
+                  <button type="button" onClick={() => { setValidationErrors({}); setResettingStaff(null); }} className="btn-danger">Cancel</button>
                   <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
                     {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
                   </button>
