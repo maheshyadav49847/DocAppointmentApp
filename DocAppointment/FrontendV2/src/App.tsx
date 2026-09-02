@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast"
 import AuthLayout from "./layouts/AuthLayout"
 import DashboardLayout from "./layouts/DashboardLayout"
 import LoginPage from "./pages/auth/LoginPage"
-import RegisterPage from "./pages/auth/RegisterPage"
+
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage"
 import QueueDashboardPage from "./pages/queue/QueueDashboardPage"
 import AnalyticsPage from "./pages/analytics/AnalyticsPage"
@@ -69,7 +69,7 @@ function App() {
       <Routes>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-          <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+
           <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
         </Route>
 
