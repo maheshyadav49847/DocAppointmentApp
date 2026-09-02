@@ -511,85 +511,95 @@ export default function StaffPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate id="staff-form" onSubmit={handleSubmit} className="space-y-6">
-                  <ApiErrorAlert error={apiError} />
+                  <form noValidate id="staff-form" onSubmit={handleSubmit} className="space-y-6">
+                    <ApiErrorAlert error={apiError} />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Section 1: Employee Details */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <User className="w-4 h-4 text-blue-500" /> First Name
-                      </label>
-                      <input name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      <FieldError errors={validationErrors} field="FirstName" />
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Employee Details</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="col-span-1 sm:col-span-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Hash className="w-4 h-4 text-teal-500" /> Employee ID
+                          </label>
+                          <input name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <FieldError errors={validationErrors} field="EmployeeId" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <User className="w-4 h-4 text-blue-500" /> First Name
+                          </label>
+                          <input name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <FieldError errors={validationErrors} field="FirstName" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <User className="w-4 h-4 text-blue-500" /> Last Name
+                          </label>
+                          <input name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <FieldError errors={validationErrors} field="LastName" />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <User className="w-4 h-4 text-blue-500" /> Last Name
-                      </label>
-                      <input name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      <FieldError errors={validationErrors} field="LastName" />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Section 2: Contact & Login Details */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Mail className="w-4 h-4 text-rose-500" /> Email
-                      </label>
-                      <input type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      <FieldError errors={validationErrors} field="Email" />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Hash className="w-4 h-4 text-teal-500" /> Employee ID
-                      </label>
-                      <input name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                      <FieldError errors={validationErrors} field="EmployeeId" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone
-                    </label>
-                    <PhoneInput
-                      name="phoneNumber"
-                      dialCodeName="phoneNumberDialCode"
-                      defaultValue={editingStaff?.phoneNumber}
-                      defaultDialCode={editingStaff?.phoneNumberDialCode}
-                    />
-                    <FieldError errors={validationErrors} field="PhoneNumber" />
-                  </div>
-
-                  {!editingStaff && (
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Key className="w-4 h-4 text-amber-500" /> Password
-                      </label>
-                      <input type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
-                      <FieldError errors={validationErrors} field="Password" />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-3">
-                      <ShieldCheck className="w-4 h-4 text-purple-500" /> Assign Role
-                    </label>
-                    <div className="space-y-2">
-                      {availableRoles.filter((r: any) => selectedBranchId === 'org' ? ['OrgAdmin', 'SuperAdmin'].includes(r.name) : !['OrgAdmin', 'SuperAdmin'].includes(r.name)).map((r: any) => (
-                        <label key={r.id} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
-                          <input type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact & Login Details</h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Mail className="w-4 h-4 text-rose-500" /> Email
+                          </label>
+                          <input type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <FieldError errors={validationErrors} field="Email" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone
+                          </label>
+                          <PhoneInput
+                            name="phoneNumber"
+                            dialCodeName="phoneNumberDialCode"
+                            defaultValue={editingStaff?.phoneNumber}
+                            defaultDialCode={editingStaff?.phoneNumberDialCode}
+                          />
+                          <FieldError errors={validationErrors} field="PhoneNumber" />
+                        </div>
+                        {!editingStaff && (
                           <div>
-                            <p className="text-sm font-semibold text-zinc-900">{r.name}</p>
-                            <p className="text-xs text-zinc-500">{r.description || `Access level: ${r.name}`}</p>
+                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                              <Key className="w-4 h-4 text-amber-500" /> Password
+                            </label>
+                            <input type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
+                            <FieldError errors={validationErrors} field="Password" />
                           </div>
-                        </label>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                    <FieldError errors={validationErrors} field="Role" />
-                  </div>
 
-                </form>
+                    {/* Section 3: Roles & Permissions */}
+                    <div>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Roles & Permissions</h3>
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-3">
+                          <ShieldCheck className="w-4 h-4 text-purple-500" /> Assign Role
+                        </label>
+                        <div className="space-y-2">
+                          {availableRoles.filter((r: any) => selectedBranchId === 'org' ? ['OrgAdmin', 'SuperAdmin'].includes(r.name) : !['OrgAdmin', 'SuperAdmin'].includes(r.name)).map((r: any) => (
+                            <label key={r.id} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
+                              <input type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
+                              <div>
+                                <p className="text-sm font-semibold text-zinc-900">{r.name}</p>
+                                <p className="text-xs text-zinc-500">{r.description || `Access level: ${r.name}`}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                        <FieldError errors={validationErrors} field="Role" />
+                      </div>
+                    </div>
+
+                  </form>
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
