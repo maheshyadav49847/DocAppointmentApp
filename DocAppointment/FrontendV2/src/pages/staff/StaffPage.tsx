@@ -63,7 +63,7 @@ export default function StaffPage() {
     queryFn: staffService.getRoles
   })
 
-  const availableRoles = dbRoles.filter(r => role === 'superadmin' ? true : r.name !== 'SuperAdmin')
+  const availableRoles = dbRoles.filter(r => (role === 'superadmin' ? true : r.name !== 'SuperAdmin') && r.name !== 'Doctor')
 
   const createMutation = useMutation({
     mutationFn: (data: any) => staffService.createStaff({
