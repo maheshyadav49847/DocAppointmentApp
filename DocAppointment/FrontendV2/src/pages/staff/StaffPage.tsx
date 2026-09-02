@@ -581,8 +581,8 @@ export default function StaffPage() {
                           <PhoneInput
                             name="phoneNumber"
                             dialCodeName="phoneNumberDialCode"
-                            defaultValue={editingStaff?.phoneNumber}
-                            defaultDialCode={editingStaff?.phoneNumberDialCode}
+                            defaultValue={editingStaff?.phoneNumber?.replace(/^\+\d+/, '') || editingStaff?.phoneNumber}
+                            defaultDialCode={editingStaff?.phoneNumberDialCode || '+91'}
                           />
                           <FieldError errors={validationErrors} field="PhoneNumber" />
                         </div>

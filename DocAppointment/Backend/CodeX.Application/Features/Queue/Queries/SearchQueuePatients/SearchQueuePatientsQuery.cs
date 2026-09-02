@@ -6,7 +6,7 @@ namespace CodeX.Application.Features.Queue.Queries.SearchQueuePatients
 {
     public record SearchQueuePatientsQuery(Guid? BranchId, string SearchTerm) : IRequest<List<QueuePatientDto>>;
 
-    public record QueuePatientDto(Guid Id, string Name, string Phone, string? Address);
+    public record QueuePatientDto(Guid Id, string Name, string Phone, string? PhoneDialCode, string? Address);
 
     public class SearchQueuePatientsQueryHandler : IRequestHandler<SearchQueuePatientsQuery, List<QueuePatientDto>>
     {
@@ -50,7 +50,7 @@ namespace CodeX.Application.Features.Queue.Queries.SearchQueuePatients
             return await query
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(10) // Only need top 10 for autocomplete
-                .Select(p => new QueuePatientDto(p.Id, p.Name, p.Phone, p.Address))
+                .Select(p => new QueuePatientDto(p.Id, p.Name, p.Phone, p.PhoneDialCode, p.Address))
                 .ToListAsync(cancellationToken);
         }
     }

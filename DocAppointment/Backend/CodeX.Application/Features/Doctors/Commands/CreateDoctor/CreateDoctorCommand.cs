@@ -16,6 +16,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
         public string? Qualification { get; init; }
         public string? Experience { get; init; }
         public string? Mobile { get; init; }
+        public string? MobileDialCode { get; init; }
         public string? EmailId { get; init; }
         public string? Password { get; init; }
     }
@@ -61,6 +62,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
                 Qualification = request.Qualification,
                 Experience = request.Experience,
                 Mobile = request.Mobile,
+                MobileDialCode = request.MobileDialCode,
                 EmailId = request.EmailId
             };
 

@@ -784,8 +784,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     <PhoneInput 
                       name="patientPhone" 
                       dialCodeName="patientPhoneDialCode"
-                      defaultValue={editingToken.patientPhone?.replace(/^\+\d+/, '') || editingToken.patientPhone}
-                      defaultDialCode={editingToken.patientPhone?.match(/^\+\d+/)?.[0] || '+91'}
+                      defaultValue={editingToken.patientPhone}
+                      defaultDialCode={editingToken.patientPhoneDialCode || '+91'}
                     />
                   </div>
                 <div className="pt-4 flex gap-3">

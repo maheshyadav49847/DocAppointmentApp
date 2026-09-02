@@ -340,6 +340,7 @@ namespace CodeX.Api.Controllers
                     tokenNumber = t.TokenNumber,
                     patientName = t.Patient?.Name ?? "Unknown",
                     patientPhone = t.Patient?.Phone ?? "",
+                    patientPhoneDialCode = t.Patient?.PhoneDialCode ?? "+91",
                     source = t.Source,
                     status = t.Status,
                     isPriority = t.IsPriority,

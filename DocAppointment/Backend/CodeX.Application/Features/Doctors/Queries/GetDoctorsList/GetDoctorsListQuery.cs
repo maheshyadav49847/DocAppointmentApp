@@ -34,6 +34,7 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
                 Qualification = d.Qualification,
                 Experience = d.Experience,
                 Mobile = d.Mobile,
+                MobileDialCode = d.MobileDialCode,
                 EmailId = d.EmailId
             }).ToList();
         }

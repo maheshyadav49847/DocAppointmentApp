@@ -610,8 +610,8 @@ export default function DoctorsPage() {
                           <PhoneInput
                             name="mobile"
                             dialCodeName="mobileDialCode"
-                            defaultValue={editingDoctor?.mobile}
-                            defaultDialCode={editingDoctor?.mobileDialCode}
+                            defaultValue={editingDoctor?.mobile?.replace(/^\+\d+/, '') || editingDoctor?.mobile}
+                            defaultDialCode={editingDoctor?.mobileDialCode || '+91'}
                           />
                           <FieldError errors={validationErrors} field="Mobile" />
                         </div>

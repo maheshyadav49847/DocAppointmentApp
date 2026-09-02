@@ -14,6 +14,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
         public string? Qualification { get; init; }
         public string? Experience { get; init; }
         public string? Mobile { get; init; }
+        public string? MobileDialCode { get; init; }
         public string? EmailId { get; init; }
         public List<Guid> BranchIds { get; init; } = new List<Guid>();
         public string? Password { get; init; }
@@ -67,6 +68,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
             doctor.Qualification = request.Qualification;
             doctor.Experience = request.Experience;
             doctor.Mobile = request.Mobile;
+            doctor.MobileDialCode = request.MobileDialCode;
             doctor.EmailId = request.EmailId;
 
             // Update Branch Assignments
