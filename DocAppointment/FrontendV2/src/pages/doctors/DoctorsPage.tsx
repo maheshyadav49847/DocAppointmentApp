@@ -90,6 +90,27 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
     }
   })
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await doctorService.updateDoctor(data.id, data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['doctors'] })
+      setResettingDoctor(null)
+      setApiError(null)
+      setValidationErrors({})
+      toast.success("Password reset successfully")
+    },
+    onError: (error: any) => {
+      setApiError(error)
+      if (error.response?.data?.errors) {
+        setValidationErrors(error.response.data.errors)
+      } else if (error.response?.data?.extensions?.errors) {
+        setValidationErrors(error.response.data.extensions.errors)
+      }
+    }
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => doctorService.deleteDoctor(id),
     onSuccess: () => {
@@ -370,6 +391,17 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                             </span>
                           </div>
                         </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedDoctorForFeedbacks(row.original)
+                          setIsFeedbacksDrawerOpen(true)
+                        }}
+                        className="shrink-0 p-2 text-yellow-600 bg-yellow-50 hover:bg-yellow-100 hover:scale-105 rounded-xl transition-all border border-yellow-200 flex items-center justify-center shadow-sm"
+                        title="View Feedbacks"
+                      >
+                        <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                      </button>
                       </div>
                     </div>
 
@@ -426,17 +458,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                   </div>
 
                   {/* Footer Actions */}
-                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto flex-wrap">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedDoctorForFeedbacks(row.original)
-                        setIsFeedbacksDrawerOpen(true)
-                      }}
-                      className="flex-1 px-3 py-2 text-xs font-bold text-yellow-700 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Star className="w-4 h-4" /> Feedbacks
-                    </button>
+                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2 mt-auto">
                     {can('Doctors.Edit') && (
                       <>
                         <button
