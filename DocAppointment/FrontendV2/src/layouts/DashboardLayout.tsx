@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save } from "lucide-react"
 import toast from "react-hot-toast"
+import { Input } from "@/components/ui/input"
 
 import { BrandLogo } from "@/components/BrandLogo"
 import { useAuthStore } from "@/store/authStore"
@@ -432,43 +433,52 @@ export default function DashboardLayout() {
                   setIsChangingPassword(false)
                 }
               }}>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Old Password</label>
-                    <Input
-                      type="password"
-                      name="oldPassword"
-                      required
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <Key className="w-4 h-4 text-amber-500" /> Old Password
+                      </label>
+                      <Input
+                        type="password"
+                        name="oldPassword"
+                        required
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <Key className="w-4 h-4 text-amber-500" /> New Password
+                      </label>
+                      <Input
+                        type="password"
+                        name="newPassword"
+                        required
+                        minLength={8}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <CheckCircle className="w-4 h-4 text-emerald-500" /> Confirm New Password
+                      </label>
+                      <Input
+                        type="password"
+                        name="confirmNewPassword"
+                        required
+                        minLength={8}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
-                    <Input
-                      type="password"
-                      name="newPassword"
-                      required
-                      minLength={8}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
+                  <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
+                    <button type="button" onClick={() => setChangePasswordOpen(false)} className="btn-secondary px-4 py-2 text-sm flex items-center gap-1.5">
+                      <X className="w-4 h-4" /> Cancel
+                    </button>
+                    <button type="submit" disabled={isChangingPassword} className="btn-primary text-sm flex items-center gap-1.5">
+                      {isChangingPassword ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      {isChangingPassword ? 'Saving...' : 'Change Password'}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
-                    <Input
-                      type="password"
-                      name="confirmNewPassword"
-                      required
-                      minLength={8}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                  <button type="button" onClick={() => setChangePasswordOpen(false)} className="btn-secondary px-4 py-2 text-sm">Cancel</button>
-                  <button type="submit" disabled={isChangingPassword} className="btn-primary text-sm">
-                    {isChangingPassword ? 'Saving...' : 'Change Password'}
-                  </button>
-                </div>
               </form>
             </motion.div>
           </div>

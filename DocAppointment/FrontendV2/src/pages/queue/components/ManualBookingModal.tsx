@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, Printer } from "lucide-react"
+import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, Printer, CheckCircle } from "lucide-react"
 import { queueService } from "@/services/queueService"
 import { motion, AnimatePresence } from "framer-motion"
 import PhoneInput from "@/components/PhoneInput"
@@ -135,7 +135,9 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
 
               <div className="space-y-5">
                 <div className="relative z-20">
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Patient Name</label>
+                  <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-1.5 ml-1">
+                    <User className="w-4 h-4 text-indigo-500" /> Patient Name
+                  </label>
                   <div className="relative group">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
                     <input autoComplete="off" 
@@ -169,9 +171,11 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   </div>
                 </div>
 
-                <div className="relative z-10">
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">WhatsApp Number <span className="text-zinc-400 font-normal ml-1">Opt</span></label>
-                    <div className="relative group">
+                  <div className="relative z-10">
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-1.5 ml-1">
+                      <Phone className="w-4 h-4 text-emerald-500" /> WhatsApp Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                    </label>
+                      <div className="relative group">
                       <PhoneInput
                         phone={phone}
                         dialCode={phoneDialCode}
@@ -207,13 +211,13 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
               </div>
 
               <div className="mt-8 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={onClose}
-                  className="flex-1 btn-danger"
-                >
-                  <X className="w-4 h-4" /> Cancel
-                </button>
+                  <button 
+                    type="button" 
+                    onClick={onClose}
+                    className="flex-1 py-2.5 px-4 border border-rose-500 text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <X className="w-4 h-4" /> Cancel
+                  </button>
                 <button 
                   type="submit"
                   disabled={createTokenMutation.isPending}
@@ -228,37 +232,27 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
               </div>
             </form>
             </>
-            ) : (
-              <div className="p-8 flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-                  <Ticket className="w-10 h-10" />
+            ) : ( <div className="p-8 flex flex-col items-center justify-center text-center">
+                  <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+                    <Ticket className="w-10 h-10" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Token #{successToken.tokenNumber || successToken.TokenNumber} Generated!</h2>
+                  <p className="text-slate-500 mb-8">
+                    Estimated wait time: <span className="font-bold text-slate-700">{successToken.estimatedWaitMinutes || successToken.EstimatedWaitMinutes} mins</span>
+                  </p>
+                  <div className="w-full">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setSuccessToken(null);
+                        onClose();
+                      }}
+                      className="w-full btn-primary flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Done
+                    </button>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Token #{successToken.tokenNumber || successToken.TokenNumber} Generated!</h2>
-                <p className="text-slate-500 mb-8">
-                  Estimated wait time: <span className="font-bold text-slate-700">{successToken.estimatedWaitMinutes || successToken.EstimatedWaitMinutes} mins</span>
-                </p>
-                <div className="flex gap-3 w-full">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      window.print();
-                    }}
-                    className="flex-1 py-2.5 px-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Printer className="w-4 h-4" /> Print
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setSuccessToken(null);
-                      onClose();
-                    }}
-                    className="flex-1 btn-primary"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
             )}
           </motion.div>
         </div>

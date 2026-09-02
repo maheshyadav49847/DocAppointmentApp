@@ -690,7 +690,9 @@ export default function StaffPage() {
                 <div className="p-6 space-y-4">
                   <ApiErrorAlert error={updateMutation.error} className="mb-4" />
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                      <Key className="w-4 h-4 text-amber-500" /> New Password
+                    </label>
                     <Input
                       type="password"
                       name="password"
@@ -702,7 +704,9 @@ export default function StaffPage() {
                     <FieldError errors={validationErrors} field="Password" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
+                    <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                      <CheckCircle className="w-4 h-4 text-emerald-500" /> Confirm New Password
+                    </label>
                     <Input
                       type="password"
                       name="confirmPassword"
@@ -714,8 +718,11 @@ export default function StaffPage() {
                   </div>
                 </div>
                 <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                  <button type="button" onClick={() => { setValidationErrors({}); setResettingStaff(null); }} className="btn-danger">Cancel</button>
-                  <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+                  <button type="button" onClick={() => { setValidationErrors({}); setResettingStaff(null); }} className="btn-danger flex items-center gap-1.5">
+                    <X className="w-4 h-4" /> Cancel
+                  </button>
+                  <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex items-center gap-1.5">
+                    {updateMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
                   </button>
                 </div>
