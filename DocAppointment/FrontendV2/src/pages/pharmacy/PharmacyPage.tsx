@@ -326,7 +326,7 @@ export default function PharmacyPage() {
               </button>
             </div>
           ) : (
-            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative overflow-hidden">
+            <div className="bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm relative overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">

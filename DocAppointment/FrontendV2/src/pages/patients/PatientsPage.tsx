@@ -175,6 +175,7 @@ export default function PatientsPage() {
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center justify-end gap-1">
           {can('Patients.Edit') && (
@@ -313,7 +314,7 @@ export default function PatientsPage() {
         {/* View Content */}
         <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {viewMode === 'table' ? (
-            <div className="bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm relative">
+            <div className="bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm relative">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
                   {table.getHeaderGroups().map(headerGroup => (

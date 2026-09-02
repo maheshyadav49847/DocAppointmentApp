@@ -211,6 +211,7 @@ export default function StaffPage() {
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {can('Staff.Edit') && (
@@ -349,7 +350,7 @@ export default function StaffPage() {
               <p className="text-sm text-slate-500 mt-1">Try adjusting your search or add a new staff member.</p>
             </div>
           ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead>
                   {table.getHeaderGroups().map(headerGroup => (

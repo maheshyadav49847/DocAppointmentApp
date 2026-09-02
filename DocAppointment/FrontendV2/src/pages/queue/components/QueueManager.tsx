@@ -695,7 +695,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     </td>
                     {activeTab !== 'completed' && activeTab !== 'cancelled' && (
                       <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2">
                           {t.status === 3 && can('Queue.RestoreToken') && (
                             <button onClick={() => requeueMutation.mutate(t.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 font-medium text-sm flex items-center gap-1" title="Requeue">
                               <RotateCcw className="w-4 h-4" /> Restore

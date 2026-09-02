@@ -190,6 +190,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <button
@@ -484,7 +485,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
             )}
           </div>
         ) : (
-            <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto bg-white rounded-b-xl border border-slate-200 shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/80 sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
                   {table.getHeaderGroups().map(headerGroup => (

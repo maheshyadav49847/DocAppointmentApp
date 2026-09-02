@@ -174,6 +174,7 @@ export default function BranchesPage() {
     },
     {
       id: "actions",
+      header: "Actions",
       cell: ({ row }) => {
         const branch = row.original
         const isActiveContext = branch.id === currentBranchId
@@ -318,7 +319,7 @@ export default function BranchesPage() {
               <p className="text-sm text-slate-500 mt-1">Try adjusting your search or add a new facility.</p>
             </div>
           ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto bg-white sm:rounded-xl sm:border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm">
               <table className="w-full text-left border-collapse">
                 <thead>
                   {table.getHeaderGroups().map(headerGroup => (
