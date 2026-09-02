@@ -34,6 +34,7 @@ function DoctorRatingBadge({ doctor, onClick }: { doctor: Doctor; onClick: (e: R
     queryKey: ['doctor-feedbacks', doctor.id],
     queryFn: async () => {
       const res = await api.get(`/ratings/doctor/${doctor.id}`)
+      return res.data
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -45,7 +46,7 @@ function DoctorRatingBadge({ doctor, onClick }: { doctor: Doctor; onClick: (e: R
       title="View Feedbacks"
     >
       <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-      <span className="text-xs font-bold">{isLoading ? '...' : (data?.averageRating?.toFixed(1) || '0.0')}</span>
+      <span className="text-xs font-bold">{isLoading ? '...' : (data?.averageScore?.toFixed(1) || '0.0')}</span>
     </button>
   );
 }
@@ -415,18 +416,15 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                             </span>
                           </div>
                         </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedDoctorForFeedbacks(row.original)
-                          setIsFeedbacksDrawerOpen(true)
-                        }}
-                        className="shrink-0 p-2 text-yellow-600 bg-yellow-50 hover:bg-yellow-100 hover:scale-105 rounded-xl transition-all border border-yellow-200 flex items-center justify-center shadow-sm"
-                        title="View Feedbacks"
-                      >
-                        <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
-                      </button>
                       </div>
+                      <DoctorRatingBadge 
+                          doctor={row.original} 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedDoctorForFeedbacks(row.original)
+                            setIsFeedbacksDrawerOpen(true)
+                          }}
+                        />
                     </div>
 
                     {/* Subtext equivalent */}
@@ -852,26 +850,33 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                   ...resettingDoctor,
                   password: newPassword
                 })
-                setResettingDoctor(null)
+
               }}>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
-                    <Input autoComplete="new-password" name="password" type="password" placeholder="••••••••" className="w-full" />
-                    <FieldError errors={validationErrors} field="Password" />
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <Key className="w-4 h-4 text-amber-500" /> New Password
+                      </label>
+                      <Input autoComplete="new-password" name="password" type="password" placeholder="••••••••" className="w-full" />
+                      <FieldError errors={validationErrors} field="Password" />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <CheckCircle className="w-4 h-4 text-emerald-500" /> Confirm New Password
+                      </label>
+                      <Input autoComplete="new-password" name="confirmPassword" type="password" placeholder="••••••••" className="w-full" />
+                      <FieldError errors={validationErrors} field="ConfirmPassword" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
-                    <Input autoComplete="new-password" name="confirmPassword" type="password" placeholder="••••••••" className="w-full" />
-                    <FieldError errors={validationErrors} field="ConfirmPassword" />
+                  <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
+                    <button type="button" onClick={() => { setValidationErrors({}); setResettingDoctor(null); }} className="btn-danger flex items-center gap-1.5">
+                      <X className="w-4 h-4" /> Cancel
+                    </button>
+                    <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex items-center gap-1.5">
+                      {updateMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
+                    </button>
                   </div>
-                </div>
-                <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                  <button type="button" onClick={() => { setValidationErrors({}); setResettingDoctor(null); }} className="btn-danger">Cancel</button>
-                  <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
-                    {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
-                  </button>
-                </div>
               </form>
             </motion.div>
           </div>
