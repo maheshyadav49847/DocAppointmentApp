@@ -1,4 +1,4 @@
-namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
+﻿namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
 {
     public class DoctorDto
     {
@@ -14,5 +14,7 @@ namespace CodeX.Application.Features.Doctors.Queries.GetDoctorsList
         public string? Mobile { get; set; }
         public string? MobileDialCode { get; set; }
         public string? EmailId { get; set; }
+        public double AverageRating { get; set; }
+        public int TotalReviews { get; set; }
     }
 }

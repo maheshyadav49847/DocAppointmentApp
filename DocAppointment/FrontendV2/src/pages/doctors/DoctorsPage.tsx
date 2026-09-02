@@ -13,10 +13,11 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Stethoscope, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
-  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key
+  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key, CheckCircle
 } from "lucide-react"
 import toast from "react-hot-toast"
 
+import { api } from "@/lib/axios"
 import { doctorService } from "@/services/doctorService"
 import type { Doctor } from "@/services/doctorService"
 import { useAuthStore } from "@/store/authStore"
@@ -27,7 +28,30 @@ import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
 import DoctorFeedbacksDrawer from "./components/DoctorFeedbacksDrawer"
 
+
+function DoctorRatingBadge({ doctor, onClick }: { doctor: Doctor; onClick: (e: React.MouseEvent) => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['doctor-feedbacks', doctor.id],
+    queryFn: async () => {
+      const res = await api.get(`/ratings/doctor/${doctor.id}`)
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return (
+    <button
+      onClick={onClick}
+      className="shrink-0 px-2 py-1.5 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 hover:scale-105 rounded-xl transition-all border border-yellow-200 flex items-center justify-center shadow-sm gap-1.5"
+      title="View Feedbacks"
+    >
+      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+      <span className="text-xs font-bold">{isLoading ? '...' : (data?.averageRating?.toFixed(1) || '0.0')}</span>
+    </button>
+  );
+}
+
 export default function DoctorsPage() {
+
   const [globalFilter, setGlobalFilter] = useState("")
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)

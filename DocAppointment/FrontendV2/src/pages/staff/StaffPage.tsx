@@ -13,7 +13,7 @@ import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 
 import {
   UserCog, Search, Plus, Edit, Trash2,
-  X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, Building2
+  X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, Building2, CheckCircle
 } from "lucide-react"
 import toast from "react-hot-toast"
 
