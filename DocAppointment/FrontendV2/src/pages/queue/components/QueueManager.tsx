@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
   User, Save, ArrowLeft, RotateCcw, Power, Users, CheckCircle2, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
-  Play, Search, PlusCircle, Edit, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
+  Play, Search, PlusCircle, Pencil, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
 } from "lucide-react"
 // Removed unused import
 import { queueService } from "@/services/queueService"
@@ -714,7 +714,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                             <>
                               {can('Queue.EditPatient') && (
                                 <button onClick={() => setEditingToken(t)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-transparent hover:border-slate-200" title="Edit Patient">
-                                  <Edit className="w-4 h-4" />
+                                  <Pencil className="w-4 h-4" />
                                 </button>
                               )}
                               {can('Queue.CancelToken') && (
@@ -762,7 +762,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                      <Edit className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </div>
                     Edit Token #{editingToken.tokenNumber}
                   </h2>
