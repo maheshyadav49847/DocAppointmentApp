@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
-import { Users, Edit, X, User, Calendar, Droplet, Ruler, Phone, Mail, MapPin, HeartPulse, UserPlus, Activity, Save, Download } from "lucide-react"
+import { User, Calendar, Users, Droplet, MapPin, HeartPulse, UserPlus, Phone, Mail, Activity, Save, X, Ruler } from "lucide-react"
 
 import { patientService, type Patient } from "@/services/patientService"
 import { useAuthStore } from "@/store/authStore"
@@ -70,10 +70,12 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setValidationErrors({})
     const formData = new FormData(e.currentTarget)
     const data = {
       name: formData.get('name') as string,
       phone: (formData.get('phone') as string) || undefined,
+      phoneDialCode: (formData.get('phoneDialCode') as string) || undefined,
       age: formData.get('age') as string,
       gender: formData.get('gender') as string,
       maritalStatus: formData.get('maritalStatus') as string,
@@ -84,8 +86,9 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
       height: parseInt(formData.get('height') as string) || 0,
       emergencyContactName: formData.get('emergencyContactName') as string,
       emergencyContactPhone: formData.get('emergencyContactPhone') as string,
+      emergencyContactPhoneDialCode: formData.get('emergencyContactPhoneDialCode') as string,
       organizationId: user?.orgId!,
-      branchId: (!selectedBranch || selectedBranch === 'all' ? undefined : selectedBranch) as string | undefined
+      branchId: (selectedBranch === 'all' ? undefined : selectedBranch) as string | undefined
     }
     if (editingPatient) {
       updateMutation.mutate(data)
@@ -153,145 +156,160 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
 
             <div className="flex-1 overflow-y-auto p-6">
               <form noValidate autoComplete="off" id="patient-form" onSubmit={handleSubmit} className="space-y-6">
-                <ApiErrorAlert error={editingPatient ? updateMutation.error : mutation.error} />
+                  <ApiErrorAlert error={editingPatient ? updateMutation.error : mutation.error} />
 
-                {/* Section 1: Personal Info */}
-                <div>
-                  <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Personal Information</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <User className="w-4 h-4 text-blue-500" /> Full Name
-                      </label>
-                      <input autoComplete="off" defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
-                    </div>
+                  {/* Section 1: Personal Info */}
+                  <div>
+                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Personal Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                          <User className="w-4 h-4 text-blue-500" /> Full Name
+                        </label>
+                        <input autoComplete="off" defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
+                        <FieldError errors={validationErrors} field="Name" />
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Calendar className="w-4 h-4 text-orange-500" /> Age
-                        </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Calendar className="w-4 h-4 text-orange-500" /> Age
+                          </label>
+                          <input autoComplete="off" defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                        <FieldError errors={validationErrors} field="Age" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Users className="w-4 h-4 text-pink-500" /> Gender
+                          </label>
+                          <select defaultValue={editingPatient?.gender} name="gender" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        <FieldError errors={validationErrors} field="Gender" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Users className="w-4 h-4 text-pink-500" /> Gender
-                        </label>
-                        <select defaultValue={editingPatient?.gender} name="gender" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
-                          <option value="">Select</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Droplet className="w-4 h-4 text-red-500" /> Blood Group
-                        </label>
-                        <select defaultValue={editingPatient?.bloodGroup} name="bloodGroup" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
-                          <option value="">Select</option>
-                          <option value="A+">A+</option>
-                          <option value="A-">A-</option>
-                          <option value="B+">B+</option>
-                          <option value="B-">B-</option>
-                          <option value="AB+">AB+</option>
-                          <option value="AB-">AB-</option>
-                          <option value="O+">O+</option>
-                          <option value="O-">O-</option>
-                        </select>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Droplet className="w-4 h-4 text-red-500" /> Blood Group
+                          </label>
+                          <select defaultValue={editingPatient?.bloodGroup} name="bloodGroup" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                            <option value="">Select</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                          </select>
+                        <FieldError errors={validationErrors} field="BloodGroup" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Users className="w-4 h-4 text-orange-500" /> Marital Status
+                          </label>
+                          <select defaultValue={editingPatient?.maritalStatus} name="maritalStatus" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                            <option value="">Select Status</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                            <option value="Widowed">Widowed</option>
+                          </select>
+                        <FieldError errors={validationErrors} field="MaritalStatus" />
+                        </div>
                       </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Users className="w-4 h-4 text-orange-500" /> Marital Status
-                        </label>
-                        <select defaultValue={editingPatient?.maritalStatus} name="maritalStatus" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
-                          <option value="">Select Status</option>
-                          <option value="Single">Single</option>
-                          <option value="Married">Married</option>
-                          <option value="Divorced">Divorced</option>
-                          <option value="Widowed">Widowed</option>
-                        </select>
-                      </div>
+
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
                         <input autoComplete="off" defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
+                        <FieldError errors={validationErrors} field="Height" />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Section 2: Contact Details */}
-                <div>
-                  <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact Details</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Phone className="w-4 h-4 text-green-500" /> Phone Number
-                        </label>
-                        <PhoneInput
-                          name="phone"
-                          dialCodeName="phoneDialCode"
-                          defaultValue={editingPatient?.phone}
-                          defaultDialCode={editingPatient?.phoneDialCode}
-                        />
+                  {/* Section 2: Contact Details */}
+                  <div>
+                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact Details</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                              <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                            </label>
+                            <PhoneInput
+                              name="phone"
+                              dialCodeName="phoneDialCode"
+                              defaultValue={editingPatient?.phone}
+                              defaultDialCode={editingPatient?.phoneDialCode}
+                            />
+                          <FieldError errors={validationErrors} field="Phone" />
+                          </div>
+                          <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                              <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                            </label>
+                            <input autoComplete="off" defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
+                          <FieldError errors={validationErrors} field="Email" />
+                          </div>
+                        </div>
                       </div>
+
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                          <MapPin className="w-4 h-4 text-rose-500" /> Address <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <MapPin className="w-4 h-4 text-rose-500" /> Address <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                      </label>
-                      <textarea autoComplete="off" defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Clinical & Emergency */}
-                <div>
-                  <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Clinical & Emergency</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <HeartPulse className="w-4 h-4 text-rose-500" /> Pre-existing Conditions <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                      </label>
-                      <input autoComplete="off" defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                        </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
-                      </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                        </label>
-                        <PhoneInput
-                          name="emergencyContactPhone"
-                          dialCodeName="emergencyContactPhoneDialCode"
-                          defaultValue={editingPatient?.emergencyContactPhone}
-                          defaultDialCode={editingPatient?.emergencyContactPhoneDialCode}
-                        />
+                        <textarea autoComplete="off" defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
+                        <FieldError errors={validationErrors} field="Address" />
                       </div>
                     </div>
                   </div>
-                </div>
 
-              </form>
+                  {/* Section 3: Clinical & Emergency */}
+                  <div>
+                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Clinical & Emergency</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                          <HeartPulse className="w-4 h-4 text-rose-500" /> Pre-existing Conditions <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                        </label>
+                        <input autoComplete="off" defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
+                        <FieldError errors={validationErrors} field="PreExistingConditions" />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                          </label>
+                          <input autoComplete="off" defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
+                        <FieldError errors={validationErrors} field="EmergencyContactName" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                            <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                          </label>
+                          <PhoneInput
+                            name="emergencyContactPhone"
+                            dialCodeName="emergencyContactPhoneDialCode"
+                            defaultValue={editingPatient?.emergencyContactPhone}
+                            defaultDialCode={editingPatient?.emergencyContactPhoneDialCode}
+                          />
+                        <FieldError errors={validationErrors} field="EmergencyContactPhone" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </form>
             </div>
 
             <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">

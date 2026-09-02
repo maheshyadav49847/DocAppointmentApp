@@ -200,13 +200,22 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
             <Star className="w-4 h-4" />
           </button>
           {can('Doctors.Edit') && (
-            <button
-              onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
-              className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Edit Doctor"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                onClick={() => { setEditingDoctor(row.original); setIsDrawerOpen(true); }}
+                className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Edit Doctor"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setValidationErrors({}); setResettingDoctor(row.original); }}
+                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                title="Reset Password"
+              >
+                <Key className="w-4 h-4" />
+              </button>
+            </>
           )}
           {can('Doctors.Delete') && (
             <button
@@ -428,16 +437,25 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                       <Star className="w-4 h-4" /> Feedbacks
                     </button>
                     {can('Doctors.Edit') && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditingDoctor(row.original)
-                          setIsDrawerOpen(true)
-                        }}
-                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Edit className="w-4 h-4" /> Edit
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingDoctor(row.original)
+                            setIsDrawerOpen(true)
+                          }}
+                          className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <Edit className="w-4 h-4" /> Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setValidationErrors({}); setResettingDoctor(row.original); }}
+                          className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                          title="Reset Password"
+                        >
+                          <Key className="w-4 h-4" /> Reset
+                        </button>
+                      </>
                     )}
                     {can('Doctors.Delete') && (
                       <button
