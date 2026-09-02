@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/axios';
 import { Phone } from 'lucide-react';
@@ -32,10 +32,13 @@ export default function PhoneInput({
   defaultValue = "",
   defaultDialCode = "+91"
 }: PhoneInputProps) {
-  const [internalPhone, setInternalPhone] = React.useState(defaultValue);
-  const [internalDialCode, setInternalDialCode] = React.useState(defaultDialCode);
-  const [isOpen, setIsOpen] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const [internalPhone, setInternalPhone] = useState(defaultValue);
+  const [internalDialCode, setInternalDialCode] = useState(defaultDialCode);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const typeaheadBuffer = useRef("");
+  const typeaheadTimeout = useRef<NodeJS.Timeout>();
 
   const isControlled = controlledPhone !== undefined;
   
@@ -49,6 +52,7 @@ export default function PhoneInput({
     }
     if (onChange) onChange(p, dc);
   };
+  
   const { data: countries } = useQuery({
     queryKey: ['countries'],
     queryFn: async () => {
@@ -77,6 +81,62 @@ export default function PhoneInput({
     };
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      // Focus the selected item if available
+      const selectedIso = countries?.find((c: any) => c.dialCode === dialCode)?.isoCode || 'IN';
+      const selectedEl = document.getElementById(`country-${selectedIso}`);
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'nearest' });
+        selectedEl.focus();
+      }
+    } else {
+      typeaheadBuffer.current = "";
+    }
+  }, [isOpen, dialCode, countries]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      return;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const focusable = Array.from(dropdownRef.current?.querySelectorAll('button[id^="country-"]') || []) as HTMLElement[];
+      const currentIndex = focusable.findIndex(el => el === document.activeElement);
+      if (e.key === "ArrowDown") {
+        const next = focusable[currentIndex + 1 < focusable.length ? currentIndex + 1 : 0];
+        if (next) { next.focus(); next.scrollIntoView({ block: 'nearest' }); }
+      } else {
+        const prev = focusable[currentIndex - 1 >= 0 ? currentIndex - 1 : focusable.length - 1];
+        if (prev) { prev.focus(); prev.scrollIntoView({ block: 'nearest' }); }
+      }
+      return;
+    }
+
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const char = e.key.toLowerCase();
+      typeaheadBuffer.current += char;
+      
+      if (typeaheadTimeout.current) clearTimeout(typeaheadTimeout.current);
+      typeaheadTimeout.current = setTimeout(() => {
+        typeaheadBuffer.current = "";
+      }, 500);
+
+      const match = countries?.find((c: any) => c.name.toLowerCase().startsWith(typeaheadBuffer.current));
+      if (match) {
+        const el = document.getElementById(`country-${match.isoCode}`);
+        if (el) {
+          el.scrollIntoView({ block: 'nearest' });
+          el.focus();
+        }
+      }
+    }
+  };
+
   return (
     <div className={`flex items-center w-full bg-slate-50 border border-slate-200 rounded-xl focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className}`}>
       {/* Icon */}
@@ -85,7 +145,7 @@ export default function PhoneInput({
       </div>
       
       {/* Custom Dial Code Dropdown */}
-      <div className="relative flex items-center shrink-0" ref={dropdownRef}>
+      <div className="relative flex items-center shrink-0" ref={dropdownRef} onKeyDown={handleKeyDown}>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
@@ -104,12 +164,13 @@ export default function PhoneInput({
               countries.map((c: any) => (
                 <button
                   key={c.isoCode}
+                  id={`country-${c.isoCode}`}
                   type="button"
                   onClick={() => {
                     handleChange(phone || '', c.dialCode);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between ${
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 outline-none focus:bg-indigo-50 transition-colors flex items-center justify-between ${
                     dialCode === c.dialCode ? 'bg-indigo-50/50 text-indigo-600 font-semibold' : 'text-slate-700 font-medium'
                   }`}
                 >
@@ -120,11 +181,12 @@ export default function PhoneInput({
             ) : (
               <button
                 type="button"
+                id="country-IN"
                 onClick={() => {
                   handleChange(phone || '', '+91');
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between text-indigo-600 font-semibold bg-indigo-50/50"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 outline-none focus:bg-indigo-50 transition-colors flex items-center justify-between text-indigo-600 font-semibold bg-indigo-50/50"
               >
                 <span>India</span>
                 <span className="text-slate-400 font-normal shrink-0">+91</span>
