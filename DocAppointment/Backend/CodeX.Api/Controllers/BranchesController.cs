@@ -186,6 +186,7 @@ namespace CodeX.Api.Controllers
             branch.Name = name;
             branch.Address = updatedBranch.Address;
             branch.WhatsAppNumber = updatedBranch.WhatsAppNumber;
+            branch.WhatsAppDialCode = updatedBranch.WhatsAppDialCode ?? "+91";
             branch.IsActive = updatedBranch.IsActive;
             branch.LogoBase64 = updatedBranch.LogoBase64;
             branch.TelegramBotToken = updatedBranch.TelegramBotToken;

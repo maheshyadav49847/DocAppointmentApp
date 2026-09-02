@@ -551,8 +551,8 @@ export default function BranchesPage() {
                     <PhoneInput
                       name="whatsAppNumber"
                       dialCodeName="whatsAppDialCode"
-                      defaultValue={editingBranch?.whatsAppNumber}
-                      defaultDialCode={editingBranch?.whatsAppDialCode}
+                      defaultValue={editingBranch?.whatsAppNumber?.replace(/^\+\d+/, '') || editingBranch?.whatsAppNumber}
+                      defaultDialCode={editingBranch?.whatsAppDialCode || '+91'}
                     />
                     <FieldError errors={validationErrors} field="WhatsAppNumber" />
                     <p className="text-xs text-slate-500 mt-1">Include country code. Used for automated bot communications.</p>

@@ -532,7 +532,7 @@ export default function StaffPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                  <form noValidate autoComplete="off" id="staff-form" onSubmit={handleSubmit} className="space-y-6">
+                  <form key={editingStaff?.id || 'new-staff'} noValidate autoComplete="off" id="staff-form" onSubmit={handleSubmit} className="space-y-6">
                     <ApiErrorAlert error={apiError} />
 
                     {/* Section 1: Employee Details */}
@@ -617,7 +617,7 @@ export default function StaffPage() {
                         <div className="space-y-2">
                           {availableRoles.filter((r: any) => selectedBranchId === 'org' ? ['OrgAdmin', 'SuperAdmin'].includes(r.name) : !['OrgAdmin', 'SuperAdmin'].includes(r.name)).map((r: any) => (
                             <label key={r.id} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
-                              <input autoComplete="off" type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
+                              <input autoComplete="off" type="radio" name="role" value={r.name} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
                               <div>
                                 <p className="text-sm font-semibold text-zinc-900">{r.name}</p>
                                 <p className="text-xs text-zinc-500">{r.description || `Access level: ${r.name}`}</p>
