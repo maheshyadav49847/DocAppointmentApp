@@ -72,18 +72,22 @@ export default function PhoneInput({
       
       {/* Dial Code Dropdown Container */}
       <div className="relative flex items-center shrink-0">
+        <div className="flex items-center pl-1 pr-6 h-10 text-sm text-slate-700 font-medium pointer-events-none">
+          {dialCode || '+91'}
+        </div>
         <select
           value={dialCode || '+91'}
           onChange={(e) => handleChange(phone || '', e.target.value)}
           disabled={disabled}
-          className="h-10 bg-transparent text-sm text-slate-700 font-medium border-none focus:ring-0 cursor-pointer appearance-none outline-none pl-1 pr-6"
+          title="Country Code"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none"
         >
           {countries?.map((c: any) => (
             <option key={c.isoCode} value={c.dialCode}>
-              {c.isoCode} {c.dialCode}
+              {c.name} ({c.dialCode})
             </option>
           ))}
-          {!countries && <option value="+91">IN +91</option>}
+          {!countries && <option value="+91">India (+91)</option>}
         </select>
 
         {/* Down chevron */}
