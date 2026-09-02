@@ -605,27 +605,27 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Weight (kg)</label>
-                  <input type="number" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
+                  <input autoComplete="off" type="number" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Temp (°F)</label>
-                  <input type="number" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
+                  <input autoComplete="off" type="number" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">BP (mmHg)</label>
-                  <input type="text" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
+                  <input autoComplete="off" type="text" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">SpO2 (%)</label>
-                  <input type="number" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98" />
+                  <input autoComplete="off" type="number" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Heart Rate</label>
-                  <input type="number" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="72" />
+                  <input autoComplete="off" type="number" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="72" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Sugar (mg/dL)</label>
-                  <input type="number" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="110" />
+                  <input autoComplete="off" type="number" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="110" />
                 </div>
               </div>
             </div>
@@ -659,7 +659,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Dose Qty</label>
-                    <input value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -684,11 +684,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Duration</label>
-                    <input value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input value={medInstructions} onChange={e => setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medInstructions} onChange={e => setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="mt-3 text-right">
@@ -767,7 +767,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                       <option value="Other">Other</option>
                     </select>
                     <div className="flex gap-2 w-full">
-                      <input type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
+                      <input autoComplete="off" type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
                       <button onClick={() => { if (stagingFile) { setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]); setStagingFile(null); } }} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
                         <Plus className="w-5 h-5" />
                       </button>
@@ -793,11 +793,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
-                    <input type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input type="text" value={visitFollowUpInstructions} onChange={e => setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" type="text" value={visitFollowUpInstructions} onChange={e => setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>

@@ -354,19 +354,19 @@ export default function SessionsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate id="session-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate autoComplete="off" id="session-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={apiError} />
                   <FieldError errors={validationErrors} field="Session" />
                   {/* Recurrence Toggle */}
                   <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-xl">
                     <label className="cursor-pointer">
-                      <input type="radio" name="isDaily" value="true" checked={isDailyForm} onChange={() => setIsDailyForm(true)} className="peer sr-only" />
+                      <input autoComplete="off" type="radio" name="isDaily" value="true" checked={isDailyForm} onChange={() => setIsDailyForm(true)} className="peer sr-only" />
                       <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
                         Daily
                       </div>
                     </label>
                     <label className="cursor-pointer">
-                      <input type="radio" name="isDaily" value="false" checked={!isDailyForm} onChange={() => setIsDailyForm(false)} className="peer sr-only" />
+                      <input autoComplete="off" type="radio" name="isDaily" value="false" checked={!isDailyForm} onChange={() => setIsDailyForm(false)} className="peer sr-only" />
                       <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
                         Specific Day
                       </div>
@@ -378,7 +378,7 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <FileText className="w-4 h-4 text-blue-500" /> Session Name
                       </label>
-                      <input name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <input autoComplete="off" name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
                       <FieldError errors={validationErrors} field="SessionName" />
                     </div>
 
@@ -387,14 +387,14 @@ export default function SessionsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-green-500" /> Start Time
                         </label>
-                        <input type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input autoComplete="off" type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                         <FieldError errors={validationErrors} field="StartTime" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-rose-500" /> End Time
                         </label>
-                        <input type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input autoComplete="off" type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                         <FieldError errors={validationErrors} field="EndTime" />
                       </div>
                     </div>
@@ -403,7 +403,7 @@ export default function SessionsPage() {
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                         <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity
                       </label>
-                      <input type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                      <input autoComplete="off" type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                       <FieldError errors={validationErrors} field="DefaultCapacity" />
                       <p className="text-xs text-slate-500 mt-1">Maximum number of patients allowed per session.</p>
                     </div>

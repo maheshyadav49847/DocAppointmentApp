@@ -80,7 +80,7 @@ export default function AuditLogsPage() {
         <div className="p-4 sm:px-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="relative w-full sm:w-96 group">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-            <input 
+            <input autoComplete="off" 
               type="text" 
               placeholder="Search by action, path, or user ID..." 
               value={search}

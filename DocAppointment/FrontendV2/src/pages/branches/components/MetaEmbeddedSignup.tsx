@@ -129,11 +129,11 @@ export default function MetaEmbeddedSignup({ branch, onSuccess }: MetaEmbeddedSi
             <p className="text-xs text-slate-500 mb-2">Only use this if Embedded Signup fails.</p>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp Business Account ID</label>
-              <input value={wabaId} onChange={e => setWabaId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1024..." />
+              <input autoComplete="off" value={wabaId} onChange={e => setWabaId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1024..." />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number ID</label>
-              <input value={phoneId} onChange={e => setPhoneId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1039..." />
+              <input autoComplete="off" value={phoneId} onChange={e => setPhoneId(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm" placeholder="e.g. 1039..." />
             </div>
             <p className="text-xs text-indigo-600 mt-2 font-medium">System User Token is managed globally by SaaS Manager.</p>
         </div>

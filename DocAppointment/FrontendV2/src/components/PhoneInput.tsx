@@ -97,8 +97,8 @@ export default function PhoneInput({
       {/* Divider */}
       <div className="w-px h-5 bg-slate-200 mx-1 shrink-0"></div>
 
-      {name && <input type="hidden" name={name} value={phone} />}
-      {dialCodeName && <input type="hidden" name={dialCodeName} value={dialCode || '+91'} />}
+      {name && <input autoComplete="off" type="hidden" name={name} value={phone} />}
+      {dialCodeName && <input autoComplete="off" type="hidden" name={dialCodeName} value={dialCode || '+91'} />}
 
       {/* Phone Number Input */}
       <input

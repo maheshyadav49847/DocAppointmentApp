@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
       )}
 
       {step === 'request' ? (
-        <form noValidate onSubmit={handleRequest} className="space-y-5">
+        <form noValidate autoComplete="off" onSubmit={handleRequest} className="space-y-5">
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
               <Mail className="h-4 w-4 text-indigo-600" />
@@ -175,7 +175,7 @@ export default function ForgotPasswordPage() {
           </Button>
         </form>
       ) : (
-        <form noValidate onSubmit={handleReset} className="space-y-5">
+        <form noValidate autoComplete="off" onSubmit={handleReset} className="space-y-5">
           <div className="space-y-1.5">
             <Label className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-indigo-600" />

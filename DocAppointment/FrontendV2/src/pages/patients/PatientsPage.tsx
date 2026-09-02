@@ -564,7 +564,7 @@ export default function PatientsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate id="patient-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate autoComplete="off" id="patient-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={editingPatient ? updateMutation.error : mutation.error} />
 
                   {/* Section 1: Personal Info */}
@@ -575,7 +575,7 @@ export default function PatientsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <User className="w-4 h-4 text-blue-500" /> Full Name
                         </label>
-                        <input defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
+                        <input autoComplete="off" defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
                         <FieldError errors={validationErrors} field="Name" />
                       </div>
 
@@ -584,7 +584,7 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Calendar className="w-4 h-4 text-orange-500" /> Age
                           </label>
-                          <input defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                          <input autoComplete="off" defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
                         <FieldError errors={validationErrors} field="Age" />
                         </div>
                         <div>
@@ -638,7 +638,7 @@ export default function PatientsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
+                        <input autoComplete="off" defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
                         <FieldError errors={validationErrors} field="Height" />
                       </div>
                     </div>
@@ -666,7 +666,7 @@ export default function PatientsPage() {
                             <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                               <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
                             </label>
-                            <input defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
+                            <input autoComplete="off" defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
                           <FieldError errors={validationErrors} field="Email" />
                           </div>
                         </div>
@@ -676,7 +676,7 @@ export default function PatientsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <MapPin className="w-4 h-4 text-rose-500" /> Address <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
-                        <textarea defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
+                        <textarea autoComplete="off" defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
                         <FieldError errors={validationErrors} field="Address" />
                       </div>
                     </div>
@@ -690,7 +690,7 @@ export default function PatientsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <HeartPulse className="w-4 h-4 text-rose-500" /> Pre-existing Conditions <span className="text-zinc-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
+                        <input autoComplete="off" defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
                         <FieldError errors={validationErrors} field="PreExistingConditions" />
                       </div>
 
@@ -699,7 +699,7 @@ export default function PatientsPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>
                           </label>
-                          <input defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
+                          <input autoComplete="off" defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
                         <FieldError errors={validationErrors} field="EmergencyContactName" />
                         </div>
                         <div>

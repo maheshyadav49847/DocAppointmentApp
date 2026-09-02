@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import { Input } from "@/components/ui/input"
 import PhoneInput from "@/components/PhoneInput"
 import {
   useReactTable,
@@ -551,7 +552,7 @@ export default function DoctorsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate id="doctor-form" onSubmit={handleSubmit} className="space-y-6">
+                <form noValidate autoComplete="off" id="doctor-form" onSubmit={handleSubmit} className="space-y-6">
                   <ApiErrorAlert error={apiError} />
                   
                   {/* Section 1: Personal Details */}
@@ -562,7 +563,7 @@ export default function DoctorsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <User className="w-4 h-4 text-blue-500" /> Full Name
                         </label>
-                        <input name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
+                        <input autoComplete="off" name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
                         <FieldError errors={validationErrors} field="Name" />
                       </div>
                       <div>
@@ -581,7 +582,7 @@ export default function DoctorsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
                         </label>
-                        <input name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
+                        <Input autoComplete="new-password" name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank to keep unchanged" : "Set password for doctor"} />
                         <FieldError errors={validationErrors} field="Password" />
                       </div>
                     </div>
@@ -607,7 +608,7 @@ export default function DoctorsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Mail className="w-4 h-4 text-rose-500" /> Email
                         </label>
-                        <input name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
+                        <input autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
                         <FieldError errors={validationErrors} field="EmailId" />
                       </div>
                     </div>
@@ -621,28 +622,28 @@ export default function DoctorsPage() {
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
                         </label>
-                        <input name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
+                        <input autoComplete="off" name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
                         <FieldError errors={validationErrors} field="Specialization" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
                         </label>
-                        <input name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
+                        <input autoComplete="off" name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
                         <FieldError errors={validationErrors} field="Qualification" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs)
                         </label>
-                        <input name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
+                        <input autoComplete="off" name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
                         <FieldError errors={validationErrors} field="Experience" />
                       </div>
                       <div className="col-span-1 sm:col-span-2">
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                           <ShieldCheck className="w-4 h-4 text-teal-500" /> Registration No.
                         </label>
-                        <input name="registrationNumber" defaultValue={editingDoctor?.registrationNumber} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MCI-12345" />
+                        <input autoComplete="off" name="registrationNumber" defaultValue={editingDoctor?.registrationNumber} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MCI-12345" />
                         <FieldError errors={validationErrors} field="RegistrationNumber" />
                       </div>
                     </div>

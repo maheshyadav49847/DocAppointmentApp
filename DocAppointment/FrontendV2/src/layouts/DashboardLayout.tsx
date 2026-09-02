@@ -408,7 +408,7 @@ export default function DashboardLayout() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form noValidate onSubmit={async (e) => {
+              <form noValidate autoComplete="off" onSubmit={async (e) => {
                 e.preventDefault()
                 const formData = new FormData(e.currentTarget)
                 const oldPassword = formData.get('oldPassword') as string
@@ -435,7 +435,7 @@ export default function DashboardLayout() {
                 <div className="p-6 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1">Old Password</label>
-                    <input
+                    <Input
                       type="password"
                       name="oldPassword"
                       required
@@ -444,7 +444,7 @@ export default function DashboardLayout() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
-                    <input
+                    <Input
                       type="password"
                       name="newPassword"
                       required
@@ -454,7 +454,7 @@ export default function DashboardLayout() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
-                    <input
+                    <Input
                       type="password"
                       name="confirmNewPassword"
                       required

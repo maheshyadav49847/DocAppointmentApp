@@ -81,7 +81,7 @@ export default function EndSessionModal({
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <input 
+                <input autoComplete="off" 
                   type="radio" 
                   name="action" 
                   value="CancelRemaining" 
@@ -106,7 +106,7 @@ export default function EndSessionModal({
                     : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <input 
+                <input autoComplete="off" 
                   type="radio" 
                   name="action" 
                   value="TransferRemaining" 

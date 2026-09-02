@@ -762,7 +762,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <h3 className="font-bold text-slate-800">Edit Token #{editingToken.tokenNumber}</h3>
                 <button onClick={() => setEditingToken(null)} className="text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-4 h-4"/></button>
               </div>
-              <form noValidate 
+              <form noValidate autoComplete="off" 
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
@@ -775,11 +775,11 @@ export default function QueueManager({ sessionData, onBack }: any) {
               >
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Patient Name</label>
-                  <input name="patientName" defaultValue={editingToken.patientName} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                  <input autoComplete="off" name="patientName" defaultValue={editingToken.patientName} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Phone Number</label>
-                  <input name="patientPhone" defaultValue={editingToken.patientPhone} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
+                  <input autoComplete="off" name="patientPhone" defaultValue={editingToken.patientPhone} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all" />
                 </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setEditingToken(null)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
@@ -813,7 +813,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <h3 className="font-bold flex items-center gap-2"><AlertCircle className="w-5 h-5"/> Cancel Token</h3>
                 <button onClick={() => setCancelingToken(null)} className="text-rose-400 hover:text-rose-600 rounded-full p-1"><X className="w-4 h-4"/></button>
               </div>
-              <form noValidate 
+              <form noValidate autoComplete="off" 
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
@@ -828,7 +828,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
                 {can('Queue.CancelOfflinePatient') && (
                   <div className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg mt-4">
-                    <input 
+                    <input autoComplete="off" 
                       type="checkbox" 
                       id="deletePatient" 
                       name="deletePatient" 
@@ -886,7 +886,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2"><Pause className="w-5 h-5 text-amber-500"/> Pause Session</h3>
                 <button onClick={() => setIsPauseModalOpen(false)} className="text-slate-400 hover:text-slate-600 rounded-full p-1"><X className="w-4 h-4"/></button>
               </div>
-              <form noValidate 
+              <form noValidate autoComplete="off" 
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = e.target as HTMLFormElement;
@@ -898,11 +898,11 @@ export default function QueueManager({ sessionData, onBack }: any) {
               >
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Pause Duration (Minutes)</label>
-                  <input type="number" name="duration" defaultValue={15} min={1} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
+                  <input autoComplete="off" type="number" name="duration" defaultValue={15} min={1} required className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Reason (Optional)</label>
-                  <input type="text" name="reason" placeholder="e.g. Doctor on a short break" defaultValue="Doctor on a short break" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
+                  <input autoComplete="off" type="text" name="reason" placeholder="e.g. Doctor on a short break" defaultValue="Doctor on a short break" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:outline-none focus:border-amber-500 transition-all" />
                 </div>
                 <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setIsPauseModalOpen(false)} className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
@@ -949,7 +949,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
               <div className="w-full">
                 <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-left">Tracking URL</label>
                 <div className="flex gap-2">
-                  <input readOnly value={`${window.location.origin}/track/${queueId}`} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600" />
+                  <input autoComplete="off" readOnly value={`${window.location.origin}/track/${queueId}`} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600" />
                   <button 
                     onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/track/${queueId}`); alert("Copied to clipboard!"); }}
                     className="px-4 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"

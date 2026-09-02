@@ -255,7 +255,7 @@ export default function RolesPermissionsPage() {
                               <div className="text-xs text-slate-400 mt-0.5 font-mono">{perm}</div>
                             </div>
                             <div className="relative inline-flex items-center">
-                              <input 
+                              <input autoComplete="off" 
                                 type="checkbox" 
                                 className="sr-only peer"
                                 checked={isChecked || isLockedForOrgAdmin}
@@ -295,7 +295,7 @@ export default function RolesPermissionsPage() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={handleCreateRole}>
+              <form autoComplete="off" onSubmit={handleCreateRole}>
                 <div className="p-6 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Role Name</label>

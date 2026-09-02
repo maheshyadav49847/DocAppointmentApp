@@ -92,7 +92,7 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
                  <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Bot Token</label>
                     <div className="flex gap-2">
-                        <input 
+                        <input autoComplete="off" 
                         type="text" 
                         value={token}
                         onChange={(e) => setToken(e.target.value)}

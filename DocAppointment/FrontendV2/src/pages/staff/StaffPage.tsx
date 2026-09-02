@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
+import { Input } from "@/components/ui/input"
 import PhoneInput from "@/components/PhoneInput"
 import {
   useReactTable,
@@ -511,7 +512,7 @@ export default function StaffPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                  <form noValidate id="staff-form" onSubmit={handleSubmit} className="space-y-6">
+                  <form noValidate autoComplete="off" id="staff-form" onSubmit={handleSubmit} className="space-y-6">
                     <ApiErrorAlert error={apiError} />
 
                     {/* Section 1: Employee Details */}
@@ -522,21 +523,21 @@ export default function StaffPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Hash className="w-4 h-4 text-teal-500" /> Employee ID
                           </label>
-                          <input name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input autoComplete="off" name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="EmployeeId" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <User className="w-4 h-4 text-blue-500" /> First Name
                           </label>
-                          <input name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input autoComplete="off" name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="FirstName" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <User className="w-4 h-4 text-blue-500" /> Last Name
                           </label>
-                          <input name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input autoComplete="off" name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="LastName" />
                         </div>
                       </div>
@@ -550,7 +551,7 @@ export default function StaffPage() {
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <Mail className="w-4 h-4 text-rose-500" /> Email
                           </label>
-                          <input type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input autoComplete="off" type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="Email" />
                         </div>
                         <div>
@@ -570,7 +571,7 @@ export default function StaffPage() {
                             <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                               <Key className="w-4 h-4 text-amber-500" /> Password
                             </label>
-                            <input type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
+                            <Input autoComplete="new-password" type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Min 8 characters" />
                             <FieldError errors={validationErrors} field="Password" />
                           </div>
                         )}
@@ -587,7 +588,7 @@ export default function StaffPage() {
                         <div className="space-y-2">
                           {availableRoles.filter((r: any) => selectedBranchId === 'org' ? ['OrgAdmin', 'SuperAdmin'].includes(r.name) : !['OrgAdmin', 'SuperAdmin'].includes(r.name)).map((r: any) => (
                             <label key={r.id} className="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:bg-zinc-50 transition-colors has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/50 has-[:checked]:ring-1 has-[:checked]:ring-indigo-500">
-                              <input type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
+                              <input autoComplete="off" type="radio" name="role" value={r.id} defaultChecked={editingStaff ? editingStaff.role === r.name : r.name === 'Receptionist' || r.name === 'OrgAdmin'} className="mt-1" />
                               <div>
                                 <p className="text-sm font-semibold text-zinc-900">{r.name}</p>
                                 <p className="text-xs text-zinc-500">{r.description || `Access level: ${r.name}`}</p>
@@ -633,7 +634,7 @@ export default function StaffPage() {
                   Enter a new password for {resettingStaff.firstName} {resettingStaff.lastName}.
                 </p>
               </div>
-              <form noValidate onSubmit={(e) => {
+              <form noValidate autoComplete="off" onSubmit={(e) => {
                 e.preventDefault()
                 const formData = new FormData(e.currentTarget)
                 const newPassword = formData.get('password') as string
@@ -646,7 +647,7 @@ export default function StaffPage() {
                 <div className="p-6">
                   <ApiErrorAlert error={updateMutation.error} className="mb-4" />
                   <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
-                  <input
+                  <Input
                     type="password"
                     name="password"
                     minLength={8}

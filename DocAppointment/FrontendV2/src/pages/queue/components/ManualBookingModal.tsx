@@ -121,7 +121,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   </button>
                 </div>
 
-            <form noValidate onSubmit={handleSubmit} className="p-6">
+            <form noValidate autoComplete="off" onSubmit={handleSubmit} className="p-6">
               {error && (
                 <div className={`mb-6 p-4 text-sm border rounded-xl flex items-start gap-2 ${error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
                   {error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? (
@@ -138,7 +138,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Patient Name</label>
                   <div className="relative group">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
-                    <input 
+                    <input autoComplete="off" 
                       type="text" 
                       value={name}
                       onChange={e => { setName(e.target.value); setSelectedPatientId(null); }}

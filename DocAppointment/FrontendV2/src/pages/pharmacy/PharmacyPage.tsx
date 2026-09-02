@@ -284,7 +284,7 @@ export default function PharmacyPage() {
               />
             </div>
             
-            <input 
+            <input autoComplete="off" 
               type="file" 
               accept=".csv" 
               className="hidden" 

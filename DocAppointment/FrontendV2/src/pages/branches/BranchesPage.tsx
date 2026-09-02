@@ -503,13 +503,13 @@ export default function BranchesPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate id="branch-form" onSubmit={handleSubmit} className="space-y-5">
+                <form noValidate autoComplete="off" id="branch-form" onSubmit={handleSubmit} className="space-y-5">
                   <ApiErrorAlert error={apiError} />
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Building2 className="w-4 h-4 text-indigo-500" /> Facility Name
                     </label>
-                    <input name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input autoComplete="off" name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                     <FieldError errors={validationErrors} field="Name" />
                   </div>
                   <div>
@@ -541,7 +541,7 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <MapPin className="w-4 h-4 text-rose-500" /> Physical Address
                     </label>
-                    <textarea rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
+                    <textarea autoComplete="off" rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
                     <FieldError errors={validationErrors} field="Address" />
                   </div>
                   <div>
@@ -574,7 +574,7 @@ export default function BranchesPage() {
                   </div>
                   {editingBranch && (
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
-                      <input type="checkbox" name="isActive" defaultChecked={editingBranch?.isActive} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
+                      <input autoComplete="off" type="checkbox" name="isActive" defaultChecked={editingBranch?.isActive} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
                       <div className="flex-1">
                         <span className="block text-sm font-medium text-zinc-900">Active Status</span>
                         <span className="block text-xs text-slate-500">Allow new bookings for this location</span>
