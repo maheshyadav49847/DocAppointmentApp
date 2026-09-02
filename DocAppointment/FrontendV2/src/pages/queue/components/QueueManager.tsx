@@ -14,6 +14,7 @@ import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
 import { usePermissions } from "@/hooks/usePermissions"
+import PhoneInput from "@/components/PhoneInput"
 
 function LiveTimer({ startedAt }: { startedAt: string | null }) {
   const [elapsed, setElapsed] = useState(0)
