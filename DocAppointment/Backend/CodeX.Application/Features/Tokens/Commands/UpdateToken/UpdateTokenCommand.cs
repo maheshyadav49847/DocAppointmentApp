@@ -9,6 +9,7 @@ namespace CodeX.Application.Features.Tokens.Commands.UpdateToken
         public Guid TokenId { get; init; }
         public string PatientName { get; init; } = string.Empty;
         public string PatientPhone { get; init; } = string.Empty;
+        public string PatientPhoneDialCode { get; init; } = "+91";
     }
 
     public class UpdateTokenCommandHandler : IRequestHandler<UpdateTokenCommand, bool>
@@ -55,12 +56,14 @@ namespace CodeX.Application.Features.Tokens.Commands.UpdateToken
                         token.PatientId = existingPatient.Id;
                     }
                     existingPatient.Name = request.PatientName;
+                    existingPatient.PhoneDialCode = request.PatientPhoneDialCode;
                 }
                 else if (token.Patient != null)
                 {
                     // Case: Updating current patient's details
                     token.Patient.Name = request.PatientName;
                     token.Patient.Phone = request.PatientPhone;
+                    token.Patient.PhoneDialCode = request.PatientPhoneDialCode;
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
