@@ -638,7 +638,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-slate-900">{t.patientName}</p>
-                            {t.isPriority && <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" title="Priority Patient" />}
+                            {t.isPriority && <span title="Priority Patient"><Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /></span>}
                           </div>
                           <p className="text-[11px] font-medium text-slate-400 mt-0.5">#{t.id.substring(0,8)}</p>
                         </div>
@@ -646,9 +646,9 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-slate-600 font-medium">
-                        {t.source === 0 ? <Smartphone className="w-3.5 h-3.5 text-emerald-500" title="WhatsApp Booking" /> :
-                         t.source === 3 ? <Send className="w-3.5 h-3.5 text-sky-500" title="Telegram Booking" /> :
-                         <Phone className="w-3.5 h-3.5 text-slate-400" title="Walk-in/Phone Booking" />}
+                        {t.source === 0 ? <span title="WhatsApp Booking"><Smartphone className="w-3.5 h-3.5 text-emerald-500" /></span> :
+                         t.source === 3 ? <span title="Telegram Booking"><Send className="w-3.5 h-3.5 text-sky-500" /></span> :
+                         <span title="Walk-in/Phone Booking"><Phone className="w-3.5 h-3.5 text-slate-400" /></span>}
                         {t.patientPhone}
                       </div>
                     </td>
@@ -667,7 +667,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                          return (
                            <div className={`flex items-center gap-2 text-sm font-bold ${isLongWait ? 'text-rose-600' : 'text-slate-600'}`}>
                              {waitMins} mins
-                             {isLongWait && <AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" title="Waiting for more than 1 hour" />}
+                             {isLongWait && <span title="Waiting for more than 1 hour"><AlertCircle className="w-4 h-4 text-rose-500 animate-pulse" /></span>}
                            </div>
                          );
                       })()}
