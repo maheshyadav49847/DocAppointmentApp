@@ -13,7 +13,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Stethoscope, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
-  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star
+  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -32,7 +32,8 @@ export default function DoctorsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingDoctor, setEditingDoctor] = useState<any>(null)
-  const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
+    const [resettingDoctor, setResettingDoctor] = useState<any>(null)
+const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
   const [selectedDoctorForFeedbacks, setSelectedDoctorForFeedbacks] = useState<Doctor | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
@@ -465,44 +466,44 @@ export default function DoctorsPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                {table.getHeaderGroups().map(headerGroup => (
-                  <tr key={headerGroup.id} className="bg-zinc-50/50 border-b border-zinc-100">
-                    {headerGroup.headers.map(header => (
-                      <th key={header.id} className="px-6 py-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {table.getRowModel().rows.length > 0 ? (
-                  table.getRowModel().rows.map(row => (
-                    <tr key={row.id} className="hover:bg-zinc-50/50 transition-colors group">
-                      {row.getVisibleCells().map(cell => (
-                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
+            <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50/80 sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200">
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map(header => (
+                        <th key={header.id} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                          {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                        </th>
                       ))}
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={columns.length} className="px-6 py-12 text-center text-zinc-500">
-                      <div className="flex flex-col items-center justify-center">
-                        <Stethoscope className="w-12 h-12 text-zinc-300 mb-3" />
-                        <p className="text-lg font-medium text-zinc-900">No doctors found</p>
-                        <p className="text-sm mt-1">Try adjusting your search query.</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {table.getRowModel().rows.length > 0 ? (
+                    table.getRowModel().rows.map(row => (
+                      <tr key={row.id} className="hover:bg-slate-50/80 transition-colors group">
+                        {row.getVisibleCells().map(cell => (
+                          <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-500">
+                        <div className="flex flex-col items-center justify-center">
+                          <Stethoscope className="w-12 h-12 text-slate-300 mb-3" />
+                          <p className="text-lg font-bold text-slate-800">No doctors found</p>
+                          <p className="text-sm mt-1">Try adjusting your search query.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
         )}
         </div>
 
@@ -622,7 +623,9 @@ export default function DoctorsPage() {
                           <input autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
                           <FieldError errors={validationErrors} field="EmailId" />
                         </div>
-                        <div>
+                        {!editingDoctor && (
+<>
+<div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                             <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
                           </label>
@@ -636,6 +639,8 @@ export default function DoctorsPage() {
                           <Input autoComplete="new-password" name="confirmPassword" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="••••••••" />
                           <FieldError errors={validationErrors} field="ConfirmPassword" />
                         </div>
+</>
+)}
                       </div>
                     </div>
 
@@ -735,7 +740,78 @@ export default function DoctorsPage() {
         }} 
         doctor={selectedDoctorForFeedbacks} 
       />
+
+      <AnimatePresence>
+        {resettingDoctor && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => { setValidationErrors({}); setResettingDoctor(null); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-zinc-200"
+            >
+              <div className="p-6 border-b border-zinc-100">
+                <h3 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                  <Key className="w-5 h-5 text-amber-500" />
+                  Reset Password
+                </h3>
+                <p className="text-sm text-zinc-500 mt-1">
+                  Enter a new password for Dr. {resettingDoctor.name}.
+                </p>
+              </div>
+              <form noValidate autoComplete="off" onSubmit={(e) => {
+                e.preventDefault()
+                setValidationErrors({})
+                const formData = new FormData(e.currentTarget)
+                const newPassword = formData.get('password') as string
+                const confirmPassword = formData.get('confirmPassword') as string
+                
+                if (!newPassword || newPassword.length < 8) {
+                  setValidationErrors({ Password: ["Password must be at least 8 characters."] });
+                  return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                  setValidationErrors({ ConfirmPassword: ["Passwords do not match."] });
+                  return;
+                }
+
+                updateMutation.mutate({
+                  ...resettingDoctor,
+                  password: newPassword
+                })
+                setResettingDoctor(null)
+              }}>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                    <Input autoComplete="new-password" name="password" type="password" placeholder="••••••••" className="w-full" />
+                    <FieldError errors={validationErrors} field="Password" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-1">Confirm New Password</label>
+                    <Input autoComplete="new-password" name="confirmPassword" type="password" placeholder="••••••••" className="w-full" />
+                    <FieldError errors={validationErrors} field="ConfirmPassword" />
+                  </div>
+                </div>
+                <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
+                  <button type="button" onClick={() => { setValidationErrors({}); setResettingDoctor(null); }} className="btn-danger">Cancel</button>
+                  <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+                    {updateMutation.isPending ? 'Saving...' : 'Reset Password'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
-
