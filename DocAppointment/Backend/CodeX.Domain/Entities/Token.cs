@@ -27,6 +27,7 @@ namespace CodeX.Domain.Entities
         public virtual DailyQueue Queue { get; set; } = null!;
         public virtual Patient Patient { get; set; } = null!;
         public virtual Rating? Rating { get; set; }
+        public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
     }
 }
 

@@ -56,9 +56,9 @@ namespace CodeX.Api.Controllers
 
         [HttpGet("search-patients")]
         [HasPermission(SystemPermissions.Queue.AddPatient)]
-        public async Task<ActionResult<List<CodeX.Application.Features.Queue.Queries.SearchQueuePatients.QueuePatientDto>>> SearchPatients([FromQuery] Guid? branchId, [FromQuery] string search)
+        public async Task<ActionResult<List<CodeX.Application.Features.Queue.Queries.SearchQueuePatients.QueuePatientDto>>> SearchPatients([FromQuery] Guid? branchId, [FromQuery] string? search)
         {
-            return await Mediator.Send(new CodeX.Application.Features.Queue.Queries.SearchQueuePatients.SearchQueuePatientsQuery(branchId, search));
+            return await Mediator.Send(new CodeX.Application.Features.Queue.Queries.SearchQueuePatients.SearchQueuePatientsQuery(branchId, search ?? string.Empty));
         }
 
         [HttpPost("quick-start")]
@@ -275,6 +275,8 @@ namespace CodeX.Api.Controllers
             var queue = await _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
+                .Include(q => q.Tokens)
+                .ThenInclude(t => t.Invoices)
                 .Include(q => q.Doctor)
                 .Include(q => q.Branch)
                 .Include(q => q.Session)
@@ -310,6 +312,8 @@ namespace CodeX.Api.Controllers
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
+                currentInvoiceId = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Id,
+                currentInvoiceStatus = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Status,
                 startedAt = queue.CreatedAt,
                 currentTokenCalledAt = currentToken?.CalledAt,
                 pausedUntil = queue.PausedUntil,
@@ -324,6 +328,8 @@ namespace CodeX.Api.Controllers
             var queue = await _context.DailyQueues
                 .Include(q => q.Tokens)
                 .ThenInclude(t => t.Patient)
+                .Include(q => q.Tokens)
+                .ThenInclude(t => t.Invoices)
                 .Include(q => q.Doctor)
                 .Include(q => q.Branch)
                 .FirstOrDefaultAsync(q => q.Id == queueId && 
@@ -338,6 +344,9 @@ namespace CodeX.Api.Controllers
                 {
                     id = t.Id,
                     tokenNumber = t.TokenNumber,
+                    patientId = t.PatientId,
+                    invoiceId = t.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Id,
+                    invoiceStatus = t.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Status,
                     patientName = t.Patient?.Name ?? "Unknown",
                     patientPhone = t.Patient?.Phone ?? "",
                     patientPhoneDialCode = t.Patient?.PhoneDialCode ?? "+91",
@@ -405,6 +414,8 @@ namespace CodeX.Api.Controllers
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
+                currentInvoiceId = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Id,
+                currentInvoiceStatus = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Status,
                 branchName = queue.Branch?.Name,
                 branchId = queue.BranchId,
                 sessionName = queue.Session?.SessionName ?? "Walk-in Session",
@@ -471,6 +482,8 @@ namespace CodeX.Api.Controllers
                 currentPatientName = currentToken?.Patient?.Name ?? "No one",
                 currentPatientId = currentToken?.PatientId,
                 currentTokenId = currentToken?.Id,
+                currentInvoiceId = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Id,
+                currentInvoiceStatus = currentToken?.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Status,
                 branchName = queue.Branch?.Name,
                 branchId = queue.BranchId,
                 startedAt = queue.CreatedAt,

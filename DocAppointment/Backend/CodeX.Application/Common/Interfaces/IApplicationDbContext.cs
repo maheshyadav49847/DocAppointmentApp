@@ -22,6 +22,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<Staff> Staffs { get; }
         DbSet<PatientVisit> PatientVisits { get; }
         DbSet<VisitMedicine> VisitMedicines { get; }
+        DbSet<VisitService> VisitServices { get; }
         DbSet<MedicineMaster> Medicines { get; }
         DbSet<MedicineType> MedicineTypes { get; }
         DbSet<PatientAttachment> PatientAttachments { get; }
@@ -34,6 +35,10 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<RefreshToken> RefreshTokens { get; }
         DbSet<IdempotencyLog> IdempotencyLogs { get; }
         DbSet<Country> Countries { get; }
+        DbSet<ServiceItem> ServiceItems { get; }
+        DbSet<Invoice> Invoices { get; }
+        DbSet<InvoiceItem> InvoiceItems { get; }
+        DbSet<Payment> Payments { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

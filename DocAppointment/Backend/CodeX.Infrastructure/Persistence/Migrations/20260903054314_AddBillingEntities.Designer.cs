@@ -3,6 +3,7 @@ using System;
 using CodeX.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CodeX.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903054314_AddBillingEntities")]
+    partial class AddBillingEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1847,51 +1850,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.ToTable("VisitMedicines");
                 });
 
-            modelBuilder.Entity("CodeX.Domain.Entities.VisitService", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PatientVisitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("ServiceItemId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientVisitId");
-
-                    b.HasIndex("ServiceItemId");
-
-                    b.ToTable("VisitServices");
-                });
-
             modelBuilder.Entity("BranchDoctor", b =>
                 {
                     b.HasOne("CodeX.Domain.Entities.Branch", null)
@@ -2271,25 +2229,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.Navigation("PatientVisit");
                 });
 
-            modelBuilder.Entity("CodeX.Domain.Entities.VisitService", b =>
-                {
-                    b.HasOne("CodeX.Domain.Entities.PatientVisit", "PatientVisit")
-                        .WithMany("Services")
-                        .HasForeignKey("PatientVisitId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CodeX.Domain.Entities.ServiceItem", "ServiceItem")
-                        .WithMany()
-                        .HasForeignKey("ServiceItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PatientVisit");
-
-                    b.Navigation("ServiceItem");
-                });
-
             modelBuilder.Entity("CodeX.Domain.Entities.Branch", b =>
                 {
                     b.Navigation("DailyQueues");
@@ -2335,8 +2274,6 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                     b.Navigation("Attachments");
 
                     b.Navigation("Medicines");
-
-                    b.Navigation("Services");
                 });
 
             modelBuilder.Entity("CodeX.Domain.Entities.Role", b =>

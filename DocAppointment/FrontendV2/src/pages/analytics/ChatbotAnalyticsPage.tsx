@@ -50,18 +50,24 @@ export default function ChatbotAnalyticsPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <Bot className="w-7 h-7 text-indigo-600" />
-            Chatbot Process Analyzer
-          </h1>
-          <p className="text-slate-500 mt-1">Visualize request and bot reply flows to analyze drop-offs and failures.</p>
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 gap-6">
+      {/* Header */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+            <Bot className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <span className="text-slate-900">Chat</span>
+              <span className="text-indigo-600">Analyser</span>
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Visualize request and bot reply flows to analyze drop-offs and failures.</p>
+          </div>
         </div>
         
         {/* Platform Toggle */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200 self-start sm:self-auto">
+        <div className="flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200 self-start xl:self-auto shrink-0">
           <button
             onClick={() => setPlatform("all")}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${platform === 'all' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
@@ -83,9 +89,10 @@ export default function ChatbotAnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0 bg-slate-50/50">
+        <div className="flex flex-col lg:flex-row flex-1 h-full min-h-0">
         {/* Patient Selection Sidebar */}
-        <div className="lg:col-span-1 bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col h-[calc(100vh-180px)]">
+        <div className="lg:w-[320px] xl:w-[350px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white p-4 flex flex-col min-h-0">
           <div className="relative mb-4">
             <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -122,7 +129,7 @@ export default function ChatbotAnalyticsPage() {
         </div>
 
         {/* Conversation Flow Chart */}
-        <div className="lg:col-span-3 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+        <div className="flex-1 bg-slate-50/50 overflow-hidden flex flex-col min-h-0">
           {selectedPatient ? (
             <>
               <div className="bg-white border-b border-slate-200 p-4 flex items-center justify-between">
@@ -147,7 +154,7 @@ export default function ChatbotAnalyticsPage() {
                     <p className="font-medium">No {platform !== 'all' ? platform : ''} conversation history found.</p>
                   </div>
                 ) : (
-                  <div className="relative max-w-2xl mx-auto">
+                  <div className="relative w-full">
                     {/* Connecting Line */}
                     <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-200 -translate-x-1/2 z-0 hidden md:block"></div>
                     
@@ -224,5 +231,6 @@ export default function ChatbotAnalyticsPage() {
         </div>
       </div>
     </div>
-  )
+    </div>
+  );
 }

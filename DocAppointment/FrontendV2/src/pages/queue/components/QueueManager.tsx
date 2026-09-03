@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
-  User, Save, ArrowLeft, RotateCcw, Power, Users, CheckCircle2, 
+  User, Save, ArrowLeft, RotateCcw, Power, Users, CheckCircle2, Receipt, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
   Play, Search, PlusCircle, Pencil, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
 } from "lucide-react"
@@ -12,7 +12,9 @@ import { useAuthStore } from "@/store/authStore"
 import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
+import QuickInvoiceModal from "./QuickInvoiceModal"
 import { motion, AnimatePresence } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import { usePermissions } from "@/hooks/usePermissions"
 import PhoneInput from "@/components/PhoneInput"
 
@@ -48,6 +50,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
   const { user, activeBranchId } = useAuthStore()
   const { can } = usePermissions()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped' | 'cancelled'>('waiting')
@@ -187,6 +190,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
   })
 
   const [cancelingToken, setCancelingToken] = useState<any>(null)
+  const [billingToken, setBillingToken] = useState<any>(null)
   const cancelTokenMutation = useMutation({
     mutationFn: ({ id, deletePatient }: { id: string, deletePatient: boolean }) => queueService.deleteToken(id, deletePatient),
     onSuccess: () => {
@@ -693,7 +697,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                       {t.status === 3 && <span className="px-3 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-full border border-rose-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Skipped</span>}
                       {t.status === 4 && <span className="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-bold rounded-full border border-slate-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Cancelled</span>}
                     </td>
-                    {activeTab !== 'completed' && activeTab !== 'cancelled' && (
+                    {activeTab !== 'cancelled' && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {t.status === 3 && can('Queue.RestoreToken') && (
@@ -709,6 +713,16 @@ export default function QueueManager({ sessionData, onBack }: any) {
                             >
                               <Star className="w-4 h-4" />
                             </button>
+                          )}
+                          {t.status === 2 && !t.invoiceId && (
+                            <button onClick={() => setBillingToken(t)} className="p-2 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-200" title="Generate Invoice">
+                              <Receipt className="w-4 h-4" />
+                            </button>
+                          )}
+                          {t.status === 2 && t.invoiceId && (
+                             <span className="p-2 text-indigo-400 bg-indigo-50/50 rounded-lg border border-transparent" title="Invoice Generated">
+                               <Receipt className="w-4 h-4 opacity-50" />
+                             </span>
                           )}
                           {t.status !== 2 && (
                             <>
@@ -734,6 +748,12 @@ export default function QueueManager({ sessionData, onBack }: any) {
           </table>
         </div>
       </div>
+
+      <QuickInvoiceModal 
+        isOpen={!!billingToken} 
+        onClose={() => setBillingToken(null)} 
+        billingToken={billingToken} 
+      />
 
       <ManualBookingModal 
         isOpen={isModalOpen} 

@@ -31,6 +31,7 @@ namespace CodeX.Domain.Entities
         public virtual Doctor Doctor { get; set; } = null!;
         public virtual Token? Token { get; set; }
         public virtual ICollection<VisitMedicine> Medicines { get; set; } = new List<VisitMedicine>();
+        public virtual ICollection<VisitService> Services { get; set; } = new List<VisitService>();
         public virtual ICollection<PatientAttachment> Attachments { get; set; } = new List<PatientAttachment>();
     }
 }

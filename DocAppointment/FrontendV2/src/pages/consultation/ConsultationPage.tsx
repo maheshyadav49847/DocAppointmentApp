@@ -20,6 +20,13 @@ import { generatePdfFromElement } from "../../utils/pdfUtils"
 import { PageLoader } from "@/components/ui/PageLoader"
 
 // Types
+interface Service {
+  serviceItemId: string
+  serviceName: string
+  quantity: number
+  notes?: string
+}
+
 interface Medicine {
   medicineName: string
   medicineType?: string
@@ -113,6 +120,15 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     },
   })
 
+  const { data: servicesData } = useQuery({
+    queryKey: ["orgServices", user?.orgId],
+    queryFn: async () => {
+      const r = await api.get(`/billing/services/${user?.orgId}`)
+      return r.data || []
+    },
+    enabled: !!user?.orgId
+  })
+
   // State
   const [activeTab, setActiveTab] = useState<"history" | "attachments">("history")
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false)
@@ -132,6 +148,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [visitOxygenLevel, setVisitOxygenLevel] = useState("")
   const [visitBloodSugar, setVisitBloodSugar] = useState("")
   const [visitMedicines, setVisitMedicines] = useState<Medicine[]>([])
+  const [visitServices, setVisitServices] = useState<Service[]>([])
 
   // Follow-up & Attachments state
   const [visitFollowUpDate, setVisitFollowUpDate] = useState("")
@@ -160,6 +177,12 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [medType, setMedType] = useState("Tablet") // medicineType
   const [medSchedule, setMedSchedule] = useState("") // doseSchedule
   const [medInstructions, setMedInstructions] = useState("") // clinicalInstructions
+
+  // Service input state
+  const [svcId, setSvcId] = useState("")
+  const [svcName, setSvcName] = useState("")
+  const [svcQty, setSvcQty] = useState(1)
+  const [svcNotes, setSvcNotes] = useState("")
 
   const availableDoctors = useMemo(() => {
     if (!doctors) return [];
@@ -214,6 +237,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
         followUpInstructions: visitFollowUpInstructions || null,
         tokenId: activeTokenId || undefined,
+        services: visitServices.map((s) => ({
+          serviceItemId: s.serviceItemId,
+          quantity: s.quantity,
+          notes: s.notes || ""
+        })),
         medicines: visitMedicines.map((m) => ({
           medicineName: m.medicineName,
           dosage: m.dosage || "",
@@ -307,6 +335,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       setVisitOxygenLevel("")
       setVisitBloodSugar("")
       setVisitMedicines([])
+      setVisitServices([])
       setVisitFollowUpDate("")
       setVisitFollowUpInstructions("")
       setVisitFiles([])
@@ -337,6 +366,24 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     setVisitMedicines(visitMedicines.filter((_, i) => i !== idx))
   }
 
+  const addService = () => {
+    if (!svcId) return;
+    setVisitServices([...visitServices, {
+      serviceItemId: svcId,
+      serviceName: svcName,
+      quantity: svcQty,
+      notes: svcNotes
+    }])
+    setSvcId("")
+    setSvcName("")
+    setSvcQty(1)
+    setSvcNotes("")
+  }
+
+  const removeService = (idx: number) => {
+    setVisitServices(visitServices.filter((_, i) => i !== idx))
+  }
+
   const handleEditVisit = (visit: any) => {
     setEditingVisitId(visit.id || visit.Id)
     setVisitDoctorId(visit.doctorId || visit.DoctorId || "")
@@ -357,6 +404,14 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     setVisitOxygenLevel(getVitalStr(visit.oxygenLevel, visit.OxygenLevel))
     setVisitBloodSugar(getVitalStr(visit.bloodSugar, visit.BloodSugar))
     
+    const svcs = visit.services || visit.Services;
+    setVisitServices(svcs ? svcs.map((s: any) => ({
+      serviceItemId: s.serviceItemId || s.ServiceItemId || "",
+      serviceName: s.serviceName || s.ServiceName || "",
+      quantity: s.quantity || s.Quantity || 1,
+      notes: s.notes || s.Notes || ""
+    })) : [])
+
     const meds = visit.medicines || visit.Medicines;
     setVisitMedicines(meds ? meds.map((m: any) => ({
       medicineName: m.medicineName || m.MedicineName || "", 
@@ -579,7 +634,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   value={visitSymptoms}
                   onChange={(e) => setVisitSymptoms(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                   placeholder="What is the patient experiencing?"
                 />
               </div>
@@ -591,7 +646,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   value={visitDiagnosis}
                   onChange={(e) => setVisitDiagnosis(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                   placeholder="Clinical diagnosis..."
                 />
               </div>
@@ -605,27 +660,27 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Weight (kg)</label>
-                  <input autoComplete="off" type="number" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="70" />
+                  <input autoComplete="off" type="number" value={visitWeight} onChange={e => setVisitWeight(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="70" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Temp (°F)</label>
-                  <input autoComplete="off" type="number" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
+                  <input autoComplete="off" type="number" value={visitTemperature} onChange={e => setVisitTemperature(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="98.6" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">BP (mmHg)</label>
-                  <input autoComplete="off" type="text" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
+                  <input autoComplete="off" type="text" value={visitBloodPressure} onChange={e => setVisitBloodPressure(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="120/80" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">SpO2 (%)</label>
-                  <input autoComplete="off" type="number" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="98" />
+                  <input autoComplete="off" type="number" value={visitOxygenLevel} onChange={e => setVisitOxygenLevel(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="98" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Heart Rate</label>
-                  <input autoComplete="off" type="number" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="72" />
+                  <input autoComplete="off" type="number" value={visitHeartRate} onChange={e => setVisitHeartRate(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="72" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Sugar (mg/dL)</label>
-                  <input autoComplete="off" type="number" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm" placeholder="110" />
+                  <input autoComplete="off" type="number" value={visitBloodSugar} onChange={e => setVisitBloodSugar(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm" placeholder="110" />
                 </div>
               </div>
             </div>
@@ -659,13 +714,13 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Dose Qty</label>
-                    <input autoComplete="off" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Schedule</label>
-                    <select value={medSchedule} onChange={e => setMedSchedule(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <select value={medSchedule} onChange={e => setMedSchedule(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm">
                       <option value="">Select</option>
                       <option value="1-0-1">1-0-1</option>
                       <option value="1-1-1">1-1-1</option>
@@ -676,7 +731,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Timing</label>
-                    <select value={medTiming} onChange={e => setMedTiming(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                    <select value={medTiming} onChange={e => setMedTiming(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm">
                       <option value="">Select</option>
                       <option value="After Food">After Food</option>
                       <option value="Before Food">Before Food</option>
@@ -684,11 +739,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Duration</label>
-                    <input autoComplete="off" value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input autoComplete="off" value={medInstructions} onChange={e => setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" value={medInstructions} onChange={e => setMedInstructions(e.target.value)} placeholder="e.g. With warm water" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
                 <div className="mt-3 text-right">
@@ -704,7 +759,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         <div className="flex flex-col gap-1 w-full sm:mr-4">
                           <div className="flex items-center gap-3">
                             <span className="font-bold text-slate-800">{med.medicineName}</span>
-                            {med.medicineType && <span className="text-xs text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded">{med.medicineType}</span>}
+                            {med.medicineType && <span className="text-xs text-slate-400 bg-white border border-slate-200 px-1.5 py-0.5 rounded">{med.medicineType}</span>}
                           </div>
                           <div className="flex items-center gap-4 text-xs text-slate-500">
                             {med.doseQty && <span><strong className="font-medium text-slate-600">Qty:</strong> {med.doseQty}</span>}
@@ -724,6 +779,69 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
               </div>
             </div>
 
+            {/* Services & Procedures */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-purple-500" /> Services & Procedures
+              </h3>
+              
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Service/Procedure *</label>
+                    <select 
+                      value={svcId}
+                      onChange={e => {
+                        setSvcId(e.target.value)
+                        const s = servicesData?.find((s: any) => s.id === e.target.value)
+                        if (s) setSvcName(s.name)
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white"
+                    >
+                      <option value="">Select Service</option>
+                      {servicesData?.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.name} - ₹{s.defaultPrice}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Quantity</label>
+                    <input type="number" min="1" value={svcQty} onChange={e => setSvcQty(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Notes</label>
+                    <input type="text" value={svcNotes} onChange={e => setSvcNotes(e.target.value)} placeholder="Optional notes" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                  </div>
+                </div>
+                <div className="mt-3 text-right">
+                  <button onClick={addService} className="btn-primary bg-purple-600 hover:bg-purple-700 text-white">
+                    <Plus className="w-4 h-4" /> Add Service
+                  </button>
+                </div>
+
+                {visitServices.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {visitServices.map((svc, idx) => (
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 rounded-lg border border-slate-200 shadow-sm gap-3">
+                        <div className="flex flex-col gap-1 w-full sm:mr-4">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-slate-800">{svc.serviceName}</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <span><strong className="font-medium text-slate-600">Qty:</strong> {svc.quantity}</span>
+                            {svc.notes && <span><strong className="font-medium text-slate-600">Notes:</strong> {svc.notes}</span>}
+                          </div>
+                        </div>
+                        <button onClick={() => removeService(idx)} className="text-rose-500 p-2 hover:bg-rose-50 rounded transition-colors shrink-0 self-end sm:self-auto border border-rose-100 sm:border-transparent">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Advice & Notes */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 lg:pb-12">
               <div className="space-y-2">
@@ -734,7 +852,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   value={visitAdvice}
                   onChange={(e) => setVisitAdvice(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                   placeholder="Instructions, diet, rest..."
                 />
               </div>
@@ -746,7 +864,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   value={visitInternalNotes}
                   onChange={(e) => setVisitInternalNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
                   placeholder="Confidential observations..."
                 />
               </div>
@@ -760,7 +878,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 </h3>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <div className="flex flex-col gap-3">
-                    <select value={stagingCategory} onChange={e => setStagingCategory(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm w-full">
+                    <select value={stagingCategory} onChange={e => setStagingCategory(e.target.value)} className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
                       <option value="Lab Report">Lab Report</option>
                       <option value="X-Ray">X-Ray</option>
                       <option value="MRI Scan">MRI Scan</option>
@@ -793,11 +911,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
-                    <input autoComplete="off" type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
-                    <input autoComplete="off" type="text" value={visitFollowUpInstructions} onChange={e => setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                    <input autoComplete="off" type="text" value={visitFollowUpInstructions} onChange={e => setVisitFollowUpInstructions(e.target.value)} placeholder="E.g. After doing lipid profile" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
                   </div>
                 </div>
               </div>
@@ -920,6 +1038,21 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                                     <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
                                       <span className="font-semibold text-slate-700 text-xs flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>{m.medicineName}</span>
                                       <span className="text-xs text-slate-500 font-medium">{m.dosage} <span className="text-slate-400 font-normal">({m.foodTiming}) for {m.courseDuration}</span></span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Services */}
+                            {visit.services && visit.services.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1"><Activity className="w-3.5 h-3.5" /> Prescribed Services</h4>
+                                <div className="space-y-1 bg-slate-50 border border-slate-100 rounded-lg p-2">
+                                  {visit.services.map((s: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+                                      <span className="font-semibold text-slate-700 text-xs flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>{s.serviceName || s.ServiceItem?.Name || 'Service'}</span>
+                                      <span className="text-xs text-slate-500 font-medium">Qty: {s.quantity} {s.notes && <span className="text-slate-400 font-normal">({s.notes})</span>}</span>
                                     </div>
                                   ))}
                                 </div>

@@ -45,5 +45,75 @@ namespace CodeX.Api.Controllers
             var result = await Mediator.Send(query);
             return Ok(result);
         }
+
+        [HttpGet("operational")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<CodeX.Application.Features.Analytics.Queries.GetOperationalAnalytics.OperationalAnalyticsDto>> GetOperationalAnalytics(
+            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime endDate, 
+            [FromQuery] Guid? branchId)
+        {
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            var query = new CodeX.Application.Features.Analytics.Queries.GetOperationalAnalytics.GetOperationalAnalyticsQuery
+            {
+                OrganizationId = _currentUserService.OrgId,
+                BranchId = effectiveBranchId,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("financial")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<CodeX.Application.Features.Analytics.Queries.GetFinancialAnalytics.FinancialAnalyticsDto>> GetFinancialAnalytics(
+            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime endDate, 
+            [FromQuery] Guid? branchId)
+        {
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            var query = new CodeX.Application.Features.Analytics.Queries.GetFinancialAnalytics.GetFinancialAnalyticsQuery
+            {
+                OrganizationId = _currentUserService.OrgId,
+                BranchId = effectiveBranchId,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("clinical")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<CodeX.Application.Features.Analytics.Queries.GetClinicalAnalytics.ClinicalAnalyticsDto>> GetClinicalAnalytics(
+            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime endDate, 
+            [FromQuery] Guid? branchId)
+        {
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            var query = new CodeX.Application.Features.Analytics.Queries.GetClinicalAnalytics.GetClinicalAnalyticsQuery
+            {
+                OrganizationId = _currentUserService.OrgId,
+                BranchId = effectiveBranchId,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var result = await Mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("system")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<ActionResult<CodeX.Application.Features.Analytics.Queries.GetSystemAnalytics.SystemAnalyticsDto>> GetSystemAnalytics()
+        {
+            return await Mediator.Send(new CodeX.Application.Features.Analytics.Queries.GetSystemAnalytics.GetSystemAnalyticsQuery());
+        }
     }
 }

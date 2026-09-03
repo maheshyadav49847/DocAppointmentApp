@@ -96,6 +96,7 @@ namespace CodeX.Api.Controllers
                 .Include(v => v.Token).ThenInclude(t => t.Queue)
                 .Include(v => v.Medicines)
                 .Include(v => v.Attachments)
+                .Include(v => v.Services).ThenInclude(s => s.ServiceItem)
                 .Where(v => v.PatientId == id);
 
             var totalCount = await query.CountAsync();
@@ -140,7 +141,8 @@ namespace CodeX.Api.Controllers
                         m.CourseDuration,
                         m.ClinicalInstructions
                     }),
-                    Attachments = v.Attachments.Where(a => !a.IsDeleted).Select(a => new { a.Id, a.FileName, a.FileUrl, a.Category, a.UploadDate })
+                    Attachments = v.Attachments.Where(a => !a.IsDeleted).Select(a => new { a.Id, a.FileName, a.FileUrl, a.Category, a.UploadDate }),
+                    Services = v.Services.Select(s => new { s.Id, s.ServiceItemId, ServiceName = s.ServiceItem.Name, s.Quantity, s.Notes })
                 })
                 .ToListAsync();
 
@@ -326,6 +328,20 @@ namespace CodeX.Api.Controllers
                 }
             }
 
+            
+                if (dto.Services != null && dto.Services.Any())
+                {
+                    foreach (var svc in dto.Services)
+                    {
+                        visit.Services.Add(new VisitService
+                        {
+                            ServiceItemId = svc.ServiceItemId,
+                            Quantity = svc.Quantity,
+                            Notes = svc.Notes
+                        });
+                    }
+                }
+
             _context.PatientVisits.Add(visit);
 
             // If FollowUpDate is set, automatically add to FollowUps table too
@@ -472,6 +488,27 @@ namespace CodeX.Api.Controllers
                         FoodTiming = med.FoodTiming,
                         CourseDuration = med.CourseDuration,
                         ClinicalInstructions = med.ClinicalInstructions
+                    });
+                }
+            }
+
+            // Update services: hard delete and re-insert like medicines
+            var existingServices = await _context.VisitServices
+                .IgnoreQueryFilters()
+                .Where(s => s.PatientVisitId == visitId)
+                .ToListAsync();
+            _context.VisitServices.RemoveRange(existingServices);
+
+            if (dto.Services != null && dto.Services.Any())
+            {
+                foreach (var svc in dto.Services)
+                {
+                    _context.VisitServices.Add(new VisitService
+                    {
+                        PatientVisitId = visitId,
+                        ServiceItemId = svc.ServiceItemId,
+                        Quantity = svc.Quantity,
+                        Notes = svc.Notes
                     });
                 }
             }
@@ -733,6 +770,7 @@ namespace CodeX.Api.Controllers
         public DateTime? FollowUpDate { get; set; }
         public string? FollowUpInstructions { get; set; }
         public List<MedicineDto>? Medicines { get; set; }
+        public List<ServiceDto>? Services { get; set; }
     }
 
     public class EditVisitDto
@@ -752,6 +790,7 @@ namespace CodeX.Api.Controllers
         public DateTime? FollowUpDate { get; set; }
         public string? FollowUpInstructions { get; set; }
         public List<MedicineDto>? Medicines { get; set; }
+        public List<ServiceDto>? Services { get; set; }
     }
 
     public class MedicineDto
@@ -764,6 +803,14 @@ namespace CodeX.Api.Controllers
         public string? FoodTiming { get; set; }
         public string? CourseDuration { get; set; }
         public string? ClinicalInstructions { get; set; }
+    }
+
+    
+    public class ServiceDto
+    {
+        public Guid ServiceItemId { get; set; }
+        public int Quantity { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class AddFollowUpDto

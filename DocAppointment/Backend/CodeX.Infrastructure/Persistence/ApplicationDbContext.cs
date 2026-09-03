@@ -38,6 +38,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Staff> Staffs => Set<Staff>();
         public DbSet<PatientVisit> PatientVisits => Set<PatientVisit>();
         public DbSet<VisitMedicine> VisitMedicines => Set<VisitMedicine>();
+        public DbSet<VisitService> VisitServices => Set<VisitService>();
         public DbSet<MedicineMaster> Medicines => Set<MedicineMaster>();
         public DbSet<MedicineType> MedicineTypes => Set<MedicineType>();
         public DbSet<PatientAttachment> PatientAttachments => Set<PatientAttachment>();
@@ -49,6 +50,11 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<UserSession> UserSessions => Set<UserSession>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<IdempotencyLog> IdempotencyLogs => Set<IdempotencyLog>();
+        
+        public DbSet<ServiceItem> ServiceItems => Set<ServiceItem>();
+        public DbSet<Invoice> Invoices => Set<Invoice>();
+        public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+        public DbSet<Payment> Payments => Set<Payment>();
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {

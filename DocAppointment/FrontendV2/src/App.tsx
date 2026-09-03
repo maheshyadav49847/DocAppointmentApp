@@ -21,6 +21,8 @@ import AuditLogsPage from "./pages/audit-logs/AuditLogsPage"
 import TvDisplayPage from "./pages/display/TvDisplayPage"
 import PatientTrackingPage from "./pages/display/PatientTrackingPage"
 import RolesPermissionsPage from "./pages/settings/RolesPermissionsPage"
+import BillingServicesPage from "./pages/billing/BillingServicesPage"
+import BillingDashboardPage from "./pages/billing/BillingDashboardPage"
 import { useAuthStore } from "./store/authStore"
 
 import { usePermissions } from "./hooks/usePermissions"
@@ -91,6 +93,8 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/roles" element={<PermissionRoute permissions={["Settings.ManageRoles"]}><RolesPermissionsPage /></PermissionRoute>} />
           <Route path="/pharmacy" element={<PermissionRoute permissions={["Pharmacy.View"]}><PharmacyPage /></PermissionRoute>} />
+          <Route path="/billing" element={<PermissionRoute permissions={["Settings.View"]}><BillingDashboardPage /></PermissionRoute>} />
+          <Route path="/billing/services" element={<PermissionRoute permissions={["Settings.View"]}><BillingServicesPage /></PermissionRoute>} />
           <Route path="/audit-logs" element={<PermissionRoute permissions={["Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
           {/* We will add other routes here in later phases */}
         </Route>

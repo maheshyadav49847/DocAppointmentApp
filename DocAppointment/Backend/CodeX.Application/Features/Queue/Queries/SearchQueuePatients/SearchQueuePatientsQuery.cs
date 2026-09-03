@@ -44,7 +44,12 @@ namespace CodeX.Application.Features.Queue.Queries.SearchQueuePatients
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             {
                 var searchTerm = request.SearchTerm.ToLower();
-                query = query.Where(p => p.Name.ToLower().Contains(searchTerm) || p.Phone.Contains(searchTerm));
+                query = query.Where(p => 
+                    p.Name.ToLower().Contains(searchTerm) || 
+                    (p.Phone != null && p.Phone.Contains(searchTerm)) ||
+                    (p.PatientCode != null && p.PatientCode.ToLower().Contains(searchTerm)) ||
+                    (p.AadhaarNumber != null && p.AadhaarNumber.Contains(searchTerm)) ||
+                    (p.Email != null && p.Email.ToLower().Contains(searchTerm)));
             }
 
             return await query
