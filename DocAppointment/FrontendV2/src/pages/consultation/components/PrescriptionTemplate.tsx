@@ -107,7 +107,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
           zIndex: 10,
           fontSize: '14px'
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px 24px' }}>
             <div style={{ display: 'flex' }}>
               <span style={{ width: '100px', color: '#64748b', fontWeight: '600' }}>Patient ID:</span>
               <span style={{ fontWeight: '700', color: '#0f172a' }}>{patient?.patientCode}</span>
@@ -186,9 +186,9 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
 
         {/* Diagnosis & Symptoms Grid */}
         {(diagnosis || symptoms) && (
-          <div style={{ marginBottom: '32px', display: 'grid', gridTemplateColumns: diagnosis && symptoms ? '1fr 1fr' : '1fr', gap: '24px' }}>
+          <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
             {diagnosis && (
-              <div>
+              <div style={{ flex: 1 }}>
                 <div style={{ color: '#94a3b8', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Diagnosis</div>
                 <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
                   {diagnosis.toUpperCase()}
@@ -196,7 +196,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
               </div>
             )}
             {symptoms && (
-              <div>
+              <div style={{ flex: 1, textAlign: diagnosis ? 'right' : 'left' }}>
                 <div style={{ color: '#94a3b8', fontWeight: '700', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Symptoms / Chief Complaints</div>
                 <div style={{ fontSize: '14px', color: '#334155', fontWeight: '500', lineHeight: '1.5' }}>
                   {symptoms}
@@ -277,10 +277,10 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
         )}
 
         {/* Advice & Follow Up Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: advice ? '1.5fr 1fr' : '1fr', gap: '32px', marginTop: 'auto', paddingTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '32px', marginTop: 'auto', paddingTop: '20px' }}>
           {/* Advice */}
           {advice && (
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontWeight: '700', color: '#94a3b8', marginBottom: '8px', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>General Advice / Plan</div>
               <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '14px', color: '#334155', fontWeight: '500' }}>{advice}</div>
             </div>
@@ -288,7 +288,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
 
           {/* Follow-up */}
           {visit.followUpDate && (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', textAlign: advice ? 'right' : 'left', alignItems: advice ? 'flex-end' : 'flex-start' }}>
               <span style={{ fontWeight: '700', color: '#94a3b8', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Next Follow-up</span>
               <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '16px' }}>
                 {new Date(visit.followUpDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', weekday: 'long' })}

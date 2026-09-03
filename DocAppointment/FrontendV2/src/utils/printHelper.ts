@@ -82,7 +82,13 @@ export const handlePrintInvoice = async (invoiceId: string, organizationId: stri
             <h3><span>Paid:</span> <span style="color: #10b981;">₹${inv.paidAmount}</span></h3>
             ${inv.totalAmount - inv.paidAmount > 0 ? `<h3 class="balance"><span>Balance Due:</span> <span>₹${inv.totalAmount - inv.paidAmount}</span></h3>` : ''}
           </div>
-          <div style="margin-top: 50px; text-align: center; color: #94a3b8; font-size: 12px;">
+          <div style="display: flex; justify-content: flex-end; margin-top: 80px; margin-bottom: 20px;">
+            <div style="width: 220px; text-align: center;">
+              <div style="border-bottom: 1px solid #94a3b8; margin-bottom: 8px;"></div>
+              <span style="font-size: 13px; font-weight: 600; color: #475569;">Authorized Signature & Stamp</span>
+            </div>
+          </div>
+          <div style="margin-top: 30px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px dashed #e2e8f0; padding-top: 15px;">
             <p>Thank you for your visit. Get well soon!</p>
           </div>
           <script>
