@@ -88,7 +88,8 @@ export default function DashboardLayout() {
 
   const navigation = getNavigation(role, !!user?.doctorId);
 
-  let currentNav = navigation.find(n => n.href !== '/' && location.pathname.startsWith(n.href)) || (location.pathname === '/' ? navigation[0] : null);
+  // Sort by length descending to match the deepest route first (e.g. /analytics/chatbot before /analytics)
+  let currentNav = [...navigation].sort((a, b) => b.href.length - a.href.length).find(n => n.href !== '/' && location.pathname.startsWith(n.href)) || (location.pathname === '/' ? navigation[0] : null);
 
   if (!currentNav) {
     if (location.pathname.startsWith('/consult')) currentNav = { name: "Consultation", href: location.pathname, icon: Stethoscope, requiredAny: [] };
@@ -181,7 +182,9 @@ export default function DashboardLayout() {
               return null;
             }
 
-            const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href) && !(item.href === "/billing" && location.pathname.startsWith("/billing/services")))
+            // Prevent parent menu from highlighting if a specific child menu item is selected
+            const isSubMenuSelectedItem = navigation.some(n => n !== item && n.href.startsWith(item.href) && location.pathname.startsWith(n.href));
+            const isActive = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href) && !isSubMenuSelectedItem);
             return (
               <Link
                 key={item.name}
