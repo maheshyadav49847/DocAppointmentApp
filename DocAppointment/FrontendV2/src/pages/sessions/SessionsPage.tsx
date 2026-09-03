@@ -109,6 +109,7 @@ export default function SessionsPage() {
 
     // Manual validation for time fields to use the custom messaging feature instead of browser tooltips
     const errors: Record<string, string[]> = {}
+    if (!formData.get('sessionName')) errors.SessionName = ["Session Name is required."]
     if (!startTimeStr) errors.StartTime = ["Start time is required."]
     if (!endTimeStr) errors.EndTime = ["End time is required."]
 
@@ -376,34 +377,34 @@ export default function SessionsPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <FileText className="w-4 h-4 text-blue-500" /> Session Name
+                        <FileText className="w-4 h-4 text-blue-500" /> Session Name <span className="text-red-500">*</span>
                       </label>
-                      <input autoComplete="off" name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <input required autoComplete="off" name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
                       <FieldError errors={validationErrors} field="SessionName" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Clock className="w-4 h-4 text-green-500" /> Start Time
+                          <Clock className="w-4 h-4 text-green-500" /> Start Time <span className="text-red-500">*</span>
                         </label>
-                        <input autoComplete="off" type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input required autoComplete="off" type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                         <FieldError errors={validationErrors} field="StartTime" />
                       </div>
                       <div>
                         <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Clock className="w-4 h-4 text-rose-500" /> End Time
+                          <Clock className="w-4 h-4 text-rose-500" /> End Time <span className="text-red-500">*</span>
                         </label>
-                        <input autoComplete="off" type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                        <input required autoComplete="off" type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                         <FieldError errors={validationErrors} field="EndTime" />
                       </div>
                     </div>
 
                     <div>
                       <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity
+                        <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity <span className="text-red-500">*</span>
                       </label>
-                      <input autoComplete="off" type="number" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                      <input required autoComplete="off" type="number" min="1" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                       <FieldError errors={validationErrors} field="DefaultCapacity" />
                       <p className="text-xs text-slate-500 mt-1">Maximum number of patients allowed per session.</p>
                     </div>

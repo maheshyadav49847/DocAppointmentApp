@@ -49,19 +49,57 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
                 }
             }
 
-            var duplicateExists = await _context.Doctors
+            var name = request.Name.Trim();
+            var regNum = request.RegistrationNumber.Trim();
+
+            var duplicateNameExists = await _context.Doctors
                 .AnyAsync(d => d.Id != request.Id && 
                                d.OrganizationId == doctor.OrganizationId &&
-                               d.Name.ToLower() == request.Name.ToLower() && 
+                               d.Name.ToLower() == name.ToLower() && 
                                !d.IsDeleted, 
                           cancellationToken);
 
-            if (duplicateExists)
+            if (duplicateNameExists)
             {
-                throw new Exception($"Another doctor with the name '{request.Name}' already exists in this organization.");
+                throw new Exception($"Another doctor with the name '{name}' already exists in this organization.");
             }
 
-            doctor.Name = request.Name;
+            if (!string.IsNullOrWhiteSpace(request.EmailId))
+            {
+                var email = request.EmailId.Trim().ToLower();
+                var duplicateEmailExists = await _context.Doctors
+                    .AnyAsync(d => d.Id != request.Id && 
+                                   d.OrganizationId == doctor.OrganizationId &&
+                                   d.EmailId != null && d.EmailId.ToLower() == email && 
+                                   !d.IsDeleted, 
+                              cancellationToken);
+                if (duplicateEmailExists) throw new Exception($"Another doctor with the email '{email}' already exists in this organization.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Mobile))
+            {
+                var mobile = request.Mobile.Trim();
+                var duplicateMobileExists = await _context.Doctors
+                    .AnyAsync(d => d.Id != request.Id && 
+                                   d.OrganizationId == doctor.OrganizationId &&
+                                   d.Mobile == mobile && 
+                                   !d.IsDeleted, 
+                              cancellationToken);
+                if (duplicateMobileExists) throw new Exception($"Another doctor with the mobile number '{mobile}' already exists in this organization.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(regNum))
+            {
+                var duplicateRegExists = await _context.Doctors
+                    .AnyAsync(d => d.Id != request.Id && 
+                                   d.OrganizationId == doctor.OrganizationId &&
+                                   d.RegistrationNumber.ToLower() == regNum.ToLower() && 
+                                   !d.IsDeleted, 
+                              cancellationToken);
+                if (duplicateRegExists) throw new Exception($"Another doctor with the Registration Number '{regNum}' already exists in this organization.");
+            }
+
+            doctor.Name = name;
             doctor.Specialization = request.Specialization;
             doctor.RegistrationNumber = request.RegistrationNumber;
             doctor.Gender = request.Gender;

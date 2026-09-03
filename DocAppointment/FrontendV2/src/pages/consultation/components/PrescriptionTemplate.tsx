@@ -73,6 +73,11 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
               <div style={{ color: '#64748b', fontSize: '14px', fontWeight: '600', lineHeight: 1.4 }}>
                 {doctor?.qualification} {doctor?.specialization ? `| ${doctor?.specialization}` : ''}
               </div>
+              {doctor?.registrationNumber && (
+                <div style={{ color: '#0ea5e9', fontSize: '13px', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' }}>
+                  Reg. No: {doctor?.registrationNumber}
+                </div>
+              )}
             </div>
           </div>
 

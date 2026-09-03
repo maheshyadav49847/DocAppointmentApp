@@ -124,24 +124,32 @@ export default function StaffPage() {
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
+    const errors: Record<string, string[]> = {}
+
+    if (!formData.get('employeeId')) errors.EmployeeId = ["Employee ID is required."]
+    if (!formData.get('firstName')) errors.FirstName = ["First Name is required."]
+    if (!formData.get('lastName')) errors.LastName = ["Last Name is required."]
+    if (!formData.get('email')) errors.Email = ["Email is required."]
+    if (!formData.get('phoneNumber')) errors.PhoneNumber = ["Phone Number is required."]
+
+    const passwordPolicyRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
     if (!editingStaff) {
       const password = formData.get('password') as string;
       const confirmPassword = formData.get('confirmPassword') as string;
       
-      if (!password || password.length < 8) {
-        setValidationErrors({
-          Password: ["Password must be at least 8 characters."]
-        });
-        return;
+      if (!password) {
+        errors.Password = ["Password is required."];
+      } else if (!passwordPolicyRegex.test(password)) {
+        errors.Password = ["Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character."];
+      } else if (password !== confirmPassword) {
+        errors.ConfirmPassword = ["Passwords do not match."];
       }
+    }
 
-      if (password !== confirmPassword) {
-        setValidationErrors({
-          ConfirmPassword: ["Passwords do not match."]
-        });
-        return;
-      }
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
     }
 
     const data: any = {
@@ -600,23 +608,23 @@ export default function StaffPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Hash className="w-4 h-4 text-teal-500" /> Employee ID
+                            <Hash className="w-4 h-4 text-teal-500" /> Employee ID <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input required autoComplete="off" name="employeeId" defaultValue={editingStaff?.employeeId} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="EmployeeId" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <User className="w-4 h-4 text-blue-500" /> First Name
+                            <User className="w-4 h-4 text-blue-500" /> First Name <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input required autoComplete="off" name="firstName" defaultValue={editingStaff?.firstName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="FirstName" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <User className="w-4 h-4 text-blue-500" /> Last Name
+                            <User className="w-4 h-4 text-blue-500" /> Last Name <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input required autoComplete="off" name="lastName" defaultValue={editingStaff?.lastName} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="LastName" />
                         </div>
                       </div>
@@ -628,20 +636,21 @@ export default function StaffPage() {
                       <div className="grid grid-cols-1 gap-4">
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Mail className="w-4 h-4 text-rose-500" /> Email
+                            <Mail className="w-4 h-4 text-rose-500" /> Email <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                          <input required autoComplete="off" type="email" name="email" defaultValue={editingStaff?.email} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                           <FieldError errors={validationErrors} field="Email" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone
+                            <Phone className="w-4 h-4 text-green-500" /> WhatsApp / Phone <span className="text-red-500">*</span>
                           </label>
                           <PhoneInput
                             name="phoneNumber"
                             dialCodeName="phoneNumberDialCode"
                             defaultValue={editingStaff?.phoneNumber?.replace(/^\+\d+/, '') || editingStaff?.phoneNumber}
                             defaultDialCode={editingStaff?.phoneNumberDialCode || '+91'}
+                            required
                           />
                           <FieldError errors={validationErrors} field="PhoneNumber" />
                         </div>
@@ -649,16 +658,16 @@ export default function StaffPage() {
                           <>
                             <div>
                               <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                                <Key className="w-4 h-4 text-amber-500" /> Password
+                                <Key className="w-4 h-4 text-amber-500" /> Password <span className="text-red-500">*</span>
                               </label>
-                              <Input autoComplete="new-password" type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                              <Input required autoComplete="new-password" type="password" name="password" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
                               <FieldError errors={validationErrors} field="Password" />
                             </div>
                             <div>
                               <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                                <Key className="w-4 h-4 text-amber-500" /> Confirm Password
+                                <Key className="w-4 h-4 text-amber-500" /> Confirm Password <span className="text-red-500">*</span>
                               </label>
-                              <Input autoComplete="new-password" type="password" name="confirmPassword" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
+                              <Input required autoComplete="new-password" type="password" name="confirmPassword" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••" />
                               <FieldError errors={validationErrors} field="ConfirmPassword" />
                             </div>
                           </>
@@ -729,8 +738,8 @@ export default function StaffPage() {
                 const newPassword = formData.get('password') as string
                 const confirmPassword = formData.get('confirmPassword') as string
                 
-                if (!newPassword || newPassword.length < 8) {
-                  setValidationErrors({ Password: ["Password must be at least 8 characters."] });
+                if (!newPassword || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword)) {
+                  setValidationErrors({ Password: ["Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character."] });
                   return;
                 }
 

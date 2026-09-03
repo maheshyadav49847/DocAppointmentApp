@@ -90,6 +90,7 @@ namespace CodeX.Api.Controllers
             if (string.IsNullOrWhiteSpace(branch.Name)) errors.Add("Name", new[] { "Name is required." });
             if (string.IsNullOrWhiteSpace(branch.Address)) errors.Add("Address", new[] { "Address is required." });
             if (string.IsNullOrWhiteSpace(branch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
+            if (string.IsNullOrWhiteSpace(branch.LogoBase64)) errors.Add("LogoBase64", new[] { "Branch Logo is required." });
             if (errors.Any()) return BadRequest(new { errors });
 
             // Code-level check: Prevent duplicate branch name in same organization
@@ -148,6 +149,7 @@ namespace CodeX.Api.Controllers
             if (string.IsNullOrWhiteSpace(updatedBranch.Name)) errors.Add("Name", new[] { "Name is required." });
             if (string.IsNullOrWhiteSpace(updatedBranch.Address)) errors.Add("Address", new[] { "Address is required." });
             if (string.IsNullOrWhiteSpace(updatedBranch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
+            if (string.IsNullOrWhiteSpace(updatedBranch.LogoBase64) && string.IsNullOrWhiteSpace(branch.LogoBase64)) errors.Add("LogoBase64", new[] { "Branch Logo is required." });
             if (errors.Any()) return BadRequest(new { errors });
 
             var name = updatedBranch.Name.Trim();

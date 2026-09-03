@@ -32,7 +32,7 @@ namespace CodeX.Application.Features.Doctors.Commands.CreateDoctor
             RuleFor(v => v.Password!)
                 .NotEmpty().WithMessage("Password is required.")
                 .PasswordRules();
-            RuleFor(v => v.BranchIds).NotEmpty().WithMessage("At least one Facility must be selected.");
+            RuleFor(v => v.BranchIds).NotEmpty().WithMessage("At least one Branch must be selected.");
         }
     }
 }

@@ -59,6 +59,26 @@ namespace CodeX.Application.Features.Staff.Commands.CreateStaff
             if (emailExists)
                 throw new Exception($"The email '{email}' is already registered in the system.");
 
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var phone = request.PhoneNumber.Trim();
+                var phoneExists = await _context.Staffs
+                    .AnyAsync(s => s.PhoneNumber == phone && s.OrganizationId == organizationId && !s.IsDeleted, cancellationToken);
+
+                if (phoneExists)
+                    throw new Exception($"The phone number '{phone}' is already registered for another staff member in this organization.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.EmployeeId))
+            {
+                var empId = request.EmployeeId.Trim();
+                var empIdExists = await _context.Staffs
+                    .AnyAsync(s => s.EmployeeId == empId && s.OrganizationId == organizationId && !s.IsDeleted, cancellationToken);
+
+                if (empIdExists)
+                    throw new Exception($"The Employee ID '{empId}' is already assigned to another staff member in this organization.");
+            }
+
             PasswordValidator.Validate(request.Password, _configuration);
 
             var targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.RoleName && (r.OrganizationId == Guid.Empty || r.OrganizationId == organizationId), cancellationToken);

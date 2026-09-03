@@ -102,6 +102,18 @@ export default function BranchesPage() {
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
+    
+    const errors: Record<string, string[]> = {}
+    if (!formData.get('name')) errors.Name = ["Branch Name is required."]
+    if (!formData.get('address')) errors.Address = ["Address is required."]
+    if (!formData.get('whatsAppNumber')) errors.WhatsAppNumber = ["WhatsApp Number is required."]
+    if (!logoBase64 && !editingBranch) errors.LogoBase64 = ["Branch Logo is required."]
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
+    }
+
     const data = {
       name: formData.get('name'),
       address: formData.get('address'),
@@ -193,7 +205,7 @@ export default function BranchesPage() {
                 <button
                   onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
                   className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
-                  title="Edit Facility"
+                  title="Edit Branch"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
@@ -219,7 +231,7 @@ export default function BranchesPage() {
                   if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)
                 }}
                 className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
-                title="Delete Facility"
+                title="Delete Branch"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -405,7 +417,7 @@ export default function BranchesPage() {
                           <button
                             onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
                             className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
-                            title="Edit Facility"
+                            title="Edit Branch"
                           >
                             <Edit className="w-4.5 h-4.5" />
                           </button>
@@ -508,20 +520,21 @@ export default function BranchesPage() {
                   <ApiErrorAlert error={apiError} />
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <Building2 className="w-4 h-4 text-indigo-500" /> Facility Name
+                      <Building2 className="w-4 h-4 text-indigo-500" /> Branch Name <span className="text-red-500">*</span>
                     </label>
-                    <input autoComplete="off" name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input required autoComplete="off" name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                     <FieldError errors={validationErrors} field="Name" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <Image className="w-4 h-4 text-purple-500" /> Branch Logo
+                      <Image className="w-4 h-4 text-purple-500" /> Branch Logo <span className="text-red-500">*</span>
                     </label>
                     <div className="flex items-center gap-4">
                       {logoBase64 && (
                         <img src={logoBase64} alt="Logo" className="w-12 h-12 rounded object-contain bg-slate-100 border" />
                       )}
                       <input
+                        required={!editingBranch && !logoBase64}
                         type="file"
                         accept="image/*"
                         onChange={(e) => {
@@ -537,23 +550,25 @@ export default function BranchesPage() {
                         className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 outline-none"
                       />
                     </div>
+                    <FieldError errors={validationErrors} field="LogoBase64" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <MapPin className="w-4 h-4 text-rose-500" /> Physical Address
+                      <MapPin className="w-4 h-4 text-rose-500" /> Physical Address <span className="text-red-500">*</span>
                     </label>
-                    <textarea autoComplete="off" rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
+                    <textarea required autoComplete="off" rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
                     <FieldError errors={validationErrors} field="Address" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                      <Smartphone className="w-4 h-4 text-green-500" /> WhatsApp Number
+                      <Smartphone className="w-4 h-4 text-green-500" /> WhatsApp Number <span className="text-red-500">*</span>
                     </label>
                     <PhoneInput
                       name="whatsAppNumber"
                       dialCodeName="whatsAppDialCode"
                       defaultValue={editingBranch?.whatsAppNumber?.replace(/^\+\d+/, '') || editingBranch?.whatsAppNumber}
                       defaultDialCode={editingBranch?.whatsAppDialCode || '+91'}
+                      required
                     />
                     <FieldError errors={validationErrors} field="WhatsAppNumber" />
                     <p className="text-xs text-slate-500 mt-1">Include country code. Used for automated bot communications.</p>
@@ -589,7 +604,7 @@ export default function BranchesPage() {
                 <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="branch-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {editingBranch ? 'Save Changes' : 'Create Facility'}
+                  {editingBranch ? 'Save Changes' : 'Create Branch'}
                 </button>
               </div>
             </motion.div>

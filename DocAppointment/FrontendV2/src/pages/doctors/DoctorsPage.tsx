@@ -152,22 +152,44 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
-    
+    const errors: Record<string, string[]> = {}
+
+    if (!formData.get('name')) errors.Name = ["Name is required."]
+    if (!formData.get('gender')) errors.Gender = ["Gender is required."]
+    if (!formData.get('mobile')) errors.Mobile = ["Mobile is required."]
+    if (!formData.get('emailId')) errors.EmailId = ["Email is required."]
+    if (!formData.get('specialization')) errors.Specialization = ["Specialization is required."]
+    if (!formData.get('qualification')) errors.Qualification = ["Qualification is required."]
+    if (!formData.get('experience')) errors.Experience = ["Experience is required."]
+    if (!formData.get('registrationNumber')) errors.RegistrationNumber = ["Registration Number is required."]
+    if (formData.getAll('branchIds').length === 0) errors.BranchIds = ["At least one Facility must be selected."]
+
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
     
-    if (password && password.length < 8) {
-      setValidationErrors({
-        Password: ["Password must be at least 8 characters."]
-      });
-      return;
+    const passwordPolicyRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!editingDoctor) {
+      if (!password) {
+        errors.Password = ["Password is required."];
+      } else if (!passwordPolicyRegex.test(password)) {
+        errors.Password = ["Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character."];
+      } else if (password !== confirmPassword) {
+        errors.ConfirmPassword = ["Passwords do not match."];
+      }
+    } else {
+      if (password) {
+        if (!passwordPolicyRegex.test(password)) {
+          errors.Password = ["Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character."];
+        } else if (password !== confirmPassword) {
+          errors.ConfirmPassword = ["Passwords do not match."];
+        }
+      }
     }
 
-    if (password && password !== confirmPassword) {
-      setValidationErrors({
-        ConfirmPassword: ["Passwords do not match."]
-      });
-      return;
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
     }
 
     const data = {
@@ -643,16 +665,16 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <User className="w-4 h-4 text-blue-500" /> Full Name
+                            <User className="w-4 h-4 text-blue-500" /> Full Name <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
+                          <input required autoComplete="off" name="name" defaultValue={editingDoctor?.name} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Dr. John Doe" />
                           <FieldError errors={validationErrors} field="Name" />
                         </div>
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Users className="w-4 h-4 text-pink-500" /> Gender
+                            <Users className="w-4 h-4 text-pink-500" /> Gender <span className="text-red-500">*</span>
                           </label>
-                          <select name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                          <select required name="gender" defaultValue={editingDoctor?.gender ? editingDoctor.gender.charAt(0).toUpperCase() + editingDoctor.gender.slice(1).toLowerCase() : ""} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
                             <option value="">Select Gender</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
@@ -669,37 +691,38 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Phone className="w-4 h-4 text-green-500" /> Mobile
+                            <Phone className="w-4 h-4 text-green-500" /> Mobile <span className="text-red-500">*</span>
                           </label>
                           <PhoneInput
                             name="mobile"
                             dialCodeName="mobileDialCode"
                             defaultValue={editingDoctor?.mobile?.replace(/^\+\d+/, '') || editingDoctor?.mobile}
                             defaultDialCode={editingDoctor?.mobileDialCode || '+91'}
+                            required
                           />
                           <FieldError errors={validationErrors} field="Mobile" />
                         </div>
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Mail className="w-4 h-4 text-rose-500" /> Email
+                            <Mail className="w-4 h-4 text-rose-500" /> Email <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
+                          <input required autoComplete="off" name="emailId" type="email" defaultValue={editingDoctor?.emailId} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="doctor@example.com" />
                           <FieldError errors={validationErrors} field="EmailId" />
                         </div>
                         {!editingDoctor && (
 <>
 <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login)
+                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Password (Login) <span className="text-red-500">*</span>
                           </label>
-                          <Input autoComplete="new-password" name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank if unchanged" : "••••••••"} />
+                          <Input required={!editingDoctor} autoComplete="new-password" name="password" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder={editingDoctor ? "Leave blank if unchanged" : "••••••••"} />
                           <FieldError errors={validationErrors} field="Password" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Confirm Password
+                            <ShieldCheck className="w-4 h-4 text-slate-500" /> Confirm Password <span className="text-red-500">*</span>
                           </label>
-                          <Input autoComplete="new-password" name="confirmPassword" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="••••••••" />
+                          <Input required={!editingDoctor} autoComplete="new-password" name="confirmPassword" type="password" className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="••••••••" />
                           <FieldError errors={validationErrors} field="ConfirmPassword" />
                         </div>
 </>
@@ -713,23 +736,23 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-1 sm:col-span-2">
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization
+                            <Stethoscope className="w-4 h-4 text-indigo-500" /> Specialization <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
+                          <input required autoComplete="off" name="specialization" defaultValue={editingDoctor?.specialization} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Cardiologist" />
                           <FieldError errors={validationErrors} field="Specialization" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification
+                            <GraduationCap className="w-4 h-4 text-purple-500" /> Qualification <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
+                          <input required autoComplete="off" name="qualification" defaultValue={editingDoctor?.qualification} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="MBBS, MD" />
                           <FieldError errors={validationErrors} field="Qualification" />
                         </div>
                         <div>
                           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs)
+                            <Clock className="w-4 h-4 text-amber-500" /> Experience (Yrs) <span className="text-red-500">*</span>
                           </label>
-                          <input autoComplete="off" name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
+                          <input required autoComplete="off" name="experience" defaultValue={editingDoctor?.experience} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="5 Years" />
                           <FieldError errors={validationErrors} field="Experience" />
                         </div>
                         <div className="col-span-1 sm:col-span-2">
@@ -744,7 +767,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
 
                     {/* Section 4: Assigned Branches */}
                     <div>
-                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Assigned Branches</h3>
+                      <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Assigned Branches <span className="text-red-500">*</span></h3>
                       <div>
                         {!branches ? (
                           <div className="text-sm text-zinc-500">Loading branches...</div>

@@ -49,6 +49,26 @@ namespace CodeX.Application.Features.Staff.Commands.UpdateStaff
             if (emailTaken)
                 throw new Exception($"The email '{email}' is already taken by another user in the system.");
 
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var phone = request.PhoneNumber.Trim();
+                var phoneTaken = await _context.Staffs
+                    .AnyAsync(s => s.PhoneNumber == phone && s.Id != request.Id && s.OrganizationId == staff.OrganizationId && !s.IsDeleted, cancellationToken);
+
+                if (phoneTaken)
+                    throw new Exception($"The phone number '{phone}' is already registered for another staff member in this organization.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.EmployeeId))
+            {
+                var empId = request.EmployeeId.Trim();
+                var empIdTaken = await _context.Staffs
+                    .AnyAsync(s => s.EmployeeId == empId && s.Id != request.Id && s.OrganizationId == staff.OrganizationId && !s.IsDeleted, cancellationToken);
+
+                if (empIdTaken)
+                    throw new Exception($"The Employee ID '{empId}' is already assigned to another staff member in this organization.");
+            }
+
             var targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == request.RoleName && (r.OrganizationId == Guid.Empty || r.OrganizationId == staff.OrganizationId), cancellationToken);
 
             staff.Email = email;

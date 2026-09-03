@@ -16,7 +16,7 @@ namespace CodeX.Application.Features.Doctors.Commands.UpdateDoctor
             RuleFor(v => v.Gender).NotEmpty().WithMessage("Gender is required.");
             RuleFor(v => v.Qualification).NotEmpty().WithMessage("Qualification is required.");
             RuleFor(v => v.Experience).NotEmpty().WithMessage("Experience is required.");
-            RuleFor(v => v.BranchIds).NotEmpty().WithMessage("At least one Facility must be selected.");
+            RuleFor(v => v.BranchIds).NotEmpty().WithMessage("At least one Branch must be selected.");
             RuleFor(v => v.Password!)
                 .PasswordRules()
                 .When(v => !string.IsNullOrEmpty(v.Password));
