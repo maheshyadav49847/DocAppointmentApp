@@ -25,6 +25,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoiceById
         public string InvoiceNumber { get; set; } = string.Empty;
         public Guid PatientId { get; set; }
         public string PatientName { get; set; } = string.Empty;
+        public string PatientCode { get; set; } = string.Empty;
         public decimal SubTotal { get; set; }
         public decimal DiscountAmount { get; set; }
         public decimal TaxAmount { get; set; }
@@ -63,6 +64,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoiceById
                 InvoiceNumber = invoice.InvoiceNumber,
                 PatientId = invoice.PatientId,
                 PatientName = invoice.Patient.Name,
+                PatientCode = invoice.Patient.PatientCode ?? "",
                 SubTotal = invoice.SubTotal,
                 DiscountAmount = invoice.DiscountAmount,
                 TaxAmount = invoice.TaxAmount,

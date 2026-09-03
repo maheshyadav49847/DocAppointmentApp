@@ -80,8 +80,8 @@ export const handlePrintInvoice = async (invoiceId: string, organizationId: stri
           <div class="details">
             <div>
               <div class="detail-group">
-                <div class="detail-label">Patient Name:</div>
-                <div class="detail-value">${inv.patientName}</div>
+                <div class="detail-label">Patient:</div>
+                <div class="detail-value">${inv.patientName} ${inv.patientCode ? `<span style="color: #64748b; font-weight: 500;">(${inv.patientCode})</span>` : ''}</div>
               </div>
               <div class="detail-group">
                 <div class="detail-label">Invoice Date:</div>

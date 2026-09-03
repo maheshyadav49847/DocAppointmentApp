@@ -13,6 +13,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices
         public Guid Id { get; set; }
         public string InvoiceNumber { get; set; } = string.Empty;
         public string PatientName { get; set; } = string.Empty;
+        public string PatientCode { get; set; } = string.Empty;
         public decimal TotalAmount { get; set; }
         public decimal PaidAmount { get; set; }
         public InvoiceStatus Status { get; set; }
@@ -47,6 +48,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices
                     Id = x.Id,
                     InvoiceNumber = x.InvoiceNumber,
                     PatientName = x.Patient.Name,
+                    PatientCode = x.Patient.PatientCode ?? "",
                     TotalAmount = x.TotalAmount,
                     PaidAmount = x.PaidAmount,
                     Status = x.Status,
