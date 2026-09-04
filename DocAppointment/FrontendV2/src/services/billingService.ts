@@ -30,8 +30,17 @@ export const billingService = {
     return response.data;
   },
 
-  getServices: async (organizationId: string): Promise<ServiceItem[]> => {
-    const response = await api.get('/billing/services/' + organizationId);
+  getServices: async (organizationId: string, page: number = 1, pageSize: number = 10, search: string = ''): Promise<{ items: ServiceItem[], totalPages: number, totalCount: number }> => {
+    let url = `/billing/services?organizationId=${organizationId}&page=${page}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  exportServices: async (organizationId: string, search: string = ''): Promise<Blob> => {
+    let url = `/billing/services/export?organizationId=${organizationId}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    const response = await api.get(url, { responseType: 'blob' });
     return response.data;
   },
 

@@ -19,10 +19,17 @@ namespace CodeX.Api.Controllers
     [Route("api/v{version:apiVersion}/[controller]")]
     public class BillingController : BaseApiController
     {
-        [HttpGet("services/{organizationId}")]
-        public async Task<ActionResult<List<ServiceItemDto>>> GetServices(Guid organizationId)
+        [HttpGet("services")]
+        public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<ServiceItemDto>>> GetServices([FromQuery] GetServicesQuery query)
         {
-            return await Mediator.Send(new GetServicesQuery(organizationId));
+            return await Mediator.Send(query);
+        }
+
+        [HttpGet("services/export")]
+        public async Task<FileResult> ExportServices([FromQuery] CodeX.Application.Features.Billing.Services.Queries.ExportServices.ExportServicesQuery query)
+        {
+            var fileBytes = await Mediator.Send(query);
+            return File(fileBytes, "text/csv", $"RateList_Export_{DateTime.UtcNow:yyyyMMdd}.csv");
         }
 
         [HttpPost("services")]
