@@ -54,7 +54,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices
 
             var query = _context.Invoices
                 .Include(x => x.Patient)
-                .Include(x => x.Token)
+                .Include(x => x.Token).ThenInclude(t => t.Queue).ThenInclude(q => q.Doctor)
                 .Include(x => x.Doctor)
                 .Include(x => x.Payments)
                 .Where(x => x.OrganizationId == request.OrganizationId && 
@@ -66,11 +66,18 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             {
                 var search = request.SearchTerm.ToLower();
+                var tokenSearch = search;
+                if (search.StartsWith("cx"))
+                {
+                    tokenSearch = search.Substring(2).TrimStart('-');
+                }
+                
                 query = query.Where(x => 
                     x.InvoiceNumber.ToLower().Contains(search) || 
                     x.Patient.Name.ToLower().Contains(search) ||
-                    (x.Token != null && x.Token.Id.ToString().ToLower().Contains(search)) ||
-                    (x.Doctor != null && x.Doctor.Name.ToLower().Contains(search))
+                    (x.Token != null && x.Token.Id.ToString().ToLower().Contains(tokenSearch)) ||
+                    (x.Doctor != null && x.Doctor.Name.ToLower().Contains(search)) ||
+                    (x.Token != null && x.Token.Queue != null && x.Token.Queue.Doctor != null && x.Token.Queue.Doctor.Name.ToLower().Contains(search))
                 );
             }
 
@@ -99,7 +106,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices
                 PaymentModes = x.Payments.Where(p => !p.IsDeleted).Select(p => p.PaymentMode.ToString()).Distinct().ToList(),
                 TokenReferenceId = x.Token != null ? "CX-" + x.Token.Id.ToString().Substring(0, 6).ToUpper() : null,
                 BookingDate = x.Token != null ? x.Token.BookedAt : null,
-                DoctorName = x.Doctor != null ? x.Doctor.Name : null,
+                DoctorName = x.Doctor != null ? x.Doctor.Name : (x.Token != null && x.Token.Queue != null && x.Token.Queue.Doctor != null ? x.Token.Queue.Doctor.Name : null),
                 PaymentDate = x.Payments.Where(p => !p.IsDeleted).OrderByDescending(p => p.PaymentDate).Select(p => (DateTime?)p.PaymentDate).FirstOrDefault()
             }).ToList();
 
