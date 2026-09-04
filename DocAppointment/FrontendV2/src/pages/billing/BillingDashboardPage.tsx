@@ -4,7 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity, Download } from 'lucide-react';
+import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity, Download, CalendarDays } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { billingService, type ServiceItem } from '@/services/billingService';
 import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
 import toast from 'react-hot-toast';
@@ -15,6 +17,7 @@ export default function BillingDashboardPage() {
   const organizationId = user?.orgId || '';
   const branchId = activeBranchId || '';
   const queryClient = useQueryClient();
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
 
   const handleExportCSV = async () => {
     if (!branchId) return;
@@ -22,8 +25,8 @@ export default function BillingDashboardPage() {
       const params = new URLSearchParams();
       params.append('organizationId', organizationId);
       params.append('branchId', branchId);
-      params.append('startDate', `${historyStartDate}T00:00:00Z`);
-      params.append('endDate', `${historyEndDate}T23:59:59Z`);
+      params.append('startDate', `${fmt(historyStartDate)}T00:00:00Z`);
+      params.append('endDate', `${fmt(historyEndDate)}T23:59:59Z`);
       if (historySearch) {
         params.append('search', historySearch);
       }
@@ -50,14 +53,14 @@ export default function BillingDashboardPage() {
 
   const [searchParams] = useSearchParams();
   const [historySearch, setHistorySearch] = useState('');
-  const [pendingStartDate, setPendingStartDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [pendingEndDate, setPendingEndDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [historyStartDate, setHistoryStartDate] = useState(() => {
+  const [pendingStartDate, setPendingStartDate] = useState<Date>(() => new Date());
+  const [pendingEndDate, setPendingEndDate] = useState<Date>(() => new Date());
+  const [historyStartDate, setHistoryStartDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
+    return d;
   });
-  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyEndDate, setHistoryEndDate] = useState<Date>(() => new Date());
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
   
@@ -72,7 +75,7 @@ export default function BillingDashboardPage() {
   const { data: pendingBillsData, isLoading: isLoadingPendingBills } = useQuery({
     queryKey: ['pending-bills', branchId, pendingSearch, pendingPage, pendingPageSize, pendingStartDate, pendingEndDate],
     queryFn: async () => {
-      let url = `/billing/pending-bills?branchId=${branchId}&page=${pendingPage}&pageSize=${pendingPageSize}&startDate=${pendingStartDate}T00:00:00Z&endDate=${pendingEndDate}T23:59:59Z`;
+      let url = `/billing/pending-bills?branchId=${branchId}&page=${pendingPage}&pageSize=${pendingPageSize}&startDate=${fmt(pendingStartDate)}T00:00:00Z&endDate=${fmt(pendingEndDate)}T23:59:59Z`;
       if (pendingSearch) url += `&search=${encodeURIComponent(pendingSearch)}`;
       const res = await api.get(url);
       return res.data;
@@ -86,7 +89,7 @@ export default function BillingDashboardPage() {
   const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
     queryKey: ['invoices', branchId, historySearch, historyPage, historyPageSize, historyStartDate, historyEndDate],
     queryFn: async () => {
-      let url = `/billing/invoices?organizationId=${organizationId}&branchId=${branchId}&startDate=${historyStartDate}T00:00:00Z&endDate=${historyEndDate}T23:59:59Z&page=${historyPage}&pageSize=${historyPageSize}`;
+      let url = `/billing/invoices?organizationId=${organizationId}&branchId=${branchId}&startDate=${fmt(historyStartDate)}T00:00:00Z&endDate=${fmt(historyEndDate)}T23:59:59Z&page=${historyPage}&pageSize=${historyPageSize}`;
       if (historySearch) url += `&search=${encodeURIComponent(historySearch)}`;
       const res = await api.get(url);
       return res.data;
@@ -157,19 +160,29 @@ export default function BillingDashboardPage() {
             </h2>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
-                <input 
-                  type="date"
-                  value={pendingStartDate}
-                  onChange={(e) => setPendingStartDate(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-                <span className="text-slate-500 text-sm">to</span>
-                <input 
-                  type="date"
-                  value={pendingEndDate}
-                  onChange={(e) => setPendingEndDate(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={pendingStartDate}
+                    onChange={(date: Date | null) => date && setPendingStartDate(date)}
+                    dateFormat="dd MMM yyyy"
+                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    maxDate={pendingEndDate}
+                    popperPlacement="bottom-start"
+                  />
+                </div>
+                <span className="text-slate-400 text-xs font-bold">to</span>
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={pendingEndDate}
+                    onChange={(date: Date | null) => date && setPendingEndDate(date)}
+                    dateFormat="dd MMM yyyy"
+                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    minDate={pendingStartDate}
+                    popperPlacement="bottom-start"
+                  />
+                </div>
               </div>
               <select 
                 value={pendingPageSize}
@@ -299,19 +312,29 @@ export default function BillingDashboardPage() {
             </h2>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
-                <input 
-                  type="date"
-                  value={historyStartDate}
-                  onChange={(e) => setHistoryStartDate(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
-                <span className="text-slate-500 text-sm">to</span>
-                <input 
-                  type="date"
-                  value={historyEndDate}
-                  onChange={(e) => setHistoryEndDate(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={historyStartDate}
+                    onChange={(date: Date | null) => date && setHistoryStartDate(date)}
+                    dateFormat="dd MMM yyyy"
+                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    maxDate={historyEndDate}
+                    popperPlacement="bottom-start"
+                  />
+                </div>
+                <span className="text-slate-400 text-xs font-bold">to</span>
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={historyEndDate}
+                    onChange={(date: Date | null) => date && setHistoryEndDate(date)}
+                    dateFormat="dd MMM yyyy"
+                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    minDate={historyStartDate}
+                    popperPlacement="bottom-start"
+                  />
+                </div>
               </div>
               <select 
                 value={historyPageSize}
