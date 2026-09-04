@@ -23,23 +23,36 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
   const diagnosis = visit.diagnosis || '';
   const advice = visit.advice || '';
 
+  const chunks: any[] = [];
+  if (medicines.length === 0) {
+    chunks.push([]);
+  } else {
+    for (let i = 0; i < medicines.length; i += 6) {
+      chunks.push(medicines.slice(i, i + 6));
+    }
+  }
+
   return (
     <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-      <div
-        ref={ref}
-        style={{
-          width: '850px',
-          minHeight: '1200px',
-          padding: '40px 40px',
-          backgroundColor: '#ffffff',
-          color: '#1e293b',
-          fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-          overflow: 'hidden'
-        }}
-      >
+      <div ref={ref} style={{ display: 'flex', flexDirection: 'column' }}>
+        {chunks.map((medChunk, pageIndex) => (
+          <div
+            key={pageIndex}
+            className="rx-page"
+            style={{
+              width: '850px',
+              minHeight: '1200px',
+              padding: '40px 40px',
+              backgroundColor: '#ffffff',
+              color: '#1e293b',
+              fontFamily: '"Inter", system-ui, -apple-system, sans-serif',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              overflow: 'hidden',
+              pageBreakAfter: 'always'
+            }}
+          >
         {/* Header Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', gap: '24px' }}>
           {/* Logo & Clinic Name / Doctor details */}
@@ -217,7 +230,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
         </div>
 
         {/* Medicines Table */}
-        {medicines.length > 0 && (
+        {medChunk.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -231,7 +244,7 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
                 </tr>
               </thead>
               <tbody>
-                {medicines.map((m: any, i: number) => (
+                {medChunk.map((m: any, i: number) => (
                   <tr key={i}>
                     <td style={{ padding: '16px 0', verticalAlign: 'top', fontWeight: '600', color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
                       {i + 1}.
@@ -314,8 +327,10 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
 
         {/* Page Footer Text */}
         <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '16px', fontWeight: '500' }}>
-          This is a digitally generated prescription. Not valid for medico-legal purposes without signature.
+          This is a digitally generated prescription. Not valid for medico-legal purposes without signature. | Page {pageIndex + 1} of {chunks.length}
         </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -16,8 +16,10 @@ import { usePermissions } from "@/hooks/usePermissions"
 import MedicineAutocomplete from "./components/MedicineAutocomplete"
 import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
 import PrescriptionTemplate from "./components/PrescriptionTemplate"
-import { generatePdfFromElement } from "../../utils/pdfUtils"
+import { generatePdfFromElement, generateBase64PdfFromElement } from "../../utils/pdfUtils"
 import { PageLoader } from "@/components/ui/PageLoader"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 
 // Types
 interface Service {
@@ -123,8 +125,8 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const { data: servicesData } = useQuery({
     queryKey: ["orgServices", user?.orgId],
     queryFn: async () => {
-      const r = await api.get(`/billing/services/${user?.orgId}`)
-      return r.data || []
+      const r = await api.get(`/billing/services?organizationId=${user?.orgId}&page=1&pageSize=1000`)
+      return r.data?.items || []
     },
     enabled: !!user?.orgId
   })
@@ -154,6 +156,8 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   const [visitFollowUpDate, setVisitFollowUpDate] = useState("")
   const [visitFollowUpInstructions, setVisitFollowUpInstructions] = useState("")
   const [visitFiles, setVisitFiles] = useState<{ file: File, category: string }[]>([])
+  const [existingFiles, setExistingFiles] = useState<any[]>([])
+  const [deletedFileIds, setDeletedFileIds] = useState<string[]>([])
   const [stagingFile, setStagingFile] = useState<File | null>(null)
   const [stagingCategory, setStagingCategory] = useState("Lab Report")
 
@@ -171,9 +175,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   // Med input state
   const [medName, setMedName] = useState("")
-  const [medDosage, setMedDosage] = useState("") // mapped to doseQty
-  const [medTiming, setMedTiming] = useState("") // mapped to foodTiming
-  const [medDuration, setMedDuration] = useState("") // courseDuration
+  const [medDosageValue, setMedDosageValue] = useState("") 
+  const [medDosageUnit, setMedDosageUnit] = useState("Tabs") 
+  const [medTiming, setMedTiming] = useState("") 
+  const [medDurationValue, setMedDurationValue] = useState("") 
+  const [medDurationUnit, setMedDurationUnit] = useState("Days")
   const [medType, setMedType] = useState("Tablet") // medicineType
   const [medSchedule, setMedSchedule] = useState("") // doseSchedule
   const [medInstructions, setMedInstructions] = useState("") // clinicalInstructions
@@ -220,40 +226,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
   })
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        doctorId: visitDoctorId,
-        symptoms: visitSymptoms,
-        diagnosis: visitDiagnosis,
-        advice: visitAdvice,
-        internalNotes: visitInternalNotes,
-        weight: visitWeight ? parseFloat(visitWeight) : null,
-        heartRate: visitHeartRate ? parseInt(visitHeartRate, 10) : null,
-        bloodPressure: visitBloodPressure || null,
-        oxygenLevel: visitOxygenLevel ? parseFloat(visitOxygenLevel) : null,
-        temperature: visitTemperature ? parseFloat(visitTemperature) : null,
-        respiratoryRate: visitRespiratoryRate ? parseInt(visitRespiratoryRate, 10) : null,
-        bloodSugar: visitBloodSugar ? parseFloat(visitBloodSugar) : null,
-        followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
-        followUpInstructions: visitFollowUpInstructions || null,
-        tokenId: activeTokenId || undefined,
-        services: visitServices.map((s) => ({
-          serviceItemId: s.serviceItemId,
-          quantity: s.quantity,
-          notes: s.notes || ""
-        })),
-        medicines: visitMedicines.map((m) => ({
-          medicineName: m.medicineName,
-          dosage: m.dosage || "",
-          medicineType: m.medicineType || "Tablet",
-          doseQty: m.doseQty || "",
-          doseSchedule: m.doseSchedule || "",
-          foodTiming: m.foodTiming || "",
-          courseDuration: m.courseDuration || "",
-          clinicalInstructions: m.clinicalInstructions || ""
-        })),
-      }
-
+    mutationFn: async (payload: any) => {
       let res;
       if (editingVisitId) {
         res = await api.put(`/patientclinical/visits/${editingVisitId}`, payload)
@@ -261,14 +234,29 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         res = await api.post(`/patientclinical/${patientId}/visits`, payload)
       }
 
+      // Delete removed files
+      if (payload.deletedFileIds && payload.deletedFileIds.length > 0) {
+        for (const fileId of payload.deletedFileIds) {
+          try {
+             await api.delete(`/patientclinical/attachments/${fileId}`);
+          } catch(err) {
+             console.error("Failed to delete attachment", err);
+          }
+        }
+      }
+
       // Upload files
-      if (visitFiles.length > 0) {
-        for (const item of visitFiles) {
+      if (payload.visitFiles && payload.visitFiles.length > 0) {
+        for (const item of payload.visitFiles) {
           const formData = new FormData()
           formData.append("file", item.file)
           formData.append("category", item.category)
           formData.append("patientVisitId", res.data.id)
-          await api.post(`/patientclinical/${patientId}/attachments`, formData)
+          await api.post(`/patientclinical/${patientId}/attachments`, formData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            }
+          })
         }
       }
 
@@ -282,26 +270,10 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
         if (printRef.current) {
           try {
-            const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, logging: false });
-            
             // Generate PDF and send to WA in the background so we don't block the UI
             (async () => {
               try {
-                const imgData = canvas.toDataURL("image/png");
-                const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                let imgWidth = pdfWidth;
-                let imgHeight = (canvas.height * pdfWidth) / canvas.width;
-                if (imgHeight > pageHeight) {
-                  const ratio = pageHeight / imgHeight;
-                  imgHeight = pageHeight;
-                  imgWidth = imgWidth * ratio;
-                }
-                const x = (pdfWidth - imgWidth) / 2;
-                pdf.addImage(imgData, "PNG", x, 0, imgWidth, imgHeight);
-
-                const base64Pdf = pdf.output("datauristring").split(",")[1];
+                const base64Pdf = await generateBase64PdfFromElement(printRef.current!);
                 await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
                   to: patient?.phone,
                   message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
@@ -339,8 +311,11 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       setVisitFollowUpDate("")
       setVisitFollowUpInstructions("")
       setVisitFiles([])
+      setExistingFiles([])
+      setDeletedFileIds([])
       setStagingFile(null)
       setEditingVisitId(null)
+      const el = document.getElementById("consultation-file-input") as HTMLInputElement; if(el) el.value = "";
     },
     onError: (err: any) => {
       alert("Failed to save consultation: " + (err.response?.data || err.message))
@@ -349,14 +324,20 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
   const addMedicine = () => {
     if (!medName) return
+    
+    const finalDosage = medDosageValue ? `${medDosageValue} ${medDosageUnit}` : ""
+    const finalDuration = medDurationUnit === "Life long" ? "Life long" : (medDurationValue ? `${medDurationValue} ${medDurationUnit}` : "")
+
     setVisitMedicines([...visitMedicines, {
-      medicineName: medName, dosage: medDosage, foodTiming: medTiming, courseDuration: medDuration,
-      doseQty: medDosage, doseSchedule: medSchedule, medicineType: medType, clinicalInstructions: medInstructions
+      medicineName: medName, dosage: finalDosage, foodTiming: medTiming, courseDuration: finalDuration,
+      doseQty: finalDosage, doseSchedule: medSchedule, medicineType: medType, clinicalInstructions: medInstructions
     }])
     setMedName("")
-    setMedDosage("")
+    setMedDosageValue("")
+    setMedDosageUnit("Tabs")
     setMedTiming("")
-    setMedDuration("")
+    setMedDurationValue("")
+    setMedDurationUnit("Days")
     setMedType("Tablet")
     setMedSchedule("")
     setMedInstructions("")
@@ -428,6 +409,10 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     setVisitFollowUpDate(followUp ? followUp.substring(0, 10) : "")
     setVisitFollowUpInstructions(visit.followUpInstructions || visit.FollowUpInstructions || "")
     
+    const atts = visit.attachments || visit.Attachments;
+    setExistingFiles(atts || []);
+    setDeletedFileIds([]);
+    
     setIsHistoryExpanded(true)
     setActiveTab("history")
     if (onHistoryOpen) onHistoryOpen();
@@ -474,7 +459,42 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       return;
     }
 
-    mutation.mutate();
+    const payload = {
+      doctorId: visitDoctorId,
+      symptoms: visitSymptoms,
+      diagnosis: visitDiagnosis,
+      advice: visitAdvice,
+      internalNotes: visitInternalNotes,
+      weight: visitWeight ? parseFloat(visitWeight as string) : null,
+      heartRate: visitHeartRate ? parseInt(visitHeartRate as string, 10) : null,
+      bloodPressure: visitBloodPressure || null,
+      oxygenLevel: visitOxygenLevel ? parseFloat(visitOxygenLevel as string) : null,
+      temperature: visitTemperature ? parseFloat(visitTemperature as string) : null,
+      respiratoryRate: visitRespiratoryRate ? parseInt(visitRespiratoryRate as string, 10) : null,
+      bloodSugar: visitBloodSugar ? parseFloat(visitBloodSugar as string) : null,
+      followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
+      followUpInstructions: visitFollowUpInstructions || null,
+      tokenId: activeTokenId || undefined,
+      services: visitServices.map((s) => ({
+        serviceItemId: s.serviceItemId,
+        quantity: s.quantity,
+        notes: s.notes || ""
+      })),
+      medicines: visitMedicines.map((m) => ({
+        medicineName: m.medicineName,
+        dosage: m.dosage || "",
+        medicineType: m.medicineType || "Tablet",
+        doseQty: m.doseQty || "",
+        doseSchedule: m.doseSchedule || "",
+        foodTiming: m.foodTiming || "",
+        courseDuration: m.courseDuration || "",
+        clinicalInstructions: m.clinicalInstructions || ""
+      })),
+      visitFiles: visitFiles,
+      deletedFileIds: deletedFileIds
+    }
+
+    mutation.mutate(payload);
   }
 
   if (isPatientLoading) {
@@ -547,7 +567,10 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   setVisitFollowUpDate("")
                   setVisitFollowUpInstructions("")
                   setVisitFiles([])
+                  setExistingFiles([])
+                  setDeletedFileIds([])
                   setStagingFile(null)
+                  const el = document.getElementById("consultation-file-input") as HTMLInputElement; if(el) el.value = "";
                 }}
                 className="btn-danger flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2"
               >
@@ -653,7 +676,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             </div>
 
             {/* Vitals Grid */}
-            <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-5">
+            <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-5">
               <h3 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-500" /> Clinical Vitals
               </h3>
@@ -691,7 +714,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <FileText className="w-4 h-4 text-emerald-500" /> E-Prescription
               </h3>
 
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-5">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Medicine Name *</label>
@@ -714,7 +737,18 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Dose Qty</label>
-                    <input autoComplete="off" value={medDosage} onChange={e => setMedDosage(e.target.value)} placeholder="e.g. 1, 5ml" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                    <div className="flex border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                      <input type="number" min="0" step="0.5" autoComplete="off" value={medDosageValue} onChange={e => setMedDosageValue(e.target.value)} placeholder="1" className="w-16 px-3 py-2 bg-transparent text-sm focus:outline-none border-r border-slate-200" />
+                      <select value={medDosageUnit} onChange={e => setMedDosageUnit(e.target.value)} className="flex-1 px-2 py-2 bg-slate-50 text-sm focus:outline-none cursor-pointer">
+                        <option value="Tabs">Tabs</option>
+                        <option value="Caps">Caps</option>
+                        <option value="ml">ml</option>
+                        <option value="drops">drops</option>
+                        <option value="mg">mg</option>
+                        <option value="puffs">puffs</option>
+                        <option value="sachet">sachet</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -739,7 +773,18 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Duration</label>
-                    <input autoComplete="off" value={medDuration} onChange={e => setMedDuration(e.target.value)} placeholder="e.g. 5 Days" className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                    <div className="flex border border-slate-200 rounded-lg bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all">
+                      <input type="number" min="1" autoComplete="off" value={medDurationValue} onChange={e => setMedDurationValue(e.target.value)} placeholder="5" disabled={medDurationUnit === "Life long"} className="w-16 px-3 py-2 bg-transparent text-sm focus:outline-none border-r border-slate-200 disabled:opacity-50 disabled:bg-slate-50" />
+                      <select value={medDurationUnit} onChange={e => {
+                          setMedDurationUnit(e.target.value);
+                          if(e.target.value === "Life long") setMedDurationValue("");
+                      }} className="flex-1 px-2 py-2 bg-slate-50 text-sm focus:outline-none cursor-pointer">
+                        <option value="Days">Days</option>
+                        <option value="Weeks">Weeks</option>
+                        <option value="Months">Months</option>
+                        <option value="Life long">Life long</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
@@ -785,7 +830,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <Activity className="w-4 h-4 text-purple-500" /> Services & Procedures
               </h3>
               
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-5">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="md:col-span-2">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Service/Procedure *</label>
@@ -876,7 +921,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <Upload className="w-4 h-4 text-sky-500" /> Attachments
                 </h3>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-5 space-y-3">
                   <div className="flex flex-col gap-3">
                     <select value={stagingCategory} onChange={e => setStagingCategory(e.target.value)} className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
                       <option value="Lab Report">Lab Report</option>
@@ -885,18 +930,27 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                       <option value="Other">Other</option>
                     </select>
                     <div className="flex gap-2 w-full">
-                      <input autoComplete="off" type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
-                      <button onClick={() => { if (stagingFile) { setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]); setStagingFile(null); } }} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
+                      <input id="consultation-file-input" autoComplete="off" type="file" onChange={e => { if (e.target.files?.[0]) setStagingFile(e.target.files[0]) }} className="flex-1 min-w-0 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" />
+                      <button onClick={() => { if (stagingFile) { setVisitFiles([...visitFiles, { file: stagingFile, category: stagingCategory }]); setStagingFile(null); const el = document.getElementById("consultation-file-input") as HTMLInputElement; if(el) el.value = ""; } }} className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
                         <Plus className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
-                  {visitFiles.length > 0 && (
+                  {(visitFiles.length > 0 || existingFiles.filter(f => !deletedFileIds.includes(f.id)).length > 0) && (
                     <div className="space-y-2 mt-3">
+                      {existingFiles.filter(f => !deletedFileIds.includes(f.id)).map((file) => (
+                        <div key={file.id} className="flex justify-between items-center bg-white p-2 border border-slate-200 rounded-lg">
+                          <span className="text-xs font-medium truncate flex-1 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                            <a href={`/api${file.fileUrl}`} target="_blank" rel="noreferrer" className="hover:underline hover:text-indigo-600 truncate">[{file.category}] {file.fileName}</a>
+                          </span>
+                          <button onClick={() => setDeletedFileIds([...deletedFileIds, file.id])} className="text-rose-500 hover:bg-rose-50 p-1 rounded shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </div>
+                      ))}
                       {visitFiles.map((file, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-white p-2 border border-slate-200 rounded-lg">
-                          <span className="text-xs font-medium truncate flex-1">[{file.category}] {file.file.name}</span>
-                          <button onClick={() => setVisitFiles(visitFiles.filter((_, i) => i !== idx))} className="text-rose-500 hover:bg-rose-50 p-1 rounded"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <div key={`new-${idx}`} className="flex justify-between items-center bg-white p-2 border border-slate-200 rounded-lg">
+                          <span className="text-xs font-medium truncate flex-1">[{file.category}] {file.file.name} <span className="text-[10px] text-green-600 font-bold ml-1">(New)</span></span>
+                          <button onClick={() => setVisitFiles(visitFiles.filter((_, i) => i !== idx))} className="text-rose-500 hover:bg-rose-50 p-1 rounded shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       ))}
                     </div>
@@ -908,10 +962,33 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                 <h3 className="text-sm font-bold text-slate-700 flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-pink-500" /> Next Follow-Up
                 </h3>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-5 space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
-                    <input autoComplete="off" type="date" value={visitFollowUpDate} onChange={e => setVisitFollowUpDate(e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm" />
+                    <div className="relative w-full">
+                      <CalendarIcon className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                      <DatePicker
+                        selected={visitFollowUpDate ? new Date(visitFollowUpDate) : null}
+                        onChange={(date: Date | null) => {
+                           if (date) {
+                             const offset = date.getTimezoneOffset();
+                             const adjustedDate = new Date(date.getTime() - (offset*60*1000));
+                             setVisitFollowUpDate(adjustedDate.toISOString().split('T')[0]);
+                           } else {
+                             setVisitFollowUpDate("");
+                           }
+                        }}
+                        dateFormat="dd MMM yyyy"
+                        showMonthDropdown
+                        showYearDropdown
+                        todayButton="Today"
+                        dropdownMode="select"
+                        placeholderText="Select Follow-up Date"
+                        minDate={new Date()}
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                        wrapperClassName="w-full"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Instructions</label>
