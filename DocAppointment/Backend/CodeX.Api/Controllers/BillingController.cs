@@ -74,6 +74,18 @@ namespace CodeX.Api.Controllers
             return await Mediator.Send(new GetInvoicesQuery(organizationId, branchId, startDate, endDate, search, page, pageSize));
         }
 
+        [HttpGet("invoices/export")]
+        public async Task<IActionResult> ExportInvoices(
+            [FromQuery] Guid organizationId,
+            [FromQuery] Guid branchId,
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] string? search = null)
+        {
+            var csvBytes = await Mediator.Send(new CodeX.Application.Features.Billing.Invoices.Queries.ExportInvoices.ExportInvoicesQuery(organizationId, branchId, startDate, endDate, search));
+            return File(csvBytes, "text/csv", $"invoices_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+        }
+
         
         [HttpGet("invoices/{id}")]
         public async Task<ActionResult<InvoiceDetailDto>> GetInvoiceById(Guid id, [FromQuery] Guid organizationId)

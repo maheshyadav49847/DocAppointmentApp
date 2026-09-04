@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity } from 'lucide-react';
+import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity, Download } from 'lucide-react';
 import { billingService, type ServiceItem } from '@/services/billingService';
 import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
 import toast from 'react-hot-toast';
@@ -15,6 +15,33 @@ export default function BillingDashboardPage() {
   const organizationId = user?.orgId || '';
   const branchId = activeBranchId || '';
   const queryClient = useQueryClient();
+
+  const handleExportCSV = async () => {
+    if (!branchId) return;
+    try {
+      const params = new URLSearchParams();
+      params.append('organizationId', organizationId);
+      params.append('branchId', branchId);
+      params.append('startDate', `${historyStartDate}T00:00:00Z`);
+      params.append('endDate', `${historyEndDate}T23:59:59Z`);
+      if (historySearch) {
+        params.append('search', historySearch);
+      }
+      const res = await api.get(`/billing/invoices/export?${params.toString()}`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoices_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('CSV exported successfully!');
+    } catch (error) {
+      toast.error('Failed to export CSV');
+    }
+  };
   const { data: myBranches = [] } = useQuery({
     queryKey: ['my-branches'],
     queryFn: () => branchService.getMyBranches(),
@@ -305,6 +332,14 @@ export default function BillingDashboardPage() {
                   className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 />
               </div>
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors"
+                title="Export to CSV"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
             </div>
           </div>
           <div className="overflow-x-auto rounded-xl border border-slate-200 flex-1">
