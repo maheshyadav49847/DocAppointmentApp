@@ -6,6 +6,7 @@ import { branchService } from "@/services/branchService";
 import { api } from "@/lib/axios";
 import { useAuthStore } from "@/store/authStore";
 import { billingService, type ServiceItem } from "@/services/billingService";
+import { PaymentCheckoutUI, type PaymentEntry } from './PaymentCheckoutUI';
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,6 +20,31 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
   const [discount, setDiscount] = useState(0);
   const [tax, setTax] = useState(0);
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
+  const [showPaymentUI, setShowPaymentUI] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const handleCompletePayment = async (payments: PaymentEntry[]) => {
+    if (!createdInvoiceId) return;
+    setIsProcessingPayment(true);
+    try {
+      for (const p of payments) {
+        await api.post('/billing/invoices/pay', {
+          invoiceId: createdInvoiceId,
+          organizationId: user?.orgId,
+          amount: p.amount,
+          paymentMode: p.mode,
+          transactionId: p.transactionId
+        });
+      }
+      toast.success("Payment recorded!");
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to record payment");
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   const { data: myBranches = [] } = useQuery({
     queryKey: ['my-branches'],
@@ -57,7 +83,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
           if (visitDate.toDateString() === today.toDateString()) {
              if (latestVisit.services && latestVisit.services.length > 0) {
                const invoiceRes = await api.get(`/billing/invoices?organizationId=${organizationId}&branchId=${branchId}`);
-               const invoicesForToday = invoiceRes.data?.filter((i: any) => i.patientId === billingToken.patientId && new Date(i.createdAt).toDateString() === today.toDateString()) || [];
+               const invoicesForToday = invoiceRes.data?.items?.filter((i: any) => i.patientId === billingToken.patientId && new Date(i.createdAt).toDateString() === today.toDateString()) || [];
                
                if (invoicesForToday.length === 0) {
                   const prescribedCart = latestVisit.services.map((vs: any) => {
@@ -199,6 +225,20 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
           </div>
 
           {createdInvoiceId ? (
+            showPaymentUI ? (
+              <div className="flex-1 overflow-y-auto">
+                <PaymentCheckoutUI
+                  totalAmount={total}
+                  paidAmount={0}
+                  patientName={billingToken.patientName}
+                  isProcessing={isProcessingPayment}
+                  onComplete={handleCompletePayment}
+                  onPrint={() => {
+                    handlePrintInvoice(createdInvoiceId, organizationId, activeBranch);
+                  }}
+                />
+              </div>
+            ) : (
             <div className="flex-1 p-10 flex flex-col items-center justify-center text-center bg-slate-50/50">
               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle className="w-10 h-10" />
@@ -208,17 +248,11 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
               
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button 
-                  onClick={() => {
-                    const amt = prompt('Enter payment amount received (Cash):', String(total));
-                    if (amt && !isNaN(Number(amt))) {
-                      payInvoiceMut.mutate({ invoiceId: createdInvoiceId, amount: Number(amt), mode: 1 });
-                    }
-                  }}
-                  disabled={payInvoiceMut.isPending}
+                  onClick={() => setShowPaymentUI(true)}
                   className="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-5 h-5" />
-                  {payInvoiceMut.isPending ? 'Processing...' : 'Record Payment'}
+                  Record Payment
                 </button>
                 <button 
                   onClick={() => handlePrintInvoice(createdInvoiceId, organizationId, activeBranch)}
@@ -229,6 +263,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
                 </button>
               </div>
             </div>
+            )
           ) : (
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
             {/* Left side - Services List */}

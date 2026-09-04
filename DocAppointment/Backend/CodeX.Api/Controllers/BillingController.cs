@@ -5,6 +5,7 @@ using CodeX.Application.Features.Billing.Services.Queries.GetServices;
 using CodeX.Application.Features.Billing.Invoices.Commands.CreateInvoice;
 using CodeX.Application.Features.Billing.Invoices.Commands.PayInvoice;
 using CodeX.Application.Features.Billing.Invoices.Queries.GetInvoices;
+using CodeX.Application.Features.Billing.Invoices.Queries.GetPendingBills;
 using CodeX.Application.Features.Billing.Invoices.Queries.GetInvoiceById;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,10 +49,29 @@ namespace CodeX.Api.Controllers
             return NoContent();
         }
 
-        [HttpGet("invoices")]
-        public async Task<ActionResult<List<InvoiceListDto>>> GetInvoices([FromQuery] Guid organizationId, [FromQuery] Guid branchId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+                [HttpGet("pending-bills")]
+        public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<PendingBillDto>>> GetPendingBills(
+            [FromQuery] Guid branchId,
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            return await Mediator.Send(new GetInvoicesQuery(organizationId, branchId, startDate, endDate));
+            return await Mediator.Send(new GetPendingBillsQuery(branchId, startDate, endDate, search, page, pageSize));
+        }
+
+        [HttpGet("invoices")]
+        public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<InvoiceListDto>>> GetInvoices(
+            [FromQuery] Guid organizationId, 
+            [FromQuery] Guid branchId, 
+            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime endDate,
+            [FromQuery] string? search = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            return await Mediator.Send(new GetInvoicesQuery(organizationId, branchId, startDate, endDate, search, page, pageSize));
         }
 
         

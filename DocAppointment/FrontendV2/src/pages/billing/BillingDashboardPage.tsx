@@ -6,6 +6,7 @@ import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity } from 'lucide-react';
 import { billingService, type ServiceItem } from '@/services/billingService';
+import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
 import toast from 'react-hot-toast';
 import { branchService } from '@/services/branchService';
 
@@ -21,191 +22,53 @@ export default function BillingDashboardPage() {
   const activeBranch = myBranches.find(b => b.id === branchId);
 
   const [searchParams] = useSearchParams();
-  const initialPatientId = searchParams.get('patientId') || '';
-
-  const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
-  
-  // State for Create Invoice
-  const [selectedPatientId, setSelectedPatientId] = useState(initialPatientId);
-  const [patientSearchTerm, setPatientSearchTerm] = useState('');
-  const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null);
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
-  const [cart, setCart] = useState<{service: ServiceItem, quantity: number, isPrescribed: boolean}[]>([]);
-  const [discount, setDiscount] = useState(0);
-  const [tax, setTax] = useState(0);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsPatientDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Fetch Services for Rate List
-  const { data: services } = useQuery({
-    queryKey: ['billing-services', organizationId],
-    queryFn: () => billingService.getServices(organizationId),
-    enabled: !!organizationId
+  const [historySearch, setHistorySearch] = useState('');
+  const [pendingStartDate, setPendingStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [pendingEndDate, setPendingEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
   });
+  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(10);
+  
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingPageSize, setPendingPageSize] = useState(10);
 
-  // Fetch today's patients (Searchable)
-  const { data: patientsList } = useQuery({
-    queryKey: ['queuePatients', branchId, patientSearchTerm],
+  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+  const [billingToken, setBillingToken] = useState<any | null>(null);
+
+  // Fetch Pending Bills
+  const { data: pendingBillsData, isLoading: isLoadingPendingBills } = useQuery({
+    queryKey: ['pending-bills', branchId, pendingSearch, pendingPage, pendingPageSize, pendingStartDate, pendingEndDate],
     queryFn: async () => {
-      const url = patientSearchTerm 
-        ? '/queue/search-patients?branchId=' + branchId + '&search=' + encodeURIComponent(patientSearchTerm)
-        : '/queue/search-patients?branchId=' + branchId;
+      let url = `/billing/pending-bills?branchId=${branchId}&page=${pendingPage}&pageSize=${pendingPageSize}&startDate=${pendingStartDate}T00:00:00Z&endDate=${pendingEndDate}T23:59:59Z`;
+      if (pendingSearch) url += `&search=${encodeURIComponent(pendingSearch)}`;
       const res = await api.get(url);
       return res.data;
     },
-    enabled: !!branchId
+    enabled: !!branchId && activeTab === 'pending'
   });
+  const pendingBills = pendingBillsData?.items || [];
+  const pendingTotalPages = pendingBillsData?.totalPages || 1;
+  const pendingTotalCount = pendingBillsData?.totalCount || 0;
 
-  // Fetch Invoices History
-  const { data: invoices, isLoading: isLoadingInvoices } = useQuery({
-    queryKey: ['invoices', branchId],
+  const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
+    queryKey: ['invoices', branchId, historySearch, historyPage, historyPageSize, historyStartDate, historyEndDate],
     queryFn: async () => {
-      const start = new Date(); start.setDate(start.getDate() - 30);
-      const end = new Date();
-      const res = await api.get('/billing/invoices?organizationId=' + organizationId + '&branchId=' + branchId + '&startDate=' + start.toISOString() + '&endDate=' + end.toISOString());
+      let url = `/billing/invoices?organizationId=${organizationId}&branchId=${branchId}&startDate=${historyStartDate}T00:00:00Z&endDate=${historyEndDate}T23:59:59Z&page=${historyPage}&pageSize=${historyPageSize}`;
+      if (historySearch) url += `&search=${encodeURIComponent(historySearch)}`;
+      const res = await api.get(url);
       return res.data;
     },
     enabled: !!branchId && activeTab === 'history'
   });
-
-  // Auto-populate prescribed services
-  useEffect(() => {
-    if (!selectedPatientId || !services || services.length === 0) return;
-
-    const fetchLatestVisit = async () => {
-      try {
-        const res = await api.get(`/patientclinical/${selectedPatientId}/visits?page=1&limit=1`);
-        if (res.data && res.data.data && res.data.data.length > 0) {
-          const latestVisit = res.data.data[0];
-          
-          const visitDate = new Date(latestVisit.visitDate);
-          const today = new Date();
-          if (visitDate.toDateString() === today.toDateString()) {
-             if (latestVisit.services && latestVisit.services.length > 0) {
-               const invoiceRes = await api.get(`/billing/invoices?organizationId=${organizationId}&branchId=${branchId}`);
-               const invoicesForToday = invoiceRes.data?.filter((i: any) => i.patientId === selectedPatientId && new Date(i.createdAt).toDateString() === today.toDateString()) || [];
-               
-               if (invoicesForToday.length === 0) {
-                  const prescribedCart = latestVisit.services.map((vs: any) => {
-                     const matchedSvc = services.find((s: any) => s.id === vs.serviceItemId);
-                     if (matchedSvc) {
-                        return { service: matchedSvc, quantity: vs.quantity, isPrescribed: true };
-                     }
-                     return null;
-                  }).filter(Boolean);
-
-                  if (prescribedCart.length > 0) {
-                     setCart(prev => {
-                       const newItems = prescribedCart.filter((pc: any) => !prev.some(c => c.service.id === pc.service.id));
-                       if (newItems.length > 0) toast.success(`Auto-added ${newItems.length} prescribed services to bill`);
-                       return [...prev, ...newItems];
-                     });
-                     if (latestVisit.doctorId) setSelectedDoctorId(latestVisit.doctorId);
-                     if (latestVisit.tokenId) setSelectedTokenId(latestVisit.tokenId);
-                  }
-               }
-             }
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch prescribed services", err);
-      }
-    };
-    fetchLatestVisit();
-  }, [selectedPatientId, services]);
-
-  const createInvoiceMut = useMutation({
-    mutationFn: async () => {
-      if (!selectedPatientId) throw new Error("Select a patient");
-      if (cart.length === 0) throw new Error("Add at least one item to bill");
-      
-      const payload = {
-        organizationId,
-        branchId,
-        patientId: selectedPatientId,
-        tokenId: selectedTokenId,
-        doctorId: selectedDoctorId,
-        discountAmount: discount,
-        taxAmount: tax,
-        items: cart.map(c => ({
-          serviceItemId: c.service.id,
-          itemName: c.service.name,
-          quantity: c.quantity,
-          unitPrice: c.service.defaultPrice,
-          isPrescribed: c.isPrescribed
-        }))
-      };
-      
-      const res = await api.post('/billing/invoices', payload);
-      return res.data; 
-    },
-    onSuccess: (invoiceId) => {
-      toast.success("Invoice created successfully!");
-      setCart([]);
-      setSelectedPatientId('');
-      setPatientSearchTerm('');
-      setDiscount(0);
-      setTax(0);
-      setActiveTab('history');
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "Failed to create invoice");
-    }
-  });
-
-  const payInvoiceMut = useMutation({
-    mutationFn: async (data: {invoiceId: string, amount: number, mode: number}) => {
-      await api.post('/billing/invoices/pay', {
-        invoiceId: data.invoiceId,
-        organizationId,
-        amount: data.amount,
-        paymentMode: data.mode
-      });
-    },
-    onSuccess: () => {
-      toast.success("Payment recorded!");
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-    }
-  });
-
-  const addToCart = (service: ServiceItem, isPrescribed: boolean = false) => {
-    const existing = cart.find(c => c.service.id === service.id);
-    if (existing) {
-      toast.error(`${service.name} is already added to the bill.`);
-      return;
-    }
-    setCart([...cart, { service, quantity: 1, isPrescribed }]);
-  };
-
-  const updateQuantity = (index: number, delta: number) => {
-    const newCart = [...cart];
-    newCart[index].quantity += delta;
-    if (newCart[index].quantity <= 0) {
-      removeFromCart(index);
-    } else {
-      setCart(newCart);
-    }
-  };
-
-  const removeFromCart = (index: number) => {
-    setCart(cart.filter((_, i) => i !== index));
-  };
-
-  const subTotal = cart.reduce((acc, curr) => acc + (curr.service.defaultPrice * curr.quantity), 0);
-  const total = subTotal - discount + tax;
+  const invoices = invoicesData?.items || [];
+  const totalPages = invoicesData?.totalPages || 1;
+  const totalCount = invoicesData?.totalCount || 0;
 
 
   const handlePrint = async (inv: any) => {
@@ -213,170 +76,7 @@ export default function BillingDashboardPage() {
     try {
       const fullInv = await billingService.getInvoiceById(inv.id, organizationId);
       toast.dismiss(loadingToast);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice - ${inv.invoiceNumber}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #334155; max-width: 800px; margin: 0 auto; background: #fff; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px dashed #e2e8f0; margin-bottom: 24px; }
-            .clinic-info { display: flex; gap: 16px; align-items: center; }
-            .clinic-name { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; text-transform: uppercase; margin-bottom: 4px; }
-            .clinic-contact { color: #64748b; font-size: 13px; font-weight: 500; }
-            .invoice-title { text-align: right; }
-            .invoice-title h1 { margin: 0; color: #0f172a; font-size: 32px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
-            .invoice-title p { color: #64748b; font-size: 14px; font-weight: 600; margin-top: 4px; }
-            
-            .details { display: grid; grid-template-columns: 1fr auto; gap: 24px; padding-bottom: 20px; border-bottom: 2px dashed #e2e8f0; margin-bottom: 32px; }
-            .detail-group { display: flex; gap: 12px; margin-bottom: 12px; }
-            .detail-label { width: 100px; color: #64748b; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
-            .detail-value { font-weight: 700; color: #0f172a; font-size: 14px; }
-            
-            .status-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-            .status-paid { background: #d1fae5; color: #047857; }
-            .status-partial { background: #fef3c7; color: #b45309; }
-            .status-unpaid { background: #ffe4e6; color: #be123c; }
-
-            .table-header { color: #94a3b8; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
-            th, td { padding: 16px 0; text-align: left; border-bottom: 1px solid #f1f5f9; }
-            th { color: #64748b; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 12px 0; }
-            td { font-size: 14px; color: #0f172a; font-weight: 600; vertical-align: top; }
-            .item-name { font-weight: 700; color: #0f172a; font-size: 14px; text-transform: uppercase; }
-            
-            .totals-container { display: flex; justify-content: flex-end; }
-            .totals { width: 350px; }
-            .totals-row { display: flex; justify-content: space-between; padding: 10px 0; color: #64748b; font-size: 14px; font-weight: 600; }
-            .totals-row.main { color: #0f172a; font-size: 16px; font-weight: 800; border-top: 2px dashed #e2e8f0; border-bottom: 2px dashed #e2e8f0; padding: 16px 0; margin: 8px 0; }
-            .totals-row.paid { color: #059669; font-size: 15px; font-weight: 700; }
-            .totals-row.balance { color: #e11d48; font-size: 15px; font-weight: 700; border-top: 1px solid #f1f5f9; margin-top: 4px; padding-top: 12px; }
-            
-            .signature-area { display: flex; justify-content: flex-end; margin-top: 80px; margin-bottom: 30px; }
-            .signature-box { width: 240px; text-align: center; }
-            .signature-line { border-bottom: 1px solid #94a3b8; margin-bottom: 12px; }
-            .signature-label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-            
-            .footer { margin-top: 40px; text-align: center; color: #94a3b8; font-size: 12px; font-weight: 600; border-top: 2px dashed #e2e8f0; padding-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="clinic-info">
-              ${activeBranch && activeBranch.logoBase64 ? 
-                `<img src="${activeBranch.logoBase64}" style="max-width: 70px; max-height: 70px; object-fit: contain; border-radius: 8px;" alt="Logo" />` : 
-                ''}
-              <div>
-                <div class="clinic-name">${activeBranch ? activeBranch.name : 'CLINIC INVOICE'}</div>
-                ${activeBranch && activeBranch.address ? `<div class="clinic-contact">${activeBranch.address}</div>` : ''}
-                ${activeBranch && activeBranch.whatsAppNumber ? `<div class="clinic-contact">Phone: ${activeBranch.whatsAppNumber}</div>` : ''}
-              </div>
-            </div>
-            <div class="invoice-title">
-              <h1>INVOICE</h1>
-              <p># ${inv.invoiceNumber || 'INV-0000'}</p>
-            </div>
-          </div>
-          
-          <div class="details">
-            <div>
-              <div class="detail-group">
-                <div class="detail-label">Patient:</div>
-                <div class="detail-value">${inv.patientName} ${inv.patientCode ? `<span style="color: #64748b; font-weight: 500;">(${inv.patientCode})</span>` : ''}</div>
-              </div>
-              <div class="detail-group">
-                <div class="detail-label">Invoice Date:</div>
-                <div class="detail-value">${new Date(inv.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</div>
-              </div>
-            </div>
-            <div style="text-align: right;">
-              <div style="margin-bottom: 12px;">
-                <span class="status-badge ${inv.status === 2 ? 'status-paid' : inv.status === 1 ? 'status-partial' : 'status-unpaid'}">
-                  ${inv.status === 2 ? 'PAID' : inv.status === 1 ? 'PARTIAL' : 'UNPAID'}
-                </span>
-              </div>
-              <div class="detail-group" style="justify-content: flex-end;">
-                <div class="detail-label" style="width: auto; margin-right: 12px;">Total Billed:</div>
-                <div class="detail-value" style="font-size: 16px; font-weight: 800;">₹${inv.totalAmount}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="table-header">Billed Items</div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 5%">#</th>
-                <th style="width: 55%">Service Details</th>
-                <th style="width: 20%; text-align: center;">Qty x Price</th>
-                <th style="width: 20%; text-align: right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${fullInv.items && fullInv.items.length > 0 ? fullInv.items.map((item: any, i: number) => `
-                <tr>
-                  <td style="color: #64748b;">${i + 1}.</td>
-                  <td>
-                    <div class="item-name">${item.itemName}</div>
-                  </td>
-                  <td style="text-align: center; color: #64748b;">${item.quantity} × ₹${item.unitPrice}</td>
-                  <td style="text-align: right;">₹${item.unitPrice * item.quantity}</td>
-                </tr>
-              `).join('') : `
-                <tr>
-                  <td style="color: #64748b;">1.</td>
-                  <td><div class="item-name">Clinical Services & Consultation</div></td>
-                  <td style="text-align: center; color: #64748b;">1 × ₹${inv.totalAmount + (inv.discountAmount||0) - (inv.taxAmount||0)}</td>
-                  <td style="text-align: right;">₹${inv.totalAmount + (inv.discountAmount||0) - (inv.taxAmount||0)}</td>
-                </tr>
-              `}
-            </tbody>
-          </table>
-          
-          <div class="totals-container">
-            <div class="totals">
-              <div class="totals-row">
-                <span>Subtotal</span> <span>₹${inv.totalAmount + (inv.discountAmount||0) - (inv.taxAmount||0)}</span>
-              </div>
-              <div class="totals-row">
-                <span>Discount</span> <span>₹${inv.discountAmount || 0}</span>
-              </div>
-              <div class="totals-row">
-                <span>Tax</span> <span>₹${inv.taxAmount || 0}</span>
-              </div>
-              <div class="totals-row main">
-                <span>TOTAL AMOUNT</span> <span>₹${inv.totalAmount}</span>
-              </div>
-              <div class="totals-row paid">
-                <span>Amount Paid</span> <span>₹${inv.paidAmount}</span>
-              </div>
-              ${inv.totalAmount - inv.paidAmount > 0 ? `
-              <div class="totals-row balance">
-                <span>Balance Due</span> <span>₹${inv.totalAmount - inv.paidAmount}</span>
-              </div>` : ''}
-            </div>
-          </div>
-          
-          <div class="signature-area">
-            <div class="signature-box">
-              <div class="signature-line"></div>
-              <div class="signature-label">Authorized Signature & Stamp</div>
-            </div>
-          </div>
-          
-          <div class="footer">
-            Thank you for your visit. Get well soon!
-          </div>
-          
-          <script>
-            window.onload = () => { window.print(); window.setTimeout(() => window.close(), 500); }
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+      import('@/utils/printHelper').then(m => m.handlePrintInvoice(inv.id, organizationId, activeBranch));
     } catch (error) {
       toast.dismiss(loadingToast);
       toast.error('Failed to load invoice details');
@@ -400,10 +100,15 @@ export default function BillingDashboardPage() {
         </div>
         <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
           <button 
-            className={`px-5 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'create' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            onClick={() => setActiveTab('create')}
+            className={`px-5 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            onClick={() => setActiveTab('pending')}
           >
-            New Invoice
+            <span className="relative">
+              Pending Bills
+              {pendingTotalCount > 0 && (
+                <span className="absolute -top-1 -right-4 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+              )}
+            </span>
           </button>
           <button 
             className={`px-5 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
@@ -414,225 +119,303 @@ export default function BillingDashboardPage() {
         </div>
       </div>
 
-      {activeTab === 'create' && (
-        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:flex-1 lg:min-h-0">
-          
-          {/* Left panel - Add Items */}
-          <div className="lg:col-span-2 flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm h-[600px] lg:h-auto lg:min-h-0 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-3">Select Patient</h2>
-              
-              <div className="relative" ref={dropdownRef}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input 
-                    type="text"
-                    className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white shadow-sm"
-                    placeholder="Search by Name, Phone, ID, or Aadhaar..."
-                    value={patientSearchTerm}
-                    onChange={(e) => {
-                      setPatientSearchTerm(e.target.value);
-                      setIsPatientDropdownOpen(true);
-                      if (!e.target.value) setSelectedPatientId('');
-                    }}
-                    onFocus={() => setIsPatientDropdownOpen(true)}
-                  />
-                  {patientSearchTerm && (
-                    <button 
-                      onClick={() => { setPatientSearchTerm(''); setSelectedPatientId(''); setIsPatientDropdownOpen(true); }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                
-                {isPatientDropdownOpen && patientsList && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                    {patientsList.length === 0 ? (
-                      <div className="p-3 text-center text-sm text-slate-500">No patients found</div>
-                    ) : (
-                      patientsList.map((p: any) => (
-                        <button
-                          key={p.id}
-                          className="w-full text-left px-4 py-3 hover:bg-indigo-50/50 border-b border-slate-100 last:border-0 flex items-center justify-between group"
-                          onClick={() => {
-                            setSelectedPatientId(p.id);
-                            setPatientSearchTerm(`${p.name} - ${p.phone}`);
-                            setIsPatientDropdownOpen(false);
-                          }}
-                        >
-                          <div>
-                            <div className="font-bold text-sm text-slate-900 group-hover:text-indigo-700">{p.name}</div>
-                            <div className="text-xs text-slate-500">{p.phone}</div>
-                          </div>
-                          <div className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">Select</div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
+      {activeTab === 'pending' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-500" /> Pending Bills
+              <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 ml-2">
+                {pendingTotalCount} Pending
+              </span>
+            </h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="date"
+                  value={pendingStartDate}
+                  onChange={(e) => setPendingStartDate(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <span className="text-slate-500 text-sm">to</span>
+                <input 
+                  type="date"
+                  value={pendingEndDate}
+                  onChange={(e) => setPendingEndDate(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
               </div>
-
-            </div>
-            
-            <div className="p-5 flex-1 overflow-y-auto bg-slate-50/30">
-              <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-slate-500" /> Add Services to Bill
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {services?.filter(s => s.isActive).map(service => (
-                  <div key={service.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between group">
-                    <div className="mb-3">
-                      <span className="font-semibold text-slate-900 block truncate" title={service.name}>{service.name}</span>
-                      <span className="text-xs text-slate-500">{service.category || 'General'}</span>
-                    </div>
-                    <span className="text-indigo-600 font-bold text-lg mb-3">₹{service.defaultPrice}</span>
-                    <button 
-                      onClick={() => addToCart(service, false)} 
-                      className={`w-full mt-auto text-xs font-bold py-2 rounded-lg transition-colors bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
-                    >
-                      {cart.some(c => c.service.id === service.id) ? 'Add Again' : 'Add to Bill'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right panel - Invoice summary */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px] lg:h-auto lg:min-h-0 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-               <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Invoice Summary</h2>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-5 bg-slate-50/30">
-              {cart.length === 0 ? (
-                <div className="text-center text-slate-400 mt-12 flex flex-col items-center">
-                  <Receipt className="w-12 h-12 mb-3 text-slate-200" />
-                  <p>Cart is empty</p>
-                  <p className="text-xs mt-1">Select services from the left panel</p>
-                </div>
-              ) : (
-                <ul className="space-y-3">
-                  {cart.map((item, idx) => (
-                    <li key={idx} className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm flex justify-between items-center group">
-                      <div className="flex-1 min-w-0 pr-3">
-                        <div className="font-bold text-sm text-slate-900 truncate" title={item.service.name}>{item.service.name}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded px-1 py-0.5">
-                            {!item.isPrescribed && <button onClick={() => updateQuantity(idx, -1)} className="text-slate-400 hover:text-slate-700 p-0.5 w-5 h-5 flex items-center justify-center font-medium">-</button>}
-                            <span className="text-xs font-bold text-slate-700 w-4 text-center">{item.quantity}</span>
-                            {!item.isPrescribed && <button onClick={() => updateQuantity(idx, 1)} className="text-slate-400 hover:text-slate-700 p-0.5 w-5 h-5 flex items-center justify-center font-medium">+</button>}
-                          </div>
-                          <span className="text-xs text-slate-500">× ₹{item.service.defaultPrice}</span>
-                          {item.isPrescribed && <span className="ml-2 text-[10px] uppercase font-bold tracking-wider text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Prescribed</span>}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className="font-bold text-sm text-slate-900">₹{item.service.defaultPrice * item.quantity}</span>
-                        {!item.isPrescribed && (
-                          <button onClick={() => removeFromCart(idx)} className="text-slate-400 hover:text-rose-500 transition-colors p-1 hover:bg-rose-50 rounded-md">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="p-5 bg-white border-t border-slate-100 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600 font-medium text-sm">Subtotal</span>
-                <span className="font-bold text-slate-900">₹{subTotal}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600 font-medium text-sm">Discount (₹)</span>
-                <input type="number" min="0" value={discount} onChange={e => setDiscount(Number(e.target.value) || 0)} className="w-24 text-right px-2 py-1 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" />
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600 font-medium text-sm">Tax (₹)</span>
-                <input type="number" min="0" value={tax} onChange={e => setTax(Number(e.target.value) || 0)} className="w-24 text-right px-2 py-1 border border-slate-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm" />
-              </div>
-              <div className="flex justify-between items-center text-lg font-black pt-4 border-t border-slate-200 mt-2">
-                <span>Total Amount</span>
-                <span className="text-indigo-600">₹{total}</span>
-              </div>
-            </div>
-
-            <div className="p-5 bg-slate-50 border-t border-slate-200">
-              <button 
-                onClick={() => createInvoiceMut.mutate()}
-                disabled={createInvoiceMut.isPending || cart.length === 0 || !selectedPatientId}
-                className="w-full btn-primary py-3 text-base shadow-sm"
+              <select 
+                value={pendingPageSize}
+                onChange={(e) => { setPendingPageSize(Number(e.target.value)); setPendingPage(1); }}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
               >
-                {createInvoiceMut.isPending ? <Activity className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                {createInvoiceMut.isPending ? 'Generating...' : 'Generate Invoice'}
-              </button>
+                <option value={10}>10 rows</option>
+                <option value={20}>20 rows</option>
+                <option value={50}>50 rows</option>
+              </select>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text"
+                  placeholder="Search pending bills..."
+                  value={pendingSearch}
+                  onChange={(e) => { setPendingSearch(e.target.value); setPendingPage(1); }}
+                  className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'history' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex-1 overflow-hidden flex flex-col">
-          {isLoadingInvoices ? <PageLoader /> : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+          
+          <div className="overflow-x-auto rounded-xl border border-slate-200 flex-1">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Token Ref ID</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Patient Name</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Doctor</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Completed At</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {isLoadingPendingBills ? (
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Invoice #</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Patient Name</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Total (₹)</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Paid (₹)</th>
-                    <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex justify-center mb-2"><PageLoader /></div>
+                      Loading pending bills...
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-100">
-                  {invoices?.map((inv: any) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600">{inv.invoiceNumber}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">{new Date(inv.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{inv.patientName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-slate-900">₹{inv.totalAmount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-emerald-600 font-bold">₹{inv.paidAmount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${inv.status === 2 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : inv.status === 1 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                          {inv.status === 2 ? 'Paid' : inv.status === 1 ? 'Partial' : 'Unpaid'}
+                ) : !pendingBills || pendingBills.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-16 text-center text-slate-500 font-medium">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 mb-4 border-4 border-emerald-100">
+                        <CheckCircle className="w-8 h-8" />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-700 mb-1">All clear!</h3>
+                      <p>There are no pending bills right now.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  pendingBills.map((bill: any) => (
+                    <tr key={bill.tokenId} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
+                          {bill.tokenReferenceId}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-3 items-center">
-                          {inv.status !== 2 && (
-                            <button onClick={() => {
-                               const amt = prompt('Enter payment amount received (Cash):', String(inv.totalAmount - inv.paidAmount));
-                               if (amt && !isNaN(Number(amt))) {
-                                 payInvoiceMut.mutate({ invoiceId: inv.id, amount: Number(amt), mode: 1 });
-                               }
-                            }} className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 transition-colors">
-                              <CreditCard className="w-4 h-4" /> Receive Pay
-                            </button>
-                          )}
-                          <button onClick={() => handlePrint(inv)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-slate-50 hover:bg-indigo-50 p-2 rounded-lg border border-slate-200 shadow-sm">
-                            <Printer className="w-4 h-4" />
-                          </button>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900">{bill.patientName}</div>
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400" /> {bill.doctorName}
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-slate-500 font-medium">
+                        {new Date(bill.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => {
+                            setBillingToken({
+                              id: bill.tokenId,
+                              patientId: bill.patientId,
+                              patientName: bill.patientName,
+                              queue: { doctorId: bill.doctorId }
+                            });
+                          }}
+                          className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm text-sm inline-flex items-center gap-1.5"
+                        >
+                          <Receipt className="w-4 h-4" />
+                          Generate Bill
+                        </button>
+                      </td>
                     </tr>
-                  ))}
-                  {invoices?.length === 0 && (
-                    <tr><td colSpan={7} className="text-center py-12 text-slate-500 font-medium">No invoices found for the last 30 days.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pending Bills Pagination Controls */}
+          {pendingTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-bold text-slate-700">{(pendingPage - 1) * pendingPageSize + 1}</span> to <span className="font-bold text-slate-700">{Math.min(pendingPage * pendingPageSize, pendingTotalCount)}</span> of <span className="font-bold text-slate-700">{pendingTotalCount}</span> entries
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  disabled={pendingPage === 1}
+                  onClick={() => setPendingPage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button 
+                  disabled={pendingPage === pendingTotalPages}
+                  onClick={() => setPendingPage(p => Math.min(pendingTotalPages, p + 1))}
+                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           )}
         </div>
       )}
+
+      {activeTab === 'history' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 flex-1 flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-500" /> Invoice History
+            </h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="date"
+                  value={historyStartDate}
+                  onChange={(e) => setHistoryStartDate(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <span className="text-slate-500 text-sm">to</span>
+                <input 
+                  type="date"
+                  value={historyEndDate}
+                  onChange={(e) => setHistoryEndDate(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+              </div>
+              <select 
+                value={historyPageSize}
+                onChange={(e) => { setHistoryPageSize(Number(e.target.value)); setHistoryPage(1); }}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <option value={10}>10 rows</option>
+                <option value={20}>20 rows</option>
+                <option value={50}>50 rows</option>
+              </select>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text"
+                  placeholder="Search invoices..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 flex-1">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Invoice #</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Token Ref ID</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Patient Name</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Doctor</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Booking Date</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Payment Date</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Status</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Amount</th>
+                  <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {isLoadingInvoices ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex justify-center mb-2"><PageLoader /></div>
+                      Loading history...
+                    </td>
+                  </tr>
+                ) : invoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500 font-medium">No invoices found.</td>
+                  </tr>
+                ) : (
+                  invoices.map((inv: any) => (
+                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-indigo-600">{inv.invoiceNumber}</td>
+                      <td className="px-6 py-4">
+                        {inv.tokenReferenceId ? (
+                          <span className="font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
+                            {inv.tokenReferenceId}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600">{inv.patientName}</td>
+                      <td className="px-6 py-4 text-slate-600">{inv.doctorName || '-'}</td>
+                      <td className="px-6 py-4 text-slate-500">
+                        {inv.bookingDate ? new Date(inv.bookingDate).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4 text-slate-500">
+                        {inv.paymentDate ? new Date(inv.paymentDate).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider ${
+                          inv.status === 2 ? 'bg-emerald-100 text-emerald-700' :
+                          inv.status === 1 ? 'bg-amber-100 text-amber-700' :
+                          inv.status === 3 ? 'bg-rose-100 text-rose-700' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {inv.status === 2 ? 'Paid' : inv.status === 1 ? 'Partial' : inv.status === 3 ? 'Cancelled' : 'Unpaid'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-bold text-slate-900">₹{inv.totalAmount}</td>
+                      <td className="px-6 py-4 text-right">
+                        <button onClick={() => handlePrint(inv)} className="text-slate-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg">
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-100">
+              <div className="text-sm text-slate-500">
+                Showing <span className="font-bold text-slate-700">{(historyPage - 1) * historyPageSize + 1}</span> to <span className="font-bold text-slate-700">{Math.min(historyPage * historyPageSize, totalCount)}</span> of <span className="font-bold text-slate-700">{totalCount}</span> entries
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  disabled={historyPage === 1}
+                  onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button 
+                  disabled={historyPage === totalPages}
+                  onClick={() => setHistoryPage(p => Math.min(totalPages, p + 1))}
+                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Reusing QuickInvoiceModal for generating bill */}
+      {billingToken && (
+        <QuickInvoiceModal
+          isOpen={!!billingToken}
+          onClose={() => {
+            setBillingToken(null);
+            queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+            queryClient.invalidateQueries({ queryKey: ['invoices'] });
+          }}
+          billingToken={billingToken}
+        />
+      )}
+
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
+  CreditCard,
   User, Save, ArrowLeft, RotateCcw, Power, Users, CheckCircle2, Receipt, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
   Play, Search, PlusCircle, Pencil, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
@@ -13,6 +14,8 @@ import { useQueryClient } from "@tanstack/react-query"
 import ManualBookingModal from "./ManualBookingModal"
 import EndSessionModal from "./EndSessionModal"
 import QuickInvoiceModal from "./QuickInvoiceModal"
+import RecordPaymentModal from './RecordPaymentModal';
+
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -60,6 +63,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false)
   const [editingToken, setEditingToken] = useState<any>(null)
+  const [paymentToken, setPaymentToken] = useState<any>(null);
+
 
   const { data: queue, refetch: refetchQueue, isFetching } = useQuery({
     queryKey: ['queueDetails', queueId],
@@ -644,7 +649,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                             <p className="font-bold text-slate-900">{t.patientName}</p>
                             {t.isPriority && <span title="Priority Patient"><Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /></span>}
                           </div>
-                          <p className="text-[11px] font-medium text-slate-400 mt-0.5">#{t.id.substring(0,8)}</p>
+                          <p className="text-[11px] font-bold text-slate-500 mt-1 bg-slate-100 border border-slate-200 px-1.5 py-0.5 inline-block rounded">CX-{t.id.substring(0,6).toUpperCase()}</p>
                         </div>
                       </div>
                     </td>
@@ -719,9 +724,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
                               <Receipt className="w-4 h-4" />
                             </button>
                           )}
-                          {t.status === 2 && t.invoiceId && (
-                             <span className="p-2 text-indigo-400 bg-indigo-50/50 rounded-lg border border-transparent" title="Invoice Generated">
-                               <Receipt className="w-4 h-4 opacity-50" />
+                          {t.status === 2 && t.invoiceId && (t.invoiceStatus === 0 || t.invoiceStatus === 1) && (
+                            <button onClick={() => setPaymentToken(t)} className="p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200" title="Record Payment">
+                              <CreditCard className="w-4 h-4" />
+                            </button>
+                          )}
+                          {t.status === 2 && t.invoiceId && t.invoiceStatus === 2 && (
+                             <span className="p-2 text-emerald-400 bg-emerald-50/50 rounded-lg border border-transparent" title="Invoice Paid">
+                               <CheckCircle2 className="w-4 h-4 opacity-50" />
                              </span>
                           )}
                           {t.status !== 2 && (
@@ -754,6 +764,18 @@ export default function QueueManager({ sessionData, onBack }: any) {
         onClose={() => setBillingToken(null)} 
         billingToken={billingToken} 
       />
+
+      {paymentToken && (
+        <RecordPaymentModal 
+          invoiceId={paymentToken.invoiceId}
+          patientName={paymentToken.patientName}
+          onClose={() => setPaymentToken(null)}
+          onPrint={(invId) => { 
+            setPaymentToken(null); 
+            import('@/utils/printHelper').then(m => m.handlePrintInvoice(invId, organizationId, activeBranch)); 
+          }}
+        />
+      )}
 
       <ManualBookingModal 
         isOpen={isModalOpen} 
