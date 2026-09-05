@@ -16,6 +16,7 @@ interface PhoneInputProps {
   dialCodeName?: string;
   defaultValue?: string;
   defaultDialCode?: string;
+  required?: boolean;
 }
 
 export default function PhoneInput({

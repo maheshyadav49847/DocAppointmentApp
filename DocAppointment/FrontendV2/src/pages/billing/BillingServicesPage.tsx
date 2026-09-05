@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { billingService, type ServiceItem } from '@/services/billingService';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Plus, SquarePen, Trash2, X, Save, Activity, LayoutGrid, Search, Download, ChevronLeft, ChevronRight , FileText, Tag, IndianRupee, AlertCircle } from 'lucide-react';
+import { PlusCircle, SquarePen, Trash2, X, Save, Activity, LayoutGrid, Search, Download, ChevronLeft, ChevronRight , FileText, Tag, IndianRupee, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
@@ -41,7 +41,7 @@ export default function BillingServicesPage() {
   const totalCount = servicesData?.totalCount || 0;
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => billingService.createService({ ...data, organizationId }),
+    mutationFn: (data: typeof formData) => billingService.createService({ ...data, defaultPrice: Number(data.defaultPrice), organizationId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-services'] });
       setIsModalOpen(false);
@@ -50,7 +50,7 @@ export default function BillingServicesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: typeof formData) => billingService.updateService(editingService!.id, { ...data, id: editingService!.id, organizationId }),
+    mutationFn: (data: typeof formData) => billingService.updateService(editingService!.id, { ...data, defaultPrice: Number(data.defaultPrice), id: editingService!.id, organizationId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-services'] });
       setIsModalOpen(false);
@@ -94,7 +94,7 @@ export default function BillingServicesPage() {
     }
     
     // Check price
-    if (formData.defaultPrice === null || formData.defaultPrice === undefined || formData.defaultPrice < 0 || formData.defaultPrice.toString() === '') {
+    if (formData.defaultPrice === null || formData.defaultPrice === undefined || Number(formData.defaultPrice) < 0 || formData.defaultPrice.toString() === '') {
       newErrors.price = 'Valid price is required';
       hasError = true;
     }
@@ -198,7 +198,7 @@ export default function BillingServicesPage() {
               <Download className="w-4 h-4" /> Export CSV
             </button>
             <button onClick={() => handleOpenModal()} className="btn-primary shadow-sm shrink-0 px-4">
-              <Plus className="w-4 h-4" /> Add Service
+              <PlusCircle className="w-4 h-4" /> Add Service
             </button>
           </div>
         </div>
@@ -307,7 +307,7 @@ export default function BillingServicesPage() {
             >
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  {editingService ? <SquarePen className="w-5 h-5 text-indigo-500" /> : <Plus className="w-5 h-5 text-indigo-500" />}
+                  {editingService ? <SquarePen className="w-5 h-5 text-indigo-500" /> : <PlusCircle className="w-5 h-5 text-indigo-500" />}
                   {editingService ? 'Edit Service' : 'Add New Service'}
                 </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">

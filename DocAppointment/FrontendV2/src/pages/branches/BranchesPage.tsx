@@ -11,7 +11,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Building2, MapPin, Smartphone, Activity, ArrowRight,
-  Edit, Trash2, Plus, X, Search, MessageSquare,
+  Edit, Trash2, PlusCircle, X, Search, MessageSquare,
   LayoutGrid, List, Save, Image, Send
 } from "lucide-react"
 import toast from "react-hot-toast"
@@ -316,7 +316,7 @@ export default function BranchesPage() {
                 onClick={() => { setEditingBranch(null); setIsDrawerOpen(true) }}
                 className="btn-primary shrink-0 px-3 sm:px-5"
               >
-                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Branch</span>
+                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Branch</span>
               </button>
             )}
           </div>
