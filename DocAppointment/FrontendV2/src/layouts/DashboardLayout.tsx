@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save, ReceiptIndianRupee } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save, ReceiptIndianRupee, BarChart3 } from "lucide-react"
 import toast from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 
@@ -20,6 +20,7 @@ const getNavigation = (role: string, isDoctor: boolean) => {
   let nav = [
     { name: "Queue (Live)", href: "/queue", icon: Activity, requiredAny: ["Queue.View", "Patients.ViewHistory"] },
     { name: "Analytics", href: "/analytics", icon: LayoutDashboard, requiredAny: ["Analytics.View"] },
+    { name: "Reports", href: "/reports", icon: BarChart3, requiredAny: ["Analytics.View"] },
     { name: "Chatbot Analyzer", href: "/analytics/chatbot", icon: MessageSquare, requiredAny: ["Analytics.View"] },
     { name: "Branches", href: "/branches", icon: Building2, requiredAny: ["Branches.View"] },
     { name: "Doctors", href: "/doctors", icon: Stethoscope, requiredAny: ["Doctors.View"] },

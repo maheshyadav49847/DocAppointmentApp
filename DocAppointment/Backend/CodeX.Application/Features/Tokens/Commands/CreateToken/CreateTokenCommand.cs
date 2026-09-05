@@ -38,19 +38,22 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
         private readonly ISmsService _smsService;
         private readonly IQueueNotificationService _notificationService;
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
+        private readonly ICurrentUserService _currentUserService;
 
         public CreateTokenCommandHandler(
             IApplicationDbContext context, 
             IWhatsAppService whatsappService, 
             ISmsService smsService, 
             IQueueNotificationService notificationService,
-            Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory)
+            Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _whatsappService = whatsappService;
             _smsService = smsService;
             _notificationService = notificationService;
             _serviceScopeFactory = serviceScopeFactory;
+            _currentUserService = currentUserService;
         }
 
         private async Task LogMessage(Guid branchId, string phone, string type, string status, string? error = null, Guid? tokenId = null)
@@ -189,6 +192,8 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                     Status = TokenStatus.Pending,
                     Source = request.Source,
                     CreatedAt = DateTime.UtcNow,
+                    BookedAt = DateTime.UtcNow,
+                    CreatedByStaffId = !string.IsNullOrEmpty(_currentUserService.UserId) && Guid.TryParse(_currentUserService.UserId, out var parsedId) ? parsedId : null,
                     // Pre-set proper OrgId so token is visible to frontend (AppDbContext only auto-sets if Guid.Empty)
                     OrganizationId = queue.Branch?.OrganizationId ?? patient.OrganizationId
                 };
