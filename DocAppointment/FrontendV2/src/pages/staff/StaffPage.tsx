@@ -12,7 +12,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 
 import {
-  UserCog, Search, Plus, Edit, Trash2,
+  UserCog, Search, PlusCircle, Edit, Trash2,
   X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, CheckCircle, LockKeyholeOpen, Lock
 } from "lucide-react"
 import toast from "react-hot-toast"
@@ -366,7 +366,7 @@ export default function StaffPage() {
                 onClick={() => { setEditingStaff(null); setIsDrawerOpen(true) }}
                 className="btn-primary shrink-0 px-3 sm:px-5"
               >
-                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Staff</span>
+                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Staff</span>
               </button>
             )}
           </div>

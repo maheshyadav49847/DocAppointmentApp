@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
-  Stethoscope, Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
+  Stethoscope, PlusCircle, Search, Edit, Trash2, ChevronLeft, ChevronRight, AlertCircle, X, Save, Activity,
   LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key, CheckCircle
 } from "lucide-react"
 import toast from "react-hot-toast"
@@ -408,7 +408,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                 }}
                 className="btn-primary shrink-0 px-3 sm:px-5"
               >
-                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
+                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Doctor</span>
               </button>
             )}
           </div>

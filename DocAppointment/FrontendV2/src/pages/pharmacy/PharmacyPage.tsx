@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { DownloadCloud, UploadCloud, Pill, Plus, Search, Edit, Trash2, Activity, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { DownloadCloud, UploadCloud, Pill, PlusCircle, Search, Edit, Trash2, Activity, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { medicineService, type MedicineDto } from "../../services/medicineService";
 import MedicineModal from "./components/MedicineModal";
@@ -306,7 +306,7 @@ export default function PharmacyPage() {
                 </button>
 
                 <button onClick={openAddModal} className="btn-primary shrink-0 px-3 sm:px-5">
-                  <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Medicine</span>
+                  <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Medicine</span>
                 </button>
               </>
             )}

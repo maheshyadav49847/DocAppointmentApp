@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
-  Users, Plus, Search, ChevronLeft, ChevronRight, AlertCircle,
+  Users, PlusCircle, Search, ChevronLeft, ChevronRight, AlertCircle,
   Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -305,7 +305,7 @@ export default function PatientsPage() {
                 }}
                 className="btn-primary shrink-0 px-3 sm:px-5"
               >
-                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
+                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Register Patient</span>
               </button>
             )}
           </div>

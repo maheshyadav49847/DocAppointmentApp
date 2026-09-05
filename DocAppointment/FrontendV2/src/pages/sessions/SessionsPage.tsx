@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Calendar, Clock, Plus, Edit, Trash2, AlertCircle, X, Save, Activity,
+  Calendar, Clock, PlusCircle, Edit, Trash2, AlertCircle, X, Save, Activity,
   User, Building2, Users, FileText
 } from "lucide-react"
 
@@ -196,7 +196,7 @@ export default function SessionsPage() {
               disabled={!selectedDoctorId}
               className="btn-primary shrink-0 px-3 sm:px-5"
             >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
+              <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
             </button>
           )}
         </div>
