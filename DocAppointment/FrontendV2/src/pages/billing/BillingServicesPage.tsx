@@ -298,23 +298,41 @@ export default function BillingServicesPage() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  {editingService ? <SquarePen className="w-5 h-5 text-indigo-500" /> : <PlusCircle className="w-5 h-5 text-indigo-500" />}
-                  {editingService ? 'Edit Service' : 'Add New Service'}
-                </h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
+                    {editingService ? <SquarePen className="w-6 h-6" /> : <PlusCircle className="w-6 h-6" />}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                      <span className="text-slate-900">{editingService ? 'Edit' : 'Add '}</span>
+                      <span className="text-indigo-600">{editingService ? '' : 'New '} Service</span>
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-1">{editingService ? 'Update service details.' : 'Add a new service.'}</p>
+                  </div>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                <form id="service-form" onSubmit={handleSubmit} noValidate className="space-y-6">
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-bold text-slate-700 mb-1.5">
                     <FileText className="w-4 h-4 text-slate-400" />
@@ -377,18 +395,20 @@ export default function BillingServicesPage() {
                   </label>
                 </div>
                 
-                <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">
+                </form>
+              </div>
+              
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm font-bold border-2 border-rose-200 text-rose-600 rounded-lg hover:bg-rose-50 hover:border-rose-300 transition-all">
                     <X className="w-4 h-4" /> Cancel
                   </button>
-                  <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
+                  <button type="submit" form="service-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                     {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {editingService ? 'Save Changes' : 'Add Service'}
                   </button>
-                </div>
-              </form>
+              </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
     </div>
