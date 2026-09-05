@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Plus, Printer, CheckCircle, Search, X, FileText, Receipt, Trash2, CreditCard, User, Activity, Download, CalendarDays } from 'lucide-react';
+import { Plus, Printer, CheckCircle, Search, X, FileText, ReceiptIndianRupee, Trash2, CreditCard, User, Activity, Download, CalendarDays, Clock, History } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { billingService, type ServiceItem } from '@/services/billingService';
@@ -133,7 +133,8 @@ export default function BillingDashboardPage() {
             className={`px-5 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             onClick={() => setActiveTab('pending')}
           >
-            <span className="relative">
+            <span className="relative flex items-center gap-2">
+              <Clock className="w-4 h-4" />
               Pending Bills
               {pendingTotalCount > 0 && (
                 <span className="absolute -top-1 -right-4 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
@@ -141,9 +142,10 @@ export default function BillingDashboardPage() {
             </span>
           </button>
           <button 
-            className={`px-5 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-5 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
             onClick={() => setActiveTab('history')}
           >
+            <History className="w-4 h-4" />
             History
           </button>
         </div>
@@ -274,7 +276,7 @@ export default function BillingDashboardPage() {
                           }}
                           className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm text-sm inline-flex items-center gap-1.5"
                         >
-                          <Receipt className="w-4 h-4" />
+                          <ReceiptIndianRupee className="w-4 h-4" />
                           Generate Bill
                         </button>
                       </td>

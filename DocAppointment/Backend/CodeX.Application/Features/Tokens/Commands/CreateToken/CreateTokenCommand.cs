@@ -122,7 +122,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 {
                     patient = await _context.Patients
                         .IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone != null && p.Phone == normalizedPhone, cancellationToken);
+                        .FirstOrDefaultAsync(p => !p.IsDeleted && p.Phone != null && (p.Phone == request.PatientPhone || p.Phone == normalizedPhone), cancellationToken);
                 }
 
                 if (patient != null)
@@ -142,7 +142,7 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                     patient = new Patient
                     {
                         Name = request.PatientName,
-                        Phone = normalizedPhone,
+                        Phone = request.PatientPhone, // Save without country code prefix
                         PhoneDialCode = request.PatientPhoneDialCode ?? "+91",
                         OrganizationId = queue.Branch?.OrganizationId ?? Guid.Empty
                     };

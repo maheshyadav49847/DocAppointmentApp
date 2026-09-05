@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Receipt, Trash2, Plus, CreditCard, CheckCircle, Printer } from "lucide-react";
+import { X, ReceiptIndianRupee, Trash2, Plus, CreditCard, CheckCircle, Printer } from "lucide-react";
 import { handlePrintInvoice } from "@/utils/printHelper";
 import { branchService } from "@/services/branchService";
 import { api } from "@/lib/axios";
@@ -62,11 +62,13 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
     }
   }, [isOpen, billingToken]);
 
-  const { data: services } = useQuery({
+  const { data: servicesResponse } = useQuery({
     queryKey: ['billing-services', organizationId],
-    queryFn: () => billingService.getServices(organizationId),
+    queryFn: () => billingService.getServices(organizationId, 1, 1000),
     enabled: isOpen && !!organizationId
   });
+  
+  const services = servicesResponse?.items || [];
 
   // Fetch latest visit for this patient to auto-populate prescribed items
   useEffect(() => {
@@ -212,7 +214,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
             <div>
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-indigo-600" />
+                <ReceiptIndianRupee className="w-5 h-5 text-indigo-600" />
                 Quick Invoice
               </h2>
               <p className="text-sm text-slate-500 mt-1">
@@ -300,7 +302,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
                <div className="flex-1 overflow-y-auto p-4 bg-slate-50/30">
                   {cart.length === 0 ? (
                     <div className="text-center text-slate-400 mt-10">
-                      <Receipt className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                      <ReceiptIndianRupee className="w-10 h-10 mx-auto mb-2 text-slate-200" />
                       <p className="text-sm">Cart is empty</p>
                     </div>
                   ) : (

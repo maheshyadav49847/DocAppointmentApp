@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Send, Save, X, Activity, CheckCircle2 } from "lucide-react"
+import { Send, Save, X, Activity, CheckCircle2, Plug } from "lucide-react"
 import toast from "react-hot-toast"
 import { branchService } from "@/services/branchService"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
@@ -9,6 +9,7 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
   const queryClient = useQueryClient()
   const [token, setToken] = useState(branch?.telegramBotToken || "")
   const [apiError, setApiError] = useState<any>(null)
+  const [validationError, setValidationError] = useState("")
 
   const [botInfo, setBotInfo] = useState<any>(null)
 
@@ -22,12 +23,14 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
     onError: (error: any) => {
       setBotInfo(null)
       setApiError(error)
+      toast.error("Bot connection failed. Please check the token.")
+      setValidationError("Connection failed. Please verify the token.")
     }
   })
 
   const handleTest = () => {
     if (!token) {
-        toast.error("Please enter a bot token first.")
+        setValidationError("Please enter a bot token first.")
         return
     }
     testConnectionMutation.mutate(token)
@@ -47,6 +50,10 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
   })
 
   const handleSave = () => {
+    if (!token) {
+        setValidationError("Please enter a bot token first.")
+        return
+    }
     updateMutation.mutate({ ...branch, telegramBotToken: token })
   }
 
@@ -95,19 +102,20 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
                         <input autoComplete="off" 
                         type="text" 
                         value={token}
-                        onChange={(e) => setToken(e.target.value)}
+                        onChange={(e) => { setToken(e.target.value); setValidationError(""); setBotInfo(null); }}
                         placeholder="e.g. 123456789:ABCdefGHIjklmnoPQRstuvWXYZ" 
-                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-sky-500 outline-none font-mono text-sm"
+                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 outline-none font-mono text-sm ${validationError ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500' : 'focus:ring-sky-500/20 focus:border-sky-500'}`}
                         />
                         <button 
                             onClick={handleTest}
                             disabled={testConnectionMutation.isPending}
                             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm transition-colors flex items-center gap-2 whitespace-nowrap"
                         >
-                            {testConnectionMutation.isPending && <Activity className="w-4 h-4 animate-spin" />}
+                            {testConnectionMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                             Test Connection
                         </button>
                     </div>
+                    {validationError && <p className="text-rose-500 text-xs mt-1 font-medium">{validationError}</p>}
                  </div>
 
                  {botInfo && botInfo.success && (
@@ -149,12 +157,12 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-end gap-3">
-           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
-              Cancel
+           <button type="button" onClick={onClose} className="btn-danger">
+              <X className="w-4 h-4" /> Cancel
            </button>
            <button 
              onClick={handleSave} 
-             disabled={updateMutation.isPending}
+             disabled={updateMutation.isPending || (token !== branch?.telegramBotToken && (!botInfo || !botInfo.success))}
              className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
            >
               {updateMutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
