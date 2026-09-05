@@ -564,6 +564,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   setVisitOxygenLevel("")
                   setVisitBloodSugar("")
                   setVisitMedicines([])
+                  setVisitServices([])
                   setVisitFollowUpDate("")
                   setVisitFollowUpInstructions("")
                   setVisitFiles([])
@@ -942,7 +943,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         <div key={file.id} className="flex justify-between items-center bg-white p-2 border border-slate-200 rounded-lg">
                           <span className="text-xs font-medium truncate flex-1 flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                            <a href={`/api${file.fileUrl}`} target="_blank" rel="noreferrer" className="hover:underline hover:text-indigo-600 truncate">[{file.category}] {file.fileName}</a>
+                            <a href={file.fileUrl} target="_blank" rel="noreferrer" className="hover:underline hover:text-indigo-600 truncate">[{file.category}] {file.fileName}</a>
                           </span>
                           <button onClick={() => setDeletedFileIds([...deletedFileIds, file.id])} className="text-rose-500 hover:bg-rose-50 p-1 rounded shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
@@ -985,6 +986,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         dropdownMode="select"
                         placeholderText="Select Follow-up Date"
                         minDate={new Date()}
+                        portalId="root-portal"
                         className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                         wrapperClassName="w-full"
                       />
@@ -1142,7 +1144,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attachments</h4>
                                 <div className="flex flex-col gap-1">
                                   {visit.attachments.map((a: any) => (
-                                    <a key={a.id} href={`/api${a.fileUrl}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1">
+                                    <a key={a.id} href={a.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1">
                                       <FileText className="w-3 h-3" /> [{a.category}] {a.fileName}
                                     </a>
                                   ))}
