@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
 import { 
   BarChart3, 
   Wallet, 
@@ -14,12 +17,12 @@ import {
   TrendingUp,
   CreditCard,
   Building
-, Clock, CheckCircle, XCircle} from 'lucide-react';
+, Clock, CheckCircle, XCircle, CalendarDays} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { reportService } from '@/services/reportService';
 import { branchService } from '@/services/branchService';
 import { doctorService } from '@/services/doctorService';
-
+import { useAuthStore } from '@/store/authStore';
 
 export default function ReportsDashboardPage() {
   const [activeCategory, setActiveCategory] = useState('financial');
@@ -27,8 +30,11 @@ export default function ReportsDashboardPage() {
   
   // Filters
   const [dateRange, setDateRange] = useState('today');
-  const [selectedBranch, setSelectedBranch] = useState('all');
+  const { activeBranchId } = useAuthStore();
+  const selectedBranch = activeBranchId || 'all';
   const [selectedDoctor, setSelectedDoctor] = useState('all');
+  const [customStart, setCustomStart] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() - 7); return d; });
+  const [customEnd, setCustomEnd] = useState<Date>(() => new Date());
 
   const categories = [
     { id: 'financial', label: 'Financial & Revenue', icon: Wallet },
@@ -66,35 +72,39 @@ export default function ReportsDashboardPage() {
   ];
 
   // Global Filters
-  const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: branchService.getMyBranches });
   const { data: doctors = [] } = useQuery({ queryKey: ['doctors'], queryFn: doctorService.getOrganizationDoctors });
 
-  const getDates = () => {
+  const { startDate, endDate } = useMemo(() => {
     const end = new Date().toISOString();
     let start = new Date();
     if (dateRange === 'today') start.setHours(0,0,0,0);
     else if (dateRange === 'yesterday') { start.setDate(start.getDate() - 1); start.setHours(0,0,0,0); }
     else if (dateRange === 'this_week') { start.setDate(start.getDate() - 7); }
     else if (dateRange === 'this_month') { start.setDate(start.getDate() - 30); }
+    else if (dateRange === 'custom') {
+      const s = new Date(customStart);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(customEnd);
+      e.setHours(23, 59, 59, 999);
+      return { startDate: s.toISOString(), endDate: e.toISOString() };
+    }
     return { startDate: start.toISOString(), endDate: end };
-  };
-
-  const { startDate, endDate } = getDates();
+  }, [dateRange, customStart, customEnd]);
 
   const { data: dcrData, isLoading: dcrLoading } = useQuery({
-    queryKey: ['report-dcr', selectedBranch, dateRange],
+    queryKey: ['report-dcr', selectedBranch, startDate, endDate],
     queryFn: () => reportService.getDailyCollection(selectedBranch, startDate, endDate),
     enabled: activeReport === 'dcr'
   });
 
   const { data: docData, isLoading: docLoading } = useQuery({
-    queryKey: ['report-doc', selectedBranch, selectedDoctor, dateRange],
+    queryKey: ['report-doc', selectedBranch, selectedDoctor, startDate, endDate],
     queryFn: () => reportService.getDoctorRevenue(selectedBranch, selectedDoctor, startDate, endDate),
     enabled: activeReport === 'doctor_revenue'
   });
 
   const { data: svcData, isLoading: svcLoading } = useQuery({
-    queryKey: ['report-svc', selectedBranch, dateRange],
+    queryKey: ['report-svc', selectedBranch, startDate, endDate],
     queryFn: () => reportService.getServiceRevenue(selectedBranch, startDate, endDate),
     enabled: activeReport === 'service_revenue'
   });
@@ -108,50 +118,50 @@ export default function ReportsDashboardPage() {
 
   // Operational Queries
   const { data: footfallData, isLoading: footfallLoading } = useQuery({
-    queryKey: ['report', 'footfall', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'footfall', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getFootfallAnalysisReport({ startDate, endDate, branchId: selectedBranch }),
     enabled: activeCategory === 'operational' && activeReport === 'footfall'
   });
 
   const { data: apptData, isLoading: apptLoading } = useQuery({
-    queryKey: ['report', 'appointment_summary', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'appointment_summary', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getAppointmentSummaryReport({ startDate, endDate, branchId: selectedBranch, doctorId: selectedDoctor }),
     enabled: activeCategory === 'operational' && activeReport === 'appointment_summary'
   });
 
   const { data: waitData, isLoading: waitLoading } = useQuery({
-    queryKey: ['report', 'queue_wait_time', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'queue_wait_time', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getQueueWaitTimeReport({ startDate, endDate, branchId: selectedBranch, doctorId: selectedDoctor }),
-    enabled: activeCategory === 'operational' && activeReport === 'queue_wait_time'
+    enabled: activeCategory === 'operational' && activeReport === 'queue_performance'
   });
 
   const { data: staffData, isLoading: staffLoading } = useQuery({
-    queryKey: ['report', 'staff_productivity', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'staff_productivity', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getStaffProductivityReport({ startDate, endDate, branchId: selectedBranch }),
     enabled: activeCategory === 'operational' && activeReport === 'staff_productivity'
   });
 
   // Clinical Queries
   const { data: diagData, isLoading: diagLoading } = useQuery({
-    queryKey: ['report', 'diagnosis_summary', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'diagnosis_summary', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getDiagnosisSummaryReport({ startDate, endDate, branchId: selectedBranch, doctorId: selectedDoctor }),
     enabled: activeCategory === 'clinical' && activeReport === 'diagnosis_summary'
   });
 
   const { data: demoData, isLoading: demoLoading } = useQuery({
-    queryKey: ['report', 'patient_demographics', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'patient_demographics', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getPatientDemographicsReport({ startDate, endDate }),
     enabled: activeCategory === 'clinical' && activeReport === 'patient_demographics'
   });
 
   const { data: retData, isLoading: retLoading } = useQuery({
-    queryKey: ['report', 'new_vs_returning', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'new_vs_returning', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getNewVsReturningReport({ startDate, endDate, branchId: selectedBranch }),
     enabled: activeCategory === 'clinical' && activeReport === 'new_vs_returning'
   });
 
   const { data: refData, isLoading: refLoading } = useQuery({
-    queryKey: ['report', 'referral_tracking', dateRange, selectedBranch, selectedDoctor],
+    queryKey: ['report', 'referral_tracking', startDate, endDate, selectedBranch, selectedDoctor],
     queryFn: () => reportService.getReferralTrackingReport({ startDate, endDate, branchId: selectedBranch }),
     enabled: activeCategory === 'clinical' && activeReport === 'referral_tracking'
   });
@@ -202,7 +212,7 @@ export default function ReportsDashboardPage() {
         </div>
         
         {/* Global Filters */}
-        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto pb-2 sm:pb-0">
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
             <CalendarIcon className="w-4 h-4 text-slate-400 mr-2" />
             <select 
@@ -217,18 +227,41 @@ export default function ReportsDashboardPage() {
               <option value="custom">Custom Range</option>
             </select>
           </div>
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative">
+                <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <DatePicker
+                  selected={customStart}
+                  onChange={(date: Date | null) => date && setCustomStart(date)}
+                  dateFormat="dd MMM yyyy"
+                  showMonthDropdown
+                  showYearDropdown
+                  todayButton="Today"
+                  dropdownMode="select"
+                  className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                  maxDate={customEnd}
+                />
+              </div>
+              <span className="text-slate-400 text-xs font-bold">to</span>
+              <div className="relative">
+                <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <DatePicker
+                  selected={customEnd}
+                  onChange={(date: Date | null) => date && setCustomEnd(date)}
+                  dateFormat="dd MMM yyyy"
+                  showMonthDropdown
+                  showYearDropdown
+                  todayButton="Today"
+                  dropdownMode="select"
+                  className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                  minDate={customStart}
+                />
+              </div>
+            </div>
+          )}
           
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
-            <MapPin className="w-4 h-4 text-slate-400 mr-2" />
-            <select 
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-            >
-              <option value="all">All Branches</option>
-              {(branches as any[]).map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+
           
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
             <UserCircle className="w-4 h-4 text-slate-400 mr-2" />

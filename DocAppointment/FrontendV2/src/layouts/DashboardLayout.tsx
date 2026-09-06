@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save, ReceiptIndianRupee, BarChart3 } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save, ReceiptIndianRupee, BarChart3, MapPin } from "lucide-react"
 import toast from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 
@@ -264,15 +264,17 @@ export default function DashboardLayout() {
             {/* Branch Selector */}
             {myBranches.length > 0 && (
               <div className="relative flex items-center min-w-0 max-w-[130px] sm:max-w-[200px]">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <select
-                  value={activeBranchId || ""}
+                  value={activeBranchId || (role === 'orgadmin' ? "org" : "")}
                   onChange={(e) => setActiveBranchId(e.target.value)}
                   disabled={isSessionActive && role === 'doctor'}
                   className={cn(
-                    "appearance-none bg-slate-100/50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg pl-2 sm:pl-3 pr-6 py-1 sm:py-1.5 font-medium transition-colors cursor-pointer w-full text-ellipsis overflow-hidden whitespace-nowrap",
+                    "appearance-none bg-slate-100/50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-lg pl-7 sm:pl-8 pr-6 py-1 sm:py-1.5 font-medium transition-colors cursor-pointer w-full text-ellipsis overflow-hidden whitespace-nowrap",
                     isSessionActive && role === 'doctor' ? "opacity-60 cursor-not-allowed bg-slate-100" : "hover:bg-slate-100 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   )}
                 >
+                  {role === 'orgadmin' && <option value="org">All Branches</option>}
                   {myBranches.map(branch => (
                     <option key={branch.id} value={branch.id}>
                       {branch.name}
