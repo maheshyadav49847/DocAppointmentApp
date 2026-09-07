@@ -2,12 +2,14 @@ import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { PageLoader } from "@/components/ui/PageLoader"
 import { subDays, format } from "date-fns"
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area,
   BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, Legend
 } from "recharts"
 import {
-  Activity, DollarSign, Users, Clock, CalendarDays, BriefcaseMedical, Download, Monitor, TrendingUp
+  Activity, DollarSign, Users, CalendarDays, BriefcaseMedical, Download, Monitor, TrendingUp
 } from "lucide-react"
 
 import ExcelJS from 'exceljs';
@@ -24,16 +26,46 @@ export default function AnalyticsPage() {
   const isSuperAdmin = role === 'superadmin';
   const selectedBranchId = (role === 'orgadmin' || isSuperAdmin || isMultiBranchDoctor) ? (activeBranchId || 'org') : (user?.branchId || 'org');
 
-  const [dateRange, setDateRange] = useState({
-    start: subDays(new Date(), 30),
-    end: new Date()
-  })
+  const [dateRangeMode, setDateRangeMode] = useState<string>('this_month');
+  const [customStart, setCustomStart] = useState<Date>(() => subDays(new Date(), 30));
+  const [customEnd, setCustomEnd] = useState<Date>(() => new Date());
   
   const [activeTab, setActiveTab] = useState<'operational' | 'financial' | 'clinical' | 'system'>('operational')
 
   const effectiveBranchId = selectedBranchId === 'org' ? undefined : selectedBranchId;
-  const startDateIso = dateRange.start.toISOString();
-  const endDateIso = dateRange.end.toISOString();
+
+  const { startDateIso, endDateIso, displayStart, displayEnd } = useMemo(() => {
+    const end = new Date();
+    let start = new Date();
+    if (dateRangeMode === 'today') start.setHours(0,0,0,0);
+    else if (dateRangeMode === 'yesterday') { start.setDate(start.getDate() - 1); start.setHours(0,0,0,0); }
+    else if (dateRangeMode === 'this_week') { start.setDate(start.getDate() - 7); }
+    else if (dateRangeMode === 'this_month') { start.setDate(start.getDate() - 30); }
+    
+    const fmt = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    let sStr, eStr;
+    let dStart = start, dEnd = end;
+    if (dateRangeMode === 'custom') {
+      const s = new Date(customStart);
+      s.setHours(0, 0, 0, 0);
+      const e = new Date(customEnd);
+      e.setHours(23, 59, 59, 999);
+      sStr = fmt(s) + 'T00:00:00Z';
+      eStr = fmt(e) + 'T23:59:59Z';
+      dStart = s; dEnd = e;
+    } else {
+      sStr = fmt(start) + 'T00:00:00Z';
+      eStr = fmt(end) + 'T23:59:59Z';
+    }
+    return { startDateIso: sStr, endDateIso: eStr, displayStart: dStart, displayEnd: dEnd };
+  }, [dateRangeMode, customStart, customEnd]);
+
 
   const { data: operational, isLoading: opLoading } = useQuery({
     queryKey: ['analytics', 'operational', effectiveBranchId, startDateIso, endDateIso],
@@ -189,30 +221,60 @@ export default function AnalyticsPage() {
               <span className="text-indigo-600">Reports</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">
-              Data-driven insights for {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
+              Data-driven insights for {format(displayStart, 'MMM d, yyyy')} - {format(displayEnd, 'MMM d, yyyy')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm text-sm"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm text-sm shrink-0"
           >
             <Download className="w-4 h-4" /> Export CSV
           </button>
-          <select 
-            className="border-slate-200 rounded-lg text-sm bg-white px-3 py-2 shadow-sm"
-            onChange={(e) => {
-              const days = parseInt(e.target.value);
-              setDateRange({ start: subDays(new Date(), days), end: new Date() });
-            }}
-            defaultValue="30"
-          >
-            <option value="7">Last 7 Days</option>
-            <option value="30">Last 30 Days</option>
-            <option value="90">Last 90 Days</option>
-            <option value="365">Last 1 Year</option>
-          </select>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg px-3 py-1.5 shrink-0 shadow-sm">
+              <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
+              <select 
+                value={dateRangeMode}
+                onChange={(e) => setDateRangeMode(e.target.value)}
+                className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+              >
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+            </div>
+            {dateRangeMode === 'custom' && (
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={customStart}
+                    onChange={(date: Date | null) => date && setCustomStart(date)}
+                    dateFormat="dd MMM yyyy"
+                    showMonthDropdown
+                    showYearDropdown
+                    className="w-32 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white"
+                  />
+                </div>
+                <span className="text-slate-400">-</span>
+                <div className="relative">
+                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <DatePicker
+                    selected={customEnd}
+                    onChange={(date: Date | null) => date && setCustomEnd(date)}
+                    dateFormat="dd MMM yyyy"
+                    showMonthDropdown
+                    showYearDropdown
+                    className="w-32 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -326,11 +388,11 @@ export default function AnalyticsPage() {
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
               <p className="text-sm font-medium text-slate-500 mb-2">Total Revenue</p>
-              <h2 className="text-3xl font-bold text-emerald-600">₹{financial.totalRevenue.toLocaleString()}</h2>
+              <h2 className="text-3xl font-bold text-emerald-600">&#8377;{financial.totalRevenue.toLocaleString()}</h2>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
               <p className="text-sm font-medium text-slate-500 mb-2">Outstanding Dues</p>
-              <h2 className="text-3xl font-bold text-rose-600">₹{financial.outstandingDues.toLocaleString()}</h2>
+              <h2 className="text-3xl font-bold text-rose-600">&#8377;{financial.outstandingDues.toLocaleString()}</h2>
             </div>
           </div>
 
@@ -345,12 +407,18 @@ export default function AnalyticsPage() {
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
+                      <linearGradient id="colorOut" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="date" tickFormatter={d => format(new Date(d), 'MMM d')} tick={{fontSize: 12}} />
+                    <XAxis dataKey="date" tickFormatter={d => format(new Date(d as string), 'MMM d')} tick={{fontSize: 12}} />
                     <YAxis tick={{fontSize: 12}} />
-                    <Tooltip labelFormatter={d => format(new Date(d), 'MMM d, yyyy')} />
-                    <Area type="monotone" dataKey="revenue" stroke="#10b981" fillOpacity={1} fill="url(#colorRev)" />
+                    <Tooltip labelFormatter={d => format(new Date(d as string), 'MMM d, yyyy')} />
+                    <Legend />
+                    <Area type="monotone" dataKey="revenue" name="Total Revenue" stroke="#10b981" fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="outstanding" name="Outstanding Dues" stroke="#ef4444" fillOpacity={1} fill="url(#colorOut)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -362,7 +430,7 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={financial.paymentBreakdown} dataKey="totalAmount" nameKey="mode" cx="50%" cy="50%" innerRadius={60} outerRadius={80} label>
-                      {financial.paymentBreakdown.map((entry, index) => (
+                      {financial.paymentBreakdown.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -379,11 +447,96 @@ export default function AnalyticsPage() {
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
                         {modeNames[item.mode] || 'Other'}
                       </span>
-                      <span className="font-semibold">₹{item.totalAmount.toLocaleString()}</span>
+                      <span className="font-semibold">&#8377;{item.totalAmount.toLocaleString()}</span>
                     </div>
                   );
                 })}
               </div>
+            </div>
+
+            {/* DAILY COLLECTION REPORT (DCR) */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-6">Daily Collection Report (DCR)</h3>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={financial.revenueTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" tickFormatter={d => format(new Date(d as string), 'MMM d')} tick={{fontSize: 12}} />
+                    <YAxis tick={{fontSize: 12}} />
+                    <Tooltip labelFormatter={d => format(new Date(d as string), 'MMM d, yyyy')} formatter={(val) => `₹${Number(val).toLocaleString()}`} />
+                    <Legend />
+                    <Bar dataKey="revenue" name="Daily Collection" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* DOCTOR REVENUE GRAPH */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-6">Doctor-wise Revenue</h3>
+              {financial.doctorRevenues && financial.doctorRevenues.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={financial.doctorRevenues} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                      <XAxis type="number" tick={{fontSize: 12}} />
+                      <YAxis dataKey="doctorName" type="category" tick={{fontSize: 12}} width={120} />
+                      <Tooltip formatter={(val) => `₹${Number(val).toLocaleString()}`} />
+                      <Bar dataKey="totalRevenue" name="Revenue" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                        {financial.doctorRevenues.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-8">No doctor revenue data available.</p>
+              )}
+            </div>
+
+            {/* SERVICE REVENUE GRAPH */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-6">Service / Department Revenue</h3>
+              {(financial as any).serviceRevenues && (financial as any).serviceRevenues.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={(financial as any).serviceRevenues} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="serviceName" tick={{fontSize: 12}} />
+                      <YAxis tick={{fontSize: 12}} />
+                      <Tooltip formatter={(val) => `₹${Number(val).toLocaleString()}`} />
+                      <Bar dataKey="totalAmount" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]}>
+                        {(financial as any).serviceRevenues.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-8">No service revenue data available.</p>
+              )}
+            </div>
+
+            {/* OUTSTANDING DUES GRAPH */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-6">Outstanding Dues & Receivables (Top 10)</h3>
+              {(financial as any).patientOutstanding && (financial as any).patientOutstanding.length > 0 ? (
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={(financial as any).patientOutstanding} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                      <XAxis type="number" tick={{fontSize: 12}} />
+                      <YAxis dataKey="patientName" type="category" tick={{fontSize: 12}} width={120} />
+                      <Tooltip formatter={(val) => `₹${Number(val).toLocaleString()}`} />
+                      <Bar dataKey="outstandingAmount" name="Outstanding Dues" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-8">No outstanding dues available.</p>
+              )}
             </div>
           </div>
         </div>
@@ -427,7 +580,7 @@ export default function AnalyticsPage() {
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
               <h3 className="text-base font-semibold text-slate-900 mb-6">Top Diagnoses</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {clinical.topDiagnoses.length === 0 ? (
                   <p className="text-slate-500 text-sm text-center py-8">No diagnosis data found for this period.</p>
                 ) : (

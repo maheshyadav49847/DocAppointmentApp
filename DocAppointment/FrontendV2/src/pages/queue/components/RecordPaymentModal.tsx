@@ -34,6 +34,7 @@ export default function RecordPaymentModal({ invoiceId, patientName, onClose, on
       toast.success("Payment recorded!");
       queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
       queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
       onClose();
     } catch (err: any) {
       toast.error(err.message || "Failed to record payment");

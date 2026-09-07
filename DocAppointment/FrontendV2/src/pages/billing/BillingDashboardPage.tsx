@@ -1,14 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Plus, Printer, CheckCircle, Search, X, FileText, ReceiptIndianRupee, Trash2, CreditCard, User, Activity, Download, CalendarDays, Clock, History } from 'lucide-react';
+import { Printer, CheckCircle, Search, FileText, ReceiptIndianRupee, User, Download, CalendarDays, Clock, History, CreditCard } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { billingService, type ServiceItem } from '@/services/billingService';
+import { billingService } from '@/services/billingService';
 import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
+import RecordPaymentModal from '../queue/components/RecordPaymentModal';
 import toast from 'react-hot-toast';
 import { branchService } from '@/services/branchService';
 
@@ -17,7 +18,12 @@ export default function BillingDashboardPage() {
   const organizationId = user?.orgId || '';
   const branchId = activeBranchId || '';
   const queryClient = useQueryClient();
-  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  const fmt = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const handleExportCSV = async () => {
     if (!branchId) return;
@@ -51,16 +57,14 @@ export default function BillingDashboardPage() {
   });
   const activeBranch = myBranches.find(b => b.id === branchId);
 
-  const [searchParams] = useSearchParams();
+
   const [historySearch, setHistorySearch] = useState('');
-  const [pendingStartDate, setPendingStartDate] = useState<Date>(() => new Date());
-  const [pendingEndDate, setPendingEndDate] = useState<Date>(() => new Date());
-  const [historyStartDate, setHistoryStartDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d;
-  });
-  const [historyEndDate, setHistoryEndDate] = useState<Date>(() => new Date());
+  const [pendingDateRange, setPendingDateRange] = useState<string>('today');
+  const [pendingCustomStart, setPendingCustomStart] = useState<Date>(() => new Date());
+  const [pendingCustomEnd, setPendingCustomEnd] = useState<Date>(() => new Date());
+  const [historyDateRange, setHistoryDateRange] = useState<string>('this_month');
+  const [historyCustomStart, setHistoryCustomStart] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() - 30); return d; });
+  const [historyCustomEnd, setHistoryCustomEnd] = useState<Date>(() => new Date());
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(10);
   
@@ -68,8 +72,37 @@ export default function BillingDashboardPage() {
   const [pendingPage, setPendingPage] = useState(1);
   const [pendingPageSize, setPendingPageSize] = useState(10);
 
+  
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [billingToken, setBillingToken] = useState<any | null>(null);
+  const [paymentInvoice, setPaymentInvoice] = useState<any | null>(null);
+
+  const { startDate: pendingStartDate, endDate: pendingEndDate } = useMemo(() => {
+    const end = new Date();
+    let start = new Date();
+    if (pendingDateRange === 'today') start.setHours(0,0,0,0);
+    else if (pendingDateRange === 'yesterday') { start.setDate(start.getDate() - 1); start.setHours(0,0,0,0); }
+    else if (pendingDateRange === 'this_week') { start.setDate(start.getDate() - 7); }
+    else if (pendingDateRange === 'this_month') { start.setDate(start.getDate() - 30); }
+    else if (pendingDateRange === 'custom') {
+      return { startDate: pendingCustomStart, endDate: pendingCustomEnd };
+    }
+    return { startDate: start, endDate: end };
+  }, [pendingDateRange, pendingCustomStart, pendingCustomEnd]);
+
+  const { startDate: historyStartDate, endDate: historyEndDate } = useMemo(() => {
+    const end = new Date();
+    let start = new Date();
+    if (historyDateRange === 'today') start.setHours(0,0,0,0);
+    else if (historyDateRange === 'yesterday') { start.setDate(start.getDate() - 1); start.setHours(0,0,0,0); }
+    else if (historyDateRange === 'this_week') { start.setDate(start.getDate() - 7); }
+    else if (historyDateRange === 'this_month') { start.setDate(start.getDate() - 30); }
+    else if (historyDateRange === 'custom') {
+      return { startDate: historyCustomStart, endDate: historyCustomEnd };
+    }
+    return { startDate: start, endDate: end };
+  }, [historyDateRange, historyCustomStart, historyCustomEnd]);
+
 
   // Fetch Pending Bills
   const { data: pendingBillsData, isLoading: isLoadingPendingBills } = useQuery({
@@ -104,7 +137,7 @@ export default function BillingDashboardPage() {
   const handlePrint = async (inv: any) => {
     const loadingToast = toast.loading('Fetching invoice details...');
     try {
-      const fullInv = await billingService.getInvoiceById(inv.id, organizationId);
+      await billingService.getInvoiceById(inv.id, organizationId);
       toast.dismiss(loadingToast);
       import('@/utils/printHelper').then(m => m.handlePrintInvoice(inv.id, organizationId, activeBranch));
     } catch (error) {
@@ -161,38 +194,54 @@ export default function BillingDashboardPage() {
               </span>
             </h2>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-                  <DatePicker
-                    selected={pendingStartDate}
-                    onChange={(date: Date | null) => date && setPendingStartDate(date)}
-                    dateFormat="dd MMM yyyy"
-                    showMonthDropdown
-                    showYearDropdown
-                    todayButton="Today"
-                    dropdownMode="select"
-                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-                    maxDate={pendingEndDate}
-                  />
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
+                  <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
+                  <select
+                    value={pendingDateRange}
+                    onChange={(e) => { setPendingDateRange(e.target.value); setPendingPage(1); }}
+                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+                  >
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="this_week">This Week</option>
+                    <option value="this_month">This Month</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
                 </div>
-                <span className="text-slate-400 text-xs font-bold">to</span>
-                <div className="relative">
-                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-                  <DatePicker
-                    selected={pendingEndDate}
-                    onChange={(date: Date | null) => date && setPendingEndDate(date)}
-                    dateFormat="dd MMM yyyy"
-                    showMonthDropdown
-                    showYearDropdown
-                    todayButton="Today"
-                    dropdownMode="select"
-                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-                    minDate={pendingStartDate}
-                    maxDate={new Date()}
-                  />
+                {pendingDateRange === 'custom' && (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={pendingCustomStart}
+                      onChange={(date: Date | null) => { if(date) { setPendingCustomStart(date); setPendingPage(1); } }}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      maxDate={pendingCustomEnd}
+                    />
+                  </div>
+                  <span className="text-slate-400 text-xs font-bold">to</span>
+                  <div className="relative">
+                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={pendingCustomEnd}
+                      onChange={(date: Date | null) => { if(date) { setPendingCustomEnd(date); setPendingPage(1); } }}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      minDate={pendingCustomStart}
+                      maxDate={new Date()}
+                    />
+                  </div>
                 </div>
-              </div>
+                )}
               <select 
                 value={pendingPageSize}
                 onChange={(e) => { setPendingPageSize(Number(e.target.value)); setPendingPage(1); }}
@@ -223,21 +272,22 @@ export default function BillingDashboardPage() {
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Token Ref ID</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Doctor</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Completed At</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Booking Date</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Consulted At</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {isLoadingPendingBills ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                       <div className="flex justify-center mb-2"><PageLoader /></div>
                       Loading pending bills...
                     </td>
                   </tr>
                 ) : !pendingBills || pendingBills.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center text-slate-500 font-medium">
+                    <td colSpan={6} className="px-6 py-16 text-center text-slate-500 font-medium">
                       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 mb-4 border-4 border-emerald-100">
                         <CheckCircle className="w-8 h-8" />
                       </div>
@@ -262,8 +312,11 @@ export default function BillingDashboardPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-medium">
-                        {new Date(bill.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
+                          {new Date(bill.bookedAt || bill.completedAt).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-medium">
+                          {new Date(bill.completedAt).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button
                           onClick={() => {
@@ -346,38 +399,54 @@ export default function BillingDashboardPage() {
               <FileText className="w-5 h-5 text-indigo-500" /> Invoice History
             </h2>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-                  <DatePicker
-                    selected={historyStartDate}
-                    onChange={(date: Date | null) => date && setHistoryStartDate(date)}
-                    dateFormat="dd MMM yyyy"
-                    showMonthDropdown
-                    showYearDropdown
-                    todayButton="Today"
-                    dropdownMode="select"
-                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-                    maxDate={historyEndDate}
-                  />
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
+                  <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
+                  <select
+                    value={historyDateRange}
+                    onChange={(e) => { setHistoryDateRange(e.target.value); setHistoryPage(1); }}
+                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+                  >
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="this_week">This Week</option>
+                    <option value="this_month">This Month</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
                 </div>
-                <span className="text-slate-400 text-xs font-bold">to</span>
-                <div className="relative">
-                  <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-                  <DatePicker
-                    selected={historyEndDate}
-                    onChange={(date: Date | null) => date && setHistoryEndDate(date)}
-                    dateFormat="dd MMM yyyy"
-                    showMonthDropdown
-                    showYearDropdown
-                    todayButton="Today"
-                    dropdownMode="select"
-                    className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
-                    minDate={historyStartDate}
-                    maxDate={new Date()}
-                  />
+                {historyDateRange === 'custom' && (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={historyCustomStart}
+                      onChange={(date: Date | null) => { if(date) { setHistoryCustomStart(date); setHistoryPage(1); } }}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      maxDate={historyCustomEnd}
+                    />
+                  </div>
+                  <span className="text-slate-400 text-xs font-bold">to</span>
+                  <div className="relative">
+                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={historyCustomEnd}
+                      onChange={(date: Date | null) => { if(date) { setHistoryCustomEnd(date); setHistoryPage(1); } }}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      minDate={historyCustomStart}
+                      maxDate={new Date()}
+                    />
+                  </div>
                 </div>
-              </div>
+                )}
               <select 
                 value={historyPageSize}
                 onChange={(e) => { setHistoryPageSize(Number(e.target.value)); setHistoryPage(1); }}
@@ -465,11 +534,16 @@ export default function BillingDashboardPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-900">₹{inv.totalAmount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button onClick={() => handlePrint(inv)} className="text-slate-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg">
-                          <Printer className="w-4 h-4" />
-                        </button>
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right flex justify-end items-center gap-2">
+                          {inv.status !== 2 && inv.status !== 3 && (
+                            <button onClick={() => setPaymentInvoice(inv)} className="text-emerald-600 hover:text-emerald-700 transition-colors p-2 hover:bg-emerald-50 rounded-lg flex items-center gap-1 font-semibold text-sm">
+                              <CreditCard className="w-4 h-4" /> Pay
+                            </button>
+                          )}
+                          <button onClick={() => handlePrint(inv)} className="text-slate-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg">
+                            <Printer className="w-4 h-4" />
+                          </button>
+                        </td>
                     </tr>
                   ))
                 )}
@@ -542,6 +616,16 @@ export default function BillingDashboardPage() {
         />
       )}
 
+          {paymentInvoice && (
+        <RecordPaymentModal
+          invoiceId={paymentInvoice.id}
+          patientName={paymentInvoice.patientName}
+          onClose={() => setPaymentInvoice(null)}
+          onPrint={(invId: string) => {
+            handlePrint({ id: invId });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetPendingBills
         public string DoctorName { get; set; } = string.Empty;
         public Guid DoctorId { get; set; }
         public DateTime CompletedAt { get; set; }
+        public DateTime BookedAt { get; set; }
     }
 
     public class GetPendingBillsQueryHandler : IRequestHandler<GetPendingBillsQuery, PaginatedList<PendingBillDto>>
@@ -43,7 +44,7 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetPendingBills
                 .Where(t => t.Queue.BranchId == request.BranchId 
                          && t.OrganizationId == _currentUserService.OrgId
                          && t.Status == TokenStatus.Completed
-                         && t.BookedAt.Date >= request.StartDate.Date && t.BookedAt.Date <= request.EndDate.Date
+                         && t.CompletedAt >= request.StartDate && t.CompletedAt <= request.EndDate
                          && !t.Invoices.Any(i => i.Status != InvoiceStatus.Cancelled));
 
             if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -68,7 +69,8 @@ namespace CodeX.Application.Features.Billing.Invoices.Queries.GetPendingBills
                 PatientId = t.PatientId,
                 DoctorName = t.Queue?.Doctor?.Name ?? "Unknown",
                 DoctorId = t.Queue?.DoctorId ?? Guid.Empty,
-                CompletedAt = t.CompletedAt ?? t.BookedAt
+                CompletedAt = t.CompletedAt ?? t.BookedAt,
+                BookedAt = t.BookedAt
             }).ToList();
 
             return new PaginatedList<PendingBillDto>(items, paginatedTokens.TotalCount, request.Page, request.PageSize);
