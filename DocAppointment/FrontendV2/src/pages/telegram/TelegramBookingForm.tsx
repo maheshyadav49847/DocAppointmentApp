@@ -5,6 +5,8 @@ const TelegramBookingForm = () => {
   const [selectedQueue, setSelectedQueue] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [booked, setBooked] = useState(false);
+  const [bookingResult, setBookingResult] = useState('');
 
   // Extract branchId from URL
   const searchParams = new URLSearchParams(window.location.search);
@@ -50,13 +52,7 @@ const TelegramBookingForm = () => {
     };
   }, [branchId]);
 
-  const handleBook = () => {
-    const tg = (window as any).Telegram?.WebApp;
-    if (!tg) {
-      alert("Please open this from Telegram!");
-      return;
-    }
-
+  const handleBook = async () => {
     if (!selectedQueue) {
         alert("Please select a session.");
         return;
@@ -67,8 +63,28 @@ const TelegramBookingForm = () => {
       queueId: selectedQueue,
     };
 
-    // Send data back to the bot
-    tg.sendData(JSON.stringify(bookingData));
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg && tg.sendData) {
+      // Inside Telegram: send data back to the bot
+      tg.sendData(JSON.stringify(bookingData));
+    } else {
+      // Outside Telegram (e.g. Chrome): call API directly
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setBooked(true);
+          setBookingResult(`Appointment Confirmed! Your Token Number: ${data.tokenNumber}`);
+        } else {
+          alert('Booking failed. Please try again.');
+        }
+      } catch {
+        alert('Network error. Please try again.');
+      }
+    }
   };
 
   if (loading) {
@@ -81,6 +97,16 @@ const TelegramBookingForm = () => {
 
   if (queues.length === 0) {
       return <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>No active sessions available right now. Please try again later.</div>;
+  }
+
+  if (booked) {
+      return (
+        <div style={{ padding: '40px 20px', fontFamily: 'sans-serif', textAlign: 'center', minHeight: '100vh', backgroundColor: '#f0fff4' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+            <h2 style={{ color: '#16a34a', marginBottom: '12px' }}>{bookingResult}</h2>
+            <p style={{ color: '#666' }}>Please wait for your turn at the clinic.</p>
+        </div>
+      );
   }
 
   return (

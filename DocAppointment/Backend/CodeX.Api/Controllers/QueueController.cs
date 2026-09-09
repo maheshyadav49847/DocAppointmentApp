@@ -603,5 +603,36 @@ namespace CodeX.Api.Controllers
 
             return await query.AnyAsync();
         }
+
+        [AllowAnonymous]
+        [HttpPost("{queueId}/book-anonymous")]
+        public async Task<IActionResult> BookAnonymous(Guid queueId)
+        {
+            var queue = await _context.DailyQueues
+                .IgnoreQueryFilters()
+                .Include(q => q.Doctor)
+                .Include(q => q.Branch)
+                .FirstOrDefaultAsync(q => q.Id == queueId && !q.IsDeleted);
+
+            if (queue == null) return NotFound("Queue not found.");
+
+            var tokenNumber = await _context.Tokens
+                .IgnoreQueryFilters()
+                .CountAsync(t => t.QueueId == queueId && !t.IsDeleted) + 1;
+
+            var token = new Domain.Entities.Token
+            {
+                QueueId = queueId,
+                OrganizationId = queue.Branch.OrganizationId,
+                TokenNumber = tokenNumber,
+                Status = Domain.Enums.TokenStatus.Pending,
+                Source = Domain.Enums.BookingSource.Telegram,
+                BookedAt = DateTime.UtcNow
+            };
+            _context.Tokens.Add(token);
+            await _context.SaveChangesAsync(default);
+
+            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name });
+        }
     }
 }
