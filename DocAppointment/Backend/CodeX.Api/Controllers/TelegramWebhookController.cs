@@ -221,13 +221,14 @@ namespace CodeX.Api.Controllers
                 text = "Booking karne ke liye niche diye gaye button par click karein:",
                 reply_markup = new
                 {
-                    inline_keyboard = new[]
+                    keyboard = new[]
                     {
                         new[]
                         {
-                            new { text = "ðŸ“… Book Appointment (Fast)", web_app = new { url = webAppUrl } }
+                            new { text = "📅 Book Appointment (Fast)", web_app = new { url = webAppUrl } }
                         }
-                    }
+                    },
+                    resize_keyboard = true
                 }
             };
 
