@@ -131,19 +131,8 @@ namespace CodeX.Api.Controllers
 
             await _context.SaveChangesAsync(default);
 
-            // Trigger standard "Hi" to start the bot flow
-            var response = await _mediator.Send(new ProcessIncomingMessageCommand
-            {
-                BranchId = branchId,
-                From = phone,
-                MessageBody = "Hi",
-                Source = CodeX.Domain.Enums.BookingSource.Telegram
-            });
-
-            if (!string.IsNullOrWhiteSpace(response))
-            {
-                await _telegramService.SendTextMessage(chatId, response, branchId);
-            }
+            // Force Form on Contact Share instead of old AI
+            await SendWebAppButton(branchId, chatId);
         }
 
         private async Task HandleTextMessage(Guid branchId, string chatId, string text)
@@ -171,18 +160,8 @@ namespace CodeX.Api.Controllers
                 return;
             }
 
-            var response = await _mediator.Send(new ProcessIncomingMessageCommand
-            {
-                BranchId = branchId,
-                From = patient.Phone,
-                MessageBody = text,
-                Source = CodeX.Domain.Enums.BookingSource.Telegram
-            });
-
-            if (!string.IsNullOrWhiteSpace(response))
-            {
-                await _telegramService.SendTextMessage(chatId, response, branchId);
-            }
+            // Force Form on ANY message instead of old AI
+            await SendWebAppButton(branchId, chatId);
         }
 
         
@@ -298,3 +277,4 @@ namespace CodeX.Api.Controllers
         public long? UserId { get; set; }
     }
 }
+
