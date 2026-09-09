@@ -172,7 +172,8 @@ namespace CodeX.Api.Controllers
             if (string.IsNullOrWhiteSpace(token)) return;
 
             // Using Ngrok or your deployed frontend URL
-            var webAppUrl = "https://f0d7-2401-4900-1ccb-a329-00-b6.ngrok-free.app/telegram-form"; // Update this with your actual Ngrok/Prod HTTPS URL
+            var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
+            var webAppUrl = $"https://{host}/telegram-form";
 
             var payload = new
             {
@@ -277,4 +278,5 @@ namespace CodeX.Api.Controllers
         public long? UserId { get; set; }
     }
 }
+
 
