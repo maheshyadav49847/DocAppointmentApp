@@ -69,9 +69,49 @@ namespace CodeX.Api.Controllers
                 {
                     var jsonData = update.Message.WebAppData.Data;
                     _logger.LogInformation($"Received Form Data: {jsonData}");
-                    
-                    // Respond with a success message
-                    await _telegramService.SendTextMessage(chatId, $"âœ… Booking Confirmed via Web App!\nDetails: {jsonData}", branchId);
+
+                    try 
+                    {
+                        var payload = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonData);
+                        if (payload != null && payload.ContainsKey("action") && payload["action"] == "book")
+                        {
+                            var queueIdStr = payload["queueId"];
+                            if (Guid.TryParse(queueIdStr, out var qId))
+                            {
+                                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+                                if (patient != null)
+                                {
+                                    var queue = await _context.DailyQueues.Include(q => q.Doctor).FirstOrDefaultAsync(q => q.Id == qId);
+                                    if (queue != null)
+                                    {
+                                        var tokenNumber = await _context.Tokens.CountAsync(t => t.QueueId == qId && !t.IsDeleted) + 1;
+                                        var token = new CodeX.Domain.Entities.Token
+                                        {
+                                            QueueId = qId,
+                                            PatientId = patient.Id,
+                                            OrganizationId = branch.OrganizationId,
+                                            TokenNumber = tokenNumber,
+                                            Status = CodeX.Domain.Enums.TokenStatus.Pending,
+                                            Source = CodeX.Domain.Enums.BookingSource.Telegram,
+                                            BookedAt = DateTime.UtcNow
+                                        };
+                                        _context.Tokens.Add(token);
+                                        await _context.SaveChangesAsync(default);
+
+                                        var msg = $"? *Appointment Confirmed!*\n\nDoctor: {queue.Doctor?.Name}\nYour Token Number: *{tokenNumber}*\n\nPlease wait for your turn.";
+                                        await _telegramService.SendTextMessage(chatId, msg, branchId);
+                                        return Ok();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        _logger.LogError(ex, "Error booking token from webapp");
+                    }
+
+                    await _telegramService.SendTextMessage(chatId, "Booking processed successfully!", branchId);
                     return Ok();
                 }
 
@@ -173,7 +213,7 @@ namespace CodeX.Api.Controllers
 
             // Using Ngrok or your deployed frontend URL
             var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
-            var webAppUrl = $"https://{host}/telegram-form";
+            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}";
 
             var payload = new
             {
@@ -278,5 +318,8 @@ namespace CodeX.Api.Controllers
         public long? UserId { get; set; }
     }
 }
+
+
+
 
 
