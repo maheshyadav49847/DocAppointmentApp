@@ -58,32 +58,27 @@ const TelegramBookingForm = () => {
         return;
     }
 
-    const bookingData = {
-      action: 'book',
-      queueId: selectedQueue,
-    };
-
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg && tg.sendData) {
-      // Inside Telegram: send data back to the bot
-      tg.sendData(JSON.stringify(bookingData));
-    } else {
-      // Outside Telegram (e.g. Chrome): call API directly
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setBooked(true);
-          setBookingResult(`Appointment Confirmed! Your Token Number: ${data.tokenNumber}`);
-        } else {
-          alert('Booking failed. Please try again.');
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBooked(true);
+        setBookingResult(`Appointment Confirmed! Your Token Number: ${data.tokenNumber}`);
+        
+        // If inside Telegram, close the WebApp after a short delay
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg && tg.close) {
+          setTimeout(() => tg.close(), 2000);
         }
-      } catch {
-        alert('Network error. Please try again.');
+      } else {
+        const errText = await res.text();
+        alert('Booking failed: ' + errText);
       }
+    } catch (e) {
+      alert('Network error. Please try again.');
     }
   };
 
