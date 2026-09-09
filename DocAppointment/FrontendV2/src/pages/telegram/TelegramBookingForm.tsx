@@ -103,6 +103,10 @@ const TelegramBookingForm = () => {
                     }}
                 >
                     <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{q.doctorName || 'Unknown Doctor'} {q.specialty ? `(${q.specialty})` : ''}</div>
+                    <div style={{ fontSize: '14px', color: '#0056b3', marginTop: '4px' }}>
+                        {q.sessionName ? `${q.sessionName} Session ` : ''} 
+                        {q.sessionStart && q.sessionEnd ? `(${q.sessionStart} - ${q.sessionEnd})` : ''}
+                    </div>
                     <div style={{ fontSize: '13px', color: '#666', marginTop: '5px' }}>Current Token: {q.currentTokenNumber || 0}</div>
                     <div style={{ fontSize: '13px', color: '#666' }}>Pending: {q.pendingCount || 0}</div>
                 </div>

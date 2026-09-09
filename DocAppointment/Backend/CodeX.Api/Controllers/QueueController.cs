@@ -511,6 +511,7 @@ namespace CodeX.Api.Controllers
 
             // Load queues without global filters
             var queues = await _context.DailyQueues
+                .Include(q => q.Session)
                 .IgnoreQueryFilters()
                 .Where(q => !q.IsDeleted &&
                             q.BranchId == branchId &&
@@ -560,6 +561,9 @@ namespace CodeX.Api.Controllers
                     id = q.Id,
                     doctorId = q.DoctorId,
                     doctorName = doctor?.Name ?? "Unknown",
+                    sessionName = q.Session?.SessionName,
+                    sessionStart = q.Session?.StartTime.ToString(@"hh\:mm"),
+                    sessionEnd = q.Session?.EndTime.ToString(@"hh\:mm"),
                     currentTokenNumber = q.CurrentTokenNumber,
                     currentPatientName = currentToken?.Patient?.Name ?? "Walk-in",
                     waitingCount = qTokens.Count(t => t.Status == TokenStatus.Pending),
