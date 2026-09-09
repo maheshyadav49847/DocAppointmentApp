@@ -25,6 +25,7 @@ import BillingServicesPage from "./pages/billing/BillingServicesPage"
 import BillingDashboardPage from "./pages/billing/BillingDashboardPage"
 import ReportsDashboardPage from "./pages/reports/ReportsDashboardPage"
 import { useAuthStore } from "./store/authStore"
+import TelegramBookingForm from "./pages/telegram/TelegramBookingForm"
 
 import { usePermissions } from "./hooks/usePermissions"
 
@@ -78,6 +79,7 @@ function App() {
 
         <Route path="/tv/:branchId" element={<TvDisplayPage />} />
         <Route path="/track/:queueId" element={<PatientTrackingPage />} />
+        <Route path="/telegram-form" element={<TelegramBookingForm />} />
 
         <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRoute />} />

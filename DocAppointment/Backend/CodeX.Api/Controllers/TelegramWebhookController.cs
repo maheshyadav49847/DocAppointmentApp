@@ -63,6 +63,18 @@ namespace CodeX.Api.Controllers
                 // Set organization context
                 _currentUserService.SetCurrentOrganization(branch.OrganizationId);
 
+                
+                // Handle Telegram Web App Data (Form Submission)
+                if (update.Message.WebAppData != null)
+                {
+                    var jsonData = update.Message.WebAppData.Data;
+                    _logger.LogInformation($"Received Form Data: {jsonData}");
+                    
+                    // Respond with a success message
+                    await _telegramService.SendTextMessage(chatId, $"âœ… Booking Confirmed via Web App!\nDetails: {jsonData}", branchId);
+                    return Ok();
+                }
+
                 // Handle Contact Share
                 if (update.Message.Contact != null)
                 {
@@ -136,6 +148,13 @@ namespace CodeX.Api.Controllers
 
         private async Task HandleTextMessage(Guid branchId, string chatId, string text)
         {
+            
+            if (text.Trim().ToLower() == "/form")
+            {
+                await SendWebAppButton(branchId, chatId);
+                return;
+            }
+
             if (text.Trim().ToLower() == "/start")
             {
                 await RequestContact(branchId, chatId);
@@ -164,6 +183,40 @@ namespace CodeX.Api.Controllers
             {
                 await _telegramService.SendTextMessage(chatId, response, branchId);
             }
+        }
+
+        
+        private async Task SendWebAppButton(Guid branchId, string chatId)
+        {
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+            var token = branch?.TelegramBotToken;
+            if (string.IsNullOrWhiteSpace(token)) return;
+
+            // Using Ngrok or your deployed frontend URL
+            var webAppUrl = "https://f0d7-2401-4900-1ccb-a329-00-b6.ngrok-free.app/telegram-form"; // Update this with your actual Ngrok/Prod HTTPS URL
+
+            var payload = new
+            {
+                chat_id = chatId,
+                text = "Booking karne ke liye niche diye gaye button par click karein:",
+                reply_markup = new
+                {
+                    inline_keyboard = new[]
+                    {
+                        new[]
+                        {
+                            new { text = "ðŸ“… Book Appointment (Fast)", web_app = new { url = webAppUrl } }
+                        }
+                    }
+                }
+            };
+
+            var url = $"https://api.telegram.org/bot{token}/sendMessage";
+            var json = JsonSerializer.Serialize(payload);
+            var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            var client = new System.Net.Http.HttpClient();
+            await client.PostAsync(url, content);
         }
 
         private async Task RequestContact(Guid branchId, string chatId)
@@ -214,12 +267,23 @@ namespace CodeX.Api.Controllers
         public TelegramChat? Chat { get; set; }
         public string? Text { get; set; }
         public TelegramContact? Contact { get; set; }
+        [JsonPropertyName("web_app_data")]
+        public TelegramWebAppData? WebAppData { get; set; }
     }
 
     public class TelegramChat
     {
         public long Id { get; set; }
         public string? Type { get; set; }
+    }
+
+    
+    public class TelegramWebAppData
+    {
+        [JsonPropertyName("data")]
+        public string Data { get; set; } = string.Empty;
+        [JsonPropertyName("button_text")]
+        public string? ButtonText { get; set; }
     }
 
     public class TelegramContact
