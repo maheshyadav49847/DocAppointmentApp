@@ -213,7 +213,7 @@ namespace CodeX.Api.Controllers
 
             // Using Ngrok or your deployed frontend URL
             var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
-            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}";
+            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&v={DateTime.UtcNow.Ticks}";
 
             var payload = new
             {
