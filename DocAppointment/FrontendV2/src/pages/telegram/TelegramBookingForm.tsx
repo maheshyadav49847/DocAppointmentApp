@@ -102,7 +102,7 @@ const TelegramBookingForm = () => {
                         cursor: 'pointer'
                     }}
                 >
-                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{q.doctor?.name || 'Doctor'}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{q.doctorName || 'Unknown Doctor'} {q.specialty ? `(${q.specialty})` : ''}</div>
                     <div style={{ fontSize: '13px', color: '#666', marginTop: '5px' }}>Current Token: {q.currentTokenNumber || 0}</div>
                     <div style={{ fontSize: '13px', color: '#666' }}>Pending: {q.pendingCount || 0}</div>
                 </div>
