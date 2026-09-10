@@ -618,9 +618,10 @@ namespace CodeX.Api.Controllers
 
             // Check for duplicate booking if chatId is provided
             Guid? patientId = null;
+            Domain.Entities.Patient? patient = null;
             if (!string.IsNullOrWhiteSpace(chatId))
             {
-                var patient = await _context.Patients
+                patient = await _context.Patients
                     .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
 
@@ -640,6 +641,7 @@ namespace CodeX.Api.Controllers
                         return Ok(new { 
                             tokenNumber = existingToken.TokenNumber, 
                             doctorName = queue.Doctor?.Name,
+                            patientName = patient?.Name ?? "",
                             alreadyBooked = true 
                         });
                     }
@@ -666,7 +668,7 @@ namespace CodeX.Api.Controllers
             _context.Tokens.Add(token);
             await _context.SaveChangesAsync(default);
 
-            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name, alreadyBooked = false });
+            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name, patientName = patient?.Name ?? "", alreadyBooked = false });
         }
 
         [AllowAnonymous]
@@ -687,6 +689,21 @@ namespace CodeX.Api.Controllers
             if (patient == null)
                 return Ok(new { hasActiveBooking = false });
 
+            string preferredLang = "hi";
+            if (!string.IsNullOrEmpty(patient.MetaDataJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
+                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    {
+                        var l = lProp.GetString();
+                        if (!string.IsNullOrEmpty(l)) preferredLang = l;
+                    }
+                }
+                catch { }
+            }
+
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
             var tomorrow = today.AddDays(1);
 
@@ -706,6 +723,8 @@ namespace CodeX.Api.Controllers
                     hasActiveBooking = true,
                     tokenNumber = t.TokenNumber,
                     doctorName = t.Queue.Doctor.Name,
+                    patientName = patient.Name,
+                    preferredLanguage = preferredLang,
                     sessionName = t.Queue.Session != null ? t.Queue.Session.SessionName : "",
                     currentTokenNumber = t.Queue.CurrentTokenNumber,
                     status = t.Status.ToString()
@@ -715,7 +734,7 @@ namespace CodeX.Api.Controllers
             if (activeToken != null)
                 return Ok(activeToken);
 
-            return Ok(new { hasActiveBooking = false });
+            return Ok(new { hasActiveBooking = false, patientName = patient.Name, preferredLanguage = preferredLang });
         }
     }
 }

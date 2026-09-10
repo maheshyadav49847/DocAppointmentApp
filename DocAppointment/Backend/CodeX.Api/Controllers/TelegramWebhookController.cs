@@ -63,7 +63,7 @@ namespace CodeX.Api.Controllers
                 // Set organization context
                 _currentUserService.SetCurrentOrganization(branch.OrganizationId);
 
-                var lang = update.Message.From?.LanguageCode ?? "en";
+                var lang = NormalizeLanguage(update.Message.From?.LanguageCode);
 
                 
                 // Handle Telegram Web App Data (Form Submission)
@@ -173,8 +173,32 @@ namespace CodeX.Api.Controllers
 
             await _context.SaveChangesAsync(default);
 
+            string contactLang = "hi";
+            if (!string.IsNullOrEmpty(patient.MetaDataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(patient.MetaDataJson);
+                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    {
+                        var s = lProp.GetString();
+                        if (!string.IsNullOrEmpty(s)) contactLang = NormalizeLanguage(s);
+                    }
+                }
+                catch { }
+            }
+            else
+            {
+                // Check if patient's phone has a ChatSession
+                var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone);
+                if (chatSession != null && !string.IsNullOrEmpty(chatSession.Language))
+                    contactLang = NormalizeLanguage(chatSession.Language);
+                else
+                    contactLang = NormalizeLanguage(lang);
+            }
+
             // Force Form on Contact Share instead of old AI
-            await SendWebAppButton(branchId, chatId, lang);
+            await SendWebAppButton(branchId, chatId, contactLang);
         }
 
         private static string NormalizeLanguage(string? raw)
@@ -195,7 +219,7 @@ namespace CodeX.Api.Controllers
             var patient = await _context.Patients
                 .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
 
-            // Determine current language: from patient preferences or incoming rawLang
+            // Determine current language: from patient preferences or ChatSession or incoming rawLang
             string lang = NormalizeLanguage(rawLang);
             if (patient != null && !string.IsNullOrEmpty(patient.MetaDataJson))
             {
@@ -209,6 +233,12 @@ namespace CodeX.Api.Controllers
                     }
                 }
                 catch { }
+            }
+            else if (patient != null && !string.IsNullOrEmpty(patient.Phone))
+            {
+                var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone);
+                if (chatSession != null && !string.IsNullOrEmpty(chatSession.Language))
+                    lang = NormalizeLanguage(chatSession.Language);
             }
 
             // Language switch command or 1/2/3

@@ -19,6 +19,7 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'अपॉइंटमेंट कन्फर्म!',
     successToken: 'आपका टोकन नंबर',
     successDoctor: 'डॉक्टर',
+    patientName: 'मरीज़ का नाम',
     successWait: 'कृपया क्लिनिक पर आकर अपनी बारी का इंतज़ार करें।',
     alreadyTitle: 'आपकी बुकिंग पहले से मौजूद है!',
     alreadyMsg: 'आपका टोकन इस सत्र के लिए पहले ही बुक हो चुका है।',
@@ -43,6 +44,7 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'अपॉइंटमेंट कन्फर्म झाली!',
     successToken: 'तुमचा टोकन नंबर',
     successDoctor: 'डॉक्टर',
+    patientName: 'रुग्णाचे नाव',
     successWait: 'कृपया क्लिनिकमध्ये येऊन आपल्या पाळीची वाट पहा.',
     alreadyTitle: 'तुमची बुकिंग आधीच झाली आहे!',
     alreadyMsg: 'या सत्रासाठी तुमचा टोकन आधीच बुक केला गेला आहे.',
@@ -67,6 +69,7 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'Appointment Confirmed!',
     successToken: 'Your Token Number',
     successDoctor: 'Doctor',
+    patientName: 'Patient Name',
     successWait: 'Please visit the clinic and wait for your turn.',
     alreadyTitle: 'Active Booking Found!',
     alreadyMsg: 'You already have an active appointment for today.',
@@ -96,6 +99,7 @@ const TelegramBookingForm = () => {
   const [alreadyBooked, setAlreadyBooked] = useState(false);
   const [tokenNumber, setTokenNumber] = useState(0);
   const [doctorName, setDoctorName] = useState('');
+  const [patientName, setPatientName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [currentRunningToken, setCurrentRunningToken] = useState(0);
 
@@ -103,12 +107,13 @@ const TelegramBookingForm = () => {
   const branchId = searchParams.get('branchId');
   const chatId = searchParams.get('chatId') || '';
 
-  // Language management: URL param -> localStorage -> default to 'hi'
+  // Language management: prioritize saved preference or URL param (default 'hi')
   const [currentLang, setCurrentLang] = useState<string>(() => {
+    const saved = localStorage.getItem('tg_booking_lang');
+    if (saved) return normalizeLang(saved);
     const urlLang = searchParams.get('lang');
     if (urlLang) return normalizeLang(urlLang);
-    const saved = localStorage.getItem('tg_booking_lang');
-    return normalizeLang(saved);
+    return 'hi';
   });
 
   const t = T[currentLang] || T['hi'];
@@ -128,11 +133,6 @@ const TelegramBookingForm = () => {
       if (tg) { 
         tg.ready(); 
         tg.expand(); 
-        // If lang wasn't in URL, try Telegram user's language
-        if (!searchParams.get('lang') && tg.initDataUnsafe?.user?.language_code) {
-          const detected = normalizeLang(tg.initDataUnsafe.user.language_code);
-          setCurrentLang(detected);
-        }
       }
     };
     document.body.appendChild(script);
@@ -152,6 +152,14 @@ const TelegramBookingForm = () => {
           );
           if (bookingCheckRes.ok) {
             const checkData = await bookingCheckRes.json();
+            if (checkData.patientName) {
+              setPatientName(checkData.patientName);
+            }
+            if (checkData.preferredLanguage) {
+              const pLang = normalizeLang(checkData.preferredLanguage);
+              setCurrentLang(pLang);
+              localStorage.setItem('tg_booking_lang', pLang);
+            }
             if (checkData.hasActiveBooking) {
               setTokenNumber(checkData.tokenNumber);
               setDoctorName(checkData.doctorName || '');
@@ -203,6 +211,9 @@ const TelegramBookingForm = () => {
         const data = await res.json();
         setTokenNumber(data.tokenNumber);
         setDoctorName(data.doctorName || '');
+        if (data.patientName) {
+          setPatientName(data.patientName);
+        }
         if (data.alreadyBooked) {
           setAlreadyBooked(true);
         }
@@ -252,21 +263,23 @@ const TelegramBookingForm = () => {
     } as React.CSSProperties,
     langPillContainer: {
       display: 'inline-flex',
-      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-      borderRadius: '20px',
+      backgroundColor: '#ffffff',
+      borderRadius: '24px',
       padding: '3px',
-      backdropFilter: 'blur(4px)',
+      border: '1.5px solid #cbd5e1',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
     } as React.CSSProperties,
     langBtn: (active: boolean) => ({
       border: 'none',
-      background: active ? '#ffffff' : 'transparent',
-      color: active ? '#0369a1' : '#ffffff',
-      fontWeight: active ? 700 : 500,
+      background: active ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+      color: active ? '#ffffff' : '#334155',
+      fontWeight: active ? 700 : 600,
       fontSize: '12px',
-      padding: '4px 10px',
-      borderRadius: '16px',
+      padding: '5px 12px',
+      borderRadius: '20px',
       cursor: 'pointer',
       transition: 'all 0.2s ease',
+      boxShadow: active ? '0 2px 6px rgba(2, 132, 199, 0.35)' : 'none',
     } as React.CSSProperties),
     headerTitle: {
       color: '#fff',
@@ -525,6 +538,12 @@ const TelegramBookingForm = () => {
 
         {/* Appointment Details Box */}
         <div style={styles.detailsCard}>
+          {patientName && (
+            <div style={styles.detailItem}>
+              <span style={{ color: '#64748b' }}>{t.patientName}:</span>
+              <strong style={{ color: '#0369a1' }}>{patientName}</strong>
+            </div>
+          )}
           {doctorName && (
             <div style={styles.detailItem}>
               <span style={{ color: '#64748b' }}>{t.successDoctor}:</span>
@@ -573,7 +592,7 @@ const TelegramBookingForm = () => {
         </div>
 
         <h1 style={styles.headerTitle}>{t.title}</h1>
-        <p style={styles.headerSub}>{t.subtitle}</p>
+        <p style={styles.headerSub}>{patientName ? `👤 ${patientName} • ${t.subtitle}` : t.subtitle}</p>
       </div>
 
       {/* Body */}
