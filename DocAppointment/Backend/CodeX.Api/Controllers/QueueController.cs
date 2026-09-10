@@ -668,5 +668,54 @@ namespace CodeX.Api.Controllers
 
             return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name, alreadyBooked = false });
         }
+
+        [AllowAnonymous]
+        [HttpGet("branch/{branchId}/active-booking")]
+        public async Task<IActionResult> GetActiveBooking(Guid branchId, [FromQuery] string? chatId)
+        {
+            if (string.IsNullOrWhiteSpace(chatId))
+                return Ok(new { hasActiveBooking = false });
+
+            var branch = await _context.Branches
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            if (branch == null) return NotFound("Branch not found");
+
+            var patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+            if (patient == null)
+                return Ok(new { hasActiveBooking = false });
+
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
+            var tomorrow = today.AddDays(1);
+
+            var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Include(t => t.Queue)
+                    .ThenInclude(q => q.Doctor)
+                .Include(t => t.Queue)
+                    .ThenInclude(q => q.Session)
+                .Where(t => t.PatientId == patient.Id
+                    && !t.IsDeleted
+                    && t.Queue.BranchId == branchId
+                    && t.Queue.QueueDate >= today
+                    && t.Queue.QueueDate < tomorrow
+                    && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
+                .Select(t => new {
+                    hasActiveBooking = true,
+                    tokenNumber = t.TokenNumber,
+                    doctorName = t.Queue.Doctor.Name,
+                    sessionName = t.Queue.Session != null ? t.Queue.Session.SessionName : "",
+                    currentTokenNumber = t.Queue.CurrentTokenNumber,
+                    status = t.Status.ToString()
+                })
+                .FirstOrDefaultAsync();
+
+            if (activeToken != null)
+                return Ok(activeToken);
+
+            return Ok(new { hasActiveBooking = false });
+        }
     }
 }
