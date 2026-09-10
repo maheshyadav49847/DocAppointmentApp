@@ -63,6 +63,8 @@ namespace CodeX.Api.Controllers
                 // Set organization context
                 _currentUserService.SetCurrentOrganization(branch.OrganizationId);
 
+                var lang = update.Message.From?.LanguageCode ?? "en";
+
                 
                 // Handle Telegram Web App Data (Form Submission)
                 if (update.Message.WebAppData != null)
@@ -98,7 +100,7 @@ namespace CodeX.Api.Controllers
                                         _context.Tokens.Add(token);
                                         await _context.SaveChangesAsync(default);
 
-                                        var msg = $"? *Appointment Confirmed!*\n\nDoctor: {queue.Doctor?.Name}\nYour Token Number: *{tokenNumber}*\n\nPlease wait for your turn.";
+                                        var msg = $"✅ *Appointment Confirmed!*\n\nDoctor: {queue.Doctor?.Name}\nYour Token Number: *{tokenNumber}*\n\nPlease wait for your turn.";
                                         await _telegramService.SendTextMessage(chatId, msg, branchId);
                                         return Ok();
                                     }
@@ -118,14 +120,14 @@ namespace CodeX.Api.Controllers
                 // Handle Contact Share
                 if (update.Message.Contact != null)
                 {
-                    await HandleContactReceived(branchId, branch.OrganizationId, chatId, update.Message.Contact);
+                    await HandleContactReceived(branchId, branch.OrganizationId, chatId, update.Message.Contact, lang);
                     return Ok();
                 }
 
                 // Handle Text Message
                 if (!string.IsNullOrWhiteSpace(update.Message.Text))
                 {
-                    await HandleTextMessage(branchId, chatId, update.Message.Text);
+                    await HandleTextMessage(branchId, chatId, update.Message.Text, lang);
                 }
 
                 return Ok();
@@ -137,7 +139,7 @@ namespace CodeX.Api.Controllers
             }
         }
 
-        private async Task HandleContactReceived(Guid branchId, Guid orgId, string chatId, TelegramContact contact)
+        private async Task HandleContactReceived(Guid branchId, Guid orgId, string chatId, TelegramContact contact, string lang)
         {
             var phone = NormalizationHelper.NormalizePhone(contact.PhoneNumber);
 
@@ -172,15 +174,15 @@ namespace CodeX.Api.Controllers
             await _context.SaveChangesAsync(default);
 
             // Force Form on Contact Share instead of old AI
-            await SendWebAppButton(branchId, chatId);
+            await SendWebAppButton(branchId, chatId, lang);
         }
 
-        private async Task HandleTextMessage(Guid branchId, string chatId, string text)
+        private async Task HandleTextMessage(Guid branchId, string chatId, string text, string lang)
         {
             
             if (text.Trim().ToLower() == "/form")
             {
-                await SendWebAppButton(branchId, chatId);
+                await SendWebAppButton(branchId, chatId, lang);
                 return;
             }
 
@@ -201,11 +203,11 @@ namespace CodeX.Api.Controllers
             }
 
             // Force Form on ANY message instead of old AI
-            await SendWebAppButton(branchId, chatId);
+            await SendWebAppButton(branchId, chatId, lang);
         }
 
         
-        private async Task SendWebAppButton(Guid branchId, string chatId)
+        private async Task SendWebAppButton(Guid branchId, string chatId, string lang)
         {
             var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
             var token = branch?.TelegramBotToken;
@@ -213,19 +215,19 @@ namespace CodeX.Api.Controllers
 
             // Using Ngrok or your deployed frontend URL
             var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
-            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&v={DateTime.UtcNow.Ticks}";
+            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&chatId={chatId}&lang={lang}&v={DateTime.UtcNow.Ticks}";
 
             var payload = new
             {
                 chat_id = chatId,
-                text = "Booking karne ke liye niche diye gaye button par click karein:",
+                text = lang == "hi" ? "📅 अपॉइंटमेंट बुक करने के लिए नीचे बटन पर क्लिक करें:" : "📅 Click the button below to book an appointment:",
                 reply_markup = new
                 {
                     inline_keyboard = new[]
                     {
                         new[]
                         {
-                            new { text = "📅 Book Appointment (Fast)", web_app = new { url = webAppUrl } }
+                            new { text = lang == "hi" ? "📅 अपॉइंटमेंट बुक करें" : "📅 Book Appointment", web_app = new { url = webAppUrl } }
                         }
                     },
                     
@@ -286,10 +288,20 @@ namespace CodeX.Api.Controllers
         [JsonPropertyName("message_id")]
         public long MessageId { get; set; }
         public TelegramChat? Chat { get; set; }
+        public TelegramUser? From { get; set; }
         public string? Text { get; set; }
         public TelegramContact? Contact { get; set; }
         [JsonPropertyName("web_app_data")]
         public TelegramWebAppData? WebAppData { get; set; }
+    }
+
+    public class TelegramUser
+    {
+        public long Id { get; set; }
+        [JsonPropertyName("first_name")]
+        public string? FirstName { get; set; }
+        [JsonPropertyName("language_code")]
+        public string? LanguageCode { get; set; }
     }
 
     public class TelegramChat

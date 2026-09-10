@@ -606,7 +606,7 @@ namespace CodeX.Api.Controllers
 
         [AllowAnonymous]
         [HttpPost("{queueId}/book-anonymous")]
-        public async Task<IActionResult> BookAnonymous(Guid queueId)
+        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId)
         {
             var queue = await _context.DailyQueues
                 .IgnoreQueryFilters()
@@ -615,6 +615,36 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(q => q.Id == queueId && !q.IsDeleted);
 
             if (queue == null) return NotFound("Queue not found.");
+
+            // Check for duplicate booking if chatId is provided
+            Guid? patientId = null;
+            if (!string.IsNullOrWhiteSpace(chatId))
+            {
+                var patient = await _context.Patients
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+
+                if (patient != null)
+                {
+                    patientId = patient.Id;
+
+                    var existingToken = await _context.Tokens
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.QueueId == queueId
+                            && t.PatientId == patient.Id
+                            && !t.IsDeleted
+                            && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called));
+
+                    if (existingToken != null)
+                    {
+                        return Ok(new { 
+                            tokenNumber = existingToken.TokenNumber, 
+                            doctorName = queue.Doctor?.Name,
+                            alreadyBooked = true 
+                        });
+                    }
+                }
+            }
 
             var tokenNumber = await _context.Tokens
                 .IgnoreQueryFilters()
@@ -629,10 +659,14 @@ namespace CodeX.Api.Controllers
                 Source = Domain.Enums.BookingSource.Telegram,
                 BookedAt = DateTime.UtcNow
             };
+
+            if (patientId.HasValue)
+                token.PatientId = patientId.Value;
+
             _context.Tokens.Add(token);
             await _context.SaveChangesAsync(default);
 
-            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name });
+            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name, alreadyBooked = false });
         }
     }
 }
