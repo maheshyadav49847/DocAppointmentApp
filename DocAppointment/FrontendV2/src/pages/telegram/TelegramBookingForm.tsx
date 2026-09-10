@@ -449,42 +449,36 @@ const TelegramBookingForm = () => {
     } as React.CSSProperties,
 
     branchLogoImg: {
-      width: '36px',
-      height: '36px',
-      borderRadius: '8px',
-      objectFit: 'cover' as const,
+      width: '40px',
+      height: '40px',
+      borderRadius: '10px',
+      objectFit: 'contain' as const,
       backgroundColor: '#ffffff',
       border: '1px solid rgba(255, 255, 255, 0.4)',
+      padding: '3px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+      flexShrink: 0,
     } as React.CSSProperties,
 
     branchLogoFallback: {
-      width: '36px',
-      height: '36px',
-      borderRadius: '8px',
+      width: '40px',
+      height: '40px',
+      borderRadius: '10px',
       backgroundColor: 'rgba(255, 255, 255, 0.20)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '20px',
+      fontSize: '22px',
       color: '#ffffff',
+      flexShrink: 0,
     } as React.CSSProperties,
 
     branchDetails: {
       display: 'flex',
       flexDirection: 'column' as const,
+      justifyContent: 'center',
       minWidth: 0,
       flex: 1,
-    } as React.CSSProperties,
-
-    branchOrgName: {
-      fontSize: '11px',
-      fontWeight: 600,
-      color: 'rgba(255, 255, 255, 0.80)',
-      textTransform: 'uppercase' as const,
-      letterSpacing: '0.04em',
-      whiteSpace: 'nowrap' as const,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
     } as React.CSSProperties,
 
     branchTitle: {
@@ -873,7 +867,7 @@ const TelegramBookingForm = () => {
             <div style={styles.branchBanner}>
               {branchInfo.logoBase64 ? (
                 <img
-                  src={`data:image/png;base64,${branchInfo.logoBase64}`}
+                  src={branchInfo.logoBase64.startsWith('data:') ? branchInfo.logoBase64 : `data:image/png;base64,${branchInfo.logoBase64}`}
                   alt="Branch Logo"
                   style={styles.branchLogoImg}
                 />
@@ -881,7 +875,6 @@ const TelegramBookingForm = () => {
                 <div style={styles.branchLogoFallback}>🏥</div>
               )}
               <div style={styles.branchDetails}>
-                {branchInfo.orgName && <span style={styles.branchOrgName}>{branchInfo.orgName}</span>}
                 <span style={styles.branchTitle}>{branchInfo.name}</span>
               </div>
             </div>
@@ -995,7 +988,7 @@ const TelegramBookingForm = () => {
           <div style={styles.branchBanner}>
             {branchInfo.logoBase64 ? (
               <img
-                src={`data:image/png;base64,${branchInfo.logoBase64}`}
+                src={branchInfo.logoBase64.startsWith('data:') ? branchInfo.logoBase64 : `data:image/png;base64,${branchInfo.logoBase64}`}
                 alt="Branch Logo"
                 style={styles.branchLogoImg}
               />
@@ -1003,7 +996,6 @@ const TelegramBookingForm = () => {
               <div style={styles.branchLogoFallback}>🏥</div>
             )}
             <div style={styles.branchDetails}>
-              {branchInfo.orgName && <span style={styles.branchOrgName}>{branchInfo.orgName}</span>}
               <span style={styles.branchTitle}>{branchInfo.name}</span>
             </div>
           </div>
