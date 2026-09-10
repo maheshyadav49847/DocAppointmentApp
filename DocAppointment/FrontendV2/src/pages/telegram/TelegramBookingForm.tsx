@@ -139,6 +139,8 @@ interface QueueItem {
   waitingCount: number;
   completedCount?: number;
   branchName?: string;
+  branchAddress?: string;
+  branchPhone?: string;
   branchLogo?: string | null;
   orgName?: string | null;
 }
@@ -174,6 +176,8 @@ const TelegramBookingForm = () => {
   // Branch and Organization branding state
   const [branchInfo, setBranchInfo] = useState<{
     name: string;
+    address?: string | null;
+    phone?: string | null;
     logoBase64?: string | null;
     orgName?: string | null;
   }>({ name: '' });
@@ -211,6 +215,8 @@ const TelegramBookingForm = () => {
           if (first.branchName) {
             setBranchInfo({
               name: first.branchName,
+              address: first.branchAddress,
+              phone: first.branchPhone,
               logoBase64: first.branchLogo,
               orgName: first.orgName,
             });
@@ -261,6 +267,8 @@ const TelegramBookingForm = () => {
             if (checkData.branchName) {
               setBranchInfo({
                 name: checkData.branchName,
+                address: checkData.branchAddress,
+                phone: checkData.branchPhone,
                 logoBase64: checkData.branchLogo,
                 orgName: checkData.orgName,
               });
@@ -488,6 +496,23 @@ const TelegramBookingForm = () => {
       whiteSpace: 'nowrap' as const,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
+    } as React.CSSProperties,
+
+    branchMetaRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      flexWrap: 'wrap' as const,
+      marginTop: '2px',
+    } as React.CSSProperties,
+
+    branchMetaText: {
+      fontSize: '11px',
+      color: 'rgba(255, 255, 255, 0.85)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      fontWeight: 500,
     } as React.CSSProperties,
 
     langPillContainer: {
@@ -862,7 +887,7 @@ const TelegramBookingForm = () => {
             </div>
           </div>
 
-          {/* Branch / Hospital Name and Logo */}
+          {/* Branch / Hospital Name, Logo/Icon, Address & Mobile */}
           {branchInfo.name && (
             <div style={styles.branchBanner}>
               {branchInfo.logoBase64 ? (
@@ -876,6 +901,20 @@ const TelegramBookingForm = () => {
               )}
               <div style={styles.branchDetails}>
                 <span style={styles.branchTitle}>{branchInfo.name}</span>
+                {(branchInfo.address || branchInfo.phone) && (
+                  <div style={styles.branchMetaRow}>
+                    {branchInfo.address && (
+                      <span style={styles.branchMetaText} title={branchInfo.address}>
+                        📍 {branchInfo.address}
+                      </span>
+                    )}
+                    {branchInfo.phone && (
+                      <span style={styles.branchMetaText}>
+                        📞 {branchInfo.phone}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -983,7 +1022,7 @@ const TelegramBookingForm = () => {
           </div>
         </div>
 
-        {/* Branch / Hospital Name and Logo */}
+        {/* Branch / Hospital Name, Logo/Icon, Address & Mobile */}
         {branchInfo.name && (
           <div style={styles.branchBanner}>
             {branchInfo.logoBase64 ? (
@@ -997,6 +1036,20 @@ const TelegramBookingForm = () => {
             )}
             <div style={styles.branchDetails}>
               <span style={styles.branchTitle}>{branchInfo.name}</span>
+              {(branchInfo.address || branchInfo.phone) && (
+                <div style={styles.branchMetaRow}>
+                  {branchInfo.address && (
+                    <span style={styles.branchMetaText} title={branchInfo.address}>
+                      📍 {branchInfo.address}
+                    </span>
+                  )}
+                  {branchInfo.phone && (
+                    <span style={styles.branchMetaText}>
+                      📞 {branchInfo.phone}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

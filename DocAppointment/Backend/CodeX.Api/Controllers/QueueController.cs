@@ -580,6 +580,8 @@ namespace CodeX.Api.Controllers
                     pausedUntil = q.PausedUntil,
                     pauseReason = q.PauseReason,
                     branchName = branch.Name,
+                    branchAddress = branch.Address,
+                    branchPhone = branch.WhatsAppNumber,
                     branchLogo = branch.LogoBase64,
                     orgName = branch.Organization?.Name
                 };
@@ -751,6 +753,8 @@ namespace CodeX.Api.Controllers
                     currentTokenNumber = t.Queue.CurrentTokenNumber,
                     status = t.Status.ToString(),
                     branchName = branch.Name,
+                    branchAddress = branch.Address,
+                    branchPhone = branch.WhatsAppNumber,
                     branchLogo = branch.LogoBase64,
                     orgName = branch.Organization != null ? branch.Organization.Name : null
                 })
@@ -759,7 +763,16 @@ namespace CodeX.Api.Controllers
             if (activeToken != null)
                 return Ok(activeToken);
 
-            return Ok(new { hasActiveBooking = false, patientName = patient.Name, preferredLanguage = preferredLang, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
+            return Ok(new { 
+                hasActiveBooking = false, 
+                patientName = patient.Name, 
+                preferredLanguage = preferredLang, 
+                branchName = branch.Name, 
+                branchAddress = branch.Address, 
+                branchPhone = branch.WhatsAppNumber, 
+                branchLogo = branch.LogoBase64, 
+                orgName = branch.Organization?.Name 
+            });
         }
 
         [AllowAnonymous]
