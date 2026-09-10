@@ -736,5 +736,45 @@ namespace CodeX.Api.Controllers
 
             return Ok(new { hasActiveBooking = false, patientName = patient.Name, preferredLanguage = preferredLang });
         }
+
+        [AllowAnonymous]
+        [HttpPost("branch/{branchId}/cancel-booking")]
+        public async Task<IActionResult> CancelBooking(Guid branchId, [FromQuery] string? chatId)
+        {
+            if (string.IsNullOrWhiteSpace(chatId))
+                return BadRequest("chatId is required");
+
+            var branch = await _context.Branches
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+            if (branch == null) return NotFound("Branch not found");
+
+            var patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+            if (patient == null) return NotFound("Patient not found");
+
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
+            var tomorrow = today.AddDays(1);
+
+            var activeToken = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Include(t => t.Queue)
+                .Where(t => t.PatientId == patient.Id
+                    && !t.IsDeleted
+                    && t.Queue.BranchId == branchId
+                    && t.Queue.QueueDate >= today
+                    && t.Queue.QueueDate < tomorrow
+                    && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
+                .FirstOrDefaultAsync();
+
+            if (activeToken == null)
+                return NotFound(new { success = false, message = "No active booking found to cancel." });
+
+            activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
+            await _context.SaveChangesAsync(default);
+
+            return Ok(new { success = true, message = "Appointment cancelled successfully." });
+        }
     }
 }

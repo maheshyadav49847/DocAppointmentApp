@@ -49,11 +49,6 @@ namespace CodeX.Api.Controllers
                 var payloadStr = payloadElement.GetRawText();
                 var update = JsonSerializer.Deserialize<TelegramUpdate>(payloadStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (update?.Message == null) return Ok();
-
-                var chatId = update.Message.Chat?.Id.ToString();
-                if (string.IsNullOrEmpty(chatId)) return Ok();
-
                 var branch = await _context.Branches
                     .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
@@ -62,6 +57,18 @@ namespace CodeX.Api.Controllers
 
                 // Set organization context
                 _currentUserService.SetCurrentOrganization(branch.OrganizationId);
+
+                // Handle Callback Queries (Inline Button clicks)
+                if (update?.CallbackQuery != null)
+                {
+                    await HandleCallbackQuery(branchId, branch.OrganizationId, update.CallbackQuery);
+                    return Ok();
+                }
+
+                if (update?.Message == null) return Ok();
+
+                var chatId = update.Message.Chat?.Id.ToString();
+                if (string.IsNullOrEmpty(chatId)) return Ok();
 
                 var lang = NormalizeLanguage(update.Message.From?.LanguageCode);
 
@@ -268,6 +275,46 @@ namespace CodeX.Api.Controllers
                 return;
             }
 
+            if (cleanText.Equals("cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("/cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Contains("रद्द"))
+            {
+                if (patient != null)
+                {
+                    var existingActive = await GetExistingActiveToken(branchId, patient.Id);
+                    if (existingActive != null)
+                    {
+                        var b = await _context.Branches.FirstOrDefaultAsync(br => br.Id == branchId);
+                        var bToken = b?.TelegramBotToken;
+                        if (!string.IsNullOrWhiteSpace(bToken))
+                        {
+                            var promptPayload = new
+                            {
+                                chat_id = chatId,
+                                text = "⚠️ *क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?*\n\nAre you sure you want to cancel your appointment?",
+                                parse_mode = "Markdown",
+                                reply_markup = new
+                                {
+                                    inline_keyboard = new[]
+                                    {
+                                        new[]
+                                        {
+                                            new { text = "✅ हाँ, रद्द करें (Yes, Cancel)", callback_data = "confirm_cancel" },
+                                            new { text = "❌ नहीं, रहने दें (Keep It)", callback_data = "abort_cancel" }
+                                        }
+                                    }
+                                }
+                            };
+                            var json = JsonSerializer.Serialize(promptPayload);
+                            var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                            var client = new System.Net.Http.HttpClient();
+                            await client.PostAsync($"https://api.telegram.org/bot{bToken}/sendMessage", content);
+                            return;
+                        }
+                    }
+                }
+                await _telegramService.SendTextMessage(chatId, "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली जिसे रद्द किया जा सके। / No active appointment found to cancel.", branchId);
+                return;
+            }
+
             if (cleanText.Equals("/form", StringComparison.OrdinalIgnoreCase))
             {
                 // /form always opens form (admin override)
@@ -388,11 +435,28 @@ namespace CodeX.Api.Controllers
                     + $"\nPlease visit the clinic and wait for your turn. 🙏";
             }
 
+            string cancelBtnText = lang switch
+            {
+                "mr" => "❌ अपॉइंटमेंट रद्द करा (Cancel)",
+                "hi" => "❌ अपॉइंटमेंट रद्द करें (Cancel)",
+                _ => "❌ Cancel Appointment"
+            };
+
             var payload = new
             {
                 chat_id = chatId,
-                text = msg,
-                parse_mode = "Markdown"
+                text = msg + (lang == "hi" ? "\n\n👉 अपॉइंटमेंट रद्द (Cancel) करने के लिए नीचे बटन दबाएं या *CANCEL* लिखें:" : "\n\n👉 To cancel this appointment, tap the button below or type *CANCEL*:"),
+                parse_mode = "Markdown",
+                reply_markup = new
+                {
+                    inline_keyboard = new[]
+                    {
+                        new[]
+                        {
+                            new { text = cancelBtnText, callback_data = "cancel_appointment" }
+                        }
+                    }
+                }
             };
 
             var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
@@ -400,6 +464,109 @@ namespace CodeX.Api.Controllers
             var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
             var client = new System.Net.Http.HttpClient();
             await client.PostAsync(url, content);
+        }
+
+        private async Task HandleCallbackQuery(Guid branchId, Guid orgId, TelegramCallbackQuery cb)
+        {
+            var chatId = cb.Message?.Chat?.Id.ToString();
+            if (string.IsNullOrEmpty(chatId)) return;
+
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+            var botToken = branch?.TelegramBotToken;
+            if (string.IsNullOrWhiteSpace(botToken)) return;
+
+            var patient = await _context.Patients
+                .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
+            if (patient == null) return;
+
+            var data = cb.Data?.Trim().ToLowerInvariant();
+
+            if (data == "cancel_appointment")
+            {
+                var payload = new
+                {
+                    chat_id = chatId,
+                    text = "⚠️ *क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?*\n\nAre you sure you want to cancel your appointment?",
+                    parse_mode = "Markdown",
+                    reply_markup = new
+                    {
+                        inline_keyboard = new[]
+                        {
+                            new[]
+                            {
+                                new { text = "✅ हाँ, रद्द करें (Yes, Cancel)", callback_data = "confirm_cancel" },
+                                new { text = "❌ नहीं, रहने दें (Keep It)", callback_data = "abort_cancel" }
+                            }
+                        }
+                    }
+                };
+                var json = JsonSerializer.Serialize(payload);
+                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var client = new System.Net.Http.HttpClient();
+                await client.PostAsync($"https://api.telegram.org/bot{botToken}/sendMessage", content);
+                return;
+            }
+
+            if (data == "confirm_cancel")
+            {
+                var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
+                var tomorrow = today.AddDays(1);
+
+                var activeToken = await _context.Tokens
+                    .IgnoreQueryFilters()
+                    .Include(t => t.Queue)
+                    .Where(t => t.PatientId == patient.Id
+                        && !t.IsDeleted
+                        && t.Queue.BranchId == branchId
+                        && t.Queue.QueueDate >= today
+                        && t.Queue.QueueDate < tomorrow
+                        && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
+                    .FirstOrDefaultAsync();
+
+                if (activeToken != null)
+                {
+                    activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
+                    await _context.SaveChangesAsync(default);
+
+                    var confirmPayload = new
+                    {
+                        chat_id = chatId,
+                        text = "✅ *आपकी अपॉइंटमेंट रद्द (Cancel) कर दी गई है।*\n\nYour appointment has been cancelled successfully.\n\nनई बुकिंग के लिए कभी भी *HI* लिखकर भेजें। 🙏",
+                        parse_mode = "Markdown"
+                    };
+                    var json = JsonSerializer.Serialize(confirmPayload);
+                    var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                    var client = new System.Net.Http.HttpClient();
+                    await client.PostAsync($"https://api.telegram.org/bot{botToken}/sendMessage", content);
+                }
+                else
+                {
+                    var noTokenPayload = new
+                    {
+                        chat_id = chatId,
+                        text = "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली। नई बुकिंग के लिए *HI* भेजें।"
+                    };
+                    var json = JsonSerializer.Serialize(noTokenPayload);
+                    var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                    var client = new System.Net.Http.HttpClient();
+                    await client.PostAsync($"https://api.telegram.org/bot{botToken}/sendMessage", content);
+                }
+                return;
+            }
+
+            if (data == "abort_cancel")
+            {
+                var abortPayload = new
+                {
+                    chat_id = chatId,
+                    text = "👍 आपकी अपॉइंटमेंट सुरक्षित है। धन्यवाद! 🙏"
+                };
+                var json = JsonSerializer.Serialize(abortPayload);
+                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var client = new System.Net.Http.HttpClient();
+                await client.PostAsync($"https://api.telegram.org/bot{botToken}/sendMessage", content);
+                return;
+            }
         }
 
         
@@ -491,6 +658,18 @@ namespace CodeX.Api.Controllers
         [JsonPropertyName("update_id")]
         public long UpdateId { get; set; }
         public TelegramMessage? Message { get; set; }
+        [JsonPropertyName("callback_query")]
+        public TelegramCallbackQuery? CallbackQuery { get; set; }
+    }
+
+    public class TelegramCallbackQuery
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+        public TelegramUser? From { get; set; }
+        public TelegramMessage? Message { get; set; }
+        [JsonPropertyName("data")]
+        public string? Data { get; set; }
     }
 
     public class TelegramMessage

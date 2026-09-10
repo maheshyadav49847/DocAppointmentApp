@@ -26,6 +26,12 @@ const T: Record<string, Record<string, string>> = {
     alreadyRunningToken: 'वर्तमान चल रहा टोकन',
     alreadySession: 'सत्र',
     session: 'सत्र',
+    cancelBtn: 'अपॉइंटमेंट रद्द करें',
+    cancellingBtn: 'रद्द हो रहा है...',
+    cancelConfirm: 'क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?',
+    cancelSuccess: 'आपकी अपॉइंटमेंट रद्द कर दी गई है।',
+    bookNewBtn: 'नई अपॉइंटमेंट बुक करें',
+    statusPending: 'कतार में है (Waiting)',
   },
   mr: {
     title: 'अपॉइंटमेंट बुक करा',
@@ -51,6 +57,12 @@ const T: Record<string, Record<string, string>> = {
     alreadyRunningToken: 'सध्या चालू असलेला टोकन',
     alreadySession: 'सत्र',
     session: 'सत्र',
+    cancelBtn: 'अपॉइंटमेंट रद्द करा',
+    cancellingBtn: 'रद्द होत आहे...',
+    cancelConfirm: 'तुम्हाला नक्की तुमची अपॉइंटमेंट रद्द करायची आहे का?',
+    cancelSuccess: 'तुमची अपॉइंटमेंट रद्द झाली आहे.',
+    bookNewBtn: 'नवीन अपॉइंटमेंट बुक करा',
+    statusPending: 'रांगेत आहे (Waiting)',
   },
   en: {
     title: 'Book Appointment',
@@ -71,11 +83,17 @@ const T: Record<string, Record<string, string>> = {
     successDoctor: 'Doctor',
     patientName: 'Patient Name',
     successWait: 'Please visit the clinic and wait for your turn.',
-    alreadyTitle: 'Active Booking Found!',
-    alreadyMsg: 'You already have an active appointment for today.',
+    alreadyTitle: 'Active Booking Found',
+    alreadyMsg: 'You already have an active token for today.',
     alreadyRunningToken: 'Currently Serving Token',
     alreadySession: 'Session',
     session: 'Session',
+    cancelBtn: 'Cancel Appointment',
+    cancellingBtn: 'Cancelling...',
+    cancelConfirm: 'Are you sure you want to cancel this appointment?',
+    cancelSuccess: 'Your appointment has been cancelled successfully.',
+    bookNewBtn: 'Book New Appointment',
+    statusPending: 'In Queue (Waiting)',
   },
 };
 
@@ -95,6 +113,7 @@ const TelegramBookingForm = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [booked, setBooked] = useState(false);
   const [alreadyBooked, setAlreadyBooked] = useState(false);
   const [tokenNumber, setTokenNumber] = useState(0);
@@ -121,6 +140,22 @@ const TelegramBookingForm = () => {
   const changeLanguage = (newLang: string) => {
     setCurrentLang(newLang);
     localStorage.setItem('tg_booking_lang', newLang);
+  };
+
+  const loadActiveQueues = async () => {
+    if (!branchId) return;
+    try {
+      const queueRes = await fetch(`${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/active`);
+      if (queueRes.ok) {
+        const data = await queueRes.json();
+        setQueues(data || []);
+        if (data?.length > 0) setSelectedQueue(data[0].id);
+      } else {
+        setError(t.noSessions);
+      }
+    } catch {
+      setError(t.noSessions);
+    }
   };
 
   useEffect(() => {
@@ -174,14 +209,7 @@ const TelegramBookingForm = () => {
         }
 
         // 3. Load active queues if no active booking exists
-        const queueRes = await fetch(`${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/active`);
-        if (queueRes.ok) {
-          const data = await queueRes.json();
-          setQueues(data || []);
-          if (data?.length > 0) setSelectedQueue(data[0].id);
-        } else {
-          setError(t.noSessions);
-        }
+        await loadActiveQueues();
       } catch (err) {
         console.error(err);
         setError(t.noSessions);
@@ -218,9 +246,6 @@ const TelegramBookingForm = () => {
           setAlreadyBooked(true);
         }
         setBooked(true);
-        // Auto-close WebApp in Telegram after 3 seconds
-        const tg = (window as any).Telegram?.WebApp;
-        if (tg?.close) setTimeout(() => tg.close(), 3000);
       } else {
         alert(t.bookingFailed);
       }
@@ -231,35 +256,72 @@ const TelegramBookingForm = () => {
     }
   };
 
-  // ─── CSS Styles ──────────────────────────────────────────
+  const handleCancelBooking = async () => {
+    if (!window.confirm(t.cancelConfirm)) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/cancel-booking?chatId=${encodeURIComponent(chatId)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+      );
+      if (res.ok) {
+        alert(t.cancelSuccess);
+        // Reset state so user can book again!
+        setBooked(false);
+        setAlreadyBooked(false);
+        setTokenNumber(0);
+        setDoctorName('');
+        setSessionName('');
+        setCurrentRunningToken(0);
+        setLoading(true);
+        await loadActiveQueues();
+        setLoading(false);
+      } else {
+        alert(t.bookingFailed);
+      }
+    } catch {
+      alert(t.networkError);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // ─── Application Theme CSS (DocAppointment Indigo Theme) ─────────
   const styles = {
     page: {
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdfa 100%)',
-      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+      backgroundColor: '#f8fafc', // slate-50
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      color: '#0f172a', // slate-900
       padding: 0,
       margin: 0,
     } as React.CSSProperties,
     header: {
-      background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
-      padding: '24px 20px 20px',
-      borderRadius: '0 0 24px 24px',
-      boxShadow: '0 4px 20px rgba(14, 165, 233, 0.25)',
+      background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%)', // DocAppointment Indigo
+      padding: '24px 20px 22px',
+      borderRadius: '0 0 20px 20px',
+      boxShadow: '0 4px 16px rgba(37, 99, 235, 0.20)',
       position: 'relative' as const,
       overflow: 'hidden',
-    } as React.CSSProperties,
-    headerPattern: {
-      position: 'absolute' as const,
-      top: 0, right: 0, bottom: 0, left: 0,
-      background: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.18) 0%, transparent 50%)',
-      pointerEvents: 'none' as const,
     } as React.CSSProperties,
     headerTopRow: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '10px',
+      marginBottom: '12px',
       position: 'relative' as const,
+    } as React.CSSProperties,
+    brandBadge: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      backgroundColor: 'rgba(255, 255, 255, 0.18)',
+      padding: '4px 10px',
+      borderRadius: '8px',
+      color: '#ffffff',
+      fontSize: '12px',
+      fontWeight: 700,
+      letterSpacing: '0.02em',
     } as React.CSSProperties,
     langPillContainer: {
       display: 'inline-flex',
@@ -267,69 +329,71 @@ const TelegramBookingForm = () => {
       borderRadius: '24px',
       padding: '3px',
       border: '1.5px solid #cbd5e1',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.10)',
     } as React.CSSProperties,
     langBtn: (active: boolean) => ({
       border: 'none',
-      background: active ? 'linear-gradient(135deg, #0284c7, #0369a1)' : 'transparent',
+      background: active ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
       color: active ? '#ffffff' : '#334155',
       fontWeight: active ? 700 : 600,
       fontSize: '12px',
       padding: '5px 12px',
       borderRadius: '20px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxShadow: active ? '0 2px 6px rgba(2, 132, 199, 0.35)' : 'none',
+      transition: 'all 0.15s ease',
+      boxShadow: active ? '0 2px 6px rgba(37, 99, 235, 0.35)' : 'none',
     } as React.CSSProperties),
     headerTitle: {
-      color: '#fff',
+      color: '#ffffff',
       fontSize: '22px',
       fontWeight: 700,
       margin: 0,
-      position: 'relative' as const,
+      letterSpacing: '-0.02em',
     } as React.CSSProperties,
     headerSub: {
-      color: 'rgba(255,255,255,0.9)',
-      fontSize: '14px',
+      color: 'rgba(255, 255, 255, 0.90)',
+      fontSize: '13px',
       marginTop: '4px',
-      position: 'relative' as const,
+      fontWeight: 500,
     } as React.CSSProperties,
     body: {
-      padding: '20px 16px',
+      padding: '20px 16px 40px',
+      maxWidth: '480px',
+      margin: '0 auto',
     } as React.CSSProperties,
     label: {
-      fontSize: '15px',
+      fontSize: '14px',
       fontWeight: 600,
-      color: '#334155',
+      color: '#475569', // slate-600
       marginBottom: '12px',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
+      gap: '6px',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.04em',
     } as React.CSSProperties,
     card: (selected: boolean) => ({
       padding: '16px',
-      borderRadius: '14px',
-      border: selected ? '2px solid #0ea5e9' : '1.5px solid #e2e8f0',
-      backgroundColor: selected ? '#f0f9ff' : '#ffffff',
+      borderRadius: '16px',
+      border: selected ? '2px solid #2563eb' : '1px solid #e2e8f0',
+      backgroundColor: selected ? '#eff6ff' : '#ffffff',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxShadow: selected ? '0 4px 14px rgba(14, 165, 233, 0.15)' : '0 1px 4px rgba(0,0,0,0.04)',
-      transform: selected ? 'scale(1.01)' : 'scale(1)',
+      transition: 'all 0.15s ease',
+      boxShadow: selected ? '0 4px 16px rgba(37, 99, 235, 0.12)' : '0 1px 3px rgba(0, 0, 0, 0.04)',
       position: 'relative' as const,
-      overflow: 'hidden',
     } as React.CSSProperties),
     cardCheck: {
       position: 'absolute' as const,
-      top: '12px',
-      right: '12px',
+      top: '14px',
+      right: '14px',
       width: '22px',
       height: '22px',
       borderRadius: '50%',
-      background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
+      backgroundColor: '#2563eb',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: '#fff',
+      color: '#ffffff',
       fontSize: '12px',
       fontWeight: 700,
     } as React.CSSProperties,
@@ -342,17 +406,18 @@ const TelegramBookingForm = () => {
       width: '44px',
       height: '44px',
       borderRadius: '12px',
-      background: 'linear-gradient(135deg, #dbeafe, #e0f2fe)',
+      backgroundColor: '#dbeafe', // blue-100
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '22px',
       flexShrink: 0,
+      color: '#1d4ed8',
     } as React.CSSProperties,
     doctorName: {
       fontWeight: 700,
       fontSize: '16px',
-      color: '#1e293b',
+      color: '#0f172a',
     } as React.CSSProperties,
     specialization: {
       fontSize: '13px',
@@ -363,101 +428,133 @@ const TelegramBookingForm = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
-      background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
-      color: '#047857',
+      backgroundColor: '#ecfdf5', // emerald-50
+      color: '#047857', // emerald-700
+      border: '1px solid #a7f3d0',
       fontSize: '12px',
       fontWeight: 600,
       padding: '4px 10px',
-      borderRadius: '20px',
+      borderRadius: '12px',
       marginTop: '10px',
     } as React.CSSProperties,
     statsRow: {
       display: 'flex',
-      gap: '16px',
-      marginTop: '10px',
+      gap: '14px',
+      marginTop: '12px',
+      paddingTop: '10px',
+      borderTop: '1px solid #f1f5f9',
     } as React.CSSProperties,
     stat: {
       fontSize: '12px',
-      color: '#94a3b8',
+      color: '#64748b',
       display: 'flex',
       alignItems: 'center',
       gap: '4px',
     } as React.CSSProperties,
     statValue: {
       fontWeight: 700,
-      color: '#475569',
-      fontSize: '14px',
+      color: '#1e293b',
+      fontSize: '13px',
     } as React.CSSProperties,
-    btn: (disabled: boolean) => ({
+    primaryBtn: (disabled: boolean) => ({
       marginTop: '24px',
       width: '100%',
-      padding: '16px',
-      background: disabled ? '#94a3b8' : 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
-      color: '#fff',
+      padding: '14px',
+      backgroundColor: disabled ? '#94a3b8' : '#2563eb', // Indigo 600
+      color: '#ffffff',
       border: 'none',
-      borderRadius: '14px',
-      fontSize: '16px',
+      borderRadius: '12px',
+      fontSize: '15px',
       fontWeight: 700,
       cursor: disabled ? 'not-allowed' : 'pointer',
-      boxShadow: disabled ? 'none' : '0 4px 14px rgba(14, 165, 233, 0.35)',
-      transition: 'all 0.2s ease',
+      boxShadow: disabled ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.30)',
+      transition: 'all 0.15s ease',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
     } as React.CSSProperties),
-    // Success / Existing Booking Screen
-    successPage: {
-      minHeight: '100vh',
+    cancelBtn: {
+      marginTop: '14px',
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#fef2f2',
+      color: '#dc2626',
+      border: '1px solid #fecaca',
+      borderRadius: '12px',
+      fontSize: '14px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.15s ease',
       display: 'flex',
-      flexDirection: 'column' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 20px',
+      gap: '6px',
+    } as React.CSSProperties,
+    // Active Booking Page (Clean Application Style)
+    bookedContainer: {
+      padding: '24px 16px',
+      maxWidth: '480px',
+      margin: '0 auto',
+    } as React.CSSProperties,
+    bookedCard: {
+      backgroundColor: '#ffffff',
+      borderRadius: '20px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+      padding: '28px 20px',
       textAlign: 'center' as const,
     } as React.CSSProperties,
-    successCircle: (isAlready: boolean) => ({
-      width: '90px',
-      height: '90px',
-      borderRadius: '50%',
-      background: isAlready
-        ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-        : 'linear-gradient(135deg, #10b981, #059669)',
-      display: 'flex',
+    statusPill: {
+      display: 'inline-flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '44px',
-      marginBottom: '20px',
-      boxShadow: isAlready
-        ? '0 8px 24px rgba(245, 158, 11, 0.3)'
-        : '0 8px 24px rgba(16, 185, 129, 0.3)',
-      animation: 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-    } as React.CSSProperties),
-    tokenBig: {
-      fontSize: '56px',
-      fontWeight: 800,
-      background: 'linear-gradient(135deg, #0ea5e9, #06b6d4)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      lineHeight: 1.1,
-      margin: '4px 0',
+      gap: '6px',
+      backgroundColor: '#dbeafe', // blue-100
+      color: '#1d4ed8', // blue-700
+      fontSize: '12px',
+      fontWeight: 700,
+      padding: '4px 12px',
+      borderRadius: '20px',
+      marginBottom: '16px',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.04em',
     } as React.CSSProperties,
-    detailsCard: {
-      background: '#ffffff',
+    tokenBox: {
+      backgroundColor: '#f8fafc',
       borderRadius: '16px',
-      padding: '20px',
+      padding: '16px',
+      margin: '16px 0',
+      border: '1.5px dashed #cbd5e1',
+    } as React.CSSProperties,
+    tokenBig: {
+      fontSize: '52px',
+      fontWeight: 800,
+      color: '#2563eb', // App Primary Indigo
+      lineHeight: 1,
+      marginTop: '4px',
+      letterSpacing: '-0.03em',
+    } as React.CSSProperties,
+    detailsTable: {
       width: '100%',
-      maxWidth: '320px',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
-      marginTop: '20px',
+      marginTop: '16px',
+      borderTop: '1px solid #f1f5f9',
       textAlign: 'left' as const,
     } as React.CSSProperties,
-    detailItem: {
+    tableRow: {
       display: 'flex',
       justifyContent: 'space-between',
-      padding: '8px 0',
-      borderBottom: '1px solid #f1f5f9',
+      alignItems: 'center',
+      padding: '10px 0',
+      borderBottom: '1px solid #f8fafc',
       fontSize: '14px',
+    } as React.CSSProperties,
+    spinner: {
+      width: '32px',
+      height: '32px',
+      border: '3px solid #e2e8f0',
+      borderTopColor: '#2563eb',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite',
     } as React.CSSProperties,
     loadingPage: {
       minHeight: '100vh',
@@ -465,25 +562,18 @@ const TelegramBookingForm = () => {
       flexDirection: 'column' as const,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '16px',
-    } as React.CSSProperties,
-    spinner: {
-      width: '38px',
-      height: '38px',
-      border: '4px solid #e2e8f0',
-      borderTopColor: '#0ea5e9',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite',
+      gap: '12px',
+      backgroundColor: '#f8fafc',
     } as React.CSSProperties,
   };
 
   // ─── Loading State ──────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ ...styles.page, ...styles.loadingPage }}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } } @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }`}</style>
+      <div style={styles.loadingPage}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <div style={styles.spinner}></div>
-        <div style={{ color: '#64748b', fontSize: '15px' }}>{t.loading}</div>
+        <div style={{ color: '#64748b', fontSize: '14px', fontWeight: 500 }}>{t.loading}</div>
       </div>
     );
   }
@@ -491,82 +581,89 @@ const TelegramBookingForm = () => {
   // ─── Error State ────────────────────────────────────────
   if (error) {
     return (
-      <div style={{ ...styles.page, ...styles.loadingPage }}>
-        <div style={{ fontSize: '48px' }}>🏥</div>
-        <div style={{ color: '#ef4444', fontSize: '15px', maxWidth: '280px', textAlign: 'center' }}>{error}</div>
+      <div style={styles.loadingPage}>
+        <div style={{ fontSize: '40px' }}>🏥</div>
+        <div style={{ color: '#ef4444', fontSize: '14px', maxWidth: '280px', textAlign: 'center', fontWeight: 500 }}>
+          {error}
+        </div>
       </div>
     );
   }
 
-  // ─── Scenario 1: Already Booked / Success State ─────────
+  // ─── Active Booking / Confirmed Screen ───────────────────
   if (booked) {
     return (
-      <div style={{ 
-        ...styles.page, 
-        ...styles.successPage, 
-        background: alreadyBooked 
-          ? 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fef9c3 100%)' 
-          : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #f0fdfa 100%)' 
-      }}>
-        <style>{`@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }`}</style>
-        
-        {/* Language switch on success/already booked screen too */}
-        <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
-          <div style={styles.langPillContainer}>
-            <button style={styles.langBtn(currentLang === 'hi')} onClick={() => changeLanguage('hi')}>हिन्दी</button>
-            <button style={styles.langBtn(currentLang === 'mr')} onClick={() => changeLanguage('mr')}>मराठी</button>
-            <button style={styles.langBtn(currentLang === 'en')} onClick={() => changeLanguage('en')}>EN</button>
+      <div style={styles.page}>
+        {/* Header with App theme & Language Selector */}
+        <div style={styles.header}>
+          <div style={styles.headerTopRow}>
+            <div style={styles.brandBadge}>🏥 MyQCare</div>
+            <div style={styles.langPillContainer}>
+              <button style={styles.langBtn(currentLang === 'hi')} onClick={() => changeLanguage('hi')}>हिन्दी</button>
+              <button style={styles.langBtn(currentLang === 'mr')} onClick={() => changeLanguage('mr')}>मराठी</button>
+              <button style={styles.langBtn(currentLang === 'en')} onClick={() => changeLanguage('en')}>EN</button>
+            </div>
+          </div>
+          <h1 style={styles.headerTitle}>{alreadyBooked ? t.alreadyTitle : t.successTitle}</h1>
+          <p style={styles.headerSub}>{t.alreadyMsg}</p>
+        </div>
+
+        {/* Content Card */}
+        <div style={styles.bookedContainer}>
+          <div style={styles.bookedCard}>
+            <div style={styles.statusPill}>
+              <span>●</span> {t.statusPending}
+            </div>
+
+            <div style={styles.tokenBox}>
+              <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {t.successToken}
+              </div>
+              <div style={styles.tokenBig}>#{tokenNumber}</div>
+            </div>
+
+            {/* Details Table */}
+            <div style={styles.detailsTable}>
+              {patientName && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.patientName}</span>
+                  <strong style={{ color: '#0f172a' }}>{patientName}</strong>
+                </div>
+              )}
+              {doctorName && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.successDoctor}</span>
+                  <strong style={{ color: '#0f172a' }}>{doctorName}</strong>
+                </div>
+              )}
+              {sessionName && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.alreadySession}</span>
+                  <span style={{ color: '#2563eb', fontWeight: 600 }}>{sessionName}</span>
+                </div>
+              )}
+              {currentRunningToken > 0 && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.alreadyRunningToken}</span>
+                  <strong style={{ color: '#059669' }}>#{currentRunningToken}</strong>
+                </div>
+              )}
+            </div>
+
+            <p style={{ color: '#64748b', fontSize: '13px', marginTop: '18px', lineHeight: 1.5 }}>
+              {t.successWait}
+            </p>
+
+            {/* Cancel Appointment Button */}
+            <button
+              onClick={handleCancelBooking}
+              disabled={cancelling}
+              style={styles.cancelBtn}
+            >
+              {cancelling ? t.cancellingBtn : t.cancelBtn}
+            </button>
           </div>
         </div>
-
-        <div style={styles.successCircle(alreadyBooked)}>
-          {alreadyBooked ? '📋' : '✅'}
-        </div>
-
-        <h2 style={{ color: alreadyBooked ? '#92400e' : '#065f46', fontSize: '20px', fontWeight: 700, margin: '0 0 6px' }}>
-          {alreadyBooked ? t.alreadyTitle : t.successTitle}
-        </h2>
-
-        {alreadyBooked && (
-          <p style={{ color: '#a16207', fontSize: '13px', margin: '0 0 16px', maxWidth: '290px' }}>
-            {t.alreadyMsg}
-          </p>
-        )}
-
-        <div style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>{t.successToken}</div>
-        <div style={styles.tokenBig}>#{tokenNumber}</div>
-
-        {/* Appointment Details Box */}
-        <div style={styles.detailsCard}>
-          {patientName && (
-            <div style={styles.detailItem}>
-              <span style={{ color: '#64748b' }}>{t.patientName}:</span>
-              <strong style={{ color: '#0369a1' }}>{patientName}</strong>
-            </div>
-          )}
-          {doctorName && (
-            <div style={styles.detailItem}>
-              <span style={{ color: '#64748b' }}>{t.successDoctor}:</span>
-              <strong style={{ color: '#1e293b' }}>{doctorName}</strong>
-            </div>
-          )}
-          {sessionName && (
-            <div style={styles.detailItem}>
-              <span style={{ color: '#64748b' }}>{t.alreadySession}:</span>
-              <span style={{ color: '#0369a1', fontWeight: 600 }}>{sessionName}</span>
-            </div>
-          )}
-          {currentRunningToken > 0 && (
-            <div style={styles.detailItem}>
-              <span style={{ color: '#64748b' }}>{t.alreadyRunningToken}:</span>
-              <strong style={{ color: '#047857' }}>#{currentRunningToken}</strong>
-            </div>
-          )}
-        </div>
-
-        <p style={{ color: '#64748b', fontSize: '13px', marginTop: '20px', maxWidth: '280px' }}>
-          {t.successWait}
-        </p>
       </div>
     );
   }
@@ -576,12 +673,10 @@ const TelegramBookingForm = () => {
     <div style={styles.page}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       
-      {/* Header with Language Selector */}
+      {/* Header with App Theme & Language Selector */}
       <div style={styles.header}>
-        <div style={styles.headerPattern}></div>
-        
         <div style={styles.headerTopRow}>
-          <span style={{ fontSize: '32px' }}>🏥</span>
+          <div style={styles.brandBadge}>🏥 MyQCare</div>
           
           {/* Language Switcher Pill */}
           <div style={styles.langPillContainer}>
@@ -617,7 +712,7 @@ const TelegramBookingForm = () => {
                   <div style={styles.cardCheck}>✓</div>
                 )}
                 <div style={styles.doctorRow}>
-                  <div style={styles.doctorIcon}>🩺</div>
+                  <div style={styles.doctorIcon}>👨‍⚕️</div>
                   <div>
                     <div style={styles.doctorName}>{q.doctorName || 'Doctor'}</div>
                     {q.specialty && <div style={styles.specialization}>{q.specialty}</div>}
@@ -646,11 +741,11 @@ const TelegramBookingForm = () => {
         <button
           onClick={handleBook}
           disabled={booking || !selectedQueue}
-          style={styles.btn(booking || !selectedQueue)}
+          style={styles.primaryBtn(booking || !selectedQueue)}
         >
           {booking ? (
             <>
-              <div style={{ ...styles.spinner, width: '20px', height: '20px', borderWidth: '3px' }}></div>
+              <div style={{ ...styles.spinner, width: '18px', height: '18px', borderWidth: '2px', borderTopColor: '#fff' }}></div>
               {t.bookingBtn}
             </>
           ) : (
