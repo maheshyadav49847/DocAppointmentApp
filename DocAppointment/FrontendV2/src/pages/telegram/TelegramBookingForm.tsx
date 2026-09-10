@@ -21,6 +21,9 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'अपॉइंटमेंट कन्फर्म!',
     successToken: 'आपका टोकन नंबर',
     successDoctor: 'डॉक्टर',
+    doctorSpecialization: 'विशेषज्ञता',
+    doctorRegNo: 'पंजीकरण संख्या',
+    regNoShort: 'Reg. No.',
     patientName: 'मरीज़ का नाम',
     successWait: 'कृपया क्लिनिक पर आकर अपनी बारी का इंतज़ार करें।',
     alreadyTitle: 'आपकी बुकिंग पहले से मौजूद है!',
@@ -54,6 +57,9 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'अपॉइंटमेंट कन्फर्म झाली!',
     successToken: 'तुमचा टोकन नंबर',
     successDoctor: 'डॉक्टर',
+    doctorSpecialization: 'विशेषज्ञता',
+    doctorRegNo: 'नोंदणी क्रमांक',
+    regNoShort: 'Reg. No.',
     patientName: 'रुग्णाचे नाव',
     successWait: 'कृपया क्लिनिकमध्ये येऊन आपल्या पाळीची वाट पहा.',
     alreadyTitle: 'तुमची बुकिंग आधीच झाली आहे!',
@@ -87,6 +93,9 @@ const T: Record<string, Record<string, string>> = {
     successTitle: 'Appointment Confirmed!',
     successToken: 'Your Token Number',
     successDoctor: 'Doctor',
+    doctorSpecialization: 'Specialization',
+    doctorRegNo: 'Registration No.',
+    regNoShort: 'Reg. No.',
     patientName: 'Patient Name',
     successWait: 'Please visit the clinic and wait for your turn.',
     alreadyTitle: 'Active Booking Found',
@@ -118,6 +127,7 @@ interface QueueItem {
   doctorId: string;
   doctorName: string;
   specialization?: string;
+  registrationNumber?: string;
   sessionName?: string;
   sessionStart?: string;
   sessionEnd?: string;
@@ -133,6 +143,7 @@ interface DoctorGroup {
   doctorId: string;
   doctorName: string;
   specialization?: string;
+  registrationNumber?: string;
   queues: QueueItem[];
 }
 
@@ -148,6 +159,8 @@ const TelegramBookingForm = () => {
   const [alreadyBooked, setAlreadyBooked] = useState(false);
   const [tokenNumber, setTokenNumber] = useState(0);
   const [doctorName, setDoctorName] = useState('');
+  const [doctorSpecialization, setDoctorSpecialization] = useState('');
+  const [doctorRegNo, setDoctorRegNo] = useState('');
   const [patientName, setPatientName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [currentRunningToken, setCurrentRunningToken] = useState(0);
@@ -254,6 +267,8 @@ const TelegramBookingForm = () => {
             if (checkData.hasActiveBooking) {
               setTokenNumber(checkData.tokenNumber);
               setDoctorName(checkData.doctorName || '');
+              setDoctorSpecialization(checkData.specialization || '');
+              setDoctorRegNo(checkData.registrationNumber || '');
               setSessionName(checkData.sessionName || '');
               setCurrentRunningToken(checkData.currentTokenNumber || 0);
               setAlreadyBooked(true);
@@ -293,6 +308,7 @@ const TelegramBookingForm = () => {
           doctorId: dId,
           doctorName: q.doctorName || 'Doctor',
           specialization: q.specialization || '',
+          registrationNumber: q.registrationNumber || '',
           queues: [],
         });
       }
@@ -319,6 +335,8 @@ const TelegramBookingForm = () => {
         const data = await res.json();
         setTokenNumber(data.tokenNumber);
         setDoctorName(data.doctorName || '');
+        setDoctorSpecialization(data.specialization || '');
+        setDoctorRegNo(data.registrationNumber || '');
         if (data.patientName) {
           setPatientName(data.patientName);
         }
@@ -351,6 +369,8 @@ const TelegramBookingForm = () => {
         setAlreadyBooked(false);
         setTokenNumber(0);
         setDoctorName('');
+        setDoctorSpecialization('');
+        setDoctorRegNo('');
         setSessionName('');
         setCurrentRunningToken(0);
         setLoading(true);
@@ -564,9 +584,30 @@ const TelegramBookingForm = () => {
 
     doctorSpecialty: {
       fontSize: '12px',
-      color: '#64748b',
+      color: '#4f46e5', // indigo-600
       marginTop: '2px',
-      fontWeight: 500,
+      fontWeight: 600,
+    } as React.CSSProperties,
+
+    doctorSubRow: {
+      display: 'flex',
+      alignItems: 'center',
+      flexWrap: 'wrap' as const,
+      gap: '6px',
+      marginTop: '3px',
+    } as React.CSSProperties,
+
+    doctorRegBadge: {
+      fontSize: '11px',
+      fontWeight: 600,
+      color: '#475569', // slate-600
+      backgroundColor: '#f1f5f9', // slate-100
+      border: '1px solid #e2e8f0',
+      padding: '1px 7px',
+      borderRadius: '6px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '3px',
     } as React.CSSProperties,
 
     // Session list inside doctor card
@@ -855,6 +896,18 @@ const TelegramBookingForm = () => {
                   <strong style={{ color: '#0f172a' }}>{doctorName}</strong>
                 </div>
               )}
+              {doctorSpecialization && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.doctorSpecialization}</span>
+                  <span style={{ color: '#4f46e5', fontWeight: 600 }}>{doctorSpecialization}</span>
+                </div>
+              )}
+              {doctorRegNo && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.doctorRegNo}</span>
+                  <span style={{ color: '#334155', fontWeight: 600, fontFamily: 'monospace' }}>{doctorRegNo}</span>
+                </div>
+              )}
               {sessionName && (
                 <div style={styles.tableRow}>
                   <span style={{ color: '#64748b' }}>{t.alreadySession}</span>
@@ -955,9 +1008,16 @@ const TelegramBookingForm = () => {
                     <div style={styles.doctorAvatar}>👨‍⚕️</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={styles.doctorName}>{group.doctorName}</div>
-                      {group.specialization && (
-                        <div style={styles.doctorSpecialty}>{group.specialization}</div>
-                      )}
+                      <div style={styles.doctorSubRow}>
+                        {group.specialization && (
+                          <div style={styles.doctorSpecialty}>{group.specialization}</div>
+                        )}
+                        {group.registrationNumber && (
+                          <div style={styles.doctorRegBadge}>
+                            <span>📋</span> {t.regNoShort}: {group.registrationNumber}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

@@ -563,6 +563,7 @@ namespace CodeX.Api.Controllers
                     doctorId = q.DoctorId,
                     doctorName = doctor?.Name ?? "Unknown",
                     specialization = doctor?.Specialization ?? "",
+                    registrationNumber = doctor?.RegistrationNumber ?? "",
                     sessionName = q.Session?.SessionName,
                     sessionStart = q.Session?.StartTime.ToString(@"hh\:mm"),
                     sessionEnd = q.Session?.EndTime.ToString(@"hh\:mm"),
@@ -646,6 +647,8 @@ namespace CodeX.Api.Controllers
                         return Ok(new { 
                             tokenNumber = existingToken.TokenNumber, 
                             doctorName = queue.Doctor?.Name,
+                            specialization = queue.Doctor?.Specialization ?? "",
+                            registrationNumber = queue.Doctor?.RegistrationNumber ?? "",
                             patientName = patient?.Name ?? "",
                             alreadyBooked = true 
                         });
@@ -673,7 +676,14 @@ namespace CodeX.Api.Controllers
             _context.Tokens.Add(token);
             await _context.SaveChangesAsync(default);
 
-            return Ok(new { tokenNumber, doctorName = queue.Doctor?.Name, patientName = patient?.Name ?? "", alreadyBooked = false });
+            return Ok(new { 
+                tokenNumber, 
+                doctorName = queue.Doctor?.Name, 
+                specialization = queue.Doctor?.Specialization ?? "",
+                registrationNumber = queue.Doctor?.RegistrationNumber ?? "",
+                patientName = patient?.Name ?? "", 
+                alreadyBooked = false 
+            });
         }
 
         [AllowAnonymous]
@@ -729,6 +739,8 @@ namespace CodeX.Api.Controllers
                     hasActiveBooking = true,
                     tokenNumber = t.TokenNumber,
                     doctorName = t.Queue.Doctor.Name,
+                    specialization = t.Queue.Doctor.Specialization,
+                    registrationNumber = t.Queue.Doctor.RegistrationNumber,
                     patientName = patient.Name,
                     preferredLanguage = preferredLang,
                     sessionName = t.Queue.Session != null ? t.Queue.Session.SessionName : "",
