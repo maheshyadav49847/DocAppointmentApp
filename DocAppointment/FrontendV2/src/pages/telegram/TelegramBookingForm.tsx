@@ -22,6 +22,7 @@ const T: Record<string, Record<string, string>> = {
     successToken: 'आपका टोकन नंबर',
     successDoctor: 'डॉक्टर',
     doctorSpecialization: 'विशेषज्ञता',
+    doctorQualification: 'योग्यता',
     doctorRegNo: 'पंजीकरण संख्या',
     regNoShort: 'Reg. No.',
     patientName: 'मरीज़ का नाम',
@@ -58,6 +59,7 @@ const T: Record<string, Record<string, string>> = {
     successToken: 'तुमचा टोकन नंबर',
     successDoctor: 'डॉक्टर',
     doctorSpecialization: 'विशेषज्ञता',
+    doctorQualification: 'पात्रता',
     doctorRegNo: 'नोंदणी क्रमांक',
     regNoShort: 'Reg. No.',
     patientName: 'रुग्णाचे नाव',
@@ -94,6 +96,7 @@ const T: Record<string, Record<string, string>> = {
     successToken: 'Your Token Number',
     successDoctor: 'Doctor',
     doctorSpecialization: 'Specialization',
+    doctorQualification: 'Qualification',
     doctorRegNo: 'Registration No.',
     regNoShort: 'Reg. No.',
     patientName: 'Patient Name',
@@ -127,6 +130,7 @@ interface QueueItem {
   doctorId: string;
   doctorName: string;
   specialization?: string;
+  qualification?: string;
   registrationNumber?: string;
   sessionName?: string;
   sessionStart?: string;
@@ -143,6 +147,7 @@ interface DoctorGroup {
   doctorId: string;
   doctorName: string;
   specialization?: string;
+  qualification?: string;
   registrationNumber?: string;
   queues: QueueItem[];
 }
@@ -160,6 +165,7 @@ const TelegramBookingForm = () => {
   const [tokenNumber, setTokenNumber] = useState(0);
   const [doctorName, setDoctorName] = useState('');
   const [doctorSpecialization, setDoctorSpecialization] = useState('');
+  const [doctorQualification, setDoctorQualification] = useState('');
   const [doctorRegNo, setDoctorRegNo] = useState('');
   const [patientName, setPatientName] = useState('');
   const [sessionName, setSessionName] = useState('');
@@ -268,6 +274,7 @@ const TelegramBookingForm = () => {
               setTokenNumber(checkData.tokenNumber);
               setDoctorName(checkData.doctorName || '');
               setDoctorSpecialization(checkData.specialization || '');
+              setDoctorQualification(checkData.qualification || '');
               setDoctorRegNo(checkData.registrationNumber || '');
               setSessionName(checkData.sessionName || '');
               setCurrentRunningToken(checkData.currentTokenNumber || 0);
@@ -308,6 +315,7 @@ const TelegramBookingForm = () => {
           doctorId: dId,
           doctorName: q.doctorName || 'Doctor',
           specialization: q.specialization || '',
+          qualification: q.qualification || '',
           registrationNumber: q.registrationNumber || '',
           queues: [],
         });
@@ -336,6 +344,7 @@ const TelegramBookingForm = () => {
         setTokenNumber(data.tokenNumber);
         setDoctorName(data.doctorName || '');
         setDoctorSpecialization(data.specialization || '');
+        setDoctorQualification(data.qualification || '');
         setDoctorRegNo(data.registrationNumber || '');
         if (data.patientName) {
           setPatientName(data.patientName);
@@ -370,6 +379,7 @@ const TelegramBookingForm = () => {
         setTokenNumber(0);
         setDoctorName('');
         setDoctorSpecialization('');
+        setDoctorQualification('');
         setDoctorRegNo('');
         setSessionName('');
         setCurrentRunningToken(0);
@@ -595,6 +605,19 @@ const TelegramBookingForm = () => {
       flexWrap: 'wrap' as const,
       gap: '6px',
       marginTop: '3px',
+    } as React.CSSProperties,
+
+    doctorQualBadge: {
+      fontSize: '11px',
+      fontWeight: 600,
+      color: '#0369a1', // sky-700
+      backgroundColor: '#e0f2fe', // sky-100
+      border: '1px solid #bae6fd',
+      padding: '1px 7px',
+      borderRadius: '6px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '3px',
     } as React.CSSProperties,
 
     doctorRegBadge: {
@@ -902,6 +925,12 @@ const TelegramBookingForm = () => {
                   <span style={{ color: '#4f46e5', fontWeight: 600 }}>{doctorSpecialization}</span>
                 </div>
               )}
+              {doctorQualification && (
+                <div style={styles.tableRow}>
+                  <span style={{ color: '#64748b' }}>{t.doctorQualification}</span>
+                  <span style={{ color: '#0f172a', fontWeight: 600 }}>{doctorQualification}</span>
+                </div>
+              )}
               {doctorRegNo && (
                 <div style={styles.tableRow}>
                   <span style={{ color: '#64748b' }}>{t.doctorRegNo}</span>
@@ -1011,6 +1040,11 @@ const TelegramBookingForm = () => {
                       <div style={styles.doctorSubRow}>
                         {group.specialization && (
                           <div style={styles.doctorSpecialty}>{group.specialization}</div>
+                        )}
+                        {group.qualification && (
+                          <div style={styles.doctorQualBadge}>
+                            <span>🎓</span> {group.qualification}
+                          </div>
                         )}
                         {group.registrationNumber && (
                           <div style={styles.doctorRegBadge}>

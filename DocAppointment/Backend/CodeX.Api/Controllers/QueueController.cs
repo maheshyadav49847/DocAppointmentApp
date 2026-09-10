@@ -563,6 +563,7 @@ namespace CodeX.Api.Controllers
                     doctorId = q.DoctorId,
                     doctorName = doctor?.Name ?? "Unknown",
                     specialization = doctor?.Specialization ?? "",
+                    qualification = doctor?.Qualification ?? "",
                     registrationNumber = doctor?.RegistrationNumber ?? "",
                     sessionName = q.Session?.SessionName,
                     sessionStart = q.Session?.StartTime.ToString(@"hh\:mm"),
@@ -648,6 +649,7 @@ namespace CodeX.Api.Controllers
                             tokenNumber = existingToken.TokenNumber, 
                             doctorName = queue.Doctor?.Name,
                             specialization = queue.Doctor?.Specialization ?? "",
+                            qualification = queue.Doctor?.Qualification ?? "",
                             registrationNumber = queue.Doctor?.RegistrationNumber ?? "",
                             patientName = patient?.Name ?? "",
                             alreadyBooked = true 
@@ -680,6 +682,7 @@ namespace CodeX.Api.Controllers
                 tokenNumber, 
                 doctorName = queue.Doctor?.Name, 
                 specialization = queue.Doctor?.Specialization ?? "",
+                qualification = queue.Doctor?.Qualification ?? "",
                 registrationNumber = queue.Doctor?.RegistrationNumber ?? "",
                 patientName = patient?.Name ?? "", 
                 alreadyBooked = false 
@@ -740,6 +743,7 @@ namespace CodeX.Api.Controllers
                     tokenNumber = t.TokenNumber,
                     doctorName = t.Queue.Doctor.Name,
                     specialization = t.Queue.Doctor.Specialization,
+                    qualification = t.Queue.Doctor.Qualification,
                     registrationNumber = t.Queue.Doctor.RegistrationNumber,
                     patientName = patient.Name,
                     preferredLanguage = preferredLang,
