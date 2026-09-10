@@ -502,6 +502,7 @@ namespace CodeX.Api.Controllers
             // Must bypass ALL global OrgId query filters since this is anonymous
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
+                .Include(b => b.Organization)
                 .Where(b => b.Id == branchId && !b.IsDeleted)
                 .FirstOrDefaultAsync();
             if (branch == null) return NotFound();
@@ -561,6 +562,7 @@ namespace CodeX.Api.Controllers
                     id = q.Id,
                     doctorId = q.DoctorId,
                     doctorName = doctor?.Name ?? "Unknown",
+                    specialization = doctor?.Specialization ?? "",
                     sessionName = q.Session?.SessionName,
                     sessionStart = q.Session?.StartTime.ToString(@"hh\:mm"),
                     sessionEnd = q.Session?.EndTime.ToString(@"hh\:mm"),
@@ -574,7 +576,10 @@ namespace CodeX.Api.Controllers
                     startedAt = q.CreatedAt,
                     currentTokenCalledAt = currentToken?.CalledAt,
                     pausedUntil = q.PausedUntil,
-                    pauseReason = q.PauseReason
+                    pauseReason = q.PauseReason,
+                    branchName = branch.Name,
+                    branchLogo = branch.LogoBase64,
+                    orgName = branch.Organization?.Name
                 };
             }).ToList();
 
@@ -680,6 +685,7 @@ namespace CodeX.Api.Controllers
 
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
+                .Include(b => b.Organization)
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
             if (branch == null) return NotFound("Branch not found");
 
@@ -687,7 +693,7 @@ namespace CodeX.Api.Controllers
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
             if (patient == null)
-                return Ok(new { hasActiveBooking = false });
+                return Ok(new { hasActiveBooking = false, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
 
             string preferredLang = "hi";
             if (!string.IsNullOrEmpty(patient.MetaDataJson))
@@ -727,14 +733,17 @@ namespace CodeX.Api.Controllers
                     preferredLanguage = preferredLang,
                     sessionName = t.Queue.Session != null ? t.Queue.Session.SessionName : "",
                     currentTokenNumber = t.Queue.CurrentTokenNumber,
-                    status = t.Status.ToString()
+                    status = t.Status.ToString(),
+                    branchName = branch.Name,
+                    branchLogo = branch.LogoBase64,
+                    orgName = branch.Organization != null ? branch.Organization.Name : null
                 })
                 .FirstOrDefaultAsync();
 
             if (activeToken != null)
                 return Ok(activeToken);
 
-            return Ok(new { hasActiveBooking = false, patientName = patient.Name, preferredLanguage = preferredLang });
+            return Ok(new { hasActiveBooking = false, patientName = patient.Name, preferredLanguage = preferredLang, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
         }
 
         [AllowAnonymous]

@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { BrandLogo } from '@/components/BrandLogo';
 
 // ─── Translations ───────────────────────────────────────────
 const T: Record<string, Record<string, string>> = {
   hi: {
     title: 'अपॉइंटमेंट बुक करें',
-    subtitle: 'अपने डॉक्टर को चुनें और कन्फर्म करें',
-    selectLabel: 'उपलब्ध डॉक्टर व सत्र',
-    currentToken: 'वर्तमान टोकन',
-    waiting: 'प्रतीक्षा में',
+    subtitle: 'अपने डॉक्टर व सत्र को चुनें और कन्फर्म करें',
+    selectLabel: 'उपलब्ध डॉक्टर्स एवं सत्र',
+    selectSessionPrompt: 'कृपया एक सत्र चुनें',
+    currentToken: 'चल रहा टोकन',
+    waiting: 'प्रतीक्षारत',
     confirmBtn: 'बुकिंग कन्फर्म करें',
     bookingBtn: 'बुक हो रहा है...',
     loading: 'उपलब्ध सत्र लोड हो रहे हैं...',
     noSessions: 'अभी कोई सक्रिय सत्र नहीं है। कृपया बाद में कोशिश करें।',
     invalidLink: 'अमान्य लिंक। ब्रांच ID उपलब्ध नहीं है।',
-    selectAlert: 'कृपया एक सत्र चुनें।',
+    selectAlert: 'कृपया किसी एक डॉक्टर का सत्र चुनें।',
     networkError: 'नेटवर्क त्रुटि। कृपया पुनः प्रयास करें।',
     bookingFailed: 'बुकिंग विफल रही। कृपया पुनः प्रयास करें।',
     successTitle: 'अपॉइंटमेंट कन्फर्म!',
@@ -22,7 +24,7 @@ const T: Record<string, Record<string, string>> = {
     patientName: 'मरीज़ का नाम',
     successWait: 'कृपया क्लिनिक पर आकर अपनी बारी का इंतज़ार करें।',
     alreadyTitle: 'आपकी बुकिंग पहले से मौजूद है!',
-    alreadyMsg: 'आपका टोकन इस सत्र के लिए पहले ही बुक हो चुका है।',
+    alreadyMsg: 'आपका टोकन आज के लिए पहले ही बुक हो चुका है।',
     alreadyRunningToken: 'वर्तमान चल रहा टोकन',
     alreadySession: 'सत्र',
     session: 'सत्र',
@@ -32,11 +34,13 @@ const T: Record<string, Record<string, string>> = {
     cancelSuccess: 'आपकी अपॉइंटमेंट रद्द कर दी गई है।',
     bookNewBtn: 'नई अपॉइंटमेंट बुक करें',
     statusPending: 'कतार में है (Waiting)',
+    branchBadge: 'क्लिनिक / ब्रांच',
   },
   mr: {
     title: 'अपॉइंटमेंट बुक करा',
-    subtitle: 'आपले डॉक्टर निवडा आणि कन्फर्म करा',
-    selectLabel: 'उपलब्ध डॉक्टर आणि सत्र',
+    subtitle: 'आपले डॉक्टर आणि सत्र निवडा आणि कन्फर्म करा',
+    selectLabel: 'उपलब्ध डॉक्टर्स आणि सत्र',
+    selectSessionPrompt: 'कृपया एक सत्र निवडा',
     currentToken: 'चालू टोकन',
     waiting: 'प्रतीक्षेत',
     confirmBtn: 'बुकिंग कन्फर्म करा',
@@ -44,7 +48,7 @@ const T: Record<string, Record<string, string>> = {
     loading: 'उपलब्ध सत्र लोड होत आहेत...',
     noSessions: 'सध्या कोणतेही सक्रिय सत्र नाही. कृपया नंतर प्रयत्न करा.',
     invalidLink: 'अवैध लिंक. ब्रांच ID उपलब्ध नाही.',
-    selectAlert: 'कृपया एक सत्र निवडा.',
+    selectAlert: 'कृपया डॉक्टरांचे एक सत्र निवडा.',
     networkError: 'नेटवर्क त्रुटी. कृपया पुन्हा प्रयत्न करा.',
     bookingFailed: 'बुकिंग अयशस्वी. कृपया पुन्हा प्रयत्न करा.',
     successTitle: 'अपॉइंटमेंट कन्फर्म झाली!',
@@ -53,7 +57,7 @@ const T: Record<string, Record<string, string>> = {
     patientName: 'रुग्णाचे नाव',
     successWait: 'कृपया क्लिनिकमध्ये येऊन आपल्या पाळीची वाट पहा.',
     alreadyTitle: 'तुमची बुकिंग आधीच झाली आहे!',
-    alreadyMsg: 'या सत्रासाठी तुमचा टोकन आधीच बुक केला गेला आहे.',
+    alreadyMsg: 'आजच्या दिवसासाठी तुमचा टोकन आधीच बुक केला गेला आहे.',
     alreadyRunningToken: 'सध्या चालू असलेला टोकन',
     alreadySession: 'सत्र',
     session: 'सत्र',
@@ -63,19 +67,21 @@ const T: Record<string, Record<string, string>> = {
     cancelSuccess: 'तुमची अपॉइंटमेंट रद्द झाली आहे.',
     bookNewBtn: 'नवीन अपॉइंटमेंट बुक करा',
     statusPending: 'रांगेत आहे (Waiting)',
+    branchBadge: 'क्लिनिक / शाखा',
   },
   en: {
     title: 'Book Appointment',
-    subtitle: 'Select your doctor and confirm',
+    subtitle: 'Select your doctor & session, then confirm',
     selectLabel: 'Available Doctors & Sessions',
-    currentToken: 'Current Token',
+    selectSessionPrompt: 'Please select a session',
+    currentToken: 'Current Serving',
     waiting: 'Waiting',
     confirmBtn: 'Confirm Booking',
     bookingBtn: 'Booking...',
     loading: 'Loading available sessions...',
     noSessions: 'No active sessions right now. Please try later.',
     invalidLink: 'Invalid link. Branch ID is missing.',
-    selectAlert: 'Please select a session.',
+    selectAlert: 'Please select a doctor session.',
     networkError: 'Network error. Please try again.',
     bookingFailed: 'Booking failed. Please try again.',
     successTitle: 'Appointment Confirmed!',
@@ -94,6 +100,7 @@ const T: Record<string, Record<string, string>> = {
     cancelSuccess: 'Your appointment has been cancelled successfully.',
     bookNewBtn: 'Book New Appointment',
     statusPending: 'In Queue (Waiting)',
+    branchBadge: 'Clinic / Branch',
   },
 };
 
@@ -106,10 +113,33 @@ const normalizeLang = (raw: string | null): string => {
   return 'hi';
 };
 
+interface QueueItem {
+  id: string;
+  doctorId: string;
+  doctorName: string;
+  specialization?: string;
+  sessionName?: string;
+  sessionStart?: string;
+  sessionEnd?: string;
+  currentTokenNumber: number;
+  waitingCount: number;
+  completedCount?: number;
+  branchName?: string;
+  branchLogo?: string | null;
+  orgName?: string | null;
+}
+
+interface DoctorGroup {
+  doctorId: string;
+  doctorName: string;
+  specialization?: string;
+  queues: QueueItem[];
+}
+
 // ─── Component ──────────────────────────────────────────────
 const TelegramBookingForm = () => {
-  const [queues, setQueues] = useState<any[]>([]);
-  const [selectedQueue, setSelectedQueue] = useState('');
+  const [queues, setQueues] = useState<QueueItem[]>([]);
+  const [selectedQueue, setSelectedQueue] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [booking, setBooking] = useState(false);
@@ -121,6 +151,13 @@ const TelegramBookingForm = () => {
   const [patientName, setPatientName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [currentRunningToken, setCurrentRunningToken] = useState(0);
+
+  // Branch and Organization branding state
+  const [branchInfo, setBranchInfo] = useState<{
+    name: string;
+    logoBase64?: string | null;
+    orgName?: string | null;
+  }>({ name: '' });
 
   const searchParams = new URLSearchParams(window.location.search);
   const branchId = searchParams.get('branchId');
@@ -147,9 +184,21 @@ const TelegramBookingForm = () => {
     try {
       const queueRes = await fetch(`${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/active`);
       if (queueRes.ok) {
-        const data = await queueRes.json();
+        const data: QueueItem[] = await queueRes.json();
         setQueues(data || []);
-        if (data?.length > 0) setSelectedQueue(data[0].id);
+        if (data && data.length > 0) {
+          // Extract branch metadata from the first queue item if available
+          const first = data[0];
+          if (first.branchName) {
+            setBranchInfo({
+              name: first.branchName,
+              logoBase64: first.branchLogo,
+              orgName: first.orgName,
+            });
+          }
+          // Default selection to first session
+          setSelectedQueue(first.id);
+        }
       } else {
         setError(t.noSessions);
       }
@@ -178,7 +227,7 @@ const TelegramBookingForm = () => {
       return;
     }
 
-    // 2. Scenario 1 Check: Check if user already has an active booking for today
+    // 2. Scenario Check: Check if user already has an active booking for today
     const checkActiveBookingAndLoadQueues = async () => {
       try {
         if (chatId) {
@@ -189,6 +238,13 @@ const TelegramBookingForm = () => {
             const checkData = await bookingCheckRes.json();
             if (checkData.patientName) {
               setPatientName(checkData.patientName);
+            }
+            if (checkData.branchName) {
+              setBranchInfo({
+                name: checkData.branchName,
+                logoBase64: checkData.branchLogo,
+                orgName: checkData.orgName,
+              });
             }
             if (checkData.preferredLanguage) {
               const pLang = normalizeLang(checkData.preferredLanguage);
@@ -226,6 +282,30 @@ const TelegramBookingForm = () => {
       }
     };
   }, [branchId, chatId]);
+
+  // Group queues by Doctor ID
+  const doctorGroups = useMemo<DoctorGroup[]>(() => {
+    const map = new Map<string, DoctorGroup>();
+    for (const q of queues) {
+      const dId = q.doctorId || 'unknown';
+      if (!map.has(dId)) {
+        map.set(dId, {
+          doctorId: dId,
+          doctorName: q.doctorName || 'Doctor',
+          specialization: q.specialization || '',
+          queues: [],
+        });
+      }
+      map.get(dId)!.queues.push(q);
+    }
+    return Array.from(map.values());
+  }, [queues]);
+
+  // Find currently selected doctor ID based on selectedQueue
+  const selectedDoctorId = useMemo(() => {
+    const found = queues.find(q => q.id === selectedQueue);
+    return found ? found.doctorId : '';
+  }, [queues, selectedQueue]);
 
   const handleBook = async () => {
     if (!selectedQueue) { alert(t.selectAlert); return; }
@@ -286,7 +366,7 @@ const TelegramBookingForm = () => {
     }
   };
 
-  // ─── Application Theme CSS (DocAppointment Indigo Theme) ─────────
+  // ─── Application Theme Styles ──────────────────────────────────────────
   const styles = {
     page: {
       minHeight: '100vh',
@@ -296,184 +376,289 @@ const TelegramBookingForm = () => {
       padding: 0,
       margin: 0,
     } as React.CSSProperties,
+
+    // Header section matching DocAppointment App theme (Indigo 600 gradient)
     header: {
-      background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%)', // DocAppointment Indigo
-      padding: '24px 20px 22px',
-      borderRadius: '0 0 20px 20px',
-      boxShadow: '0 4px 16px rgba(37, 99, 235, 0.20)',
+      background: 'linear-gradient(135deg, #1e1b4b 0%, #1e40af 50%, #4f46e5 100%)', // Deep Navy to Indigo
+      padding: '20px 18px 22px',
+      borderRadius: '0 0 24px 24px',
+      boxShadow: '0 8px 24px -4px rgba(79, 70, 229, 0.25)',
       position: 'relative' as const,
       overflow: 'hidden',
     } as React.CSSProperties,
+
     headerTopRow: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '12px',
-      position: 'relative' as const,
+      marginBottom: '16px',
     } as React.CSSProperties,
-    brandBadge: {
+
+    // Brand container with white background pill
+    brandContainer: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: '6px',
-      backgroundColor: 'rgba(255, 255, 255, 0.18)',
-      padding: '4px 10px',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '12px',
-      fontWeight: 700,
-      letterSpacing: '0.02em',
+      gap: '8px',
+      backgroundColor: '#ffffff',
+      padding: '5px 12px 5px 8px',
+      borderRadius: '12px',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
     } as React.CSSProperties,
+
+    // Branch info banner in header
+    branchBanner: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      backdropFilter: 'blur(8px)',
+      border: '1px solid rgba(255, 255, 255, 0.20)',
+      borderRadius: '14px',
+      padding: '10px 14px',
+      marginBottom: '14px',
+    } as React.CSSProperties,
+
+    branchLogoImg: {
+      width: '36px',
+      height: '36px',
+      borderRadius: '8px',
+      objectFit: 'cover' as const,
+      backgroundColor: '#ffffff',
+      border: '1px solid rgba(255, 255, 255, 0.4)',
+    } as React.CSSProperties,
+
+    branchLogoFallback: {
+      width: '36px',
+      height: '36px',
+      borderRadius: '8px',
+      backgroundColor: 'rgba(255, 255, 255, 0.20)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '20px',
+      color: '#ffffff',
+    } as React.CSSProperties,
+
+    branchDetails: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      minWidth: 0,
+      flex: 1,
+    } as React.CSSProperties,
+
+    branchOrgName: {
+      fontSize: '11px',
+      fontWeight: 600,
+      color: 'rgba(255, 255, 255, 0.80)',
+      textTransform: 'uppercase' as const,
+      letterSpacing: '0.04em',
+      whiteSpace: 'nowrap' as const,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    } as React.CSSProperties,
+
+    branchTitle: {
+      fontSize: '14px',
+      fontWeight: 700,
+      color: '#ffffff',
+      whiteSpace: 'nowrap' as const,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    } as React.CSSProperties,
+
     langPillContainer: {
       display: 'inline-flex',
       backgroundColor: '#ffffff',
       borderRadius: '24px',
       padding: '3px',
-      border: '1.5px solid #cbd5e1',
+      border: '1px solid rgba(255, 255, 255, 0.4)',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.10)',
     } as React.CSSProperties,
+
     langBtn: (active: boolean) => ({
       border: 'none',
-      background: active ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'transparent',
-      color: active ? '#ffffff' : '#334155',
+      background: active ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'transparent',
+      color: active ? '#ffffff' : '#475569',
       fontWeight: active ? 700 : 600,
       fontSize: '12px',
-      padding: '5px 12px',
+      padding: '5px 11px',
       borderRadius: '20px',
       cursor: 'pointer',
       transition: 'all 0.15s ease',
-      boxShadow: active ? '0 2px 6px rgba(37, 99, 235, 0.35)' : 'none',
+      boxShadow: active ? '0 2px 6px rgba(79, 70, 229, 0.4)' : 'none',
     } as React.CSSProperties),
+
     headerTitle: {
       color: '#ffffff',
-      fontSize: '22px',
+      fontSize: '21px',
       fontWeight: 700,
       margin: 0,
       letterSpacing: '-0.02em',
     } as React.CSSProperties,
+
     headerSub: {
-      color: 'rgba(255, 255, 255, 0.90)',
+      color: 'rgba(255, 255, 255, 0.88)',
       fontSize: '13px',
       marginTop: '4px',
       fontWeight: 500,
     } as React.CSSProperties,
+
     body: {
-      padding: '20px 16px 40px',
-      maxWidth: '480px',
+      padding: '18px 16px 40px',
+      maxWidth: '520px',
       margin: '0 auto',
     } as React.CSSProperties,
-    label: {
-      fontSize: '14px',
-      fontWeight: 600,
-      color: '#475569', // slate-600
+
+    sectionLabel: {
+      fontSize: '13px',
+      fontWeight: 700,
+      color: '#64748b', // slate-500
       marginBottom: '12px',
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
       textTransform: 'uppercase' as const,
-      letterSpacing: '0.04em',
+      letterSpacing: '0.05em',
     } as React.CSSProperties,
-    card: (selected: boolean) => ({
-      padding: '16px',
+
+    // Doctor card grouping all sessions
+    doctorCard: (isDoctorSelected: boolean) => ({
       borderRadius: '16px',
-      border: selected ? '2px solid #2563eb' : '1px solid #e2e8f0',
-      backgroundColor: selected ? '#eff6ff' : '#ffffff',
-      cursor: 'pointer',
+      border: isDoctorSelected ? '2px solid #4f46e5' : '1px solid #e2e8f0',
+      backgroundColor: '#ffffff',
+      boxShadow: isDoctorSelected ? '0 6px 20px -4px rgba(79, 70, 229, 0.15)' : '0 1px 3px rgba(0, 0, 0, 0.04)',
+      overflow: 'hidden',
       transition: 'all 0.15s ease',
-      boxShadow: selected ? '0 4px 16px rgba(37, 99, 235, 0.12)' : '0 1px 3px rgba(0, 0, 0, 0.04)',
-      position: 'relative' as const,
+      marginBottom: '14px',
     } as React.CSSProperties),
-    cardCheck: {
-      position: 'absolute' as const,
-      top: '14px',
-      right: '14px',
-      width: '22px',
-      height: '22px',
-      borderRadius: '50%',
-      backgroundColor: '#2563eb',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#ffffff',
-      fontSize: '12px',
-      fontWeight: 700,
-    } as React.CSSProperties,
-    doctorRow: {
+
+    doctorHeader: (isDoctorSelected: boolean) => ({
+      padding: '14px 16px',
+      backgroundColor: isDoctorSelected ? '#f5f3ff' : '#ffffff', // subtle indigo tint if selected
+      borderBottom: '1px solid #f1f5f9',
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-    } as React.CSSProperties,
-    doctorIcon: {
-      width: '44px',
-      height: '44px',
+    } as React.CSSProperties),
+
+    doctorAvatar: {
+      width: '42px',
+      height: '42px',
       borderRadius: '12px',
-      backgroundColor: '#dbeafe', // blue-100
+      backgroundColor: '#e0e7ff', // indigo-100
+      color: '#4f46e5',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '22px',
+      fontSize: '20px',
       flexShrink: 0,
-      color: '#1d4ed8',
+      fontWeight: 700,
     } as React.CSSProperties,
+
     doctorName: {
       fontWeight: 700,
-      fontSize: '16px',
+      fontSize: '15px',
       color: '#0f172a',
+      lineHeight: 1.25,
     } as React.CSSProperties,
-    specialization: {
-      fontSize: '13px',
+
+    doctorSpecialty: {
+      fontSize: '12px',
       color: '#64748b',
       marginTop: '2px',
+      fontWeight: 500,
     } as React.CSSProperties,
-    sessionBadge: {
-      display: 'inline-flex',
+
+    // Session list inside doctor card
+    sessionList: {
+      padding: '8px 12px 12px',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '8px',
+    } as React.CSSProperties,
+
+    // Individual session radio row
+    sessionRow: (isSelected: boolean) => ({
+      display: 'flex',
       alignItems: 'center',
-      gap: '4px',
-      backgroundColor: '#ecfdf5', // emerald-50
-      color: '#047857', // emerald-700
-      border: '1px solid #a7f3d0',
-      fontSize: '12px',
-      fontWeight: 600,
-      padding: '4px 10px',
+      justifyContent: 'space-between',
+      padding: '10px 14px',
       borderRadius: '12px',
-      marginTop: '10px',
-    } as React.CSSProperties,
-    statsRow: {
+      border: isSelected ? '1.5px solid #4f46e5' : '1px solid #f1f5f9',
+      backgroundColor: isSelected ? '#eff6ff' : '#f8fafc',
+      cursor: 'pointer',
+      transition: 'all 0.15s ease',
+    } as React.CSSProperties),
+
+    radioOuter: (isSelected: boolean) => ({
+      width: '20px',
+      height: '20px',
+      borderRadius: '50%',
+      border: isSelected ? '6px solid #4f46e5' : '2px solid #cbd5e1',
+      backgroundColor: '#ffffff',
+      flexShrink: 0,
+      marginRight: '12px',
+      transition: 'all 0.15s ease',
+      boxSizing: 'border-box' as const,
+    } as React.CSSProperties),
+
+    sessionInfo: {
       display: 'flex',
-      gap: '14px',
-      marginTop: '12px',
-      paddingTop: '10px',
-      borderTop: '1px solid #f1f5f9',
+      flexDirection: 'column' as const,
+      flex: 1,
     } as React.CSSProperties,
-    stat: {
-      fontSize: '12px',
-      color: '#64748b',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-    } as React.CSSProperties,
-    statValue: {
+
+    sessionNameText: {
+      fontSize: '13px',
       fontWeight: 700,
       color: '#1e293b',
-      fontSize: '13px',
     } as React.CSSProperties,
+
+    sessionTiming: {
+      fontSize: '12px',
+      color: '#64748b',
+      marginTop: '1px',
+    } as React.CSSProperties,
+
+    sessionStats: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      flexShrink: 0,
+    } as React.CSSProperties,
+
+    statPill: {
+      fontSize: '11px',
+      padding: '3px 8px',
+      borderRadius: '8px',
+      backgroundColor: '#ffffff',
+      border: '1px solid #e2e8f0',
+      color: '#475569',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px',
+      fontWeight: 500,
+    } as React.CSSProperties,
+
     primaryBtn: (disabled: boolean) => ({
-      marginTop: '24px',
+      marginTop: '16px',
       width: '100%',
       padding: '14px',
-      backgroundColor: disabled ? '#94a3b8' : '#2563eb', // Indigo 600
+      backgroundColor: disabled ? '#94a3b8' : '#4f46e5', // App Primary Indigo
       color: '#ffffff',
       border: 'none',
-      borderRadius: '12px',
+      borderRadius: '14px',
       fontSize: '15px',
       fontWeight: 700,
       cursor: disabled ? 'not-allowed' : 'pointer',
-      boxShadow: disabled ? 'none' : '0 4px 12px rgba(37, 99, 235, 0.30)',
+      boxShadow: disabled ? 'none' : '0 6px 16px rgba(79, 70, 229, 0.35)',
       transition: 'all 0.15s ease',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
     } as React.CSSProperties),
+
     cancelBtn: {
       marginTop: '14px',
       width: '100%',
@@ -491,34 +676,38 @@ const TelegramBookingForm = () => {
       justifyContent: 'center',
       gap: '6px',
     } as React.CSSProperties,
-    // Active Booking Page (Clean Application Style)
+
+    // Active Booking Page styles
     bookedContainer: {
       padding: '24px 16px',
       maxWidth: '480px',
       margin: '0 auto',
     } as React.CSSProperties,
+
     bookedCard: {
       backgroundColor: '#ffffff',
       borderRadius: '20px',
       border: '1px solid #e2e8f0',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+      boxShadow: '0 6px 24px rgba(0, 0, 0, 0.06)',
       padding: '28px 20px',
       textAlign: 'center' as const,
     } as React.CSSProperties,
+
     statusPill: {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      backgroundColor: '#dbeafe', // blue-100
-      color: '#1d4ed8', // blue-700
+      backgroundColor: '#e0e7ff', // indigo-100
+      color: '#4338ca', // indigo-700
       fontSize: '12px',
       fontWeight: 700,
-      padding: '4px 12px',
+      padding: '4px 14px',
       borderRadius: '20px',
       marginBottom: '16px',
       textTransform: 'uppercase' as const,
       letterSpacing: '0.04em',
     } as React.CSSProperties,
+
     tokenBox: {
       backgroundColor: '#f8fafc',
       borderRadius: '16px',
@@ -526,20 +715,23 @@ const TelegramBookingForm = () => {
       margin: '16px 0',
       border: '1.5px dashed #cbd5e1',
     } as React.CSSProperties,
+
     tokenBig: {
-      fontSize: '52px',
+      fontSize: '54px',
       fontWeight: 800,
-      color: '#2563eb', // App Primary Indigo
+      color: '#4f46e5', // Primary Indigo
       lineHeight: 1,
       marginTop: '4px',
       letterSpacing: '-0.03em',
     } as React.CSSProperties,
+
     detailsTable: {
       width: '100%',
       marginTop: '16px',
       borderTop: '1px solid #f1f5f9',
       textAlign: 'left' as const,
     } as React.CSSProperties,
+
     tableRow: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -548,14 +740,16 @@ const TelegramBookingForm = () => {
       borderBottom: '1px solid #f8fafc',
       fontSize: '14px',
     } as React.CSSProperties,
+
     spinner: {
       width: '32px',
       height: '32px',
       border: '3px solid #e2e8f0',
-      borderTopColor: '#2563eb',
+      borderTopColor: '#4f46e5',
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
     } as React.CSSProperties,
+
     loadingPage: {
       minHeight: '100vh',
       display: 'flex',
@@ -594,16 +788,41 @@ const TelegramBookingForm = () => {
   if (booked) {
     return (
       <div style={styles.page}>
-        {/* Header with App theme & Language Selector */}
+        {/* Header with App Theme, BrandLogo, Branch Info & Language Switcher */}
         <div style={styles.header}>
           <div style={styles.headerTopRow}>
-            <div style={styles.brandBadge}>🏥 MyQCare</div>
+            {/* MyQCare Official Brand Logo */}
+            <div style={styles.brandContainer}>
+              <BrandLogo theme="light" size="sm" showSubtitle={false} />
+            </div>
+
+            {/* Language Switcher Pill */}
             <div style={styles.langPillContainer}>
               <button style={styles.langBtn(currentLang === 'hi')} onClick={() => changeLanguage('hi')}>हिन्दी</button>
               <button style={styles.langBtn(currentLang === 'mr')} onClick={() => changeLanguage('mr')}>मराठी</button>
               <button style={styles.langBtn(currentLang === 'en')} onClick={() => changeLanguage('en')}>EN</button>
             </div>
           </div>
+
+          {/* Branch / Hospital Name and Logo */}
+          {branchInfo.name && (
+            <div style={styles.branchBanner}>
+              {branchInfo.logoBase64 ? (
+                <img
+                  src={`data:image/png;base64,${branchInfo.logoBase64}`}
+                  alt="Branch Logo"
+                  style={styles.branchLogoImg}
+                />
+              ) : (
+                <div style={styles.branchLogoFallback}>🏥</div>
+              )}
+              <div style={styles.branchDetails}>
+                {branchInfo.orgName && <span style={styles.branchOrgName}>{branchInfo.orgName}</span>}
+                <span style={styles.branchTitle}>{branchInfo.name}</span>
+              </div>
+            </div>
+          )}
+
           <h1 style={styles.headerTitle}>{alreadyBooked ? t.alreadyTitle : t.successTitle}</h1>
           <p style={styles.headerSub}>{t.alreadyMsg}</p>
         </div>
@@ -639,7 +858,7 @@ const TelegramBookingForm = () => {
               {sessionName && (
                 <div style={styles.tableRow}>
                   <span style={{ color: '#64748b' }}>{t.alreadySession}</span>
-                  <span style={{ color: '#2563eb', fontWeight: 600 }}>{sessionName}</span>
+                  <span style={{ color: '#4f46e5', fontWeight: 700 }}>{sessionName}</span>
                 </div>
               )}
               {currentRunningToken > 0 && (
@@ -673,10 +892,13 @@ const TelegramBookingForm = () => {
     <div style={styles.page}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       
-      {/* Header with App Theme & Language Selector */}
+      {/* Header with App Theme, BrandLogo, Branch Details & Language Selector */}
       <div style={styles.header}>
         <div style={styles.headerTopRow}>
-          <div style={styles.brandBadge}>🏥 MyQCare</div>
+          {/* Official MyQCare Brand Logo */}
+          <div style={styles.brandContainer}>
+            <BrandLogo theme="light" size="sm" showSubtitle={false} />
+          </div>
           
           {/* Language Switcher Pill */}
           <div style={styles.langPillContainer}>
@@ -686,55 +908,103 @@ const TelegramBookingForm = () => {
           </div>
         </div>
 
+        {/* Branch / Hospital Name and Logo */}
+        {branchInfo.name && (
+          <div style={styles.branchBanner}>
+            {branchInfo.logoBase64 ? (
+              <img
+                src={`data:image/png;base64,${branchInfo.logoBase64}`}
+                alt="Branch Logo"
+                style={styles.branchLogoImg}
+              />
+            ) : (
+              <div style={styles.branchLogoFallback}>🏥</div>
+            )}
+            <div style={styles.branchDetails}>
+              {branchInfo.orgName && <span style={styles.branchOrgName}>{branchInfo.orgName}</span>}
+              <span style={styles.branchTitle}>{branchInfo.name}</span>
+            </div>
+          </div>
+        )}
+
         <h1 style={styles.headerTitle}>{t.title}</h1>
         <p style={styles.headerSub}>{patientName ? `👤 ${patientName} • ${t.subtitle}` : t.subtitle}</p>
       </div>
 
       {/* Body */}
       <div style={styles.body}>
-        <div style={styles.label}>
+        <div style={styles.sectionLabel}>
           <span>🩺</span> {t.selectLabel}
         </div>
 
-        {queues.length === 0 ? (
+        {doctorGroups.length === 0 ? (
           <div style={{ color: '#64748b', fontSize: '14px', textAlign: 'center', padding: '30px 0' }}>
             {t.noSessions}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {queues.map(q => (
-              <div
-                key={q.id}
-                onClick={() => setSelectedQueue(q.id)}
-                style={styles.card(selectedQueue === q.id)}
-              >
-                {selectedQueue === q.id && (
-                  <div style={styles.cardCheck}>✓</div>
-                )}
-                <div style={styles.doctorRow}>
-                  <div style={styles.doctorIcon}>👨‍⚕️</div>
-                  <div>
-                    <div style={styles.doctorName}>{q.doctorName || 'Doctor'}</div>
-                    {q.specialty && <div style={styles.specialization}>{q.specialty}</div>}
+          <div>
+            {doctorGroups.map(group => {
+              const isDoctorActive = selectedDoctorId === group.doctorId;
+              return (
+                <div
+                  key={group.doctorId}
+                  style={styles.doctorCard(isDoctorActive)}
+                >
+                  {/* Doctor Info Header (Rendered once per doctor) */}
+                  <div style={styles.doctorHeader(isDoctorActive)}>
+                    <div style={styles.doctorAvatar}>👨‍⚕️</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={styles.doctorName}>{group.doctorName}</div>
+                      {group.specialization && (
+                        <div style={styles.doctorSpecialty}>{group.specialization}</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sessions under this Doctor (with Radio Buttons) */}
+                  <div style={styles.sessionList}>
+                    {group.queues.map(sessionQueue => {
+                      const isSessionSelected = selectedQueue === sessionQueue.id;
+                      return (
+                        <div
+                          key={sessionQueue.id}
+                          onClick={() => setSelectedQueue(sessionQueue.id)}
+                          style={styles.sessionRow(isSessionSelected)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                            {/* Radio Button Indicator */}
+                            <div style={styles.radioOuter(isSessionSelected)} />
+
+                            <div style={styles.sessionInfo}>
+                              <span style={styles.sessionNameText}>
+                                {sessionQueue.sessionName || `${t.session}`}
+                              </span>
+                              {sessionQueue.sessionStart && sessionQueue.sessionEnd && (
+                                <span style={styles.sessionTiming}>
+                                  🕒 {sessionQueue.sessionStart} - {sessionQueue.sessionEnd}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Session Live Queue Status */}
+                          <div style={styles.sessionStats}>
+                            <div style={styles.statPill} title={t.currentToken}>
+                              <span>🎫</span>
+                              <strong>#{sessionQueue.currentTokenNumber || 0}</strong>
+                            </div>
+                            <div style={styles.statPill} title={t.waiting}>
+                              <span>⏳</span>
+                              <span>{sessionQueue.waitingCount || 0}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-
-                {(q.sessionName || (q.sessionStart && q.sessionEnd)) && (
-                  <div style={styles.sessionBadge}>
-                    🕐 {q.sessionName ? `${q.sessionName} ${t.session}` : ''} {q.sessionStart && q.sessionEnd ? `(${q.sessionStart} - ${q.sessionEnd})` : ''}
-                  </div>
-                )}
-
-                <div style={styles.statsRow}>
-                  <div style={styles.stat}>
-                    <span>🎫</span> {t.currentToken}: <span style={styles.statValue}>{q.currentTokenNumber || 0}</span>
-                  </div>
-                  <div style={styles.stat}>
-                    <span>⏳</span> {t.waiting}: <span style={styles.statValue}>{q.waitingCount || 0}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
