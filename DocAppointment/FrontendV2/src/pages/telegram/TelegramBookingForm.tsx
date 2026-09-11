@@ -41,6 +41,11 @@ const T: Record<string, Record<string, string>> = {
     newBookingHint: 'ℹ️ एक फॉर्म से एक ही बुकिंग संभव है। दोबारा बुकिंग के लिए टेलीग्राम बॉट पर "HI" लिखकर नया फॉर्म प्राप्त करें।',
     statusPending: 'कतार में है (Waiting)',
     branchBadge: 'क्लिनिक / ब्रांच',
+    formExpiredTitle: 'यह फॉर्म समाप्त हो चुका है',
+    formExpiredSub: 'इस फॉर्म का उपयोग पहले ही किया जा चुका है',
+    formExpiredBadge: 'समाप्त (Expired)',
+    formExpiredMsg: 'इस फॉर्म से पहले ही एक बुकिंग की जा चुकी है। एक फॉर्म केवल एक ही बुकिंग के लिए मान्य है।',
+    formExpiredAction: 'दोबारा नई बुकिंग के लिए कृपया टेलीग्राम बॉट पर "HI" लिखकर भेजें और नया फॉर्म प्राप्त करें।',
   },
   mr: {
     title: 'अपॉइंटमेंट बुक करा',
@@ -80,6 +85,11 @@ const T: Record<string, Record<string, string>> = {
     newBookingHint: 'ℹ️ एका फॉर्ममधून एकच बुकिंग शक्य आहे. पुन्हा बुकिंग करण्यासाठी टेलिग्राम बॉटवर "HI" पाठवून नवीन फॉर्म मिळवा.',
     statusPending: 'रांगेत आहे (Waiting)',
     branchBadge: 'क्लिनिक / शाखा',
+    formExpiredTitle: 'हा फॉर्म कालबाह्य झाला आहे',
+    formExpiredSub: 'हा फॉर्म आधीच वापरला गेला आहे',
+    formExpiredBadge: 'कालबाह्य (Expired)',
+    formExpiredMsg: 'या फॉर्ममधून आधीच एक बुकिंग केली गेली आहे. एका फॉर्ममधून फक्त एकदाच बुकिंग करता येते.',
+    formExpiredAction: 'पुन्हा नवीन बुकिंग करण्यासाठी कृपया टेलिग्राम बॉटवर "HI" लिहून पाठवा आणि नवीन फॉर्म मिळवा.',
   },
   en: {
     title: 'Book Appointment',
@@ -119,6 +129,11 @@ const T: Record<string, Record<string, string>> = {
     newBookingHint: 'ℹ️ This form is single-use. To book a new appointment, send "HI" on Telegram to receive a fresh form.',
     statusPending: 'In Queue (Waiting)',
     branchBadge: 'Clinic / Branch',
+    formExpiredTitle: 'This Form Has Expired',
+    formExpiredSub: 'This booking link has already been used',
+    formExpiredBadge: 'Expired',
+    formExpiredMsg: 'This form has already been used to make an appointment. Each booking form can only be used once.',
+    formExpiredAction: 'To make a new booking, please send "HI" to the Telegram bot to get a fresh booking form.',
   },
 };
 
@@ -170,6 +185,7 @@ const TelegramBookingForm = () => {
   const [cancelling, setCancelling] = useState(false);
   const [booked, setBooked] = useState(false);
   const [alreadyBooked, setAlreadyBooked] = useState(false);
+  const [formExpired, setFormExpired] = useState(false);
   const [tokenNumber, setTokenNumber] = useState(0);
   const [doctorName, setDoctorName] = useState('');
   const [doctorSpecialization, setDoctorSpecialization] = useState('');
@@ -191,6 +207,7 @@ const TelegramBookingForm = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const branchId = searchParams.get('branchId');
   const chatId = searchParams.get('chatId') || '';
+  const formId = searchParams.get('formId') || '';
 
   // Language management: prioritize saved preference or URL param (default 'hi')
   const [currentLang, setCurrentLang] = useState<string>(() => {
@@ -258,12 +275,12 @@ const TelegramBookingForm = () => {
       return;
     }
 
-    // 2. Scenario Check: Check if user already has an active booking for today
+    // 2. Scenario Check: Check if user already has an active booking for today or if form is expired
     const checkActiveBookingAndLoadQueues = async () => {
       try {
         if (chatId) {
           const bookingCheckRes = await fetch(
-            `${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/active-booking?chatId=${encodeURIComponent(chatId)}`
+            `${import.meta.env.VITE_API_URL}/queue/branch/${branchId}/active-booking?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}`
           );
           if (bookingCheckRes.ok) {
             const checkData = await bookingCheckRes.json();
@@ -295,7 +312,12 @@ const TelegramBookingForm = () => {
               setAlreadyBooked(true);
               setBooked(true);
               setLoading(false);
-              return; // Form expires & shows existing booking details directly!
+              return; // Shows active booking details directly!
+            }
+            if (checkData.isFormExpired) {
+              setFormExpired(true);
+              setLoading(false);
+              return; // Form has expired!
             }
           }
         }
@@ -317,7 +339,7 @@ const TelegramBookingForm = () => {
         document.body.removeChild(script);
       }
     };
-  }, [branchId, chatId]);
+  }, [branchId, chatId, formId]);
 
   // Group queues by Doctor ID
   const doctorGroups = useMemo<DoctorGroup[]>(() => {
@@ -350,7 +372,7 @@ const TelegramBookingForm = () => {
     setBooking(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}`,
+        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
       if (res.ok) {
@@ -368,7 +390,12 @@ const TelegramBookingForm = () => {
         }
         setBooked(true);
       } else {
-        alert(t.bookingFailed);
+        const errData = await res.json().catch(() => null);
+        if (errData?.message) {
+          alert(errData.message);
+        } else {
+          alert(t.bookingFailed);
+        }
       }
     } catch { 
       alert(t.networkError); 
@@ -896,6 +923,133 @@ const TelegramBookingForm = () => {
         <div style={{ fontSize: '40px' }}>🏥</div>
         <div style={{ color: '#ef4444', fontSize: '14px', maxWidth: '280px', textAlign: 'center', fontWeight: 500 }}>
           {error}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Form Expired Screen ─────────────────────────────────
+  if (formExpired) {
+    return (
+      <div style={styles.page}>
+        {/* Header with App Theme, BrandLogo, Branch Info & Language Switcher */}
+        <div style={styles.header}>
+          <div style={styles.headerTopRow}>
+            {/* MyQCare Official Brand Logo */}
+            <div style={styles.brandContainer}>
+              <BrandLogo theme="light" size="sm" showSubtitle={false} />
+            </div>
+
+            {/* Language Switcher Pill */}
+            <div style={styles.langPillContainer}>
+              <button style={styles.langBtn(currentLang === 'hi')} onClick={() => changeLanguage('hi')}>हिन्दी</button>
+              <button style={styles.langBtn(currentLang === 'mr')} onClick={() => changeLanguage('mr')}>मराठी</button>
+              <button style={styles.langBtn(currentLang === 'en')} onClick={() => changeLanguage('en')}>EN</button>
+            </div>
+          </div>
+
+          {/* Branch / Hospital Name, Logo/Icon, Address & Mobile */}
+          {branchInfo.name && (
+            <div style={styles.branchBanner}>
+              {branchInfo.logoBase64 ? (
+                <img
+                  src={branchInfo.logoBase64.startsWith('data:') ? branchInfo.logoBase64 : `data:image/png;base64,${branchInfo.logoBase64}`}
+                  alt="Branch Logo"
+                  style={styles.branchLogoImg}
+                />
+              ) : (
+                <div style={styles.branchLogoFallback}>🏥</div>
+              )}
+              <div style={styles.branchDetails}>
+                <span style={styles.branchTitle}>{branchInfo.name}</span>
+                {(branchInfo.address || branchInfo.phone) && (
+                  <div style={styles.branchMetaRow}>
+                    {branchInfo.address && (
+                      <span style={styles.branchMetaText} title={branchInfo.address}>
+                        📍 {branchInfo.address}
+                      </span>
+                    )}
+                    {branchInfo.phone && (
+                      <span style={styles.branchMetaText}>
+                        📞 {branchInfo.phone}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <h1 style={styles.headerTitle}>{t.formExpiredTitle}</h1>
+          <p style={styles.headerSub}>{t.formExpiredSub}</p>
+        </div>
+
+        {/* Content Card */}
+        <div style={styles.bookedContainer}>
+          <div style={styles.bookedCard}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: '#fef2f2',
+              border: '2px solid #fecaca',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '30px',
+              margin: '0 auto 16px auto',
+            }}>
+              ⏱️
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#fee2e2',
+              color: '#b91c1c',
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '4px 14px',
+              borderRadius: '20px',
+              marginBottom: '16px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}>
+              <span>●</span> {t.formExpiredBadge}
+            </div>
+
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0' }}>
+              {t.formExpiredTitle}
+            </h2>
+
+            <p style={{ color: '#475569', fontSize: '14px', lineHeight: 1.6, margin: '0 0 18px 0' }}>
+              {t.formExpiredMsg}
+            </p>
+
+            <div style={{
+              padding: '12px 14px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '12px',
+              color: '#166534',
+              fontSize: '13px',
+              fontWeight: 600,
+              lineHeight: 1.5,
+              marginBottom: '22px',
+              textAlign: 'center',
+            }}>
+              💬 {t.formExpiredAction}
+            </div>
+
+            {/* Close Window Button */}
+            <button
+              onClick={handleCloseApp}
+              style={styles.closeBtn}
+            >
+              {t.closeBtn}
+            </button>
+          </div>
         </div>
       </div>
     );

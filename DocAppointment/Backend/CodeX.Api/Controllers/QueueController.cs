@@ -613,9 +613,86 @@ namespace CodeX.Api.Controllers
             return await query.AnyAsync();
         }
 
+        private static bool IsFormConsumed(Domain.Entities.Patient? patient, string? formId)
+        {
+            if (patient == null || string.IsNullOrWhiteSpace(formId) || string.IsNullOrWhiteSpace(patient.MetaDataJson))
+                return false;
+
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
+                if (doc.RootElement.TryGetProperty("consumedFormIds", out var consumedProp) && consumedProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    foreach (var item in consumedProp.EnumerateArray())
+                    {
+                        if (item.GetString() == formId)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        private static void RecordConsumedFormId(Domain.Entities.Patient patient, string formId)
+        {
+            if (string.IsNullOrWhiteSpace(formId)) return;
+            try
+            {
+                var dict = new Dictionary<string, object>();
+                var consumedList = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(patient.MetaDataJson))
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                    {
+                        if (prop.NameEquals("consumedFormIds"))
+                        {
+                            if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                            {
+                                foreach (var item in prop.Value.EnumerateArray())
+                                {
+                                    var s = item.GetString();
+                                    if (!string.IsNullOrEmpty(s) && !consumedList.Contains(s))
+                                    {
+                                        consumedList.Add(s);
+                                    }
+                                }
+                            }
+                        }
+                        else if (prop.NameEquals("language"))
+                        {
+                            dict["language"] = prop.Value.GetString() ?? "hi";
+                        }
+                        else
+                        {
+                            dict[prop.Name] = prop.Value.Clone();
+                        }
+                    }
+                }
+
+                if (!consumedList.Contains(formId))
+                {
+                    consumedList.Add(formId);
+                    if (consumedList.Count > 50)
+                    {
+                        consumedList.RemoveAt(0);
+                    }
+                }
+
+                dict["consumedFormIds"] = consumedList;
+                patient.MetaDataJson = System.Text.Json.JsonSerializer.Serialize(dict);
+            }
+            catch { }
+        }
+
         [AllowAnonymous]
         [HttpPost("{queueId}/book-anonymous")]
-        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId)
+        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId, [FromQuery] string? formId)
         {
             var queue = await _context.DailyQueues
                 .IgnoreQueryFilters()
@@ -625,7 +702,7 @@ namespace CodeX.Api.Controllers
 
             if (queue == null) return NotFound("Queue not found.");
 
-            // Check for duplicate booking if chatId is provided
+            // Check for duplicate booking or consumed form if chatId is provided
             Guid? patientId = null;
             Domain.Entities.Patient? patient = null;
             if (!string.IsNullOrWhiteSpace(chatId))
@@ -637,6 +714,14 @@ namespace CodeX.Api.Controllers
                 if (patient != null)
                 {
                     patientId = patient.Id;
+
+                    // Check if this specific formId was already consumed
+                    if (!string.IsNullOrWhiteSpace(formId) && IsFormConsumed(patient, formId))
+                    {
+                        return BadRequest(new { 
+                            message = "यह फॉर्म पहले ही उपयोग हो चुका है (Form Expired)। दोबारा बुकिंग के लिए कृपया टेलीग्राम बॉट पर 'HI' भेजें।" 
+                        });
+                    }
 
                     var branch = queue.Branch;
                     var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch?.Timezone ?? "India Standard Time");
@@ -687,6 +772,12 @@ namespace CodeX.Api.Controllers
                 token.PatientId = patientId.Value;
 
             _context.Tokens.Add(token);
+
+            if (patient != null && !string.IsNullOrWhiteSpace(formId))
+            {
+                RecordConsumedFormId(patient, formId);
+            }
+
             await _context.SaveChangesAsync(default);
 
             return Ok(new { 
@@ -702,10 +793,10 @@ namespace CodeX.Api.Controllers
 
         [AllowAnonymous]
         [HttpGet("branch/{branchId}/active-booking")]
-        public async Task<IActionResult> GetActiveBooking(Guid branchId, [FromQuery] string? chatId)
+        public async Task<IActionResult> GetActiveBooking(Guid branchId, [FromQuery] string? chatId, [FromQuery] string? formId)
         {
             if (string.IsNullOrWhiteSpace(chatId))
-                return Ok(new { hasActiveBooking = false });
+                return Ok(new { hasActiveBooking = false, isFormExpired = false });
 
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
@@ -717,7 +808,7 @@ namespace CodeX.Api.Controllers
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
             if (patient == null)
-                return Ok(new { hasActiveBooking = false, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
+                return Ok(new { hasActiveBooking = false, isFormExpired = false, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
 
             string preferredLang = "hi";
             if (!string.IsNullOrEmpty(patient.MetaDataJson))
@@ -751,6 +842,7 @@ namespace CodeX.Api.Controllers
                     && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
                 .Select(t => new {
                     hasActiveBooking = true,
+                    isFormExpired = false,
                     tokenNumber = t.TokenNumber,
                     doctorName = t.Queue.Doctor.Name,
                     specialization = t.Queue.Doctor.Specialization,
@@ -772,8 +864,11 @@ namespace CodeX.Api.Controllers
             if (activeToken != null)
                 return Ok(activeToken);
 
+            bool isConsumed = IsFormConsumed(patient, formId);
+
             return Ok(new { 
                 hasActiveBooking = false, 
+                isFormExpired = isConsumed,
                 patientName = patient.Name, 
                 preferredLanguage = preferredLang, 
                 branchName = branch.Name, 

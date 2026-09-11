@@ -354,10 +354,19 @@ namespace CodeX.Api.Controllers
             if (patient == null) return;
             try
             {
-                var dict = new Dictionary<string, string>();
+                var dict = new Dictionary<string, object>();
                 if (!string.IsNullOrEmpty(patient.MetaDataJson))
                 {
-                    try { dict = JsonSerializer.Deserialize<Dictionary<string, string>>(patient.MetaDataJson) ?? new(); } catch { }
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(patient.MetaDataJson);
+                        foreach (var prop in doc.RootElement.EnumerateObject())
+                        {
+                            if (prop.NameEquals("language")) continue;
+                            dict[prop.Name] = prop.Value.Clone();
+                        }
+                    }
+                    catch { }
                 }
                 dict["language"] = lang;
                 patient.MetaDataJson = JsonSerializer.Serialize(dict);
@@ -578,7 +587,8 @@ namespace CodeX.Api.Controllers
 
             // Using Ngrok or your deployed frontend URL
             var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
-            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&chatId={chatId}&lang={lang}&v={DateTime.UtcNow.Ticks}";
+            var formId = Guid.NewGuid().ToString("N");
+            var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&chatId={chatId}&lang={lang}&formId={formId}&v={DateTime.UtcNow.Ticks}";
 
             string promptText = lang switch
             {
