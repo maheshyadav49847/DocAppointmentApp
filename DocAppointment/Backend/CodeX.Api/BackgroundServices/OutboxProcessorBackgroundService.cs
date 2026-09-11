@@ -82,47 +82,58 @@ namespace CodeX.Api.BackgroundServices
             var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
             var dbContext = (DbContext)context;
 
-            List<OutboxMessage> claimedBatch = new();
-
-            // 1. ATOMIC BATCH CLAIM (PostgreSQL FOR UPDATE SKIP LOCKED)
+            // 1. ATOMIC BATCH CLAIM
             // Priority: Higher Priority first (OTP/Security = 100, Live Alert = 50, Prescription = 10)
             // FIFO: Within same Priority, oldest CreatedAt first.
-            // SKIP LOCKED: Never blocks or waits on locked rows -> 0% deadlock risk.
-            await using (var transaction = await dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, stoppingToken))
+            var nowUtc = DateTime.UtcNow;
+            var channelLower = (channel ?? string.Empty).Trim().ToLowerInvariant();
+
+            var candidateIds = await dbContext.Set<OutboxMessage>()
+                .IgnoreQueryFilters()
+                .Where(m => !m.IsDeleted &&
+                            m.Channel.ToLower() == channelLower &&
+                            (m.Status == "Pending" ||
+                             (m.Status == "Failed" && m.RetryCount < m.MaxRetries && m.NextRetryAtUtc != null && m.NextRetryAtUtc <= nowUtc) ||
+                             (m.Status == "Processing" && m.UpdatedAt < nowUtc.AddMinutes(-5))))
+                .OrderByDescending(m => m.Priority)
+                .ThenBy(m => m.CreatedAt)
+                .Take(BatchSizePerChannel)
+                .Select(m => m.Id)
+                .ToListAsync(stoppingToken);
+
+            if (candidateIds.Count == 0) return 0;
+
+            var claimedBatch = await dbContext.Set<OutboxMessage>()
+                .IgnoreQueryFilters()
+                .Where(m => candidateIds.Contains(m.Id) && (m.Status == "Pending" || m.Status == "Failed" || m.Status == "Processing"))
+                .ToListAsync(stoppingToken);
+
+            if (claimedBatch.Count == 0) return 0;
+
+            // Transition immediately to 'Processing'
+            foreach (var item in claimedBatch)
             {
-                var nowUtc = DateTime.UtcNow;
+                item.Status = "Processing";
+                item.UpdatedAt = DateTime.UtcNow;
+            }
 
-                var rawSql = @"
-                    SELECT * FROM ""OutboxMessages""
-                    WHERE ""Channel"" = {0}
-                      AND ""IsDeleted"" = false
-                      AND (
-                            ""Status"" = 'Pending'
-                            OR (""Status"" = 'Failed' AND ""RetryCount"" < ""MaxRetries"" AND ""NextRetryAtUtc"" IS NOT NULL AND ""NextRetryAtUtc"" <= {1})
-                          )
-                    ORDER BY ""Priority"" DESC, ""CreatedAt"" ASC
-                    LIMIT {2}
-                    FOR UPDATE SKIP LOCKED";
+            await dbContext.SaveChangesAsync(stoppingToken);
 
-                claimedBatch = await dbContext.Set<OutboxMessage>()
-                    .FromSqlRaw(rawSql, channel, nowUtc, BatchSizePerChannel)
-                    .ToListAsync(stoppingToken);
-
-                if (claimedBatch.Count == 0)
+            // Broadcast real-time transition to Processing
+            try
+            {
+                var notificationService = scope.ServiceProvider.GetService<IQueueNotificationService>();
+                if (notificationService != null)
                 {
-                    await transaction.RollbackAsync(stoppingToken);
-                    return 0;
+                    foreach (var item in claimedBatch)
+                    {
+                        _ = notificationService.NotifyOutboxStatusChanged(item.BranchId, item.Id, "Processing", item.Channel, null);
+                    }
                 }
-
-                // Transition immediately to 'Processing' within the same lock
-                foreach (var item in claimedBatch)
-                {
-                    item.Status = "Processing";
-                    item.UpdatedAt = DateTime.UtcNow;
-                }
-
-                await dbContext.SaveChangesAsync(stoppingToken);
-                await transaction.CommitAsync(stoppingToken);
+            }
+            catch
+            {
+                // Non-blocking notification failure
             }
 
             // 2. CONTROLLED PARALLEL DISPATCH FOR THIS CHANNEL
@@ -188,10 +199,23 @@ namespace CodeX.Api.BackgroundServices
                 }
                 else if (channel == "whatsapp")
                 {
-                    await whatsAppService.SendTextMessage(
-                        toPhoneNumber: item.Recipient,
-                        message: item.MessageBody ?? string.Empty,
-                        branchId: item.BranchId);
+                    if (!string.IsNullOrWhiteSpace(item.FileBase64))
+                    {
+                        var fileName = !string.IsNullOrWhiteSpace(item.FileName) ? item.FileName : "Prescription.pdf";
+                        await whatsAppService.SendDocumentMessage(
+                            toPhoneNumber: item.Recipient,
+                            message: item.MessageBody ?? string.Empty,
+                            fileName: fileName,
+                            base64Data: item.FileBase64,
+                            branchId: item.BranchId);
+                    }
+                    else
+                    {
+                        await whatsAppService.SendTextMessage(
+                            toPhoneNumber: item.Recipient,
+                            message: item.MessageBody ?? string.Empty,
+                            branchId: item.BranchId);
+                    }
                 }
 
                 // Mark Successful

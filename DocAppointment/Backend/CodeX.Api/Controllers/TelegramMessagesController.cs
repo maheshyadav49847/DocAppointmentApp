@@ -102,6 +102,16 @@ namespace CodeX.Api.Controllers
                 _context.OutboxMessages.Add(outboxItem);
                 await _context.SaveChangesAsync(default);
 
+                try
+                {
+                    var notificationService = HttpContext.RequestServices.GetService<IQueueNotificationService>();
+                    if (notificationService != null)
+                    {
+                        _ = notificationService.NotifyOutboxStatusChanged(resolvedBranchId, outboxItem.Id, "Pending", "Telegram", null);
+                    }
+                }
+                catch { }
+
                 return Ok(new 
                 { 
                     success = true, 

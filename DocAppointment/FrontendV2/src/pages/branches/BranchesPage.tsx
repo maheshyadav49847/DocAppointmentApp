@@ -52,7 +52,7 @@ export default function BranchesPage() {
   const { data: branches, isLoading } = useQuery({
     queryKey: ['branches', orgId],
     queryFn: () => branchService.getBranches(orgId || ''),
-    enabled: !!orgId
+    enabled: !!orgId && orgId !== 'undefined'
   })
 
   const createMutation = useMutation({

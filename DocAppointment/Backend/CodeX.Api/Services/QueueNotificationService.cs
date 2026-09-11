@@ -77,8 +77,9 @@ namespace CodeX.Api.Services
 
         public async Task NotifyOutboxStatusChanged(Guid branchId, Guid outboxId, string status, string channel, string? error = null)
         {
-            await _hubContext.Clients.Group(branchId.ToString())
-                .SendAsync("OutboxStatusChanged", new { BranchId = branchId, OutboxId = outboxId, Status = status, Channel = channel, Error = error });
+            var payload = new { BranchId = branchId, OutboxId = outboxId, Status = status, Channel = channel, Error = error };
+            await _hubContext.Clients.Group(branchId.ToString()).SendAsync("OutboxStatusChanged", payload);
+            await _hubContext.Clients.All.SendAsync("OutboxStatusChanged", payload);
         }
 
         public async Task NotifyInvoiceUpdated(Guid branchId, Guid invoiceId, string invoiceNumber, string status)

@@ -152,7 +152,7 @@ namespace CodeX.Api.Controllers
         [HasPermission(SystemPermissions.Analytics.View)]
         public async Task<IActionResult> RetryMessage(Guid id)
         {
-            var message = await _context.OutboxMessages.FirstOrDefaultAsync(m => m.Id == id);
+            var message = await _context.OutboxMessages.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == id);
             if (message == null) return NotFound("Outbox message not found");
 
             message.Status = "Pending";
@@ -161,6 +161,16 @@ namespace CodeX.Api.Controllers
             message.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(default);
+
+            try
+            {
+                var notificationService = HttpContext.RequestServices.GetService<IQueueNotificationService>();
+                if (notificationService != null)
+                {
+                    _ = notificationService.NotifyOutboxStatusChanged(message.BranchId, message.Id, message.Status, message.Channel, null);
+                }
+            }
+            catch { }
 
             return Ok(new { success = true, message = "Outbox item requeued for immediate dispatch." });
         }

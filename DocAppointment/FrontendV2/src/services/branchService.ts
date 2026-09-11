@@ -9,7 +9,10 @@ export interface Branch {
 }
 
 export const branchService = {
-  getBranches: async (orgId: string): Promise<Branch[]> => {
+  getBranches: async (orgId?: string): Promise<Branch[]> => {
+    if (!orgId || orgId === 'undefined' || orgId.trim() === '') {
+      return branchService.getMyBranches()
+    }
     const response = await api.get(`/branches/org/${orgId}`)
     return response.data
   },

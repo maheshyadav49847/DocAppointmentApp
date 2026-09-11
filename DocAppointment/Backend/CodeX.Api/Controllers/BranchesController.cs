@@ -62,12 +62,18 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("org/{orgId}")]
-        public async Task<ActionResult<List<Branch>>> GetByOrg(Guid orgId)
+        public async Task<ActionResult<List<Branch>>> GetByOrg(string orgId)
         {
-            // IDOR Protection: Ensure user can only see branches of their own organization
-            if (orgId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty) return Forbid();
+            if (!Guid.TryParse(orgId, out var parsedOrgId) || parsedOrgId == Guid.Empty)
+            {
+                // Graceful fallback to user's authorized branches if orgId is missing, undefined, or invalid
+                return await Get();
+            }
 
-            var query = _context.Branches.Where(b => b.OrganizationId == orgId);
+            // IDOR Protection: Ensure user can only see branches of their own organization
+            if (parsedOrgId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty) return Forbid();
+
+            var query = _context.Branches.Where(b => b.OrganizationId == parsedOrgId);
 
             // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
             if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)

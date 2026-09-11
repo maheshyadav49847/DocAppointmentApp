@@ -81,7 +81,7 @@ export default function OutboxDashboardPage() {
   // Fetch branches
   const { data: branchesData } = useQuery({
     queryKey: ['branches'],
-    queryFn: () => branchService.getBranches(),
+    queryFn: () => branchService.getMyBranches(),
     enabled: isMultiBranch
   });
   const myBranches = branchesData || [];
@@ -455,14 +455,22 @@ export default function OutboxDashboardPage() {
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
-                        {(m.status === 'Failed' || m.status === 'DeadLetter') && (
+                        {(m.status === 'Failed' || m.status === 'DeadLetter' || m.status === 'Pending') && (
                           <button
                             onClick={() => retryMutation.mutate(m.id)}
                             disabled={retryMutation.isPending}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg transition"
-                            title="Retry Dispatch Immediately"
+                            className={`p-1.5 rounded-lg transition ${
+                              m.status === 'Pending'
+                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                                : 'bg-rose-50 hover:bg-rose-100 text-rose-700'
+                            }`}
+                            title={m.status === 'Pending' ? "Dispatch Now (Re-trigger worker)" : "Retry Dispatch Immediately"}
                           >
-                            <RotateCcw className="w-3.5 h-3.5" />
+                            {m.status === 'Pending' ? (
+                              <Send className="w-3.5 h-3.5" />
+                            ) : (
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            )}
                           </button>
                         )}
                       </div>
@@ -560,15 +568,27 @@ export default function OutboxDashboardPage() {
             </div>
 
             <div className="pt-2 flex items-center justify-between">
-              {(inspectItem.status === 'Failed' || inspectItem.status === 'DeadLetter') ? (
+              {(inspectItem.status === 'Failed' || inspectItem.status === 'DeadLetter' || inspectItem.status === 'Pending') ? (
                 <button
                   onClick={() => {
                     retryMutation.mutate(inspectItem.id);
                     setInspectItem(null);
                   }}
-                  className="px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-xs hover:bg-rose-700 transition flex items-center gap-1.5"
+                  className={`px-4 py-2 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 ${
+                    inspectItem.status === 'Pending'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Requeue Now
+                  {inspectItem.status === 'Pending' ? (
+                    <>
+                      <Send className="w-3.5 h-3.5" /> Dispatch Now
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" /> Requeue Now
+                    </>
+                  )}
                 </button>
               ) : <div />}
 
