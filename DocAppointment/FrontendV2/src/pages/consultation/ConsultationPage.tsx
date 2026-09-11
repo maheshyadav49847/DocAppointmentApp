@@ -270,19 +270,46 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
         if (printRef.current) {
           try {
-            // Generate PDF and send to WA in the background so we don't block the UI
+            // Generate PDF and send to patient channels (Telegram & WhatsApp) in the background so we don't block the UI
             (async () => {
               try {
                 const base64Pdf = await generateBase64PdfFromElement(printRef.current!);
-                await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
-                  to: patient?.phone,
-                  message: `Hello ${patient?.name}, here is your prescription from your recent consultation at Modern Clinic.`,
-                  fileBase64: base64Pdf,
-                  fileName: `Prescription_${patient?.name}.pdf`
-                });
-                console.log("Prescription sent to WhatsApp successfully.");
+                const clinicName = currentBranch?.name || "the clinic";
+                const patientDisplayName = patient?.name || "Patient";
+                const prescriptionMsg = `Hello ${patientDisplayName}, here is your prescription from your recent consultation at ${clinicName}.`;
+                const fileName = `Prescription_${patientDisplayName.replace(/\s+/g, '_')}.pdf`;
+
+                // 1. Send via Telegram if TelegramChatId is present
+                if (patient?.telegramChatId) {
+                  try {
+                    await api.post(`/telegram/messages/send/${currentBranchId}`, {
+                      chatId: patient.telegramChatId,
+                      message: prescriptionMsg,
+                      fileBase64: base64Pdf,
+                      fileName: fileName
+                    });
+                    console.log("Prescription sent to Telegram successfully.");
+                  } catch (tgErr: any) {
+                    console.error("Auto-send Telegram Error", tgErr);
+                  }
+                }
+
+                // 2. Send via WhatsApp if Phone is present
+                if (patient?.phone) {
+                  try {
+                    await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
+                      to: patient.phone,
+                      message: prescriptionMsg,
+                      fileBase64: base64Pdf,
+                      fileName: fileName
+                    });
+                    console.log("Prescription sent to WhatsApp successfully.");
+                  } catch (waErr: any) {
+                    console.error("Auto-send WA Error", waErr);
+                  }
+                }
               } catch (err: any) {
-                console.error("Auto-send WA Error", err);
+                console.error("Auto-send Prescription Error", err);
               }
             })();
             

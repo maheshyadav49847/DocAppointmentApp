@@ -67,6 +67,7 @@ namespace CodeX.Api.Controllers
                     p.PatientCode,
                     p.Name,
                     p.Phone,
+                    p.TelegramChatId,
                     p.Email,
                     p.Address,
                     p.EmergencyContactName,

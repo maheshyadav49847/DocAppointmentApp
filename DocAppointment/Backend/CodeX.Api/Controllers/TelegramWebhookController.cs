@@ -25,19 +25,22 @@ namespace CodeX.Api.Controllers
         private readonly ITelegramService _telegramService;
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IChatSessionCache _chatSessionCache;
 
         public TelegramWebhookController(
             ILogger<TelegramWebhookController> logger,
             ISender mediator,
             ITelegramService telegramService,
             IApplicationDbContext context,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IChatSessionCache chatSessionCache)
         {
             _logger = logger;
             _mediator = mediator;
             _telegramService = telegramService;
             _context = context;
             _currentUserService = currentUserService;
+            _chatSessionCache = chatSessionCache;
         }
 
         [AllowAnonymous]
@@ -166,6 +169,7 @@ namespace CodeX.Api.Controllers
             // Find existing patient by phone
             var phoneVars = NormalizationHelper.GetPhoneVariations(phone);
             var patient = await _context.Patients
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => !p.IsDeleted && phoneVars.Contains(p.Phone));
 
             if (patient == null)
@@ -183,6 +187,7 @@ namespace CodeX.Api.Controllers
             {
                 // Update all matching patients to have this Telegram Chat ID (in case of family profiles)
                 var patients = await _context.Patients
+                    .IgnoreQueryFilters()
                     .Where(p => !p.IsDeleted && phoneVars.Contains(p.Phone))
                     .ToListAsync();
                 foreach (var p in patients)
@@ -237,6 +242,7 @@ namespace CodeX.Api.Controllers
 
             // Look up patient by Telegram Chat ID
             var patient = await _context.Patients
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
 
             // Determine current language: from patient preferences or ChatSession or incoming rawLang
@@ -248,10 +254,19 @@ namespace CodeX.Api.Controllers
             ChatSession? chatSession = null;
             if (patient != null && !string.IsNullOrEmpty(patient.Phone))
             {
-                var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
                 var normalizedPhone = NormalizationHelper.NormalizePhone(patient.Phone);
-                chatSession = await _context.ChatSessions
-                    .FirstOrDefaultAsync(s => (phoneVars.Contains(s.PhoneNumber) || s.PhoneNumber == normalizedPhone) && s.BranchId == branchId && !s.IsDeleted);
+                chatSession = await _chatSessionCache.GetSessionAsync(normalizedPhone, branchId, default);
+                if (chatSession == null)
+                {
+                    var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
+                    chatSession = await _context.ChatSessions
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(s => (phoneVars.Contains(s.PhoneNumber) || s.PhoneNumber == normalizedPhone) && s.BranchId == branchId && !s.IsDeleted);
+                    if (chatSession != null)
+                    {
+                        _chatSessionCache.SetSession(chatSession);
+                    }
+                }
                 if (chatSession != null && !string.IsNullOrEmpty(chatSession.Language))
                     lang = NormalizeLanguage(chatSession.Language);
             }
@@ -298,7 +313,11 @@ namespace CodeX.Api.Controllers
             {
                 var isSkip = cleanText.Equals("skip", StringComparison.OrdinalIgnoreCase)
                           || cleanText.Equals("छोड़ें", StringComparison.OrdinalIgnoreCase)
-                          || cleanText.Equals("सोडा", StringComparison.OrdinalIgnoreCase);
+                          || cleanText.Equals("सोडा", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("नहीं", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("ना", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("no", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("none", StringComparison.OrdinalIgnoreCase);
 
                 if (!isSkip && chatSession!.SelectedSessionId.HasValue)
                 {
@@ -312,6 +331,7 @@ namespace CodeX.Api.Controllers
 
                 chatSession!.CurrentState = "START";
                 chatSession.SelectedSessionId = null;
+                _chatSessionCache.SetSession(chatSession);
                 await _context.SaveChangesAsync(default);
 
                 var feedbackSuccessMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "FEEDBACK_SUCCESS");
@@ -355,6 +375,7 @@ namespace CodeX.Api.Controllers
                             {
                                 chatSession.CurrentState = "AWAITING_RATING_COMMENT";
                                 chatSession.SelectedSessionId = targetTokenId.Value;
+                                _chatSessionCache.SetSession(chatSession);
                                 await _context.SaveChangesAsync(default);
                             }
 
@@ -364,7 +385,24 @@ namespace CodeX.Api.Controllers
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Error submitting rating from Telegram");
+                            _logger.LogWarning(ex, "Rating submission error from Telegram: {Message}", ex.Message);
+
+                            if (chatSession != null)
+                            {
+                                chatSession.CurrentState = "START";
+                                chatSession.SelectedSessionId = null;
+                                _chatSessionCache.SetSession(chatSession);
+                                await _context.SaveChangesAsync(default);
+                            }
+
+                            string alreadyRatedMsg = lang switch
+                            {
+                                "mr" => "🙏 आपण या भेटीसाठी आधीच रेटिंग दिले आहे. धन्यवाद!",
+                                "hi" => "🙏 आप पहले ही इस विज़िट के लिए अपनी रेटिंग दर्ज कर चुके हैं। धन्यवाद!",
+                                _ => "🙏 You have already submitted a rating for this visit. Thank you!"
+                            };
+                            await _telegramService.SendTextMessage(chatId, alreadyRatedMsg, branchId);
+                            return;
                         }
                     }
                 }
@@ -415,6 +453,7 @@ namespace CodeX.Api.Controllers
                 if (chatSession != null)
                 {
                     chatSession.CurrentState = "AWAITING_LANGUAGE";
+                    _chatSessionCache.SetSession(chatSession);
                     await _context.SaveChangesAsync(default);
                 }
 
@@ -435,6 +474,7 @@ namespace CodeX.Api.Controllers
                 {
                     lang = "hi";
                     chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
                     await SavePatientLanguage(patient, lang, branchId);
                     await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
                 }
@@ -442,6 +482,7 @@ namespace CodeX.Api.Controllers
                 {
                     lang = "mr";
                     chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
                     await SavePatientLanguage(patient, lang, branchId);
                     await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
                 }
@@ -449,6 +490,7 @@ namespace CodeX.Api.Controllers
                 {
                     lang = "en";
                     chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
                     await SavePatientLanguage(patient, lang, branchId);
                     await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
                 }
@@ -486,7 +528,11 @@ namespace CodeX.Api.Controllers
             if (cleanText.Equals("hindi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिन्दी", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिंदी", StringComparison.OrdinalIgnoreCase))
             {
                 lang = "hi";
-                if (chatSession != null) chatSession.CurrentState = "START";
+                if (chatSession != null)
+                {
+                    chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
+                }
                 await SavePatientLanguage(patient, lang, branchId);
                 await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
@@ -504,7 +550,11 @@ namespace CodeX.Api.Controllers
             else if (cleanText.Equals("marathi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("मराठी", StringComparison.OrdinalIgnoreCase))
             {
                 lang = "mr";
-                if (chatSession != null) chatSession.CurrentState = "START";
+                if (chatSession != null)
+                {
+                    chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
+                }
                 await SavePatientLanguage(patient, lang, branchId);
                 await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
@@ -522,7 +572,11 @@ namespace CodeX.Api.Controllers
             else if (cleanText.Equals("english", StringComparison.OrdinalIgnoreCase))
             {
                 lang = "en";
-                if (chatSession != null) chatSession.CurrentState = "START";
+                if (chatSession != null)
+                {
+                    chatSession.CurrentState = "START";
+                    _chatSessionCache.SetSession(chatSession);
+                }
                 await SavePatientLanguage(patient, lang, branchId);
                 await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
