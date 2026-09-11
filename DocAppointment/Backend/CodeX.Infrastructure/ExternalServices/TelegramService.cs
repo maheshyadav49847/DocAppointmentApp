@@ -39,8 +39,17 @@ namespace CodeX.Infrastructure.ExternalServices
             var cacheKey = $"Branch_{branchId}_TelegramBotToken";
             if (!_cache.TryGetValue(cacheKey, out string? token))
             {
-                var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+                var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId);
                 token = branch?.TelegramBotToken;
+
+                if (string.IsNullOrEmpty(token) && branch != null)
+                {
+                    token = await _context.Branches.IgnoreQueryFilters()
+                        .Where(b => b.OrganizationId == branch.OrganizationId && !string.IsNullOrEmpty(b.TelegramBotToken) && !b.IsDeleted)
+                        .Select(b => b.TelegramBotToken)
+                        .FirstOrDefaultAsync();
+                }
+
                 if (!string.IsNullOrEmpty(token))
                 {
                     _cache.Set(cacheKey, token, TimeSpan.FromMinutes(5));
@@ -211,11 +220,22 @@ namespace CodeX.Infrastructure.ExternalServices
         public async Task SendDocumentMessage(string chatId, string message, string fileName, string base64Data, Guid branchId)
         {
             var token = await GetBotTokenAsync(branchId);
-            if (string.IsNullOrWhiteSpace(token)) return;
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("Telegram Bot Token is not configured for branch {BranchId}", branchId);
+                return;
+            }
 
             try
             {
-                var bytes = Convert.FromBase64String(base64Data);
+                var cleanBase64 = base64Data;
+                if (cleanBase64.Contains(","))
+                {
+                    cleanBase64 = cleanBase64.Substring(cleanBase64.IndexOf(",") + 1);
+                }
+                cleanBase64 = cleanBase64.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
+                var bytes = Convert.FromBase64String(cleanBase64);
+
                 var url = $"https://api.telegram.org/bot{token}/sendDocument";
 
                 using var content = new MultipartFormDataContent();
@@ -225,16 +245,32 @@ namespace CodeX.Infrastructure.ExternalServices
                     content.Add(new StringContent(message), "caption");
                 }
                 var fileContent = new ByteArrayContent(bytes);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
                 content.Add(fileContent, "document", fileName);
 
                 var client = _httpClientFactory.CreateClient();
                 var response = await client.PostAsync(url, content);
 
+                var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+                var phone = patient?.Phone ?? chatId;
+
+                string? errorContent = null;
                 if (!response.IsSuccessStatusCode)
                 {
-                    var error = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Telegram API Document Error: {Error}", error);
+                    errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Telegram API Document Error: {Error}", errorContent);
                 }
+
+                _context.MessageLogs.Add(new CodeX.Domain.Entities.MessageLog
+                {
+                    BranchId = branchId,
+                    RecipientPhone = phone,
+                    MessageType = "OutgoingTelegramDocument",
+                    Status = response.IsSuccessStatusCode ? "Sent" : "Failed",
+                    ErrorMessage = errorContent,
+                    MessageBody = $"Document: {fileName} | Caption: {message}"
+                });
+                await _context.SaveChangesAsync(default);
             }
             catch (Exception ex)
             {

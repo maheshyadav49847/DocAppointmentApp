@@ -1,8 +1,9 @@
-﻿using CodeX.Api.Authorization;
+using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Api.Controllers
 {
@@ -21,19 +22,49 @@ namespace CodeX.Api.Controllers
             _context = context;
         }
 
-        private async Task EnsureBranchAccess(string branchId)
+        private async Task<Guid> ResolveBranchIdAsync(string branchId, string targetChatId)
         {
-            if (Guid.TryParse(branchId, out var parsedBranchId))
+            if (Guid.TryParse(branchId, out var parsedBranchId) && parsedBranchId != Guid.Empty)
             {
-                var branch = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_context.Branches, b => b.Id == parsedBranchId);
-                if (branch == null) throw new Exception("Branch not found");
-                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, branch.OrganizationId);
-                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, parsedBranchId);
+                var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == parsedBranchId && !b.IsDeleted);
+                if (branch != null)
+                {
+                    CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, branch.OrganizationId);
+                    return branch.Id;
+                }
             }
-            else
+
+            // Fallback 1: User's assigned branch
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
             {
-                throw new Exception("Invalid branch ID");
+                var userBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == _currentUserService.BranchId.Value && !b.IsDeleted);
+                if (userBranch != null) return userBranch.Id;
             }
+
+            // Fallback 2: Patient's active or latest token queue branch
+            if (!string.IsNullOrWhiteSpace(targetChatId))
+            {
+                var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.TelegramChatId == targetChatId && !p.IsDeleted);
+                if (patient != null)
+                {
+                    var latestToken = await _context.Tokens.IgnoreQueryFilters()
+                        .Include(t => t.Queue)
+                        .Where(t => t.PatientId == patient.Id && !t.IsDeleted)
+                        .OrderByDescending(t => t.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (latestToken?.Queue != null)
+                    {
+                        return latestToken.Queue.BranchId;
+                    }
+                }
+            }
+
+            // Fallback 3: First available branch in current user's organization
+            var orgBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.OrganizationId == _currentUserService.OrgId && !b.IsDeleted);
+            if (orgBranch != null) return orgBranch.Id;
+
+            throw new Exception("Unable to resolve a valid clinic branch for sending Telegram message.");
         }
 
         [HttpPost("send/{branchId}")]
@@ -41,8 +72,6 @@ namespace CodeX.Api.Controllers
         {
             try
             {
-                await EnsureBranchAccess(branchId);
-                var branchGuid = Guid.Parse(branchId);
                 var targetChatId = body.ChatId ?? body.To;
 
                 if (string.IsNullOrWhiteSpace(targetChatId))
@@ -50,18 +79,19 @@ namespace CodeX.Api.Controllers
                     return BadRequest(new { error = "Telegram Chat ID is required." });
                 }
 
+                var resolvedBranchId = await ResolveBranchIdAsync(branchId, targetChatId);
                 var message = body.Message ?? body.Text ?? string.Empty;
 
                 if (!string.IsNullOrEmpty(body.FileBase64))
                 {
-                    await telegramService.SendDocumentMessage(targetChatId, message, body.FileName ?? "document.pdf", body.FileBase64, branchGuid);
+                    await telegramService.SendDocumentMessage(targetChatId, message, body.FileName ?? "Prescription.pdf", body.FileBase64, resolvedBranchId);
                 }
                 else
                 {
-                    await telegramService.SendTextMessage(targetChatId, message, branchGuid);
+                    await telegramService.SendTextMessage(targetChatId, message, resolvedBranchId);
                 }
 
-                return Ok(new { success = true, message = "Telegram message/document queued/sent successfully" });
+                return Ok(new { success = true, message = "Telegram message/document queued/sent successfully", branchId = resolvedBranchId });
             }
             catch (Exception ex)
             {

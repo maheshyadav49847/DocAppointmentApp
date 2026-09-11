@@ -44,12 +44,13 @@ interface ConsultationPageProps {
   patientId?: string;
   isEmbedded?: boolean;
   activeTokenId?: string;
+  branchId?: string;
   onConsultationSaved?: () => void;
   isQueueExpanded?: boolean;
   onHistoryOpen?: () => void;
 }
 
-export default function ConsultationPage({ patientId: propPatientId, isEmbedded = false, activeTokenId, onConsultationSaved, isQueueExpanded, onHistoryOpen }: ConsultationPageProps = {}) {
+export default function ConsultationPage({ patientId: propPatientId, isEmbedded = false, activeTokenId, branchId: propBranchId, onConsultationSaved, isQueueExpanded, onHistoryOpen }: ConsultationPageProps = {}) {
   const { patientId: urlPatientId } = useParams()
   const patientId = propPatientId || urlPatientId
   const navigate = useNavigate()
@@ -63,7 +64,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     enabled: !!user?.orgId
   })
 
-  const currentBranchId = activeBranchId || user?.branchId || branches?.[0]?.id || "default"
+  const currentBranchId = propBranchId || activeBranchId || user?.branchId || branches?.[0]?.id || ""
   const currentBranch = branches?.find((b: any) => b.id === currentBranchId) || branches?.[0]
 
   // Queries
@@ -260,65 +261,67 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         }
       }
 
-      return res.data
+      // Auto-generate and send Prescription PDF to Telegram and WhatsApp
+      let dispatchStatus = ""
+      if (printRef.current) {
+        try {
+          console.log("[Prescription] Generating base64 PDF from prescription element...")
+          const base64Pdf = await generateBase64PdfFromElement(printRef.current)
+          const clinicName = currentBranch?.name || "the clinic"
+          const patientDisplayName = patient?.name || "Patient"
+          const prescriptionMsg = `Hello ${patientDisplayName}, here is your prescription from your recent consultation at ${clinicName}.`
+          const fileName = `Prescription_${patientDisplayName.replace(/\s+/g, '_')}.pdf`
+
+          // 1. Send via Telegram if TelegramChatId is present
+          if (patient?.telegramChatId) {
+            try {
+              console.log("[Prescription] Sending PDF to Telegram chatId:", patient.telegramChatId)
+              const tgRes = await api.post(`/telegram/messages/send/${currentBranchId || 'default'}`, {
+                chatId: patient.telegramChatId,
+                message: prescriptionMsg,
+                fileBase64: base64Pdf,
+                fileName: fileName
+              })
+              dispatchStatus += "\n• Prescription PDF sent via Telegram"
+              console.log("[Prescription] Successfully sent to Telegram:", tgRes.data)
+            } catch (tgErr: any) {
+              console.error("[Prescription] Auto-send Telegram Error:", tgErr?.response?.data || tgErr.message)
+            }
+          }
+
+          // 2. Send via WhatsApp if Phone is present
+          if (patient?.phone) {
+            try {
+              console.log("[Prescription] Sending PDF to WhatsApp phone:", patient.phone)
+              const waRes = await api.post(`/whatsapp/messages/send/${currentBranchId || 'default'}`, {
+                to: patient.phone,
+                message: prescriptionMsg,
+                fileBase64: base64Pdf,
+                fileName: fileName
+              })
+              dispatchStatus += "\n• Prescription PDF sent via WhatsApp"
+              console.log("[Prescription] Successfully sent to WhatsApp:", waRes.data)
+            } catch (waErr: any) {
+              console.error("[Prescription] Auto-send WhatsApp Error:", waErr?.response?.data || waErr.message)
+            }
+          }
+        } catch (pdfErr: any) {
+          console.error("[Prescription] Error during PDF generation/dispatch:", pdfErr)
+        }
+      } else {
+        console.warn("[Prescription] printRef.current was null, PDF could not be generated.")
+      }
+
+      return { visitData: res.data, dispatchStatus }
     },
-    onSuccess: async () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["clinicalVisits", patientId] })
       queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
-      if(onConsultationSaved) onConsultationSaved();
 
-      // We must generate the PDF BEFORE clearing the form, otherwise the PDF will be empty
-        if (printRef.current) {
-          try {
-            // Generate PDF and send to patient channels (Telegram & WhatsApp) in the background so we don't block the UI
-            (async () => {
-              try {
-                const base64Pdf = await generateBase64PdfFromElement(printRef.current!);
-                const clinicName = currentBranch?.name || "the clinic";
-                const patientDisplayName = patient?.name || "Patient";
-                const prescriptionMsg = `Hello ${patientDisplayName}, here is your prescription from your recent consultation at ${clinicName}.`;
-                const fileName = `Prescription_${patientDisplayName.replace(/\s+/g, '_')}.pdf`;
-
-                // 1. Send via Telegram if TelegramChatId is present
-                if (patient?.telegramChatId) {
-                  try {
-                    await api.post(`/telegram/messages/send/${currentBranchId}`, {
-                      chatId: patient.telegramChatId,
-                      message: prescriptionMsg,
-                      fileBase64: base64Pdf,
-                      fileName: fileName
-                    });
-                    console.log("Prescription sent to Telegram successfully.");
-                  } catch (tgErr: any) {
-                    console.error("Auto-send Telegram Error", tgErr);
-                  }
-                }
-
-                // 2. Send via WhatsApp if Phone is present
-                if (patient?.phone) {
-                  try {
-                    await api.post(`/whatsapp/messages/send/${currentBranchId}`, {
-                      to: patient.phone,
-                      message: prescriptionMsg,
-                      fileBase64: base64Pdf,
-                      fileName: fileName
-                    });
-                    console.log("Prescription sent to WhatsApp successfully.");
-                  } catch (waErr: any) {
-                    console.error("Auto-send WA Error", waErr);
-                  }
-                }
-              } catch (err: any) {
-                console.error("Auto-send Prescription Error", err);
-              }
-            })();
-            
-          } catch (err: any) {
-            console.error("html2canvas error", err);
-          }
-        }
-        
-        alert("Consultation saved successfully!");
+      const successMsg = result?.dispatchStatus
+        ? `Consultation saved successfully!${result.dispatchStatus}`
+        : "Consultation saved successfully!"
+      alert(successMsg)
 
       // Clear form AFTER PDF is generated and sent
       setVisitDoctorName("")
@@ -1272,10 +1275,17 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
 
       </div>
 
-      {/* Hidden PDF Template */}
-      <div style={{ position: "absolute", top: "-9999px", left: "-9999px" }}>
-        {/* Active Consultation Inline Hidden Template */}
-        {/* We keep this here so the active form matches the new standard design for WhatsApp auto-send */}
+      {/* Hidden PDF Template for auto-dispatch and active print */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "850px",
+        zIndex: -9999,
+        opacity: 0,
+        pointerEvents: "none",
+        overflow: "hidden"
+      }}>
         <PrescriptionTemplate
           ref={printRef}
           patient={patient}
@@ -1292,22 +1302,33 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             medicines: visitMedicines,
             followUpDate: visitFollowUpDate,
             followUpInstructions: visitFollowUpInstructions,
-            doctorName: doctors?.find((d: any) => String(d.id) === String(visitDoctorId))?.name
+            doctorName: doctors?.find((d: any) => String(d.id) === String(visitDoctorId))?.name || user?.name
           }}
-          doctor={doctors?.find((d: any) => String(d.id) === String(visitDoctorId))}
+          doctor={doctors?.find((d: any) => String(d.id) === String(visitDoctorId)) || { name: user?.name }}
           branch={currentBranch}
         />
       </div>
 
       {/* Template for Printing Historic Visits */}
       {visitToPrint && (
-        <PrescriptionTemplate
-          ref={historicPrintRef}
-          patient={patient}
-          visit={visitToPrint}
-          doctor={doctors?.find((d: any) => String(d.id) === String(visitToPrint.doctorId))}
-          branch={visitToPrint.branchId ? branches?.find((b: any) => b.id === visitToPrint.branchId) : currentBranch}
-        />
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "850px",
+          zIndex: -9999,
+          opacity: 0,
+          pointerEvents: "none",
+          overflow: "hidden"
+        }}>
+          <PrescriptionTemplate
+            ref={historicPrintRef}
+            patient={patient}
+            visit={visitToPrint}
+            doctor={doctors?.find((d: any) => String(d.id) === String(visitToPrint.doctorId)) || { name: visitToPrint.doctorName }}
+            branch={visitToPrint.branchId ? branches?.find((b: any) => b.id === visitToPrint.branchId) : currentBranch}
+          />
+        </div>
       )}
 
       <PatientProfileDrawer

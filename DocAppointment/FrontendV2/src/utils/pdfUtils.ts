@@ -31,7 +31,11 @@ export const generateBase64PdfFromElement = async (element: HTMLElement): Promis
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: pageEl.scrollWidth || 850,
+        windowHeight: pageEl.scrollHeight || 1200
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -53,7 +57,11 @@ export const generateBase64PdfFromElement = async (element: HTMLElement): Promis
       scale: 2,
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: element.scrollWidth || 850,
+      windowHeight: element.scrollHeight || 1200
     });
 
     const imgData = canvas.toDataURL('image/png');
@@ -70,7 +78,9 @@ export const generateBase64PdfFromElement = async (element: HTMLElement): Promis
     pdf.addImage(imgData, 'PNG', x, 0, imgWidth, imgHeight);
   }
 
-  return pdf.output("datauristring").split(",")[1];
+  const rawUri = pdf.output("datauristring");
+  const base64Only = rawUri.includes(",") ? rawUri.split(",")[1] : rawUri;
+  return base64Only.replace(/\s+/g, '');
 };
 
 /**

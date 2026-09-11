@@ -612,17 +612,11 @@ export default function DoctorDeskPage() {
                       patientId={overridePatientId || activeQueue.currentPatientId}
                       isEmbedded={true}
                       activeTokenId={activeQueue.currentTokenId}
+                      branchId={activeQueue?.branchId}
                       isQueueExpanded={isQueueExpanded}
                       onHistoryOpen={() => setIsQueueExpanded(false)}
                       onConsultationSaved={() => {
-                        if (activeQueue.currentTokenId && activeQueue.status === 1) {
-                          completeMutation.mutate();
-                          setTimeout(() => {
-                            if (pendingTokens.length > 0) {
-                              callNextMutation.mutate();
-                            }
-                          }, 1000);
-                        }
+                        queryClient.invalidateQueries({ queryKey: ["clinicalVisits"] });
                       }}
                     />
                   ) : (

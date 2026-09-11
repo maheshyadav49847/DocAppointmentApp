@@ -3,6 +3,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CodeX.Api.Controllers
 {
@@ -21,19 +22,50 @@ namespace CodeX.Api.Controllers
             _context = context;
         }
 
-        private async Task EnsureBranchAccess(string branchId)
+        private async Task<Guid> ResolveBranchIdAsync(string branchId, string targetPhone)
         {
-            if (Guid.TryParse(branchId, out var parsedBranchId))
+            if (Guid.TryParse(branchId, out var parsedBranchId) && parsedBranchId != Guid.Empty)
             {
-                var branch = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(_context.Branches, b => b.Id == parsedBranchId);
-                if (branch == null) throw new Exception("Branch not found");
-                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, branch.OrganizationId);
-                CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, parsedBranchId);
+                var branch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == parsedBranchId && !b.IsDeleted);
+                if (branch != null)
+                {
+                    CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, branch.OrganizationId);
+                    return branch.Id;
+                }
             }
-            else
+
+            // Fallback 1: User's assigned branch
+            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
             {
-                throw new Exception("Invalid branch ID");
+                var userBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == _currentUserService.BranchId.Value && !b.IsDeleted);
+                if (userBranch != null) return userBranch.Id;
             }
+
+            // Fallback 2: Patient's active or latest token queue branch
+            if (!string.IsNullOrWhiteSpace(targetPhone))
+            {
+                var normalizedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(targetPhone);
+                var patient = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => (p.Phone == targetPhone || p.Phone == normalizedPhone) && !p.IsDeleted);
+                if (patient != null)
+                {
+                    var latestToken = await _context.Tokens.IgnoreQueryFilters()
+                        .Include(t => t.Queue)
+                        .Where(t => t.PatientId == patient.Id && !t.IsDeleted)
+                        .OrderByDescending(t => t.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (latestToken?.Queue != null)
+                    {
+                        return latestToken.Queue.BranchId;
+                    }
+                }
+            }
+
+            // Fallback 3: First available branch in current user's organization
+            var orgBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.OrganizationId == _currentUserService.OrgId && !b.IsDeleted);
+            if (orgBranch != null) return orgBranch.Id;
+
+            throw new Exception("Unable to resolve a valid clinic branch for sending WhatsApp message.");
         }
 
         [HttpPost("send/{branchId}")]
@@ -41,24 +73,28 @@ namespace CodeX.Api.Controllers
         {
             try
             {
-                await EnsureBranchAccess(branchId);
-                var branchGuid = Guid.Parse(branchId);
+                if (string.IsNullOrWhiteSpace(body.To))
+                {
+                    return BadRequest(new { error = "Recipient phone number ('To') is required." });
+                }
+
+                var resolvedBranchId = await ResolveBranchIdAsync(branchId, body.To);
                 var message = body.Message ?? body.Text ?? string.Empty;
 
                 if (!string.IsNullOrEmpty(body.FileBase64))
                 {
-                    await whatsAppService.SendDocumentMessage(body.To, message, body.FileName ?? "document.pdf", body.FileBase64, branchGuid);
+                    await whatsAppService.SendDocumentMessage(body.To, message, body.FileName ?? "Prescription.pdf", body.FileBase64, resolvedBranchId);
                 }
                 else
                 {
-                    await whatsAppService.SendTextMessage(body.To, message, branchGuid);
+                    await whatsAppService.SendTextMessage(body.To, message, resolvedBranchId);
                 }
 
-                return Ok(new { success = true, message = "Message queued/sent successfully" });
+                return Ok(new { success = true, message = "Message queued/sent successfully", branchId = resolvedBranchId });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.ToString() });
+                return BadRequest(new { error = ex.Message });
             }
         }
 

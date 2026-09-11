@@ -916,16 +916,55 @@ namespace CodeX.Api.Controllers
             await client.PostAsync($"https://api.telegram.org/bot{bToken}/sendMessage", content);
         }
 
+        private async Task AnswerCallbackQueryAsync(string botToken, string callbackQueryId)
+        {
+            try
+            {
+                var payload = new { callback_query_id = callbackQueryId };
+                var json = JsonSerializer.Serialize(payload);
+                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                using var client = new System.Net.Http.HttpClient();
+                await client.PostAsync($"https://api.telegram.org/bot{botToken}/answerCallbackQuery", content);
+            }
+            catch { }
+        }
+
+        private async Task RemoveInlineKeyboardAsync(string botToken, string chatId, long messageId)
+        {
+            try
+            {
+                var payload = new
+                {
+                    chat_id = chatId,
+                    message_id = messageId,
+                    reply_markup = new { inline_keyboard = new object[0] }
+                };
+                var json = JsonSerializer.Serialize(payload);
+                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                using var client = new System.Net.Http.HttpClient();
+                await client.PostAsync($"https://api.telegram.org/bot{botToken}/editMessageReplyMarkup", content);
+            }
+            catch { }
+        }
+
         private async Task HandleCallbackQuery(Guid branchId, Guid orgId, TelegramCallbackQuery cb)
         {
             var chatId = cb.Message?.Chat?.Id.ToString();
             if (string.IsNullOrEmpty(chatId)) return;
 
-            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+            var branch = await _context.Branches
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
             var botToken = branch?.TelegramBotToken;
             if (string.IsNullOrWhiteSpace(botToken)) return;
 
+            if (!string.IsNullOrEmpty(cb.Id))
+            {
+                _ = AnswerCallbackQueryAsync(botToken, cb.Id);
+            }
+
             var patient = await _context.Patients
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
             if (patient == null) return;
 
@@ -947,7 +986,9 @@ namespace CodeX.Api.Controllers
             {
                 var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
                 var normalizedPhone = NormalizationHelper.NormalizePhone(patient.Phone);
-                var s = await _context.ChatSessions.FirstOrDefaultAsync(cs => (phoneVars.Contains(cs.PhoneNumber) || cs.PhoneNumber == normalizedPhone) && cs.BranchId == branchId && !cs.IsDeleted);
+                var s = await _context.ChatSessions
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(cs => (phoneVars.Contains(cs.PhoneNumber) || cs.PhoneNumber == normalizedPhone) && cs.BranchId == branchId && !cs.IsDeleted);
                 if (s != null && !string.IsNullOrEmpty(s.Language)) cbLang = NormalizeLanguage(s.Language);
             }
 
@@ -955,12 +996,34 @@ namespace CodeX.Api.Controllers
 
             if (data == "cancel_appointment")
             {
+                var activeToken = await GetExistingActiveToken(branchId, chatId);
+                if (activeToken == null)
+                {
+                    if (cb.Message != null && cb.Message.MessageId > 0)
+                    {
+                        _ = RemoveInlineKeyboardAsync(botToken, chatId, cb.Message.MessageId);
+                    }
+
+                    string noActiveMsg = cbLang switch
+                    {
+                        "mr" => "ℹ️ रद्द करण्यासाठी कोणतीही सक्रिय अपॉइंटमेंट आढळली नाही. नवीन बुकिंगसाठी *HI* पाठवा. 🙏",
+                        "hi" => "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली जिसे रद्द किया जा सके। नई बुकिंग के लिए *HI* भेजें। 🙏",
+                        _ => "ℹ️ No active appointment found to cancel. Reply with *HI* to book a new appointment. 🙏"
+                    };
+                    await _telegramService.SendTextMessage(chatId, noActiveMsg, branchId);
+                    return;
+                }
+
                 await PromptCancelAppointment(branchId, chatId, cbLang);
                 return;
             }
 
             if (data == "confirm_cancel")
             {
+                if (cb.Message != null && cb.Message.MessageId > 0)
+                {
+                    _ = RemoveInlineKeyboardAsync(botToken, chatId, cb.Message.MessageId);
+                }
                 var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
                 var tomorrow = today.AddDays(1);
 
@@ -1087,6 +1150,11 @@ namespace CodeX.Api.Controllers
 
             if (data == "abort_cancel")
             {
+                if (cb.Message != null && cb.Message.MessageId > 0)
+                {
+                    _ = RemoveInlineKeyboardAsync(botToken, chatId, cb.Message.MessageId);
+                }
+
                 string abortText = cbLang switch
                 {
                     "mr" => "👍 तुमची अपॉइंटमेंट सुरक्षित आहे. धन्यवाद! 🙏",

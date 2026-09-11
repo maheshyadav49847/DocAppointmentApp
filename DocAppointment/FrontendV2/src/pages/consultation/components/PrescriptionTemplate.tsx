@@ -33,9 +33,8 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
   }
 
   return (
-    <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-      <div ref={ref} style={{ display: 'flex', flexDirection: 'column' }}>
-        {chunks.map((medChunk, pageIndex) => (
+    <div ref={ref} style={{ display: 'flex', flexDirection: 'column', width: '850px', backgroundColor: '#ffffff' }}>
+      {chunks.map((medChunk, pageIndex) => (
           <div
             key={pageIndex}
             className="rx-page"
@@ -329,10 +328,9 @@ const PrescriptionTemplate = forwardRef<HTMLDivElement, PrescriptionTemplateProp
         <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '11px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: '16px', fontWeight: '500' }}>
           This is a digitally generated prescription. Not valid for medico-legal purposes without signature. | Page {pageIndex + 1} of {chunks.length}
         </div>
-          </div>
-        ))}
       </div>
-    </div>
+    ))}
+  </div>
   );
 });
 

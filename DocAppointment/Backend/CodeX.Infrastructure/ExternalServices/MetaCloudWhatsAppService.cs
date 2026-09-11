@@ -189,7 +189,13 @@ namespace CodeX.Infrastructure.ExternalServices
             string mediaId = string.Empty;
             try
             {
-                byte[] fileBytes = Convert.FromBase64String(base64Data);
+                var cleanBase64 = base64Data;
+                if (cleanBase64.Contains(","))
+                {
+                    cleanBase64 = cleanBase64.Substring(cleanBase64.IndexOf(",") + 1);
+                }
+                cleanBase64 = cleanBase64.Trim().Replace(" ", "").Replace("\r", "").Replace("\n", "");
+                byte[] fileBytes = Convert.FromBase64String(cleanBase64);
                 using var form = new MultipartFormDataContent();
                 var fileContent = new ByteArrayContent(fileBytes);
                 fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/pdf");
