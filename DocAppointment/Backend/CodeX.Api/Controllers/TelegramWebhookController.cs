@@ -107,8 +107,15 @@ namespace CodeX.Api.Controllers
                                         _context.Tokens.Add(token);
                                         await _context.SaveChangesAsync(default);
 
-                                        var msg = $"✅ *Appointment Confirmed!*\n\nDoctor: {queue.Doctor?.Name}\nYour Token Number: *{tokenNumber}*\n\nPlease wait for your turn.";
-                                        await _telegramService.SendTextMessage(chatId, msg, branchId);
+                                        string confirmMsg;
+                                        if (lang == "mr")
+                                            confirmMsg = $"✅ *अपॉइंटमेंट निश्चित झाली!*\n\nडॉक्टर: {queue.Doctor?.Name}\nतुमचा टोकन नंबर: *{tokenNumber}*\n\nकृपया आपल्या पाळीची वाट पहा. 🙏";
+                                        else if (lang == "hi")
+                                            confirmMsg = $"✅ *अपॉइंटमेंट पक्की हो गई!*\n\nडॉक्टर: {queue.Doctor?.Name}\nआपका टोकन नंबर: *{tokenNumber}*\n\nकृपया अपनी बारी का इंतज़ार करें। 🙏";
+                                        else
+                                            confirmMsg = $"✅ *Appointment Confirmed!*\n\nDoctor: {queue.Doctor?.Name}\nYour Token Number: *{tokenNumber}*\n\nPlease wait for your turn. 🙏";
+
+                                        await _telegramService.SendTextMessage(chatId, confirmMsg, branchId);
                                         return Ok();
                                     }
                                 }
@@ -120,7 +127,13 @@ namespace CodeX.Api.Controllers
                         _logger.LogError(ex, "Error booking token from webapp");
                     }
 
-                    await _telegramService.SendTextMessage(chatId, "Booking processed successfully!", branchId);
+                    string successNotice = lang switch
+                    {
+                        "mr" => "बुकिंग प्रक्रिया पूर्ण झाली!",
+                        "hi" => "बुकिंग प्रक्रिया पूरी हुई!",
+                        _ => "Booking processed successfully!"
+                    };
+                    await _telegramService.SendTextMessage(chatId, successNotice, branchId);
                     return Ok();
                 }
 
@@ -228,19 +241,6 @@ namespace CodeX.Api.Controllers
 
             // Determine current language: from patient preferences or ChatSession or incoming rawLang
             string lang = NormalizeLanguage(rawLang);
-            if (patient != null && !string.IsNullOrEmpty(patient.MetaDataJson))
-            {
-                try
-                {
-                    using var doc = JsonDocument.Parse(patient.MetaDataJson);
-                    if (doc.RootElement.TryGetProperty("language", out var lProp))
-                    {
-                        var saved = lProp.GetString();
-                        if (!string.IsNullOrEmpty(saved)) lang = NormalizeLanguage(saved);
-                    }
-                }
-                catch { }
-            }
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
@@ -254,6 +254,19 @@ namespace CodeX.Api.Controllers
                     .FirstOrDefaultAsync(s => (phoneVars.Contains(s.PhoneNumber) || s.PhoneNumber == normalizedPhone) && s.BranchId == branchId && !s.IsDeleted);
                 if (chatSession != null && !string.IsNullOrEmpty(chatSession.Language))
                     lang = NormalizeLanguage(chatSession.Language);
+            }
+            if (patient != null && !string.IsNullOrEmpty(patient.MetaDataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(patient.MetaDataJson);
+                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    {
+                        var saved = lProp.GetString();
+                        if (!string.IsNullOrEmpty(saved)) lang = NormalizeLanguage(saved);
+                    }
+                }
+                catch { }
             }
 
             // ─── 1. Rating & Feedback Handling ──────────────────────────────────────────
@@ -380,33 +393,152 @@ namespace CodeX.Api.Controllers
                 return;
             }
 
-            // Language switch command or 1/2/3
-            if (cleanText == "1" || cleanText.Equals("hindi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिन्दी", StringComparison.OrdinalIgnoreCase))
+            // ─── 3. Language Selection & Switching ───────────────────────────────
+            bool isLanguageCommand = cleanText.Equals("/language", StringComparison.OrdinalIgnoreCase)
+                                  || cleanText.Equals("/lang", StringComparison.OrdinalIgnoreCase)
+                                  || cleanText.Equals("language", StringComparison.OrdinalIgnoreCase)
+                                  || cleanText.Equals("भाषा", StringComparison.OrdinalIgnoreCase)
+                                  || cleanText == "0";
+
+            if (isLanguageCommand)
             {
-                lang = "hi";
-                await SavePatientLanguage(patient, lang);
-                await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
-                // Proceed to next step below
-            }
-            else if (cleanText == "2" || cleanText.Equals("marathi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("मराठी", StringComparison.OrdinalIgnoreCase))
-            {
-                lang = "mr";
-                await SavePatientLanguage(patient, lang);
-                await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
-            }
-            else if (cleanText == "3" || cleanText.Equals("english", StringComparison.OrdinalIgnoreCase))
-            {
-                lang = "en";
-                await SavePatientLanguage(patient, lang);
-                await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
-            }
-            else if (cleanText.Equals("/language", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("/lang", StringComparison.OrdinalIgnoreCase))
-            {
-                var langPrompt = "🌐 कृपया भाषा चुनें / Please choose language:\n\n1️⃣ हिन्दी (Reply 1)\n2️⃣ मराठी (Reply 2)\n3️⃣ English (Reply 3)";
+                if (chatSession == null && patient != null && !string.IsNullOrEmpty(patient.Phone))
+                {
+                    chatSession = new ChatSession
+                    {
+                        PhoneNumber = NormalizationHelper.NormalizePhone(patient.Phone),
+                        BranchId = branchId,
+                    };
+                    _context.ChatSessions.Add(chatSession);
+                }
+
+                if (chatSession != null)
+                {
+                    chatSession.CurrentState = "AWAITING_LANGUAGE";
+                    await _context.SaveChangesAsync(default);
+                }
+
+                string langPrompt = lang switch
+                {
+                    "mr" => "🌐 *कृपया आपली भाषा निवडा:*\n\n1️⃣ हिन्दी (1 पाठवा)\n2️⃣ मराठी (2 पाठवा)\n3️⃣ English (3 पाठवा)",
+                    "hi" => "🌐 *कृपया अपनी भाषा चुनें:*\n\n1️⃣ हिन्दी (1 भेजें)\n2️⃣ मराठी (2 भेजें)\n3️⃣ English (3 भेजें)",
+                    _ => "🌐 *Please choose your language:*\n\n1️⃣ हिन्दी (Reply 1)\n2️⃣ मराठी (Reply 2)\n3️⃣ English (Reply 3)"
+                };
                 await _telegramService.SendTextMessage(chatId, langPrompt, branchId);
                 return;
             }
 
+            // If user previously requested language selection:
+            if (chatSession != null && chatSession.CurrentState == "AWAITING_LANGUAGE")
+            {
+                if (cleanText == "1" || cleanText.StartsWith("1️⃣") || cleanText.Equals("hindi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिन्दी", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिंदी", StringComparison.OrdinalIgnoreCase))
+                {
+                    lang = "hi";
+                    chatSession.CurrentState = "START";
+                    await SavePatientLanguage(patient, lang, branchId);
+                    await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
+                }
+                else if (cleanText == "2" || cleanText.StartsWith("2️⃣") || cleanText.Equals("marathi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("मराठी", StringComparison.OrdinalIgnoreCase))
+                {
+                    lang = "mr";
+                    chatSession.CurrentState = "START";
+                    await SavePatientLanguage(patient, lang, branchId);
+                    await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
+                }
+                else if (cleanText == "3" || cleanText.StartsWith("3️⃣") || cleanText.Equals("english", StringComparison.OrdinalIgnoreCase))
+                {
+                    lang = "en";
+                    chatSession.CurrentState = "START";
+                    await SavePatientLanguage(patient, lang, branchId);
+                    await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
+                }
+                else
+                {
+                    string invalidChoice = lang switch
+                    {
+                        "mr" => "कृपया योग्य पर्याय निवडा:\n1️⃣ हिन्दी\n2️⃣ मराठी\n3️⃣ English",
+                        "hi" => "कृपया सही विकल्प चुनें:\n1️⃣ हिन्दी\n2️⃣ मराठी\n3️⃣ English",
+                        _ => "Please select a valid option:\n1️⃣ हिन्दी\n2️⃣ मराठी\n3️⃣ English"
+                    };
+                    await _telegramService.SendTextMessage(chatId, invalidChoice, branchId);
+                    return;
+                }
+
+                if (patient == null || string.IsNullOrWhiteSpace(patient.Phone))
+                {
+                    await RequestContact(branchId, chatId, lang);
+                    return;
+                }
+
+                var existingActiveAfterLang = await GetExistingActiveToken(branchId, patient.Id);
+                if (existingActiveAfterLang != null)
+                {
+                    await SendExistingBookingDetails(branchId, chatId, existingActiveAfterLang, lang);
+                }
+                else
+                {
+                    await SendWebAppButton(branchId, chatId, lang);
+                }
+                return;
+            }
+
+            // Direct language words (can be typed anytime)
+            if (cleanText.Equals("hindi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिन्दी", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("हिंदी", StringComparison.OrdinalIgnoreCase))
+            {
+                lang = "hi";
+                if (chatSession != null) chatSession.CurrentState = "START";
+                await SavePatientLanguage(patient, lang, branchId);
+                await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
+                if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
+                {
+                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    if (existing != null)
+                    {
+                        await SendExistingBookingDetails(branchId, chatId, existing, lang);
+                        return;
+                    }
+                }
+                await SendWebAppButton(branchId, chatId, lang);
+                return;
+            }
+            else if (cleanText.Equals("marathi", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("मराठी", StringComparison.OrdinalIgnoreCase))
+            {
+                lang = "mr";
+                if (chatSession != null) chatSession.CurrentState = "START";
+                await SavePatientLanguage(patient, lang, branchId);
+                await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
+                if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
+                {
+                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    if (existing != null)
+                    {
+                        await SendExistingBookingDetails(branchId, chatId, existing, lang);
+                        return;
+                    }
+                }
+                await SendWebAppButton(branchId, chatId, lang);
+                return;
+            }
+            else if (cleanText.Equals("english", StringComparison.OrdinalIgnoreCase))
+            {
+                lang = "en";
+                if (chatSession != null) chatSession.CurrentState = "START";
+                await SavePatientLanguage(patient, lang, branchId);
+                await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
+                if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
+                {
+                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    if (existing != null)
+                    {
+                        await SendExistingBookingDetails(branchId, chatId, existing, lang);
+                        return;
+                    }
+                }
+                await SendWebAppButton(branchId, chatId, lang);
+                return;
+            }
+
+            // ─── 4. Cancellation Commands ─────────────────────────────────────────
             if (cleanText.Equals("cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("/cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Contains("रद्द"))
             {
                 if (patient != null)
@@ -414,74 +546,61 @@ namespace CodeX.Api.Controllers
                     var existingActive = await GetExistingActiveToken(branchId, patient.Id);
                     if (existingActive != null)
                     {
-                        var b = await _context.Branches.FirstOrDefaultAsync(br => br.Id == branchId);
-                        var bToken = b?.TelegramBotToken;
-                        if (!string.IsNullOrWhiteSpace(bToken))
-                        {
-                            var promptPayload = new
-                            {
-                                chat_id = chatId,
-                                text = "⚠️ *क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?*\n\nAre you sure you want to cancel your appointment?",
-                                parse_mode = "Markdown",
-                                reply_markup = new
-                                {
-                                    inline_keyboard = new[]
-                                    {
-                                        new[]
-                                        {
-                                            new { text = "✅ हाँ, रद्द करें (Yes, Cancel)", callback_data = "confirm_cancel" },
-                                            new { text = "❌ नहीं, रहने दें (Keep It)", callback_data = "abort_cancel" }
-                                        }
-                                    }
-                                }
-                            };
-                            var json = JsonSerializer.Serialize(promptPayload);
-                            var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                            var client = new System.Net.Http.HttpClient();
-                            await client.PostAsync($"https://api.telegram.org/bot{bToken}/sendMessage", content);
-                            return;
-                        }
+                        await PromptCancelAppointment(branchId, chatId, lang);
+                        return;
                     }
                 }
-                await _telegramService.SendTextMessage(chatId, "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली जिसे रद्द किया जा सके। / No active appointment found to cancel.", branchId);
+                string noActiveMsg = lang switch
+                {
+                    "mr" => "ℹ️ रद्द करण्यासाठी कोणतीही सक्रिय अपॉइंटमेंट आढळली नाही.",
+                    "hi" => "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली जिसे रद्द किया जा सके।",
+                    _ => "ℹ️ No active appointment found to cancel."
+                };
+                await _telegramService.SendTextMessage(chatId, noActiveMsg, branchId);
                 return;
             }
 
+            // ─── 5. Admin / Direct Form Override ──────────────────────────────────
             if (cleanText.Equals("/form", StringComparison.OrdinalIgnoreCase))
             {
-                // /form always opens form (admin override)
                 await SendWebAppButton(branchId, chatId, lang);
                 return;
             }
 
+            // ─── 6. Patient Onboarding (Contact Request) ──────────────────────────
             if (cleanText.Equals("/start", StringComparison.OrdinalIgnoreCase))
             {
                 if (patient == null || string.IsNullOrWhiteSpace(patient.Phone))
                 {
-                    await RequestContact(branchId, chatId);
+                    await RequestContact(branchId, chatId, lang);
                     return;
                 }
             }
 
             if (patient == null || string.IsNullOrWhiteSpace(patient.Phone))
             {
-                await RequestContact(branchId, chatId);
+                await RequestContact(branchId, chatId, lang);
                 return;
             }
 
-            // Scenario 2: Check if patient already has an active token for today
+            // ─── 7. Existing Active Token Handling ────────────────────────────────
             var existingToken = await GetExistingActiveToken(branchId, patient.Id);
             if (existingToken != null)
             {
+                if (cleanText == "3")
+                {
+                    await PromptCancelAppointment(branchId, chatId, lang);
+                    return;
+                }
                 await SendExistingBookingDetails(branchId, chatId, existingToken, lang);
                 return;
             }
 
-            // No active booking — show booking form
+            // ─── 8. New Booking Form ──────────────────────────────────────────────
             await SendWebAppButton(branchId, chatId, lang);
         }
 
-        private async Task SavePatientLanguage(Patient? patient, string lang)
+        private async Task SavePatientLanguage(Patient? patient, string lang, Guid branchId)
         {
             if (patient == null) return;
             try
@@ -502,6 +621,19 @@ namespace CodeX.Api.Controllers
                 }
                 dict["language"] = lang;
                 patient.MetaDataJson = JsonSerializer.Serialize(dict);
+
+                if (!string.IsNullOrEmpty(patient.Phone))
+                {
+                    var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
+                    var normalizedPhone = NormalizationHelper.NormalizePhone(patient.Phone);
+                    var chatSession = await _context.ChatSessions
+                        .FirstOrDefaultAsync(s => (phoneVars.Contains(s.PhoneNumber) || s.PhoneNumber == normalizedPhone) && s.BranchId == branchId && !s.IsDeleted);
+                    if (chatSession != null)
+                    {
+                        chatSession.Language = lang;
+                    }
+                }
+
                 await _context.SaveChangesAsync(default);
             }
             catch { }
@@ -576,17 +708,24 @@ namespace CodeX.Api.Controllers
                     + $"\nPlease visit the clinic and wait for your turn. 🙏";
             }
 
+            string cancelPrompt = lang switch
+            {
+                "mr" => "\n\n👉 अपॉइंटमेंट रद्द करण्यासाठी खालील बटणावर क्लिक करा किंवा *CANCEL* लिहा:",
+                "hi" => "\n\n👉 अपॉइंटमेंट रद्द करने के लिए नीचे बटन दबाएं या *CANCEL* लिखें:",
+                _ => "\n\n👉 To cancel this appointment, tap the button below or type *CANCEL*:"
+            };
+
             string cancelBtnText = lang switch
             {
-                "mr" => "❌ अपॉइंटमेंट रद्द करा (Cancel)",
-                "hi" => "❌ अपॉइंटमेंट रद्द करें (Cancel)",
+                "mr" => "❌ अपॉइंटमेंट रद्द करा",
+                "hi" => "❌ अपॉइंटमेंट रद्द करें",
                 _ => "❌ Cancel Appointment"
             };
 
             var payload = new
             {
                 chat_id = chatId,
-                text = msg + (lang == "hi" ? "\n\n👉 अपॉइंटमेंट रद्द (Cancel) करने के लिए नीचे बटन दबाएं या *CANCEL* लिखें:" : "\n\n👉 To cancel this appointment, tap the button below or type *CANCEL*:"),
+                text = msg + cancelPrompt,
                 parse_mode = "Markdown",
                 reply_markup = new
                 {
@@ -607,6 +746,56 @@ namespace CodeX.Api.Controllers
             await client.PostAsync(url, content);
         }
 
+        private async Task PromptCancelAppointment(Guid branchId, string chatId, string lang)
+        {
+            var b = await _context.Branches.FirstOrDefaultAsync(br => br.Id == branchId);
+            var bToken = b?.TelegramBotToken;
+            if (string.IsNullOrWhiteSpace(bToken)) return;
+
+            string promptText = lang switch
+            {
+                "mr" => "⚠️ *तुम्हाला खात्री आहे की तुम्ही तुमची अपॉइंटमेंट रद्द करू इच्छिता?*",
+                "hi" => "⚠️ *क्या आप वाकई अपनी अपॉइंटमेंट रद्द करना चाहते हैं?*",
+                _ => "⚠️ *Are you sure you want to cancel your appointment?*"
+            };
+
+            string yesText = lang switch
+            {
+                "mr" => "✅ हो, रद्द करा",
+                "hi" => "✅ हाँ, रद्द करें",
+                _ => "✅ Yes, Cancel"
+            };
+
+            string noText = lang switch
+            {
+                "mr" => "❌ नाही, राहू द्या",
+                "hi" => "❌ नहीं, रहने दें",
+                _ => "❌ No, Keep It"
+            };
+
+            var promptPayload = new
+            {
+                chat_id = chatId,
+                text = promptText,
+                parse_mode = "Markdown",
+                reply_markup = new
+                {
+                    inline_keyboard = new[]
+                    {
+                        new[]
+                        {
+                            new { text = yesText, callback_data = "confirm_cancel" },
+                            new { text = noText, callback_data = "abort_cancel" }
+                        }
+                    }
+                }
+            };
+            var json = JsonSerializer.Serialize(promptPayload);
+            var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var client = new System.Net.Http.HttpClient();
+            await client.PostAsync($"https://api.telegram.org/bot{bToken}/sendMessage", content);
+        }
+
         private async Task HandleCallbackQuery(Guid branchId, Guid orgId, TelegramCallbackQuery cb)
         {
             var chatId = cb.Message?.Chat?.Id.ToString();
@@ -620,31 +809,33 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
             if (patient == null) return;
 
+            string cbLang = "hi";
+            if (!string.IsNullOrEmpty(patient.MetaDataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(patient.MetaDataJson);
+                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    {
+                        var s = lProp.GetString();
+                        if (!string.IsNullOrEmpty(s)) cbLang = NormalizeLanguage(s);
+                    }
+                }
+                catch { }
+            }
+            else if (!string.IsNullOrEmpty(patient.Phone))
+            {
+                var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
+                var normalizedPhone = NormalizationHelper.NormalizePhone(patient.Phone);
+                var s = await _context.ChatSessions.FirstOrDefaultAsync(cs => (phoneVars.Contains(cs.PhoneNumber) || cs.PhoneNumber == normalizedPhone) && cs.BranchId == branchId && !cs.IsDeleted);
+                if (s != null && !string.IsNullOrEmpty(s.Language)) cbLang = NormalizeLanguage(s.Language);
+            }
+
             var data = cb.Data?.Trim().ToLowerInvariant();
 
             if (data == "cancel_appointment")
             {
-                var payload = new
-                {
-                    chat_id = chatId,
-                    text = "⚠️ *क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?*\n\nAre you sure you want to cancel your appointment?",
-                    parse_mode = "Markdown",
-                    reply_markup = new
-                    {
-                        inline_keyboard = new[]
-                        {
-                            new[]
-                            {
-                                new { text = "✅ हाँ, रद्द करें (Yes, Cancel)", callback_data = "confirm_cancel" },
-                                new { text = "❌ नहीं, रहने दें (Keep It)", callback_data = "abort_cancel" }
-                            }
-                        }
-                    }
-                };
-                var json = JsonSerializer.Serialize(payload);
-                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                var client = new System.Net.Http.HttpClient();
-                await client.PostAsync($"https://api.telegram.org/bot{botToken}/sendMessage", content);
+                await PromptCancelAppointment(branchId, chatId, cbLang);
                 return;
             }
 
@@ -669,10 +860,17 @@ namespace CodeX.Api.Controllers
                     activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
                     await _context.SaveChangesAsync(default);
 
+                    string confirmText = cbLang switch
+                    {
+                        "mr" => "✅ *तुमची अपॉइंटमेंट रद्द करण्यात आली आहे.*\n\nनवीन बुकिंगसाठी कधीही *HI* पाठवा. 🙏",
+                        "hi" => "✅ *आपकी अपॉइंटमेंट रद्द कर दी गई है।*\n\nनई बुकिंग के लिए कभी भी *HI* लिखकर भेजें। 🙏",
+                        _ => "✅ *Your appointment has been cancelled successfully.*\n\nReply with *HI* anytime to book a new appointment. 🙏"
+                    };
+
                     var confirmPayload = new
                     {
                         chat_id = chatId,
-                        text = "✅ *आपकी अपॉइंटमेंट रद्द (Cancel) कर दी गई है।*\n\nYour appointment has been cancelled successfully.\n\nनई बुकिंग के लिए कभी भी *HI* लिखकर भेजें। 🙏",
+                        text = confirmText,
                         parse_mode = "Markdown"
                     };
                     var json = JsonSerializer.Serialize(confirmPayload);
@@ -682,10 +880,17 @@ namespace CodeX.Api.Controllers
                 }
                 else
                 {
+                    string noTokenText = cbLang switch
+                    {
+                        "mr" => "ℹ️ कोणतीही सक्रिय अपॉइंटमेंट आढळली नाही. नवीन बुकिंगसाठी *HI* पाठवा.",
+                        "hi" => "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली। नई बुकिंग के लिए *HI* भेजें।",
+                        _ => "ℹ️ No active appointment found. Reply with *HI* to book an appointment."
+                    };
+
                     var noTokenPayload = new
                     {
                         chat_id = chatId,
-                        text = "ℹ️ कोई सक्रिय अपॉइंटमेंट नहीं मिली। नई बुकिंग के लिए *HI* भेजें।"
+                        text = noTokenText
                     };
                     var json = JsonSerializer.Serialize(noTokenPayload);
                     var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
@@ -697,10 +902,17 @@ namespace CodeX.Api.Controllers
 
             if (data == "abort_cancel")
             {
+                string abortText = cbLang switch
+                {
+                    "mr" => "👍 तुमची अपॉइंटमेंट सुरक्षित आहे. धन्यवाद! 🙏",
+                    "hi" => "👍 आपकी अपॉइंटमेंट सुरक्षित है। धन्यवाद! 🙏",
+                    _ => "👍 Your appointment is safe. Thank you! 🙏"
+                };
+
                 var abortPayload = new
                 {
                     chat_id = chatId,
-                    text = "👍 आपकी अपॉइंटमेंट सुरक्षित है। धन्यवाद! 🙏"
+                    text = abortText
                 };
                 var json = JsonSerializer.Serialize(abortPayload);
                 var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
@@ -710,7 +922,6 @@ namespace CodeX.Api.Controllers
             }
         }
 
-        
         private async Task SendWebAppButton(Guid branchId, string chatId, string lang)
         {
             var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
@@ -761,23 +972,37 @@ namespace CodeX.Api.Controllers
             await client.PostAsync(url, content);
         }
 
-        private async Task RequestContact(Guid branchId, string chatId)
+        private async Task RequestContact(Guid branchId, string chatId, string lang = "hi")
         {
             var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
             var token = branch?.TelegramBotToken;
             if (string.IsNullOrWhiteSpace(token)) return;
 
+            string welcomeText = lang switch
+            {
+                "mr" => "नमस्कार! अपॉइंटमेंट बुक करण्यासाठी कृपया खालील बटण दाबून आपला फोन नंबर शेअर करा.",
+                "en" => "Welcome! To book an appointment, please share your phone number with us by tapping the button below.",
+                _ => "नमस्ते! अपॉइंटमेंट बुक करने के लिए कृपया नीचे दिए गए बटन को दबाकर अपना फोन नंबर साझा करें।"
+            };
+
+            string btnText = lang switch
+            {
+                "mr" => "📱 फोन नंबर शेअर करा",
+                "en" => "📱 Share Phone Number",
+                _ => "📱 फ़ोन नंबर साझा करें"
+            };
+
             var payload = new
             {
                 chat_id = chatId,
-                text = "Welcome! To book an appointment, please share your phone number with us by tapping the button below.",
+                text = welcomeText,
                 reply_markup = new
                 {
                     keyboard = new[]
                     {
                         new[]
                         {
-                            new { text = "📱 Share Phone Number", request_contact = true }
+                            new { text = btnText, request_contact = true }
                         }
                     },
                     resize_keyboard = true,
