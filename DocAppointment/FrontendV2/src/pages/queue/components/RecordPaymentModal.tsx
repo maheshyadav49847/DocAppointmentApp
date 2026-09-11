@@ -35,14 +35,19 @@ export default function RecordPaymentModal({ invoiceId, patientName, onClose, on
       queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
       queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      onClose();
+      if (onPrint) {
+        onPrint(invoiceId);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to record payment");
     } finally {
       setIsProcessing(false);
     }
   };
-	  if (isLoading) return <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>;
+
+  if (isLoading) return <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>;
   if (!invoice) return null;
 
   return (

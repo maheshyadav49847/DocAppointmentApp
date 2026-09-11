@@ -15,10 +15,12 @@ namespace CodeX.Api.Controllers
     public class PatientClinicalController : BaseApiController
     {
         private readonly IApplicationDbContext _context;
+        private readonly IQueueNotificationService _notificationService;
 
-        public PatientClinicalController(IApplicationDbContext context)
+        public PatientClinicalController(IApplicationDbContext context, IQueueNotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         [HttpGet("branches")]
@@ -360,6 +362,29 @@ namespace CodeX.Api.Controllers
             }
 
             await _context.SaveChangesAsync(default);
+
+            // Real-Time SignalR Broadcast: Consultation Saved
+            try
+            {
+                var patientObj = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
+                var branchId = Guid.Empty;
+                if (dto.TokenId.HasValue)
+                {
+                    var tokenObj = await _context.Tokens.Include(t => t.Queue).FirstOrDefaultAsync(t => t.Id == dto.TokenId.Value);
+                    if (tokenObj?.Queue != null) branchId = tokenObj.Queue.BranchId;
+                }
+                if (branchId == Guid.Empty)
+                {
+                    var defaultBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.OrganizationId == (patientObj != null ? patientObj.OrganizationId : Guid.Empty));
+                    if (defaultBranch != null) branchId = defaultBranch.Id;
+                }
+                await _notificationService.NotifyConsultationSaved(branchId, dto.TokenId, id, patientObj?.Name ?? "Patient");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_CONSULT_SAVED_ERROR] {ex.Message}");
+            }
+
             return Ok(new { id = visit.Id });
         }
 

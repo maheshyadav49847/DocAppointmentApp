@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { 
-  CreditCard,
+  CreditCard, Printer,
   User, Save, ArrowLeft, RotateCcw, Power, Users, CheckCircle2, ReceiptIndianRupee, 
   Clock, AlertCircle, SkipForward, MessageSquare, 
   Play, Search, PlusCircle, SquarePen, UserCircle, Stethoscope, Phone, Settings, Activity, X, MonitorPlay, Share2, Pause, Star, Smartphone, Send
 } from "lucide-react"
 // Removed unused import
 import { queueService } from "@/services/queueService"
+import { branchService } from "@/services/branchService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { useAuthStore } from "@/store/authStore"
 import { useQueryClient } from "@tanstack/react-query"
@@ -17,7 +18,6 @@ import QuickInvoiceModal from "./QuickInvoiceModal"
 import RecordPaymentModal from './RecordPaymentModal';
 
 import { motion, AnimatePresence } from "framer-motion"
-import { useNavigate } from "react-router-dom"
 import { usePermissions } from "@/hooks/usePermissions"
 import PhoneInput from "@/components/PhoneInput"
 
@@ -53,7 +53,6 @@ export default function QueueManager({ sessionData, onBack }: any) {
   const { doctor, session, queueId } = sessionData
   const { user, activeBranchId } = useAuthStore()
   const { can } = usePermissions()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const [activeTab, setActiveTab] = useState<'waiting' | 'completed' | 'skipped' | 'cancelled'>('waiting')
@@ -90,6 +89,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
   const targetBranchId = queue?.branchId || session?.branchId || doctor?.branchId || user?.branchId || activeBranchId
   const branchId = targetBranchId === 'org' ? null : targetBranchId
+  const organizationId = user?.orgId
+
+  const { data: myBranches = [] } = useQuery({
+    queryKey: ['my-branches'],
+    queryFn: () => branchService.getMyBranches(),
+    enabled: !!user
+  })
+  const activeBranch = myBranches.find((b: any) => b.id === targetBranchId || b.id === activeBranchId)
 
   const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
@@ -603,7 +610,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 <th className="px-6 py-5">Wait Duration</th>
                 {activeTab === 'waiting' && <th className="px-6 py-5">Est. Turn</th>}
                 <th className="px-6 py-5">Status</th>
-                {activeTab !== 'completed' && <th className="px-6 py-5 text-right">Actions</th>}
+                {activeTab !== 'cancelled' && <th className="px-6 py-5 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50/80 bg-slate-50/20">
@@ -622,7 +629,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                 if (!filtered || filtered.length === 0) {
                   return (
                     <tr>
-                      <td colSpan={5} className="px-6 py-24 text-center">
+                      <td colSpan={7} className="px-6 py-24 text-center">
                         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 text-slate-300 mb-4">
                           <Users className="w-8 h-8" />
                         </div>
@@ -730,9 +737,16 @@ export default function QueueManager({ sessionData, onBack }: any) {
                             </button>
                           )}
                           {t.status === 2 && t.invoiceId && t.invoiceStatus === 2 && (
-                             <span className="p-2 text-emerald-400 bg-emerald-50/50 rounded-lg border border-transparent" title="Invoice Paid">
-                               <CheckCircle2 className="w-4 h-4 opacity-50" />
-                             </span>
+                            <button 
+                              onClick={() => {
+                                import('@/utils/printHelper').then(m => m.handlePrintInvoice(t.invoiceId, organizationId, activeBranch));
+                              }} 
+                              className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200 flex items-center gap-1 font-medium text-xs shadow-sm" 
+                              title="Print Invoice"
+                            >
+                              <Printer className="w-4 h-4 text-indigo-600" />
+                              <span className="text-[11px] font-semibold">Print</span>
+                            </button>
                           )}
                           {t.status !== 2 && (
                             <>

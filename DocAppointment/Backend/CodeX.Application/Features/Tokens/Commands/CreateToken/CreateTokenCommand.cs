@@ -217,6 +217,16 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception("Failed to allocate a unique token number. Please retry.");
             }
 
+            // Real-Time SignalR Broadcast: Token Created
+            try
+            {
+                await _notificationService.NotifyTokenCreated(queue.BranchId, queue.Id, token.TokenNumber, patient.Name);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SIGNALR_TOKEN_CREATED_ERROR] {ex.Message}");
+            }
+
             // Calculate predictive wait time (assuming 10 mins per waiting patient ahead of this token)
             var patientsAhead = await _context.Tokens
                 

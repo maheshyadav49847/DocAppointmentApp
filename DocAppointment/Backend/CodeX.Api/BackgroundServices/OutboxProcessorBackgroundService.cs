@@ -195,7 +195,7 @@ namespace CodeX.Api.BackgroundServices
                 }
 
                 // Mark Successful
-                await UpdateItemStatusAsync(itemContext, item.Id, "Sent", null, null, stoppingToken);
+                await UpdateItemStatusAsync(itemScope.ServiceProvider, item.Id, "Sent", null, null, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -217,12 +217,12 @@ namespace CodeX.Api.BackgroundServices
                     nextRetryUtc = DateTime.UtcNow.AddSeconds(backoffSeconds);
                 }
 
-                await UpdateItemStatusAsync(itemContext, item.Id, newStatus, ex.Message, nextRetryUtc, stoppingToken, newRetryCount);
+                await UpdateItemStatusAsync(itemScope.ServiceProvider, item.Id, newStatus, ex.Message, nextRetryUtc, stoppingToken, newRetryCount);
             }
         }
 
         private static async Task UpdateItemStatusAsync(
-            IApplicationDbContext context,
+            IServiceProvider serviceProvider,
             Guid itemId,
             string status,
             string? errorMessage,
@@ -230,6 +230,7 @@ namespace CodeX.Api.BackgroundServices
             CancellationToken stoppingToken,
             int? retryCount = null)
         {
+            var context = serviceProvider.GetRequiredService<IApplicationDbContext>();
             var dbItem = await context.OutboxMessages.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == itemId, stoppingToken);
             if (dbItem == null) return;
 
@@ -247,8 +248,21 @@ namespace CodeX.Api.BackgroundServices
                 if (nextRetryUtc.HasValue) dbItem.NextRetryAtUtc = nextRetryUtc;
                 if (retryCount.HasValue) dbItem.RetryCount = retryCount.Value;
             }
-
             await context.SaveChangesAsync(stoppingToken);
+
+            // Real-Time SignalR Broadcast: Outbox status change
+            try
+            {
+                var notificationService = serviceProvider.GetService<IQueueNotificationService>();
+                if (notificationService != null)
+                {
+                    await notificationService.NotifyOutboxStatusChanged(dbItem.BranchId, dbItem.Id, dbItem.Status, dbItem.Channel, dbItem.ErrorMessage);
+                }
+            }
+            catch
+            {
+                // Background broadcast failure shouldn't disrupt worker
+            }
         }
     }
 }

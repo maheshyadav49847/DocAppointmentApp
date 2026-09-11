@@ -16,9 +16,15 @@ namespace CodeX.Api.Controllers
     [Authorize]
     [ApiController]
     [ApiVersion("1.0")]
-    [Route("api/v{version:apiVersion}/[controller]")]
     public class BillingController : BaseApiController
     {
+        private readonly CodeX.Application.Common.Interfaces.IQueueNotificationService? _notificationService;
+
+        public BillingController(CodeX.Application.Common.Interfaces.IQueueNotificationService? notificationService = null)
+        {
+            _notificationService = notificationService;
+        }
+
         [HttpGet("services")]
         public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<ServiceItemDto>>> GetServices([FromQuery] GetServicesQuery query)
         {
@@ -103,20 +109,46 @@ namespace CodeX.Api.Controllers
         [HttpPost("invoices")]
         public async Task<ActionResult<Guid>> CreateInvoice([FromBody] CreateInvoiceCommand command)
         {
-            return await Mediator.Send(command);
+            var result = await Mediator.Send(command);
+            try
+            {
+                if (_notificationService != null)
+                {
+                    await _notificationService.NotifyInvoiceUpdated(command.BranchId, result, "INV-NEW", "Created");
+                }
+            }
+            catch { }
+            return result;
         }
 
         [HttpPost("invoices/pay")]
         public async Task<ActionResult> PayInvoice([FromBody] PayInvoiceCommand command)
         {
             await Mediator.Send(command);
+            try
+            {
+                if (_notificationService != null)
+                {
+                    await _notificationService.NotifyInvoiceUpdated(Guid.Empty, command.InvoiceId, "INV-PAID", "Paid");
+                }
+            }
+            catch { }
             return NoContent();
         }
 
         [HttpPost("invoices/{id}/cancel")]
         public async Task<ActionResult<bool>> CancelInvoice(Guid id, [FromBody] CancelInvoiceRequest request)
         {
-            return await Mediator.Send(new CancelInvoiceCommand(id, request.OrganizationId));
+            var result = await Mediator.Send(new CancelInvoiceCommand(id, request.OrganizationId));
+            try
+            {
+                if (_notificationService != null)
+                {
+                    await _notificationService.NotifyInvoiceUpdated(Guid.Empty, id, "INV-CANCELLED", "Cancelled");
+                }
+            }
+            catch { }
+            return result;
         }
     }
 

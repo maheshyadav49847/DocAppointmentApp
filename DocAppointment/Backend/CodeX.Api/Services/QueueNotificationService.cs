@@ -62,5 +62,29 @@ namespace CodeX.Api.Services
             await _hubContext.Clients.Group(branchId.ToString())
                 .SendAsync("QueueEnded", new { QueueId = queueId });
         }
+
+        public async Task NotifyTokenCreated(Guid branchId, Guid queueId, int tokenNumber, string patientName)
+        {
+            await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("TokenCreated", new { BranchId = branchId, QueueId = queueId, TokenNumber = tokenNumber, PatientName = patientName });
+        }
+
+        public async Task NotifyConsultationSaved(Guid branchId, Guid? tokenId, Guid patientId, string patientName)
+        {
+            await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("ConsultationSaved", new { BranchId = branchId, TokenId = tokenId, PatientId = patientId, PatientName = patientName });
+        }
+
+        public async Task NotifyOutboxStatusChanged(Guid branchId, Guid outboxId, string status, string channel, string? error = null)
+        {
+            await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("OutboxStatusChanged", new { BranchId = branchId, OutboxId = outboxId, Status = status, Channel = channel, Error = error });
+        }
+
+        public async Task NotifyInvoiceUpdated(Guid branchId, Guid invoiceId, string invoiceNumber, string status)
+        {
+            await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("InvoiceUpdated", new { BranchId = branchId, InvoiceId = invoiceId, InvoiceNumber = invoiceNumber, Status = status });
+        }
     }
 }
