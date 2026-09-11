@@ -37,6 +37,8 @@ const T: Record<string, Record<string, string>> = {
     cancelConfirm: 'क्या आप वाकई अपनी अपॉइंटमेंट रद्द (Cancel) करना चाहते हैं?',
     cancelSuccess: 'आपकी अपॉइंटमेंट रद्द कर दी गई है।',
     bookNewBtn: 'नई अपॉइंटमेंट बुक करें',
+    closeBtn: '✕ विंडो बंद करें (Close)',
+    newBookingHint: 'ℹ️ एक फॉर्म से एक ही बुकिंग संभव है। दोबारा बुकिंग के लिए टेलीग्राम बॉट पर "HI" लिखकर नया फॉर्म प्राप्त करें।',
     statusPending: 'कतार में है (Waiting)',
     branchBadge: 'क्लिनिक / ब्रांच',
   },
@@ -74,6 +76,8 @@ const T: Record<string, Record<string, string>> = {
     cancelConfirm: 'तुम्हाला नक्की तुमची अपॉइंटमेंट रद्द करायची आहे का?',
     cancelSuccess: 'तुमची अपॉइंटमेंट रद्द झाली आहे.',
     bookNewBtn: 'नवीन अपॉइंटमेंट बुक करा',
+    closeBtn: '✕ विंडो बंद करा (Close)',
+    newBookingHint: 'ℹ️ एका फॉर्ममधून एकच बुकिंग शक्य आहे. पुन्हा बुकिंग करण्यासाठी टेलिग्राम बॉटवर "HI" पाठवून नवीन फॉर्म मिळवा.',
     statusPending: 'रांगेत आहे (Waiting)',
     branchBadge: 'क्लिनिक / शाखा',
   },
@@ -111,6 +115,8 @@ const T: Record<string, Record<string, string>> = {
     cancelConfirm: 'Are you sure you want to cancel this appointment?',
     cancelSuccess: 'Your appointment has been cancelled successfully.',
     bookNewBtn: 'Book New Appointment',
+    closeBtn: '✕ Close Window',
+    newBookingHint: 'ℹ️ This form is single-use. To book a new appointment, send "HI" on Telegram to receive a fresh form.',
     statusPending: 'In Queue (Waiting)',
     branchBadge: 'Clinic / Branch',
   },
@@ -371,6 +377,15 @@ const TelegramBookingForm = () => {
     }
   };
 
+  const handleCloseApp = () => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg && typeof tg.close === 'function') {
+      tg.close();
+    } else {
+      window.close();
+    }
+  };
+
   const handleCancelBooking = async () => {
     if (!window.confirm(t.cancelConfirm)) return;
     setCancelling(true);
@@ -380,20 +395,8 @@ const TelegramBookingForm = () => {
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
       if (res.ok) {
-        alert(t.cancelSuccess);
-        // Reset state so user can book again!
-        setBooked(false);
-        setAlreadyBooked(false);
-        setTokenNumber(0);
-        setDoctorName('');
-        setDoctorSpecialization('');
-        setDoctorQualification('');
-        setDoctorRegNo('');
-        setSessionName('');
-        setCurrentRunningToken(0);
-        setLoading(true);
-        await loadActiveQueues();
-        setLoading(false);
+        alert(`${t.cancelSuccess}\n\n${t.newBookingHint}`);
+        handleCloseApp();
       } else {
         alert(t.bookingFailed);
       }
@@ -760,6 +763,37 @@ const TelegramBookingForm = () => {
       gap: '6px',
     } as React.CSSProperties,
 
+    closeBtn: {
+      marginTop: '10px',
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#f8fafc',
+      color: '#475569',
+      border: '1px solid #cbd5e1',
+      borderRadius: '12px',
+      fontSize: '14px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.15s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
+    } as React.CSSProperties,
+
+    newBookingHintBox: {
+      marginTop: '14px',
+      padding: '10px 12px',
+      backgroundColor: '#f0fdf4',
+      border: '1px solid #bbf7d0',
+      borderRadius: '10px',
+      color: '#166534',
+      fontSize: '12px',
+      lineHeight: 1.45,
+      textAlign: 'center' as const,
+      fontWeight: 500,
+    } as React.CSSProperties,
+
     // Active Booking Page styles
     bookedContainer: {
       padding: '24px 16px',
@@ -995,6 +1029,19 @@ const TelegramBookingForm = () => {
             >
               {cancelling ? t.cancellingBtn : t.cancelBtn}
             </button>
+
+            {/* Close Window Button */}
+            <button
+              onClick={handleCloseApp}
+              style={styles.closeBtn}
+            >
+              {t.closeBtn}
+            </button>
+
+            {/* Single-form notice / hint */}
+            <div style={styles.newBookingHintBox}>
+              {t.newBookingHint}
+            </div>
           </div>
         </div>
       </div>

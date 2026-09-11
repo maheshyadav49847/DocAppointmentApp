@@ -638,22 +638,31 @@ namespace CodeX.Api.Controllers
                 {
                     patientId = patient.Id;
 
+                    var branch = queue.Branch;
+                    var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch?.Timezone ?? "India Standard Time");
+                    var tomorrow = today.AddDays(1);
+
                     var existingToken = await _context.Tokens
                         .IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(t => t.QueueId == queueId
+                        .Include(t => t.Queue)
+                            .ThenInclude(q => q.Doctor)
+                        .FirstOrDefaultAsync(t => t.Queue.BranchId == queue.BranchId
+                            && t.Queue.QueueDate >= today
+                            && t.Queue.QueueDate < tomorrow
                             && t.PatientId == patient.Id
                             && !t.IsDeleted
                             && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called));
 
                     if (existingToken != null)
                     {
+                        var doc = existingToken.Queue?.Doctor;
                         return Ok(new { 
                             tokenNumber = existingToken.TokenNumber, 
-                            doctorName = queue.Doctor?.Name,
-                            specialization = queue.Doctor?.Specialization ?? "",
-                            qualification = queue.Doctor?.Qualification ?? "",
-                            registrationNumber = queue.Doctor?.RegistrationNumber ?? "",
-                            patientName = patient?.Name ?? "",
+                            doctorName = doc?.Name ?? queue.Doctor?.Name,
+                            specialization = doc?.Specialization ?? queue.Doctor?.Specialization ?? "",
+                            qualification = doc?.Qualification ?? queue.Doctor?.Qualification ?? "",
+                            registrationNumber = doc?.RegistrationNumber ?? queue.Doctor?.RegistrationNumber ?? "",
+                            patientName = patient?.Name ?? "", 
                             alreadyBooked = true 
                         });
                     }
