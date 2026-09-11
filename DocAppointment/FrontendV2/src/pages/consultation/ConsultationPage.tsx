@@ -14,7 +14,9 @@ import { usePermissions } from "@/hooks/usePermissions"
 import MedicineAutocomplete from "./components/MedicineAutocomplete"
 import PatientProfileDrawer from "../patients/components/PatientProfileDrawer"
 import PrescriptionTemplate from "./components/PrescriptionTemplate"
-import { generatePdfFromElement, generateBase64PdfFromElement } from "../../utils/pdfUtils"
+import { generatePdfFromElement } from "../../utils/pdfUtils"
+import { dispatchPrescriptionInBackground } from "@/services/prescriptionDispatchService"
+import toast from "react-hot-toast"
 import { PageLoader } from "@/components/ui/PageLoader"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
@@ -259,69 +261,25 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         }
       }
 
-      // Auto-generate and send Prescription PDF to Telegram and WhatsApp
-      let dispatchStatus = ""
+      // Decoupled Background Prescription Dispatch (Zero Doctor Wait-Time)
       if (printRef.current) {
-        try {
-          console.log("[Prescription] Generating base64 PDF from prescription element...")
-          const base64Pdf = await generateBase64PdfFromElement(printRef.current)
-          const clinicName = currentBranch?.name || "the clinic"
-          const patientDisplayName = patient?.name || "Patient"
-          const prescriptionMsg = `Hello ${patientDisplayName}, here is your prescription from your recent consultation at ${clinicName}.`
-          const fileName = `Prescription_${patientDisplayName.replace(/\s+/g, '_')}.pdf`
-
-          // 1. Send via Telegram if TelegramChatId is present
-          if (patient?.telegramChatId) {
-            try {
-              console.log("[Prescription] Sending PDF to Telegram chatId:", patient.telegramChatId)
-              const tgRes = await api.post(`/telegram/messages/send/${currentBranchId || 'default'}`, {
-                chatId: patient.telegramChatId,
-                message: prescriptionMsg,
-                fileBase64: base64Pdf,
-                fileName: fileName
-              })
-              dispatchStatus += "\n• Prescription PDF sent via Telegram"
-              console.log("[Prescription] Successfully sent to Telegram:", tgRes.data)
-            } catch (tgErr: any) {
-              console.error("[Prescription] Auto-send Telegram Error:", tgErr?.response?.data || tgErr.message)
-            }
-          }
-
-          // 2. Send via WhatsApp if Phone is present
-          if (patient?.phone) {
-            try {
-              console.log("[Prescription] Sending PDF to WhatsApp phone:", patient.phone)
-              const waRes = await api.post(`/whatsapp/messages/send/${currentBranchId || 'default'}`, {
-                to: patient.phone,
-                message: prescriptionMsg,
-                fileBase64: base64Pdf,
-                fileName: fileName
-              })
-              dispatchStatus += "\n• Prescription PDF sent via WhatsApp"
-              console.log("[Prescription] Successfully sent to WhatsApp:", waRes.data)
-            } catch (waErr: any) {
-              console.error("[Prescription] Auto-send WhatsApp Error:", waErr?.response?.data || waErr.message)
-            }
-          }
-        } catch (pdfErr: any) {
-          console.error("[Prescription] Error during PDF generation/dispatch:", pdfErr)
-        }
-      } else {
-        console.warn("[Prescription] printRef.current was null, PDF could not be generated.")
+        dispatchPrescriptionInBackground({
+          printElement: printRef.current,
+          patient,
+          currentBranch,
+          currentBranchId
+        });
       }
 
-      return { visitData: res.data, dispatchStatus }
+      return res.data
     },
-    onSuccess: (result: any) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinicalVisits", patientId] })
       queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
 
-      const successMsg = result?.dispatchStatus
-        ? `Consultation saved successfully!${result.dispatchStatus}`
-        : "Consultation saved successfully!"
-      alert(successMsg)
+      toast.success("Consultation saved successfully!")
 
-      // Clear form AFTER PDF is generated and sent
+      // Clear form immediately
       setVisitDoctorName("")
       setVisitSymptoms("")
       setVisitDiagnosis("")
@@ -348,7 +306,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       if (onConsultationSaved) onConsultationSaved();
     },
     onError: (err: any) => {
-      alert("Failed to save consultation: " + (err.response?.data || err.message))
+      toast.error("Failed to save consultation: " + (err.response?.data || err.message))
     }
   })
 

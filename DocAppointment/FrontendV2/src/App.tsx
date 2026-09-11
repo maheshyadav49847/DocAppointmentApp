@@ -24,10 +24,11 @@ import RolesPermissionsPage from "./pages/settings/RolesPermissionsPage"
 import BillingServicesPage from "./pages/billing/BillingServicesPage"
 import BillingDashboardPage from "./pages/billing/BillingDashboardPage"
 import ReportsDashboardPage from "./pages/reports/ReportsDashboardPage"
+import PatientLifecyclePage from "./pages/lifecycle/PatientLifecyclePage"
 import { useAuthStore } from "./store/authStore"
 import TelegramBookingForm from "./pages/telegram/TelegramBookingForm"
-
 import { usePermissions } from "./hooks/usePermissions"
+import { useAppHub } from "./hooks/useAppHub"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -63,8 +64,6 @@ function HomeRoute() {
   return <Navigate to="/settings" replace />;
 }
 
-import { useAppHub } from "./hooks/useAppHub"
-
 function App() {
   useAppHub();
 
@@ -73,7 +72,6 @@ function App() {
       <Routes>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-
           <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
         </Route>
 
@@ -100,7 +98,7 @@ function App() {
           <Route path="/billing/services" element={<PermissionRoute permissions={["Settings.View"]}><BillingServicesPage /></PermissionRoute>} />
           <Route path="/audit-logs" element={<PermissionRoute permissions={["Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
           <Route path="/reports" element={<PermissionRoute permissions={["Analytics.View"]}><ReportsDashboardPage /></PermissionRoute>} />
-          {/* We will add other routes here in later phases */}
+          <Route path="/lifecycle" element={<PermissionRoute permissions={["Queue.View", "Analytics.View"]}><PatientLifecyclePage /></PermissionRoute>} />
         </Route>
 
         {/* Default route */}

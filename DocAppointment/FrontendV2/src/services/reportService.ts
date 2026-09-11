@@ -125,4 +125,23 @@ export const reportService = {
     const response = await api.get('/reports/clinical/referral-tracking', { params: cleanParams });
     return response.data;
   },
+
+  getPatientLifecycleReport: async (params: {
+    startDate: string;
+    endDate: string;
+    branchId?: string;
+    doctorId?: string;
+    search?: string;
+    stage?: string;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const cleanParams: any = { ...params };
+    if (cleanParams.branchId === 'all' || cleanParams.branchId === 'org') delete cleanParams.branchId;
+    if (cleanParams.doctorId === 'all') delete cleanParams.doctorId;
+    if (!cleanParams.search) delete cleanParams.search;
+    if (!cleanParams.stage || cleanParams.stage === 'All') delete cleanParams.stage;
+    const response = await api.get('/reports/operational/patient-lifecycle', { params: cleanParams });
+    return response.data;
+  },
 }

@@ -337,5 +337,36 @@ namespace CodeX.Api.Controllers
                 EndDate = end
             });
         }
+
+        [HttpGet("operational/patient-lifecycle")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport.PatientLifecycleReportDto>> GetPatientLifecycleReport(
+            [FromQuery] Guid? branchId,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? search,
+            [FromQuery] string? stage,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            var orgId = _currentUserService.OrgId;
+            var start = startDate ?? DateTime.UtcNow.Date;
+            var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            return await Mediator.Send(new CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport.GetPatientLifecycleReportQuery
+            {
+                OrganizationId = orgId,
+                BranchId = effectiveBranchId,
+                DoctorId = doctorId,
+                StartDate = start,
+                EndDate = end,
+                Search = search,
+                Stage = stage,
+                Page = page,
+                PageSize = pageSize
+            });
+        }
     }
 }

@@ -11,7 +11,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, PlusCircle, Search, ChevronLeft, ChevronRight, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, GitCommitHorizontal
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
@@ -191,13 +191,22 @@ export default function PatientsPage() {
             </button>
           )}
           {can('Patients.ViewHistory') && (
-            <button
-              onClick={() => navigate(`/consult/${row.original.id}`)}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Consult"
-            >
-              <Stethoscope className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                onClick={() => navigate(`/lifecycle?search=${encodeURIComponent(row.original.name)}`)}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="View Patient Journey"
+              >
+                <GitCommitHorizontal className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => navigate(`/consult/${row.original.id}`)}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Consult"
+              >
+                <Stethoscope className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       )
@@ -473,16 +482,28 @@ export default function PatientsPage() {
                           </button>
                         )}
                         {can('Patients.ViewHistory') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/consult/` + patient.id)
-                            }}
-                            className="flex-1 btn-primary text-xs px-3"
-                          >
-                            <Stethoscope className="w-4 h-4" />
-                            Consult
-                          </button>
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
+                              }}
+                              className="btn-secondary text-xs px-2.5"
+                              title="Patient Journey"
+                            >
+                              <GitCommitHorizontal className="w-4 h-4 text-indigo-600" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/consult/` + patient.id)
+                              }}
+                              className="flex-1 btn-primary text-xs px-3"
+                            >
+                              <Stethoscope className="w-4 h-4" />
+                              Consult
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
