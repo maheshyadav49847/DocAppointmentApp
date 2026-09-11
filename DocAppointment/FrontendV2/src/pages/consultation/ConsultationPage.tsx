@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 // Removed unused framer-motion import
 import { api } from "@/lib/axios"
 import { useAuthStore } from "@/store/authStore"
-import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
 import {
   ArrowLeft, Save, Activity, ClipboardList,
   HeartPulse, Edit, Trash2, X,
@@ -346,6 +344,8 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       setStagingFile(null)
       setEditingVisitId(null)
       const el = document.getElementById("consultation-file-input") as HTMLInputElement; if(el) el.value = "";
+
+      if (onConsultationSaved) onConsultationSaved();
     },
     onError: (err: any) => {
       alert("Failed to save consultation: " + (err.response?.data || err.message))
@@ -1302,9 +1302,9 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
             medicines: visitMedicines,
             followUpDate: visitFollowUpDate,
             followUpInstructions: visitFollowUpInstructions,
-            doctorName: doctors?.find((d: any) => String(d.id) === String(visitDoctorId))?.name || user?.name
+            doctorName: doctors?.find((d: any) => String(d.id) === String(visitDoctorId))?.name || "Doctor"
           }}
-          doctor={doctors?.find((d: any) => String(d.id) === String(visitDoctorId)) || { name: user?.name }}
+          doctor={doctors?.find((d: any) => String(d.id) === String(visitDoctorId)) || { name: "Doctor" }}
           branch={currentBranch}
         />
       </div>
