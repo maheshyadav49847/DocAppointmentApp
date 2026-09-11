@@ -615,12 +615,22 @@ namespace CodeX.Api.Controllers
 
         private static bool IsFormConsumed(Domain.Entities.Patient? patient, string? formId)
         {
-            if (patient == null || string.IsNullOrWhiteSpace(formId) || string.IsNullOrWhiteSpace(patient.MetaDataJson))
+            if (patient == null || string.IsNullOrWhiteSpace(formId))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(patient.MetaDataJson))
                 return false;
 
             try
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
+                string? currentActiveFormId = null;
+
+                if (doc.RootElement.TryGetProperty("currentFormId", out var currentProp))
+                {
+                    currentActiveFormId = currentProp.GetString();
+                }
+
                 if (doc.RootElement.TryGetProperty("consumedFormIds", out var consumedProp) && consumedProp.ValueKind == System.Text.Json.JsonValueKind.Array)
                 {
                     foreach (var item in consumedProp.EnumerateArray())
@@ -630,6 +640,12 @@ namespace CodeX.Api.Controllers
                             return true;
                         }
                     }
+                }
+
+                // If patient currently has an active form assigned, and opened form does NOT match it, it has expired/been superseded
+                if (!string.IsNullOrWhiteSpace(currentActiveFormId) && formId != currentActiveFormId)
+                {
+                    return true;
                 }
             }
             catch { }
@@ -972,21 +988,50 @@ namespace CodeX.Api.Controllers
                 t.Status = Domain.Enums.TokenStatus.Cancelled;
             }
 
-            // Clear currentFormId so next form requested gets a fresh formId
+            // Cancelled form should also be moved to consumedFormIds and clear currentFormId
             foreach (var p in patients)
             {
                 try
                 {
                     var dict = new Dictionary<string, object>();
+                    var consumedList = new List<string>();
+                    string? currentFormToConsume = null;
+
                     if (!string.IsNullOrWhiteSpace(p.MetaDataJson))
                     {
                         using var doc = System.Text.Json.JsonDocument.Parse(p.MetaDataJson);
                         foreach (var prop in doc.RootElement.EnumerateObject())
                         {
-                            if (prop.NameEquals("currentFormId")) continue;
+                            if (prop.NameEquals("currentFormId"))
+                            {
+                                currentFormToConsume = prop.Value.GetString();
+                                continue;
+                            }
+                            if (prop.NameEquals("consumedFormIds"))
+                            {
+                                if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                {
+                                    foreach (var item in prop.Value.EnumerateArray())
+                                    {
+                                        var s = item.GetString();
+                                        if (!string.IsNullOrEmpty(s) && !consumedList.Contains(s))
+                                        {
+                                            consumedList.Add(s);
+                                        }
+                                    }
+                                }
+                                continue;
+                            }
                             dict[prop.Name] = prop.Value.Clone();
                         }
                     }
+
+                    if (!string.IsNullOrWhiteSpace(currentFormToConsume) && !consumedList.Contains(currentFormToConsume))
+                    {
+                        consumedList.Add(currentFormToConsume);
+                    }
+
+                    dict["consumedFormIds"] = consumedList;
                     dict["currentFormId"] = "";
                     p.MetaDataJson = System.Text.Json.JsonSerializer.Serialize(dict);
                 }

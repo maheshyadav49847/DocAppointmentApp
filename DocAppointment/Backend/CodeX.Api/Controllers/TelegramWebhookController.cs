@@ -934,7 +934,7 @@ namespace CodeX.Api.Controllers
                         activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
                     }
 
-                    // Reset currentFormId so subsequent HI gets a fresh form
+                    // Move currentFormId to consumedFormIds and reset currentFormId so subsequent HI gets a fresh form
                     var allPatients = await _context.Patients
                         .IgnoreQueryFilters()
                         .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
@@ -945,15 +945,44 @@ namespace CodeX.Api.Controllers
                         try
                         {
                             var dict = new Dictionary<string, object>();
+                            var consumedList = new List<string>();
+                            string? currentFormToConsume = null;
+
                             if (!string.IsNullOrWhiteSpace(p.MetaDataJson))
                             {
                                 using var doc = JsonDocument.Parse(p.MetaDataJson);
                                 foreach (var prop in doc.RootElement.EnumerateObject())
                                 {
-                                    if (prop.NameEquals("currentFormId")) continue;
+                                    if (prop.NameEquals("currentFormId"))
+                                    {
+                                        currentFormToConsume = prop.Value.GetString();
+                                        continue;
+                                    }
+                                    if (prop.NameEquals("consumedFormIds"))
+                                    {
+                                        if (prop.Value.ValueKind == JsonValueKind.Array)
+                                        {
+                                            foreach (var item in prop.Value.EnumerateArray())
+                                            {
+                                                var s = item.GetString();
+                                                if (!string.IsNullOrEmpty(s) && !consumedList.Contains(s))
+                                                {
+                                                    consumedList.Add(s);
+                                                }
+                                            }
+                                        }
+                                        continue;
+                                    }
                                     dict[prop.Name] = prop.Value.Clone();
                                 }
                             }
+
+                            if (!string.IsNullOrWhiteSpace(currentFormToConsume) && !consumedList.Contains(currentFormToConsume))
+                            {
+                                consumedList.Add(currentFormToConsume);
+                            }
+
+                            dict["consumedFormIds"] = consumedList;
                             dict["currentFormId"] = "";
                             p.MetaDataJson = JsonSerializer.Serialize(dict);
                         }
