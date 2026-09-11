@@ -718,7 +718,7 @@ namespace CodeX.Api.Controllers
 
         [AllowAnonymous]
         [HttpPost("{queueId}/book-anonymous")]
-        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId, [FromQuery] string? formId, [FromQuery] string? lang)
+        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId, [FromQuery] string? formId, [FromQuery] string? lang, [FromQuery] string? patientName = null)
         {
             var queue = await _context.DailyQueues
                 .IgnoreQueryFilters()
@@ -808,8 +808,17 @@ namespace CodeX.Api.Controllers
 
                 if (matchingPatients.Count == 0) matchingPatients.Add(patient);
 
+                if (!string.IsNullOrWhiteSpace(patientName))
+                {
+                    patient.Name = patientName.Trim();
+                }
+
                 foreach (var p in matchingPatients)
                 {
+                    if (!string.IsNullOrWhiteSpace(patientName))
+                    {
+                        p.Name = patientName.Trim();
+                    }
                     RecordConsumedFormId(p, formId, lang);
                 }
 

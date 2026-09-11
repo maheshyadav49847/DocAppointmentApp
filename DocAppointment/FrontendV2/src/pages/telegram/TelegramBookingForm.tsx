@@ -26,6 +26,9 @@ const T: Record<string, Record<string, string>> = {
     doctorRegNo: 'पंजीकरण संख्या',
     regNoShort: 'Reg. No.',
     patientName: 'मरीज़ का नाम',
+    patientNameInputLabel: 'मरीज़ का पूरा नाम',
+    patientNamePlaceholder: 'अपना या मरीज़ का नाम यहाँ लिखें...',
+    patientNameRequired: 'कृपया मरीज़ का नाम दर्ज करें।',
     successWait: 'कृपया क्लिनिक पर आकर अपनी बारी का इंतज़ार करें।',
     alreadyTitle: 'आपकी बुकिंग पहले से मौजूद है!',
     alreadyMsg: 'आपका टोकन आज के लिए पहले ही बुक हो चुका है।',
@@ -70,6 +73,9 @@ const T: Record<string, Record<string, string>> = {
     doctorRegNo: 'नोंदणी क्रमांक',
     regNoShort: 'Reg. No.',
     patientName: 'रुग्णाचे नाव',
+    patientNameInputLabel: 'रुग्णाचे पूर्ण नाव',
+    patientNamePlaceholder: 'स्वतःचे किंवा रुग्णाचे नाव येथे लिहा...',
+    patientNameRequired: 'कृपया रुग्णाचे नाव प्रविष्ट करा.',
     successWait: 'कृपया क्लिनिकमध्ये येऊन आपल्या पाळीची वाट पहा.',
     alreadyTitle: 'तुमची बुकिंग आधीच झाली आहे!',
     alreadyMsg: 'आजच्या दिवसासाठी तुमचा टोकन आधीच बुक केला गेला आहे.',
@@ -114,6 +120,9 @@ const T: Record<string, Record<string, string>> = {
     doctorRegNo: 'Registration No.',
     regNoShort: 'Reg. No.',
     patientName: 'Patient Name',
+    patientNameInputLabel: 'Patient Full Name',
+    patientNamePlaceholder: 'Enter your or patient name here...',
+    patientNameRequired: 'Please enter patient name.',
     successWait: 'Please visit the clinic and wait for your turn.',
     alreadyTitle: 'Active Booking Found',
     alreadyMsg: 'You already have an active token for today.',
@@ -192,6 +201,7 @@ const TelegramBookingForm = () => {
   const [doctorQualification, setDoctorQualification] = useState('');
   const [doctorRegNo, setDoctorRegNo] = useState('');
   const [patientName, setPatientName] = useState('');
+  const [enteredName, setEnteredName] = useState('');
   const [sessionName, setSessionName] = useState('');
   const [currentRunningToken, setCurrentRunningToken] = useState(0);
 
@@ -284,8 +294,9 @@ const TelegramBookingForm = () => {
           );
           if (bookingCheckRes.ok) {
             const checkData = await bookingCheckRes.json();
-            if (checkData.patientName) {
+            if (checkData.patientName && checkData.patientName.toLowerCase() !== 'unknown') {
               setPatientName(checkData.patientName);
+              setEnteredName(checkData.patientName);
             }
             if (checkData.branchName) {
               setBranchInfo({
@@ -368,11 +379,18 @@ const TelegramBookingForm = () => {
   }, [queues, selectedQueue]);
 
   const handleBook = async () => {
-    if (!selectedQueue) { alert(t.selectAlert); return; }
+    if (!enteredName.trim()) {
+      alert(t.patientNameRequired);
+      return;
+    }
+    if (!selectedQueue) {
+      alert(t.selectAlert);
+      return;
+    }
     setBooking(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}&lang=${encodeURIComponent(currentLang)}`,
+        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}&lang=${encodeURIComponent(currentLang)}&patientName=${encodeURIComponent(enteredName.trim())}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
       if (res.ok) {
@@ -384,6 +402,8 @@ const TelegramBookingForm = () => {
         setDoctorRegNo(data.registrationNumber || '');
         if (data.patientName) {
           setPatientName(data.patientName);
+        } else if (enteredName.trim()) {
+          setPatientName(enteredName.trim());
         }
         if (data.alreadyBooked) {
           setAlreadyBooked(true);
@@ -589,6 +609,37 @@ const TelegramBookingForm = () => {
       padding: '18px 16px 40px',
       maxWidth: '520px',
       margin: '0 auto',
+    } as React.CSSProperties,
+
+    nameInputContainer: {
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      border: '1px solid #e2e8f0',
+      padding: '16px',
+      marginBottom: '16px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+    } as React.CSSProperties,
+
+    nameInputLabel: {
+      fontSize: '13px',
+      fontWeight: 700,
+      color: '#1e293b',
+      marginBottom: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+    } as React.CSSProperties,
+
+    nameInputField: {
+      width: '100%',
+      padding: '12px 14px',
+      borderRadius: '10px',
+      border: '1.5px solid #cbd5e1',
+      fontSize: '15px',
+      color: '#0f172a',
+      outline: 'none',
+      boxSizing: 'border-box' as const,
+      transition: 'border-color 0.15s ease',
     } as React.CSSProperties,
 
     sectionLabel: {
@@ -1264,6 +1315,21 @@ const TelegramBookingForm = () => {
 
       {/* Body */}
       <div style={styles.body}>
+        {/* Patient Name Input */}
+        <div style={styles.nameInputContainer}>
+          <label style={styles.nameInputLabel}>
+            <span>👤</span> {t.patientNameInputLabel} <span style={{ color: '#ef4444' }}>*</span>
+          </label>
+          <input
+            type="text"
+            value={enteredName}
+            onChange={(e) => setEnteredName(e.target.value)}
+            placeholder={t.patientNamePlaceholder}
+            style={styles.nameInputField}
+            maxLength={60}
+          />
+        </div>
+
         <div style={styles.sectionLabel}>
           <span>🩺</span> {t.selectLabel}
         </div>

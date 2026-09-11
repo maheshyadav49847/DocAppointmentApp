@@ -173,7 +173,7 @@ namespace CodeX.Api.Controllers
                 patient = new Patient
                 {
                     Phone = phone,
-                    Name = contact.FirstName ?? "Unknown",
+                    Name = "",
                     TelegramChatId = chatId,
                     OrganizationId = orgId
                 };
