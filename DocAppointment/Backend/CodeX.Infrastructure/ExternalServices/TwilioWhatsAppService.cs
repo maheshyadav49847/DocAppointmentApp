@@ -69,7 +69,8 @@ namespace CodeX.Infrastructure.ExternalServices
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
                 var session = await dbContext.ChatSessions.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber);
-                return session?.Language ?? "1"; // Default to Hindi
+                var patient = await dbContext.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Phone == phoneNumber && !p.IsDeleted);
+                return CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(patient, session);
             }
             catch
             {

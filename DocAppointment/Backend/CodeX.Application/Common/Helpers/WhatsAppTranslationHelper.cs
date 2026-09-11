@@ -2,17 +2,81 @@ namespace CodeX.Application.Common.Helpers
 {
     public static class WhatsAppTranslationHelper
     {
-        public static string Get(string lang, string key, params object[] args)
+        public static string NormalizeLanguageCode(string? lang)
         {
-            var code = string.IsNullOrWhiteSpace(lang) ? "1" : lang;
+            if (string.IsNullOrWhiteSpace(lang)) return "1"; // Default to Hindi ("1")
+            var lower = lang.Trim().ToLowerInvariant();
+            if (lower == "1" || lower == "hi" || lower.StartsWith("hi-") || lower.Contains("hindi") || lower.Contains("हिन्दी") || lower.Contains("हिंदी"))
+                return "1";
+            if (lower == "2" || lower == "mr" || lower.StartsWith("mr-") || lower.Contains("marathi") || lower.Contains("मराठी"))
+                return "2";
+            if (lower == "3" || lower == "en" || lower.StartsWith("en-") || lower.Contains("english"))
+                return "3";
+            return "1";
+        }
+
+        public static string NormalizeLanguageTag(string? lang)
+        {
+            var code = NormalizeLanguageCode(lang);
+            return code switch
+            {
+                "2" => "mr",
+                "3" => "en",
+                _ => "hi"
+            };
+        }
+
+        public static string GetPatientLanguage(CodeX.Domain.Entities.Patient? patient, CodeX.Domain.Entities.ChatSession? session, string fallback = "1")
+        {
+            // 1. Check Patient.MetaDataJson for explicit preference
+            if (patient != null && !string.IsNullOrWhiteSpace(patient.MetaDataJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
+                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    {
+                        var val = lProp.GetString();
+                        if (!string.IsNullOrWhiteSpace(val))
+                            return NormalizeLanguageCode(val);
+                    }
+                }
+                catch { }
+            }
+
+            // 2. Check ChatSession.Language
+            if (session != null && !string.IsNullOrWhiteSpace(session.Language))
+            {
+                return NormalizeLanguageCode(session.Language);
+            }
+
+            return NormalizeLanguageCode(fallback);
+        }
+
+        public static string Get(string? lang, string key, params object[] args)
+        {
+            var code = NormalizeLanguageCode(lang);
             if (!_translations.ContainsKey(code))
                 code = "1"; // Default to Hindi
 
-            var dict = _translations[code];
-            if (!dict.TryGetValue(key, out var template))
+            // Support key aliases
+            var normalizedKey = key switch
             {
-                // Fallback to English if missing in selected language
-                template = _translations["3"].GetValueOrDefault(key, key);
+                "BOOKING_CONFIRMED" => "BOOKING_CONFIRMED_ALERT",
+                "WELCOME_MESSAGE" => "BOOKING_CONFIRMED_ALERT",
+                "FEEDBACK_REQUEST" => "FEEDBACK_REQUEST_ALERT",
+                _ => key
+            };
+
+            var dict = _translations[code];
+            if (!dict.TryGetValue(normalizedKey, out var template))
+            {
+                // Fallback to Hindi ("1") if available
+                if (!_translations["1"].TryGetValue(normalizedKey, out template))
+                {
+                    // Fallback to English ("3") if missing in both
+                    template = _translations["3"].GetValueOrDefault(normalizedKey, normalizedKey);
+                }
             }
 
             try

@@ -103,7 +103,7 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
 
                             _chatSessionCache.SetSession(chatSession);
 
-                            var language = chatSession.Language ?? "3";
+                            var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, chatSession);
                             var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{token.TokenNumber} ({token.Patient?.Name ?? "Walk-in"}) - {token.Id.ToString().Substring(0,8).ToUpper()}");
                             
                             if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
@@ -140,7 +140,7 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
                         {
                             try { 
                                 var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone, cancellationToken);
-                                var language = chatSession?.Language ?? "1";
+                                var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, chatSession);
                                 var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "SESSION_TRANSFERRED_ALERT", queue.Doctor.Name, sessionName, token.TokenNumber);
                                 
                                 if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
@@ -168,7 +168,7 @@ namespace CodeX.Application.Features.Queue.Commands.EndQueue
                         {
                             try { 
                                 var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone, cancellationToken);
-                                var language = chatSession?.Language ?? "1";
+                                var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, chatSession);
                                 var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "SESSION_CANCELLED_ALERT", queue.Doctor.Name);
                                 
                                 if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))

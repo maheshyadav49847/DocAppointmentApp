@@ -84,7 +84,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
 
                         _chatSessionCache.SetSession(chatSession);
 
-                        var language = chatSession.Language ?? "3";
+                        var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, chatSession);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 
                         bool sentViaTelegram = false;
@@ -146,7 +146,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                     try
                     {
                         var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == nextToken.Patient.Phone, cancellationToken);
-                        var language = session?.Language ?? "3";
+                        var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(nextToken.Patient, session);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "YOUR_TURN_ALERT", nextToken.TokenNumber);
 
                         if (nextToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(nextToken.Patient.TelegramChatId))
@@ -174,7 +174,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         try
                         {
                             var chatSessionAlert = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == nextToken.Patient.Phone, cancellationToken);
-                            var lang = chatSessionAlert?.Language ?? "1";
+                            var lang = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(nextToken.Patient, chatSessionAlert);
                             var smsMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", nextToken.TokenNumber);
                             await _smsService.SendSmsAsync(nextToken.Patient.Phone, smsMsg);
                             await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert_SMS", "Sent", tokenId: nextToken.Id);
@@ -213,7 +213,7 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                     if (upcomingPatient != null && upcomingPatient.Patient != null && !string.IsNullOrEmpty(upcomingPatient.Patient.Phone))
                     {
                         var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == upcomingPatient.Patient.Phone, cancellationToken);
-                        var language = session?.Language ?? "3";
+                        var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(upcomingPatient.Patient, session);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "UPCOMING_TURN_ALERT", pos);
 
                         if (upcomingPatient.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(upcomingPatient.Patient.TelegramChatId))

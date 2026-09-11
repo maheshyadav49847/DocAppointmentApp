@@ -54,7 +54,7 @@ namespace CodeX.Application.Features.Queue.Commands.CancelQueue
                     try
                     {
                         var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == token.Patient.Phone && s.BranchId == queue.BranchId, cancellationToken);
-                        var languagePreference = chatSession?.Language ?? "1";
+                        var languagePreference = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, chatSession);
 
                         string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "APPOINTMENT_CANCELLED_ALERT", hospitalName.ToUpper(), token.Patient.Name, doctorName, token.TokenNumber);
 

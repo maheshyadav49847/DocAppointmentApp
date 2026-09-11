@@ -59,7 +59,7 @@ namespace CodeX.Application.Features.Queue.Commands.DoctorArrived
                 try 
                 {
                     var session = sessions.FirstOrDefault(s => s.PhoneNumber == token.Patient!.Phone);
-                    var language = session?.Language ?? "3";
+                    var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, session);
                     string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "DOCTOR_ARRIVED_ALERT", queue.Doctor.Name);
 
                     if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient!.TelegramChatId))

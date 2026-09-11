@@ -244,8 +244,11 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                     if (request.Source != BookingSource.WhatsApp && request.Source != BookingSource.Telegram)
                     {
                         var session = await dbContext.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone);
-                        var language = session?.Language ?? "1";
-                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "BOOKING_CONFIRMED", patient.Name, token.TokenNumber, estimatedWaitMinutes);
+                        var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(patient, session);
+                        var waitTimeMsg = (estimatedWaitMinutes > 0)
+                            ? CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "ESTIMATED_WAIT_MSG", estimatedWaitMinutes)
+                            : string.Empty;
+                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "BOOKING_CONFIRMED_ALERT", patient.Name, token.TokenNumber, waitTimeMsg);
                         
                         if (!string.IsNullOrWhiteSpace(patient.TelegramChatId))
                         {

@@ -72,7 +72,7 @@ namespace CodeX.Application.Features.Queue.Commands.CompleteToken
                     // IMPORTANT: Update the memory cache as well, otherwise webhook will read old state
                     _chatSessionCache.SetSession(session);
 
-                    var languagePreference = session.Language ?? "1";
+                    var languagePreference = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, session);
 
                     string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(languagePreference, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 

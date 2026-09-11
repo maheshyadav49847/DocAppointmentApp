@@ -637,9 +637,8 @@ namespace CodeX.Api.Controllers
             return false;
         }
 
-        private static void RecordConsumedFormId(Domain.Entities.Patient patient, string formId)
+        private static void RecordConsumedFormId(Domain.Entities.Patient patient, string? formId, string? lang = null)
         {
-            if (string.IsNullOrWhiteSpace(formId)) return;
             try
             {
                 var dict = new Dictionary<string, object>();
@@ -675,13 +674,18 @@ namespace CodeX.Api.Controllers
                     }
                 }
 
-                if (!consumedList.Contains(formId))
+                if (!string.IsNullOrWhiteSpace(formId) && !consumedList.Contains(formId))
                 {
                     consumedList.Add(formId);
                     if (consumedList.Count > 50)
                     {
                         consumedList.RemoveAt(0);
                     }
+                }
+
+                if (!string.IsNullOrWhiteSpace(lang))
+                {
+                    dict["language"] = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.NormalizeLanguageTag(lang);
                 }
 
                 dict["consumedFormIds"] = consumedList;
@@ -692,7 +696,7 @@ namespace CodeX.Api.Controllers
 
         [AllowAnonymous]
         [HttpPost("{queueId}/book-anonymous")]
-        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId, [FromQuery] string? formId)
+        public async Task<IActionResult> BookAnonymous(Guid queueId, [FromQuery] string? chatId, [FromQuery] string? formId, [FromQuery] string? lang)
         {
             var queue = await _context.DailyQueues
                 .IgnoreQueryFilters()
@@ -773,9 +777,22 @@ namespace CodeX.Api.Controllers
 
             _context.Tokens.Add(token);
 
-            if (patient != null && !string.IsNullOrWhiteSpace(formId))
+            if (patient != null)
             {
-                RecordConsumedFormId(patient, formId);
+                RecordConsumedFormId(patient, formId, lang);
+                if (!string.IsNullOrWhiteSpace(lang) && !string.IsNullOrWhiteSpace(patient.Phone))
+                {
+                    try
+                    {
+                        var code = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.NormalizeLanguageCode(lang);
+                        var session = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone && s.BranchId == queue.BranchId);
+                        if (session != null)
+                        {
+                            session.Language = code;
+                        }
+                    }
+                    catch { }
+                }
             }
 
             await _context.SaveChangesAsync(default);

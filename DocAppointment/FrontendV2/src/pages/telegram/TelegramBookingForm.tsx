@@ -372,7 +372,7 @@ const TelegramBookingForm = () => {
     setBooking(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}`,
+        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}&lang=${encodeURIComponent(currentLang)}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
       if (res.ok) {

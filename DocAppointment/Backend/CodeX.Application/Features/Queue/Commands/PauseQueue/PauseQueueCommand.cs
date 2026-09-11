@@ -69,7 +69,7 @@ namespace CodeX.Application.Features.Queue.Commands.PauseQueue
                         
                         var pVars = CodeX.Application.Common.Helpers.NormalizationHelper.GetPhoneVariations(token.Patient.Phone);
                         var session = sessions.FirstOrDefault(s => pVars.Contains(s.PhoneNumber));
-                        var lang = session?.Language ?? "1";
+                        var lang = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(token.Patient, session);
 
                         string translatedMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(
                             lang, 

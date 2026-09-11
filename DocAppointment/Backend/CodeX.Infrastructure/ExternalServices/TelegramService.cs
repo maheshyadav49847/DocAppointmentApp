@@ -128,49 +128,83 @@ namespace CodeX.Infrastructure.ExternalServices
             await SendMessageInternal(branchId, payload, "sendMessage", message);
         }
 
-        public async Task SendWelcomeMessage(string chatId, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null)
+        private async Task<string> ResolveChatLanguageAsync(string chatId, string? explicitLang)
         {
-            var msg = $"*Booking Confirmed!*\n\nHello {patientName},\nYour token number is *{tokenNumber}*.";
-            if (estimatedWaitMinutes.HasValue && estimatedWaitMinutes.Value > 0)
+            if (!string.IsNullOrWhiteSpace(explicitLang))
+                return CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.NormalizeLanguageCode(explicitLang);
+
+            try
             {
-                msg += $"\nEstimated wait time: {estimatedWaitMinutes.Value} mins.";
+                var patient = await _context.Patients
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+
+                CodeX.Domain.Entities.ChatSession? session = null;
+                if (patient != null && !string.IsNullOrEmpty(patient.Phone))
+                {
+                    session = await _context.ChatSessions
+                        .IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone && !s.IsDeleted);
+                }
+
+                return CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(patient, session);
             }
+            catch
+            {
+                return "1";
+            }
+        }
+
+        public async Task SendWelcomeMessage(string chatId, string patientName, int tokenNumber, Guid branchId, int? estimatedWaitMinutes = null, string? lang = null)
+        {
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var waitTimeMsg = (estimatedWaitMinutes.HasValue && estimatedWaitMinutes.Value > 0)
+                ? CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "ESTIMATED_WAIT_MSG", estimatedWaitMinutes.Value)
+                : string.Empty;
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "BOOKING_CONFIRMED_ALERT", patientName, tokenNumber, waitTimeMsg);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendDoctorArrivalAlert(string chatId, string doctorName, Guid branchId)
+        public async Task SendDoctorArrivalAlert(string chatId, string doctorName, Guid branchId, string? lang = null)
         {
-            var msg = $"Dr. {doctorName} has arrived at the clinic. Consultations have started!";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "DOCTOR_ARRIVED_ALERT", doctorName);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendYourTurnAlert(string chatId, int tokenNumber, Guid branchId)
+        public async Task SendYourTurnAlert(string chatId, int tokenNumber, Guid branchId, string? lang = null)
         {
-            var msg = $"*It is your turn!* (Token #{tokenNumber})\nPlease proceed to the doctor's cabin.";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "YOUR_TURN_ALERT", tokenNumber);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendUpcomingTurnAlert(string chatId, int tokensLeft, Guid branchId)
+        public async Task SendUpcomingTurnAlert(string chatId, int tokensLeft, Guid branchId, string? lang = null)
         {
-            var msg = $"*Get Ready!*\nThere are only {tokensLeft} patients ahead of you.";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "UPCOMING_TURN_ALERT", tokensLeft);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendFeedbackRequest(string chatId, string doctorName, Guid tokenId, Guid branchId)
+        public async Task SendFeedbackRequest(string chatId, string doctorName, Guid tokenId, Guid branchId, string? lang = null)
         {
-            var msg = $"Hope your consultation with Dr. {doctorName} went well! Please reply to this message with a rating (1-5).";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var shortRef = $"CX-{tokenId.ToString().Substring(0, 6).ToUpper()}";
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "FEEDBACK_REQUEST_ALERT", doctorName, shortRef);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendSessionCancelledAlert(string chatId, string doctorName, Guid branchId)
+        public async Task SendSessionCancelledAlert(string chatId, string doctorName, Guid branchId, string? lang = null)
         {
-            var msg = $"*Session Cancelled*\nWe are sorry to inform you that Dr. {doctorName}'s session has been cancelled.";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "SESSION_CANCELLED_ALERT", doctorName);
             await SendTextMessage(chatId, msg, branchId);
         }
 
-        public async Task SendSessionTransferredAlert(string chatId, string doctorName, string newSessionName, int newTokenNumber, Guid branchId)
+        public async Task SendSessionTransferredAlert(string chatId, string doctorName, string newSessionName, int newTokenNumber, Guid branchId, string? lang = null)
         {
-            var msg = $"*Session Transferred*\nYour appointment with Dr. {doctorName} has been moved to {newSessionName}. Your new token is #{newTokenNumber}.";
+            var l = await ResolveChatLanguageAsync(chatId, lang);
+            var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(l, "SESSION_TRANSFERRED_ALERT", doctorName, newSessionName, newTokenNumber);
             await SendTextMessage(chatId, msg, branchId);
         }
 

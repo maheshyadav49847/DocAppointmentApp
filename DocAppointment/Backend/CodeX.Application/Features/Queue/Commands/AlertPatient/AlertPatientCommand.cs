@@ -56,11 +56,14 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
             if (currentToken.Patient == null || string.IsNullOrEmpty(currentToken.Patient.Phone))
                 throw new Exception("Patient contact information (phone) is missing.");
 
+            var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
+            var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, chatSession);
+
             try 
             {
                 if (currentToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
                 {
-                    await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
+                    await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId, language);
                 }
                 else if (currentToken.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
                 {
@@ -71,7 +74,7 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
                     if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
                         await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
                     else if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
-                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId);
+                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId, language);
                 }
                 await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient", "Delivered", tokenId: currentToken.Id);
                 return true;
@@ -84,9 +87,7 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
                 // SMS Fallback
                 try
                 {
-                    var chatSessionAlert = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
-                    var lang = chatSessionAlert?.Language ?? "1";
-                    var smsMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "YOUR_TURN_ALERT", currentToken.TokenNumber);
+                    var smsMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "YOUR_TURN_ALERT", currentToken.TokenNumber);
                     await _smsService.SendSmsAsync(currentToken.Patient.Phone, smsMsg);
                     await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient_SMS", "Sent", tokenId: currentToken.Id);
                     return true;
