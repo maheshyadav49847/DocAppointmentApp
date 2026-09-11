@@ -241,11 +241,143 @@ namespace CodeX.Api.Controllers
                 }
                 catch { }
             }
-            else if (patient != null && !string.IsNullOrEmpty(patient.Phone))
+            var branch = await _context.Branches
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+
+            ChatSession? chatSession = null;
+            if (patient != null && !string.IsNullOrEmpty(patient.Phone))
             {
-                var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == patient.Phone);
+                var phoneVars = NormalizationHelper.GetPhoneVariations(patient.Phone);
+                var normalizedPhone = NormalizationHelper.NormalizePhone(patient.Phone);
+                chatSession = await _context.ChatSessions
+                    .FirstOrDefaultAsync(s => (phoneVars.Contains(s.PhoneNumber) || s.PhoneNumber == normalizedPhone) && s.BranchId == branchId && !s.IsDeleted);
                 if (chatSession != null && !string.IsNullOrEmpty(chatSession.Language))
                     lang = NormalizeLanguage(chatSession.Language);
+            }
+
+            // ─── 1. Rating & Feedback Handling ──────────────────────────────────────────
+            var timezone = branch?.Timezone ?? "India Standard Time";
+            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(timezone);
+            var tomorrow = today.AddDays(1);
+
+            Domain.Entities.Token? unratedCompletedToken = null;
+            if (patient != null)
+            {
+                unratedCompletedToken = await _context.Tokens
+                    .IgnoreQueryFilters()
+                    .Include(t => t.Queue)
+                    .Where(t => t.PatientId == patient.Id
+                        && !t.IsDeleted
+                        && t.Queue.BranchId == branchId
+                        && t.Queue.QueueDate >= today
+                        && t.Queue.QueueDate < tomorrow
+                        && t.Status == Domain.Enums.TokenStatus.Completed
+                        && !_context.Ratings.IgnoreQueryFilters().Any(r => !r.IsDeleted && r.TokenId == t.Id))
+                    .OrderByDescending(t => t.CalledAt ?? t.BookedAt)
+                    .FirstOrDefaultAsync();
+            }
+
+            bool isAwaitingRatingComment = chatSession != null && chatSession.CurrentState == "AWAITING_RATING_COMMENT";
+            bool isAwaitingRatingScore = (chatSession != null && chatSession.CurrentState == "AWAITING_RATING_SCORE") || unratedCompletedToken != null;
+
+            if (isAwaitingRatingComment)
+            {
+                var isSkip = cleanText.Equals("skip", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("छोड़ें", StringComparison.OrdinalIgnoreCase)
+                          || cleanText.Equals("सोडा", StringComparison.OrdinalIgnoreCase);
+
+                if (!isSkip && chatSession!.SelectedSessionId.HasValue)
+                {
+                    var rating = await _context.Ratings.IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(r => !r.IsDeleted && r.TokenId == chatSession.SelectedSessionId.Value);
+                    if (rating != null)
+                    {
+                        rating.Comment = cleanText;
+                    }
+                }
+
+                chatSession!.CurrentState = "START";
+                chatSession.SelectedSessionId = null;
+                await _context.SaveChangesAsync(default);
+
+                var feedbackSuccessMsg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "FEEDBACK_SUCCESS");
+                await _telegramService.SendTextMessage(chatId, feedbackSuccessMsg, branchId);
+                return;
+            }
+
+            if (isAwaitingRatingScore)
+            {
+                int score = 0;
+                if (cleanText == "1" || cleanText.StartsWith("1️⃣") || cleanText.StartsWith("1/5") || cleanText.StartsWith("1 star", StringComparison.OrdinalIgnoreCase)) score = 1;
+                else if (cleanText == "2" || cleanText.StartsWith("2️⃣") || cleanText.StartsWith("2/5") || cleanText.StartsWith("2 star", StringComparison.OrdinalIgnoreCase)) score = 2;
+                else if (cleanText == "3" || cleanText.StartsWith("3️⃣") || cleanText.StartsWith("3/5") || cleanText.StartsWith("3 star", StringComparison.OrdinalIgnoreCase)) score = 3;
+                else if (cleanText == "4" || cleanText.StartsWith("4️⃣") || cleanText.StartsWith("4/5") || cleanText.StartsWith("4 star", StringComparison.OrdinalIgnoreCase)) score = 4;
+                else if (cleanText == "5" || cleanText.StartsWith("5️⃣") || cleanText.StartsWith("5/5") || cleanText.StartsWith("5 star", StringComparison.OrdinalIgnoreCase)) score = 5;
+
+                if (score > 0)
+                {
+                    var targetTokenId = chatSession?.SelectedSessionId ?? unratedCompletedToken?.Id;
+                    if (targetTokenId.HasValue)
+                    {
+                        try
+                        {
+                            await _mediator.Send(new CodeX.Application.Features.Ratings.Commands.CreateRating.CreateRatingCommand
+                            {
+                                TokenId = targetTokenId.Value,
+                                Score = score
+                            });
+
+                            if (chatSession == null && patient != null && !string.IsNullOrEmpty(patient.Phone))
+                            {
+                                chatSession = new ChatSession
+                                {
+                                    PhoneNumber = CodeX.Application.Common.Helpers.NormalizationHelper.NormalizePhone(patient.Phone),
+                                    BranchId = branchId,
+                                };
+                                _context.ChatSessions.Add(chatSession);
+                            }
+
+                            if (chatSession != null)
+                            {
+                                chatSession.CurrentState = "AWAITING_RATING_COMMENT";
+                                chatSession.SelectedSessionId = targetTokenId.Value;
+                                await _context.SaveChangesAsync(default);
+                            }
+
+                            var commentPrompt = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "COMMENT_PROMPT");
+                            await _telegramService.SendTextMessage(chatId, commentPrompt, branchId);
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error submitting rating from Telegram");
+                        }
+                    }
+                }
+                else if (chatSession != null && chatSession.CurrentState == "AWAITING_RATING_SCORE")
+                {
+                    var ratingPrompt = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(lang, "RATING_PROMPT");
+                    await _telegramService.SendTextMessage(chatId, ratingPrompt, branchId);
+                    return;
+                }
+            }
+
+            // ─── 2. Courtesy Acknowledgements ────────────────────────────────────
+            if (cleanText.Equals("thanks", StringComparison.OrdinalIgnoreCase) 
+                || cleanText.Equals("thank you", StringComparison.OrdinalIgnoreCase) 
+                || cleanText.Equals("धन्यवाद", StringComparison.OrdinalIgnoreCase)
+                || cleanText.Equals("आभार", StringComparison.OrdinalIgnoreCase)
+                || cleanText.Equals("thx", StringComparison.OrdinalIgnoreCase))
+            {
+                string thanksReply = lang switch
+                {
+                    "mr" => "🙏 आपले खूप खूप आभार! निरोगी रहा, सुरक्षित रहा. नवीन अपॉइंटमेंटसाठी कधीही *HI* लिहून पाठवा. 😊",
+                    "hi" => "🙏 आपका बहुत-बहुत धन्यवाद! स्वस्थ रहें, सुरक्षित रहें। नई अपॉइंटमेंट के लिए कभी भी *HI* लिखकर भेजें। 😊",
+                    _ => "🙏 Thank you very much! Stay healthy and safe. To book a new appointment, reply with *HI* anytime. 😊"
+                };
+                await _telegramService.SendTextMessage(chatId, thanksReply, branchId);
+                return;
             }
 
             // Language switch command or 1/2/3
