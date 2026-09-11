@@ -423,6 +423,9 @@ const TelegramBookingForm = () => {
       );
       if (res.ok) {
         alert(`${t.cancelSuccess}\n\n${t.newBookingHint}`);
+        setBooked(false);
+        setAlreadyBooked(false);
+        setFormExpired(true);
         handleCloseApp();
       } else {
         alert(t.bookingFailed);

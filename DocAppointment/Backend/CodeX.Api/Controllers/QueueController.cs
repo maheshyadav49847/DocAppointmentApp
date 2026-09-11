@@ -663,6 +663,11 @@ namespace CodeX.Api.Controllers
                                 }
                             }
                         }
+                        else if (prop.NameEquals("currentFormId"))
+                        {
+                            // Clear currentFormId on consumption
+                            continue;
+                        }
                         else if (prop.NameEquals("language"))
                         {
                             dict["language"] = prop.Value.GetString() ?? "hi";
@@ -689,6 +694,7 @@ namespace CodeX.Api.Controllers
                 }
 
                 dict["consumedFormIds"] = consumedList;
+                dict["currentFormId"] = ""; // Mark form consumed
                 patient.MetaDataJson = System.Text.Json.JsonSerializer.Serialize(dict);
             }
             catch { }
@@ -779,7 +785,18 @@ namespace CodeX.Api.Controllers
 
             if (patient != null)
             {
-                RecordConsumedFormId(patient, formId, lang);
+                var matchingPatients = await _context.Patients
+                    .IgnoreQueryFilters()
+                    .Where(p => !string.IsNullOrEmpty(chatId) && p.TelegramChatId == chatId && !p.IsDeleted)
+                    .ToListAsync();
+
+                if (matchingPatients.Count == 0) matchingPatients.Add(patient);
+
+                foreach (var p in matchingPatients)
+                {
+                    RecordConsumedFormId(p, formId, lang);
+                }
+
                 if (!string.IsNullOrWhiteSpace(lang) && !string.IsNullOrWhiteSpace(patient.Phone))
                 {
                     try
@@ -821,25 +838,33 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
             if (branch == null) return NotFound("Branch not found");
 
-            var patient = await _context.Patients
+            var patients = await _context.Patients
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
-            if (patient == null)
+                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .ToListAsync();
+
+            if (patients.Count == 0)
                 return Ok(new { hasActiveBooking = false, isFormExpired = false, branchName = branch.Name, branchLogo = branch.LogoBase64, orgName = branch.Organization?.Name });
 
+            var primaryPatient = patients.First();
+            var patientIds = patients.Select(p => p.Id).ToList();
+
             string preferredLang = "hi";
-            if (!string.IsNullOrEmpty(patient.MetaDataJson))
+            foreach (var p in patients)
             {
-                try
+                if (!string.IsNullOrEmpty(p.MetaDataJson))
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(patient.MetaDataJson);
-                    if (doc.RootElement.TryGetProperty("language", out var lProp))
+                    try
                     {
-                        var l = lProp.GetString();
-                        if (!string.IsNullOrEmpty(l)) preferredLang = l;
+                        using var doc = System.Text.Json.JsonDocument.Parse(p.MetaDataJson);
+                        if (doc.RootElement.TryGetProperty("language", out var lProp))
+                        {
+                            var l = lProp.GetString();
+                            if (!string.IsNullOrEmpty(l)) { preferredLang = l; break; }
+                        }
                     }
+                    catch { }
                 }
-                catch { }
             }
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
@@ -851,12 +876,13 @@ namespace CodeX.Api.Controllers
                     .ThenInclude(q => q.Doctor)
                 .Include(t => t.Queue)
                     .ThenInclude(q => q.Session)
-                .Where(t => t.PatientId == patient.Id
+                .Where(t => patientIds.Contains(t.PatientId)
                     && !t.IsDeleted
                     && t.Queue.BranchId == branchId
                     && t.Queue.QueueDate >= today
                     && t.Queue.QueueDate < tomorrow
                     && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
+                .OrderByDescending(t => t.BookedAt)
                 .Select(t => new {
                     hasActiveBooking = true,
                     isFormExpired = false,
@@ -865,7 +891,7 @@ namespace CodeX.Api.Controllers
                     specialization = t.Queue.Doctor.Specialization,
                     qualification = t.Queue.Doctor.Qualification,
                     registrationNumber = t.Queue.Doctor.RegistrationNumber,
-                    patientName = patient.Name,
+                    patientName = primaryPatient.Name,
                     preferredLanguage = preferredLang,
                     sessionName = t.Queue.Session != null ? t.Queue.Session.SessionName : "",
                     currentTokenNumber = t.Queue.CurrentTokenNumber,
@@ -881,12 +907,20 @@ namespace CodeX.Api.Controllers
             if (activeToken != null)
                 return Ok(activeToken);
 
-            bool isConsumed = IsFormConsumed(patient, formId);
+            bool isConsumed = false;
+            foreach (var p in patients)
+            {
+                if (IsFormConsumed(p, formId))
+                {
+                    isConsumed = true;
+                    break;
+                }
+            }
 
             return Ok(new { 
                 hasActiveBooking = false, 
                 isFormExpired = isConsumed,
-                patientName = patient.Name, 
+                patientName = primaryPatient.Name, 
                 preferredLanguage = preferredLang, 
                 branchName = branch.Name, 
                 branchAddress = branch.Address, 
@@ -908,29 +942,57 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
             if (branch == null) return NotFound("Branch not found");
 
-            var patient = await _context.Patients
+            var patients = await _context.Patients
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
-            if (patient == null) return NotFound("Patient not found");
+                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .ToListAsync();
+            if (patients.Count == 0) return NotFound("Patient not found");
+
+            var patientIds = patients.Select(p => p.Id).ToList();
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
             var tomorrow = today.AddDays(1);
 
-            var activeToken = await _context.Tokens
+            var activeTokens = await _context.Tokens
                 .IgnoreQueryFilters()
                 .Include(t => t.Queue)
-                .Where(t => t.PatientId == patient.Id
+                .Where(t => patientIds.Contains(t.PatientId)
                     && !t.IsDeleted
                     && t.Queue.BranchId == branchId
                     && t.Queue.QueueDate >= today
                     && t.Queue.QueueDate < tomorrow
                     && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
-                .FirstOrDefaultAsync();
+                .ToListAsync();
 
-            if (activeToken == null)
+            if (activeTokens.Count == 0)
                 return NotFound(new { success = false, message = "No active booking found to cancel." });
 
-            activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
+            foreach (var t in activeTokens)
+            {
+                t.Status = Domain.Enums.TokenStatus.Cancelled;
+            }
+
+            // Clear currentFormId so next form requested gets a fresh formId
+            foreach (var p in patients)
+            {
+                try
+                {
+                    var dict = new Dictionary<string, object>();
+                    if (!string.IsNullOrWhiteSpace(p.MetaDataJson))
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(p.MetaDataJson);
+                        foreach (var prop in doc.RootElement.EnumerateObject())
+                        {
+                            if (prop.NameEquals("currentFormId")) continue;
+                            dict[prop.Name] = prop.Value.Clone();
+                        }
+                    }
+                    dict["currentFormId"] = "";
+                    p.MetaDataJson = System.Text.Json.JsonSerializer.Serialize(dict);
+                }
+                catch { }
+            }
+
             await _context.SaveChangesAsync(default);
 
             return Ok(new { success = true, message = "Appointment cancelled successfully." });

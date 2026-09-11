@@ -470,7 +470,7 @@ namespace CodeX.Api.Controllers
                     return;
                 }
 
-                var existingActiveAfterLang = await GetExistingActiveToken(branchId, patient.Id);
+                var existingActiveAfterLang = await GetExistingActiveToken(branchId, chatId);
                 if (existingActiveAfterLang != null)
                 {
                     await SendExistingBookingDetails(branchId, chatId, existingActiveAfterLang, lang);
@@ -491,7 +491,7 @@ namespace CodeX.Api.Controllers
                 await _telegramService.SendTextMessage(chatId, "✅ भाषा *हिन्दी* चुन ली गई है।", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
                 {
-                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    var existing = await GetExistingActiveToken(branchId, chatId);
                     if (existing != null)
                     {
                         await SendExistingBookingDetails(branchId, chatId, existing, lang);
@@ -509,7 +509,7 @@ namespace CodeX.Api.Controllers
                 await _telegramService.SendTextMessage(chatId, "✅ भाषा *मराठी* निवडली आहे.", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
                 {
-                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    var existing = await GetExistingActiveToken(branchId, chatId);
                     if (existing != null)
                     {
                         await SendExistingBookingDetails(branchId, chatId, existing, lang);
@@ -527,7 +527,7 @@ namespace CodeX.Api.Controllers
                 await _telegramService.SendTextMessage(chatId, "✅ Language set to *English*.", branchId);
                 if (patient != null && !string.IsNullOrWhiteSpace(patient.Phone))
                 {
-                    var existing = await GetExistingActiveToken(branchId, patient.Id);
+                    var existing = await GetExistingActiveToken(branchId, chatId);
                     if (existing != null)
                     {
                         await SendExistingBookingDetails(branchId, chatId, existing, lang);
@@ -541,14 +541,11 @@ namespace CodeX.Api.Controllers
             // ─── 4. Cancellation Commands ─────────────────────────────────────────
             if (cleanText.Equals("cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Equals("/cancel", StringComparison.OrdinalIgnoreCase) || cleanText.Contains("रद्द"))
             {
-                if (patient != null)
+                var existingActive = await GetExistingActiveToken(branchId, chatId);
+                if (existingActive != null)
                 {
-                    var existingActive = await GetExistingActiveToken(branchId, patient.Id);
-                    if (existingActive != null)
-                    {
-                        await PromptCancelAppointment(branchId, chatId, lang);
-                        return;
-                    }
+                    await PromptCancelAppointment(branchId, chatId, lang);
+                    return;
                 }
                 string noActiveMsg = lang switch
                 {
@@ -584,7 +581,7 @@ namespace CodeX.Api.Controllers
             }
 
             // ─── 7. Existing Active Token Handling ────────────────────────────────
-            var existingToken = await GetExistingActiveToken(branchId, patient.Id);
+            var existingToken = await GetExistingActiveToken(branchId, chatId);
             if (existingToken != null)
             {
                 if (cleanText == "3")
@@ -639,12 +636,20 @@ namespace CodeX.Api.Controllers
             catch { }
         }
 
-        private async Task<object?> GetExistingActiveToken(Guid branchId, Guid patientId)
+        private async Task<object?> GetExistingActiveToken(Guid branchId, string chatId)
         {
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
             if (branch == null) return null;
+
+            var patientIds = await _context.Patients
+                .IgnoreQueryFilters()
+                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (patientIds.Count == 0) return null;
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
             var tomorrow = today.AddDays(1);
@@ -655,7 +660,7 @@ namespace CodeX.Api.Controllers
                     .ThenInclude(q => q.Doctor)
                 .Include(t => t.Queue)
                     .ThenInclude(q => q.Session)
-                .Where(t => t.PatientId == patientId
+                .Where(t => patientIds.Contains(t.PatientId)
                     && !t.IsDeleted
                     && t.Queue.BranchId == branchId
                     && t.Queue.QueueDate >= today
@@ -671,6 +676,67 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync();
 
             return activeToken;
+        }
+
+        private async Task<string> GetOrCreateCurrentFormId(Patient? patient)
+        {
+            if (patient == null)
+            {
+                return Guid.NewGuid().ToString("N");
+            }
+
+            try
+            {
+                string? existingFormId = null;
+                var consumedList = new List<string>();
+                var dict = new Dictionary<string, object>();
+
+                if (!string.IsNullOrWhiteSpace(patient.MetaDataJson))
+                {
+                    using var doc = JsonDocument.Parse(patient.MetaDataJson);
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                    {
+                        if (prop.NameEquals("currentFormId"))
+                        {
+                            existingFormId = prop.Value.GetString();
+                        }
+                        else if (prop.NameEquals("consumedFormIds"))
+                        {
+                            if (prop.Value.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var item in prop.Value.EnumerateArray())
+                                {
+                                    var s = item.GetString();
+                                    if (!string.IsNullOrEmpty(s)) consumedList.Add(s);
+                                }
+                            }
+                            dict["consumedFormIds"] = prop.Value.Clone();
+                        }
+                        else
+                        {
+                            dict[prop.Name] = prop.Value.Clone();
+                        }
+                    }
+                }
+
+                // If existingFormId is valid and NOT consumed, reuse it!
+                if (!string.IsNullOrWhiteSpace(existingFormId) && !consumedList.Contains(existingFormId))
+                {
+                    return existingFormId;
+                }
+
+                // Otherwise, generate a fresh formId and save as currentFormId
+                var newFormId = Guid.NewGuid().ToString("N");
+                dict["currentFormId"] = newFormId;
+                patient.MetaDataJson = JsonSerializer.Serialize(dict);
+                await _context.SaveChangesAsync(default);
+
+                return newFormId;
+            }
+            catch
+            {
+                return Guid.NewGuid().ToString("N");
+            }
         }
 
         private async Task SendExistingBookingDetails(Guid branchId, string chatId, dynamic booking, string lang)
@@ -844,20 +910,56 @@ namespace CodeX.Api.Controllers
                 var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(branch.Timezone);
                 var tomorrow = today.AddDays(1);
 
-                var activeToken = await _context.Tokens
+                var patientIds = await _context.Patients
+                    .IgnoreQueryFilters()
+                    .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                    .Select(p => p.Id)
+                    .ToListAsync();
+
+                var activeTokens = await _context.Tokens
                     .IgnoreQueryFilters()
                     .Include(t => t.Queue)
-                    .Where(t => t.PatientId == patient.Id
+                    .Where(t => patientIds.Contains(t.PatientId)
                         && !t.IsDeleted
                         && t.Queue.BranchId == branchId
                         && t.Queue.QueueDate >= today
                         && t.Queue.QueueDate < tomorrow
                         && (t.Status == Domain.Enums.TokenStatus.Pending || t.Status == Domain.Enums.TokenStatus.Called))
-                    .FirstOrDefaultAsync();
+                    .ToListAsync();
 
-                if (activeToken != null)
+                if (activeTokens.Count > 0)
                 {
-                    activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
+                    foreach (var activeToken in activeTokens)
+                    {
+                        activeToken.Status = Domain.Enums.TokenStatus.Cancelled;
+                    }
+
+                    // Reset currentFormId so subsequent HI gets a fresh form
+                    var allPatients = await _context.Patients
+                        .IgnoreQueryFilters()
+                        .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                        .ToListAsync();
+
+                    foreach (var p in allPatients)
+                    {
+                        try
+                        {
+                            var dict = new Dictionary<string, object>();
+                            if (!string.IsNullOrWhiteSpace(p.MetaDataJson))
+                            {
+                                using var doc = JsonDocument.Parse(p.MetaDataJson);
+                                foreach (var prop in doc.RootElement.EnumerateObject())
+                                {
+                                    if (prop.NameEquals("currentFormId")) continue;
+                                    dict[prop.Name] = prop.Value.Clone();
+                                }
+                            }
+                            dict["currentFormId"] = "";
+                            p.MetaDataJson = JsonSerializer.Serialize(dict);
+                        }
+                        catch { }
+                    }
+
                     await _context.SaveChangesAsync(default);
 
                     string confirmText = cbLang switch
@@ -928,9 +1030,14 @@ namespace CodeX.Api.Controllers
             var token = branch?.TelegramBotToken;
             if (string.IsNullOrWhiteSpace(token)) return;
 
+            var patient = await _context.Patients
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+
+            var formId = await GetOrCreateCurrentFormId(patient);
+
             // Using Ngrok or your deployed frontend URL
             var host = Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? Request.Host.Value;
-            var formId = Guid.NewGuid().ToString("N");
             var webAppUrl = $"https://{host}/telegram-form?branchId={branchId}&chatId={chatId}&lang={lang}&formId={formId}&v={DateTime.UtcNow.Ticks}";
 
             string promptText = lang switch
