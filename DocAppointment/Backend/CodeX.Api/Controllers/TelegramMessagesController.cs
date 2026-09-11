@@ -68,7 +68,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("send/{branchId}")]
-        public async Task<IActionResult> Send(string branchId, [FromBody] SendTelegramMessageRequest body, [FromServices] ITelegramService telegramService)
+        public async Task<IActionResult> Send(string branchId, [FromBody] SendTelegramMessageRequest body)
         {
             try
             {
@@ -82,16 +82,34 @@ namespace CodeX.Api.Controllers
                 var resolvedBranchId = await ResolveBranchIdAsync(branchId, targetChatId);
                 var message = body.Message ?? body.Text ?? string.Empty;
 
-                if (!string.IsNullOrEmpty(body.FileBase64))
+                var outboxItem = new CodeX.Domain.Entities.OutboxMessage
                 {
-                    await telegramService.SendDocumentMessage(targetChatId, message, body.FileName ?? "Prescription.pdf", body.FileBase64, resolvedBranchId);
-                }
-                else
-                {
-                    await telegramService.SendTextMessage(targetChatId, message, resolvedBranchId);
-                }
+                    BranchId = resolvedBranchId,
+                    TokenId = body.TokenId,
+                    PatientVisitId = body.PatientVisitId,
+                    Channel = "Telegram",
+                    MessageType = !string.IsNullOrEmpty(body.FileBase64) ? "Prescription" : "TextMessage",
+                    Priority = body.Priority ?? (!string.IsNullOrEmpty(body.FileBase64) ? 10 : 50),
+                    Recipient = targetChatId,
+                    MessageBody = message,
+                    FileName = body.FileName ?? "Prescription.pdf",
+                    FileBase64 = body.FileBase64,
+                    Status = "Pending",
+                    RetryCount = 0,
+                    MaxRetries = 3
+                };
 
-                return Ok(new { success = true, message = "Telegram message/document queued/sent successfully", branchId = resolvedBranchId });
+                _context.OutboxMessages.Add(outboxItem);
+                await _context.SaveChangesAsync(default);
+
+                return Ok(new 
+                { 
+                    success = true, 
+                    queued = true, 
+                    outboxId = outboxItem.Id,
+                    message = "Telegram message/document queued successfully for asynchronous processing", 
+                    branchId = resolvedBranchId 
+                });
             }
             catch (Exception ex)
             {
@@ -108,5 +126,8 @@ namespace CodeX.Api.Controllers
         public string? Message { get; set; }
         public string? FileBase64 { get; set; }
         public string? FileName { get; set; }
+        public Guid? TokenId { get; set; }
+        public Guid? PatientVisitId { get; set; }
+        public int? Priority { get; set; }
     }
 }

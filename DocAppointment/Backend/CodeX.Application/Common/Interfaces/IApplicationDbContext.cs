@@ -39,6 +39,7 @@ namespace CodeX.Application.Common.Interfaces
         DbSet<Invoice> Invoices { get; }
         DbSet<InvoiceItem> InvoiceItems { get; }
         DbSet<Payment> Payments { get; }
+        DbSet<OutboxMessage> OutboxMessages { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }

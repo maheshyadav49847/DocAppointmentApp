@@ -267,7 +267,9 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
           printElement: printRef.current,
           patient,
           currentBranch,
-          currentBranchId
+          currentBranchId,
+          tokenId: activeTokenId || payload.tokenId,
+          patientVisitId: res.data?.id
         });
       }
 

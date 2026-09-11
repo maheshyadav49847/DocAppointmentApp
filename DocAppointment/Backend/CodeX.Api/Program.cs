@@ -159,6 +159,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 // Background Hosted Services
 builder.Services.AddHostedService<CodeX.Api.BackgroundServices.FollowUpReminderService>();
+builder.Services.AddHostedService<CodeX.Api.BackgroundServices.OutboxProcessorBackgroundService>();
 
 // SignalR Service
 builder.Services.AddScoped<CodeX.Application.Common.Interfaces.ISignalRNotificationService, CodeX.Api.Services.SignalRNotificationService>();

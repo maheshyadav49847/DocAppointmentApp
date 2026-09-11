@@ -55,6 +55,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<Invoice> Invoices => Set<Invoice>();
         public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
         public DbSet<Payment> Payments => Set<Payment>();
+        public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
@@ -181,6 +182,13 @@ namespace CodeX.Infrastructure.Persistence
             modelBuilder.Entity<MessageLog>().HasQueryFilter(x => 
                 (_currentUserService.OrgId == Guid.Empty || x.Branch.OrganizationId == _currentUserService.OrgId) && !x.IsDeleted);
             
+            modelBuilder.Entity<OutboxMessage>().HasQueryFilter(x => 
+                (_currentUserService.OrgId == Guid.Empty || x.Branch.OrganizationId == _currentUserService.OrgId) && !x.IsDeleted);
+
+            modelBuilder.Entity<OutboxMessage>()
+                .HasIndex(x => new { x.Channel, x.Status, x.Priority, x.CreatedAt, x.NextRetryAtUtc, x.IsDeleted })
+                .HasDatabaseName("IX_OutboxMessages_Channel_Status_Priority_CreatedAt");
+
             modelBuilder.Entity<ChatSession>().HasQueryFilter(x => 
                 _currentUserService.OrgId == Guid.Empty || (x.Branch != null && x.Branch.OrganizationId == _currentUserService.OrgId));
 

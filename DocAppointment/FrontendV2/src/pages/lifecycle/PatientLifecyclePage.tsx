@@ -470,6 +470,25 @@ export default function PatientLifecyclePage() {
                       <div className="text-[11px] text-slate-500 mt-1">
                         {item.medicinesPrescribedCount > 0 ? `💊 ${item.medicinesPrescribedCount} Medicines` : 'No meds'}
                       </div>
+                      {item.hasOutboxDispatch && (
+                        <div className="mt-1.5 flex items-center gap-1">
+                          {item.outboxStatus === 'Sent' && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              ✓ {item.outboxChannel || 'TG'} Sent
+                            </span>
+                          )}
+                          {(item.outboxStatus === 'Pending' || item.outboxStatus === 'Processing') && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+                              ⏳ Outbox Queue
+                            </span>
+                          )}
+                          {(item.outboxStatus === 'Failed' || item.outboxStatus === 'DeadLetter') && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              ⚠ Delivery Failed
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-[10px] font-semibold text-slate-400 mt-2 truncate">
                       {item.followUpDate ? `Follow up: ${new Date(item.followUpDate).toLocaleDateString()}` : 'No follow-up set'}
@@ -616,9 +635,40 @@ export default function PatientLifecyclePage() {
                 </div>
               )}
 
+              {/* Outbox Background Dispatch Audit */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">4. Outbox Prescription Delivery</div>
+                  {inspectItem.hasOutboxDispatch && (
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                      inspectItem.outboxStatus === 'Sent' ? 'bg-emerald-100 text-emerald-800' :
+                      inspectItem.outboxStatus === 'Failed' ? 'bg-rose-100 text-rose-800' :
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {inspectItem.outboxStatus}
+                    </span>
+                  )}
+                </div>
+                {inspectItem.hasOutboxDispatch ? (
+                  <>
+                    <div>Channel: <strong className="text-slate-800">{inspectItem.outboxChannel}</strong></div>
+                    <div>Outbox ID: <code className="text-[10px] bg-slate-200/60 px-1 py-0.5 rounded font-mono text-slate-700">{inspectItem.outboxId}</code></div>
+                    <div>Delivered At: <strong className="text-slate-800">{inspectItem.outboxDeliveredAt ? new Date(inspectItem.outboxDeliveredAt).toLocaleString() : 'Processing / In Queue'}</strong></div>
+                    {inspectItem.outboxRetryCount > 0 && (
+                      <div>Retries: <strong className="text-amber-700">{inspectItem.outboxRetryCount} attempts</strong></div>
+                    )}
+                    {inspectItem.outboxErrorMessage && (
+                      <div className="text-rose-600">Error: <strong>{inspectItem.outboxErrorMessage}</strong></div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-slate-400 italic">No prescription dispatch queued or patient contact not on Telegram/WhatsApp.</div>
+                )}
+              </div>
+
               {inspectItem.hasInvoice && (
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
-                  <div className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">4. Financial Settlement</div>
+                  <div className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">5. Financial Settlement</div>
                   <div>Invoice Number: <strong className="text-slate-800">{inspectItem.invoiceNumber}</strong></div>
                   <div>Total Billed: <strong className="text-slate-800">₹{inspectItem.totalAmount}</strong></div>
                   <div>Amount Paid: <strong className="text-emerald-700">₹{inspectItem.paidAmount}</strong></div>

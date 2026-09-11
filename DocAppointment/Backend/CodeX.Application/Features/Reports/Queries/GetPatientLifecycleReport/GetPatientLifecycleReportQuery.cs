@@ -63,7 +63,16 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
         public string InvoiceStatus { get; set; } = "Not Billed"; // Paid, Unpaid, PartiallyPaid, Cancelled, Not Billed
         public string? PaymentMode { get; set; }
 
-        // 6. Rating & Feedback Stage
+        // 6. Outbox & Prescription Dispatch Stage
+        public bool HasOutboxDispatch { get; set; }
+        public Guid? OutboxId { get; set; }
+        public string? OutboxChannel { get; set; } // "Telegram", "WhatsApp"
+        public string? OutboxStatus { get; set; } // "Pending", "Processing", "Sent", "Failed", "DeadLetter"
+        public DateTime? OutboxDeliveredAt { get; set; }
+        public int OutboxRetryCount { get; set; }
+        public string? OutboxErrorMessage { get; set; }
+
+        // 7. Rating & Feedback Stage
         public bool HasRating { get; set; }
         public int? RatingScore { get; set; }
         public string? RatingComment { get; set; }
@@ -155,6 +164,26 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                 .ToListAsync(cancellationToken);
 
             var visitMap = visits.ToDictionary(v => v.TokenId!.Value, v => v);
+            var visitIds = visits.Select(v => v.Id).ToList();
+
+            // Pre-fetch linked outbox messages for these tokens and visits
+            var outboxMessages = await _context.OutboxMessages
+                .IgnoreQueryFilters()
+                .Where(o => !o.IsDeleted && 
+                            ((o.TokenId.HasValue && tokenIds.Contains(o.TokenId.Value)) || 
+                             (o.PatientVisitId.HasValue && visitIds.Contains(o.PatientVisitId.Value))))
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            var outboxByToken = outboxMessages
+                .Where(o => o.TokenId.HasValue)
+                .GroupBy(o => o.TokenId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var outboxByVisit = outboxMessages
+                .Where(o => o.PatientVisitId.HasValue)
+                .GroupBy(o => o.PatientVisitId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
 
             var resultItems = new List<PatientLifecycleItemDto>();
 
@@ -226,6 +255,17 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                     totalRevenue += activeInvoice.PaidAmount;
                 }
 
+                // Resolve linked outbox message (by VisitId or TokenId)
+                CodeX.Domain.Entities.OutboxMessage? linkedOutbox = null;
+                if (visit != null && outboxByVisit.TryGetValue(visit.Id, out var outboxV))
+                {
+                    linkedOutbox = outboxV;
+                }
+                else if (outboxByToken.TryGetValue(t.Id, out var outboxT))
+                {
+                    linkedOutbox = outboxT;
+                }
+
                 var item = new PatientLifecycleItemDto
                 {
                     PatientId = t.PatientId,
@@ -271,6 +311,15 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                     DiscountAmount = activeInvoice?.DiscountAmount ?? 0,
                     InvoiceStatus = activeInvoice != null ? activeInvoice.Status.ToString() : "Not Billed",
                     PaymentMode = activeInvoice?.Payments.OrderByDescending(p => p.CreatedAt).FirstOrDefault()?.PaymentMode.ToString(),
+
+                    // Outbox Details
+                    HasOutboxDispatch = linkedOutbox != null,
+                    OutboxId = linkedOutbox?.Id,
+                    OutboxChannel = linkedOutbox?.Channel,
+                    OutboxStatus = linkedOutbox?.Status,
+                    OutboxDeliveredAt = linkedOutbox?.ProcessedAtUtc,
+                    OutboxRetryCount = linkedOutbox?.RetryCount ?? 0,
+                    OutboxErrorMessage = linkedOutbox?.ErrorMessage,
 
                     HasRating = t.Rating != null,
                     RatingScore = t.Rating?.Score,

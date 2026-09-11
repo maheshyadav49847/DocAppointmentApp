@@ -14,6 +14,8 @@ export interface PrescriptionDispatchOptions {
     name?: string;
   } | null;
   currentBranchId?: string;
+  tokenId?: string;
+  patientVisitId?: string;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface PrescriptionDispatchOptions {
  * Does NOT block UI, returns immediately, and shows non-intrusive toast notifications.
  */
 export function dispatchPrescriptionInBackground(options: PrescriptionDispatchOptions) {
-  const { printElement, patient, currentBranch, currentBranchId } = options;
+  const { printElement, patient, currentBranch, currentBranchId, tokenId, patientVisitId } = options;
 
   if (!printElement) {
     console.warn("[Prescription Dispatcher] No print element provided for background PDF dispatch.");
@@ -61,10 +63,13 @@ export function dispatchPrescriptionInBackground(options: PrescriptionDispatchOp
             chatId: patient.telegramChatId,
             message: prescriptionMsg,
             fileBase64: base64Pdf,
-            fileName: fileName
+            fileName: fileName,
+            tokenId: tokenId || undefined,
+            patientVisitId: patientVisitId || undefined,
+            priority: 10
           }).then(() => {
-            console.log("[Prescription Dispatcher] Successfully sent via Telegram");
-            toast.success(`Prescription sent to ${patientDisplayName} via Telegram!`, { id: `tg-${patient?.id}` });
+            console.log("[Prescription Dispatcher] Successfully queued in Outbox for Telegram");
+            toast.success(`Prescription queued to send to ${patientDisplayName} via Telegram!`, { id: `tg-${patient?.id}` });
           }).catch((err) => {
             console.error("[Prescription Dispatcher] Telegram dispatch error:", err?.response?.data || err.message);
           })
@@ -79,10 +84,13 @@ export function dispatchPrescriptionInBackground(options: PrescriptionDispatchOp
             to: patient.phone,
             message: prescriptionMsg,
             fileBase64: base64Pdf,
-            fileName: fileName
+            fileName: fileName,
+            tokenId: tokenId || undefined,
+            patientVisitId: patientVisitId || undefined,
+            priority: 10
           }).then(() => {
-            console.log("[Prescription Dispatcher] Successfully sent via WhatsApp");
-            toast.success(`Prescription sent to ${patientDisplayName} via WhatsApp!`, { id: `wa-${patient?.id}` });
+            console.log("[Prescription Dispatcher] Successfully queued in Outbox for WhatsApp");
+            toast.success(`Prescription queued to send to ${patientDisplayName} via WhatsApp!`, { id: `wa-${patient?.id}` });
           }).catch((err) => {
             console.error("[Prescription Dispatcher] WhatsApp dispatch error:", err?.response?.data || err.message);
           })

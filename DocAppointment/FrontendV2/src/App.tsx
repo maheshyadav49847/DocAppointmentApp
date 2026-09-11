@@ -25,6 +25,7 @@ import BillingServicesPage from "./pages/billing/BillingServicesPage"
 import BillingDashboardPage from "./pages/billing/BillingDashboardPage"
 import ReportsDashboardPage from "./pages/reports/ReportsDashboardPage"
 import PatientLifecyclePage from "./pages/lifecycle/PatientLifecyclePage"
+import OutboxDashboardPage from "./pages/outbox/OutboxDashboardPage"
 import { useAuthStore } from "./store/authStore"
 import TelegramBookingForm from "./pages/telegram/TelegramBookingForm"
 import { usePermissions } from "./hooks/usePermissions"
@@ -99,6 +100,7 @@ function App() {
           <Route path="/audit-logs" element={<PermissionRoute permissions={["Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
           <Route path="/reports" element={<PermissionRoute permissions={["Analytics.View"]}><ReportsDashboardPage /></PermissionRoute>} />
           <Route path="/lifecycle" element={<PermissionRoute permissions={["Queue.View", "Analytics.View"]}><PatientLifecyclePage /></PermissionRoute>} />
+          <Route path="/outbox" element={<PermissionRoute permissions={["Settings.View", "Analytics.View"]}><OutboxDashboardPage /></PermissionRoute>} />
         </Route>
 
         {/* Default route */}
