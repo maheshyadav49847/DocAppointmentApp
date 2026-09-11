@@ -49,6 +49,8 @@ const T: Record<string, Record<string, string>> = {
     formExpiredBadge: 'समाप्त (Expired)',
     formExpiredMsg: 'इस फॉर्म से पहले ही एक बुकिंग की जा चुकी है। एक फॉर्म केवल एक ही बुकिंग के लिए मान्य है।',
     formExpiredAction: 'दोबारा नई बुकिंग के लिए कृपया टेलीग्राम बॉट पर "HI" लिखकर भेजें और नया फॉर्म प्राप्त करें।',
+    registeredPatient: 'पंजीकृत मरीज़',
+    registeredPatientHint: 'आपका नाम पहले से पंजीकृत है',
   },
   mr: {
     title: 'अपॉइंटमेंट बुक करा',
@@ -96,6 +98,8 @@ const T: Record<string, Record<string, string>> = {
     formExpiredBadge: 'कालबाह्य (Expired)',
     formExpiredMsg: 'या फॉर्ममधून आधीच एक बुकिंग केली गेली आहे. एका फॉर्ममधून फक्त एकदाच बुकिंग करता येते.',
     formExpiredAction: 'पुन्हा नवीन बुकिंग करण्यासाठी कृपया टेलिग्राम बॉटवर "HI" लिहून पाठवा आणि नवीन फॉर्म मिळवा.',
+    registeredPatient: 'नोंदणीकृत रुग्ण',
+    registeredPatientHint: 'तुमचे नाव आधीच नोंदणीकृत आहे',
   },
   en: {
     title: 'Book Appointment',
@@ -143,6 +147,8 @@ const T: Record<string, Record<string, string>> = {
     formExpiredBadge: 'Expired',
     formExpiredMsg: 'This form has already been used to make an appointment. Each booking form can only be used once.',
     formExpiredAction: 'To make a new booking, please send "HI" to the Telegram bot to get a fresh booking form.',
+    registeredPatient: 'Registered Patient',
+    registeredPatientHint: 'Your name is already registered',
   },
 };
 
@@ -202,6 +208,7 @@ const TelegramBookingForm = () => {
   const [doctorRegNo, setDoctorRegNo] = useState('');
   const [patientName, setPatientName] = useState('');
   const [enteredName, setEnteredName] = useState('');
+  const [isRegisteredPatient, setIsRegisteredPatient] = useState(false);
   const [sessionName, setSessionName] = useState('');
   const [currentRunningToken, setCurrentRunningToken] = useState(0);
 
@@ -294,9 +301,11 @@ const TelegramBookingForm = () => {
           );
           if (bookingCheckRes.ok) {
             const checkData = await bookingCheckRes.json();
-            if (checkData.patientName && checkData.patientName.toLowerCase() !== 'unknown') {
-              setPatientName(checkData.patientName);
-              setEnteredName(checkData.patientName);
+            if (checkData.patientName && checkData.patientName.trim() !== '' && checkData.patientName.toLowerCase() !== 'unknown') {
+              const cleanName = checkData.patientName.trim();
+              setPatientName(cleanName);
+              setEnteredName(cleanName);
+              setIsRegisteredPatient(true);
             }
             if (checkData.branchName) {
               setBranchInfo({
@@ -379,7 +388,8 @@ const TelegramBookingForm = () => {
   }, [queues, selectedQueue]);
 
   const handleBook = async () => {
-    if (!enteredName.trim()) {
+    const finalPatientName = (isRegisteredPatient ? (patientName || enteredName) : enteredName).trim();
+    if (!finalPatientName) {
       alert(t.patientNameRequired);
       return;
     }
@@ -390,7 +400,7 @@ const TelegramBookingForm = () => {
     setBooking(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}&lang=${encodeURIComponent(currentLang)}&patientName=${encodeURIComponent(enteredName.trim())}`,
+        `${import.meta.env.VITE_API_URL}/queue/${selectedQueue}/book-anonymous?chatId=${encodeURIComponent(chatId)}&formId=${encodeURIComponent(formId)}&lang=${encodeURIComponent(currentLang)}&patientName=${encodeURIComponent(finalPatientName)}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } }
       );
       if (res.ok) {
@@ -468,14 +478,13 @@ const TelegramBookingForm = () => {
       margin: 0,
     } as React.CSSProperties,
 
-    // Header section matching DocAppointment App theme (Indigo 600 gradient)
+    // Header section: clean, hospital-grade outlined professional style
     header: {
-      background: 'linear-gradient(135deg, #1e1b4b 0%, #1e40af 50%, #4f46e5 100%)', // Deep Navy to Indigo
-      padding: '20px 18px 22px',
-      borderRadius: '0 0 24px 24px',
-      boxShadow: '0 8px 24px -4px rgba(79, 70, 229, 0.25)',
+      backgroundColor: '#ffffff',
+      padding: '20px 20px 20px',
+      borderBottom: '1px solid #e2e8f0',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
       position: 'relative' as const,
-      overflow: 'hidden',
     } as React.CSSProperties,
 
     headerTopRow: {
@@ -485,52 +494,48 @@ const TelegramBookingForm = () => {
       marginBottom: '16px',
     } as React.CSSProperties,
 
-    // Brand container with white background pill
+    // Brand container
     brandContainer: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: '8px',
-      backgroundColor: '#ffffff',
-      padding: '5px 12px 5px 8px',
-      borderRadius: '12px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
     } as React.CSSProperties,
 
-    // Branch info banner in header
+    // Branch info banner: Clean, elegant hospital badge card
     branchBanner: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      backgroundColor: 'rgba(255, 255, 255, 0.12)',
-      backdropFilter: 'blur(8px)',
-      border: '1px solid rgba(255, 255, 255, 0.20)',
-      borderRadius: '14px',
-      padding: '10px 14px',
-      marginBottom: '14px',
+      gap: '14px',
+      backgroundColor: '#f8fafc',
+      border: '1px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '14px 16px',
+      marginBottom: '18px',
+      boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
     } as React.CSSProperties,
 
     branchLogoImg: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '10px',
+      width: '44px',
+      height: '44px',
+      borderRadius: '12px',
       objectFit: 'contain' as const,
       backgroundColor: '#ffffff',
-      border: '1px solid rgba(255, 255, 255, 0.4)',
-      padding: '3px',
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+      border: '1px solid #e2e8f0',
+      padding: '4px',
       flexShrink: 0,
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
     } as React.CSSProperties,
 
     branchLogoFallback: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '10px',
-      backgroundColor: 'rgba(255, 255, 255, 0.20)',
+      width: '44px',
+      height: '44px',
+      borderRadius: '12px',
+      backgroundColor: '#eff6ff',
+      border: '1px solid #dbeafe',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '22px',
-      color: '#ffffff',
+      color: '#2563eb',
       flexShrink: 0,
     } as React.CSSProperties,
 
@@ -543,66 +548,70 @@ const TelegramBookingForm = () => {
     } as React.CSSProperties,
 
     branchTitle: {
-      fontSize: '14px',
+      fontSize: '15px',
       fontWeight: 700,
-      color: '#ffffff',
+      color: '#0f172a',
       whiteSpace: 'nowrap' as const,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
+      letterSpacing: '-0.01em',
     } as React.CSSProperties,
 
     branchMetaRow: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
+      gap: '14px',
       flexWrap: 'wrap' as const,
-      marginTop: '2px',
+      marginTop: '4px',
     } as React.CSSProperties,
 
     branchMetaText: {
-      fontSize: '11px',
-      color: 'rgba(255, 255, 255, 0.85)',
+      fontSize: '12px',
+      color: '#64748b',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
       fontWeight: 500,
+      lineHeight: 1.3,
     } as React.CSSProperties,
 
     langPillContainer: {
       display: 'inline-flex',
-      backgroundColor: '#ffffff',
-      borderRadius: '24px',
+      backgroundColor: '#f1f5f9',
+      borderRadius: '20px',
       padding: '3px',
-      border: '1px solid rgba(255, 255, 255, 0.4)',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.10)',
+      border: '1px solid #e2e8f0',
+      gap: '2px',
     } as React.CSSProperties,
 
     langBtn: (active: boolean) => ({
-      border: 'none',
-      background: active ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'transparent',
-      color: active ? '#ffffff' : '#475569',
-      fontWeight: active ? 700 : 600,
+      border: active ? '1px solid #cbd5e1' : '1px solid transparent',
+      background: active ? '#ffffff' : 'transparent',
+      color: active ? '#0f172a' : '#64748b',
+      fontWeight: active ? 700 : 500,
       fontSize: '12px',
-      padding: '5px 11px',
-      borderRadius: '20px',
+      padding: '4px 12px',
+      borderRadius: '16px',
       cursor: 'pointer',
       transition: 'all 0.15s ease',
-      boxShadow: active ? '0 2px 6px rgba(79, 70, 229, 0.4)' : 'none',
+      boxShadow: active ? '0 1px 3px rgba(0, 0, 0, 0.06)' : 'none',
     } as React.CSSProperties),
 
     headerTitle: {
-      color: '#ffffff',
-      fontSize: '21px',
+      color: '#0f172a',
+      fontSize: '20px',
       fontWeight: 700,
       margin: 0,
       letterSpacing: '-0.02em',
+      lineHeight: 1.25,
     } as React.CSSProperties,
 
     headerSub: {
-      color: 'rgba(255, 255, 255, 0.88)',
+      color: '#64748b',
       fontSize: '13px',
       marginTop: '4px',
       fontWeight: 500,
+      lineHeight: 1.4,
     } as React.CSSProperties,
 
     body: {
@@ -1315,20 +1324,77 @@ const TelegramBookingForm = () => {
 
       {/* Body */}
       <div style={styles.body}>
-        {/* Patient Name Input */}
-        <div style={styles.nameInputContainer}>
-          <label style={styles.nameInputLabel}>
-            <span>👤</span> {t.patientNameInputLabel} <span style={{ color: '#ef4444' }}>*</span>
-          </label>
-          <input
-            type="text"
-            value={enteredName}
-            onChange={(e) => setEnteredName(e.target.value)}
-            placeholder={t.patientNamePlaceholder}
-            style={styles.nameInputField}
-            maxLength={60}
-          />
-        </div>
+        {/* Patient Name Section */}
+        {isRegisteredPatient ? (
+          <div style={styles.nameInputContainer}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <label style={{ ...styles.nameInputLabel, marginBottom: 0 }}>
+                <span>👤</span> {t.patientName}
+              </label>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#059669',
+                backgroundColor: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                🔒 {t.registeredPatient}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 14px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '14px',
+              border: '1.5px solid #cbd5e1',
+            }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#e0e7ff',
+                color: '#4338ca',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '800',
+                fontSize: '15px',
+                flexShrink: 0
+              }}>
+                {(patientName || enteredName).charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', lineHeight: 1.3 }}>
+                  {patientName || enteredName}
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', marginTop: '2px' }}>
+                  {t.registeredPatientHint}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div style={styles.nameInputContainer}>
+            <label style={styles.nameInputLabel}>
+              <span>👤</span> {t.patientNameInputLabel} <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={enteredName}
+              onChange={(e) => setEnteredName(e.target.value)}
+              placeholder={t.patientNamePlaceholder}
+              style={styles.nameInputField}
+              maxLength={60}
+            />
+          </div>
+        )}
 
         <div style={styles.sectionLabel}>
           <span>🩺</span> {t.selectLabel}
