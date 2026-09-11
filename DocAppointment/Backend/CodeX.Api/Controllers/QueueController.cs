@@ -384,13 +384,18 @@ namespace CodeX.Api.Controllers
             
             var queue = queues.FirstOrDefault(q => 
             {
+                if (q.Status == QueueStatus.Active) return true;
                 var tzToday = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(q.Branch?.Timezone);
                 return q.QueueDate >= tzToday && q.QueueDate < tzToday.AddDays(1);
-            });
+            }) ?? queues.FirstOrDefault();
 
             if (queue == null) return Ok(null);
 
             var currentToken = queue.Tokens
+                .Where(t => t.Status == TokenStatus.Called && (t.TokenNumber == queue.CurrentTokenNumber || queue.CurrentTokenNumber == 0))
+                .OrderByDescending(t => t.CalledAt ?? t.CreatedAt)
+                .FirstOrDefault() ??
+                queue.Tokens
                 .Where(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Called)
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefault();

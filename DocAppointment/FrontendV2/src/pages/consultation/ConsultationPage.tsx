@@ -77,6 +77,18 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
     },
   })
 
+  // Auto-resolve active token today if not provided as prop
+  const { data: tokenTodayData } = useQuery({
+    queryKey: ["patient-token-today", patientId],
+    queryFn: async () => {
+      const r = await api.get(`/patientclinical/${patientId}/has-token-today`)
+      return r.data
+    },
+    enabled: !!patientId && !activeTokenId
+  })
+
+  const effectiveTokenId = activeTokenId || tokenTodayData?.tokenId;
+
 
 
   const { data: doctors } = useQuery({
@@ -268,7 +280,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
           patient,
           currentBranch,
           currentBranchId,
-          tokenId: activeTokenId || payload.tokenId,
+          tokenId: effectiveTokenId || payload.tokenId,
           patientVisitId: res.data?.id
         });
       }
@@ -464,7 +476,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       bloodSugar: visitBloodSugar ? parseFloat(visitBloodSugar as string) : null,
       followUpDate: visitFollowUpDate ? new Date(visitFollowUpDate).toISOString() : null,
       followUpInstructions: visitFollowUpInstructions || null,
-      tokenId: activeTokenId || undefined,
+      tokenId: effectiveTokenId || undefined,
       services: visitServices.map((s) => ({
         serviceItemId: s.serviceItemId,
         quantity: s.quantity,

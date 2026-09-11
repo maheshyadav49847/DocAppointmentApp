@@ -16,11 +16,13 @@ namespace CodeX.Api.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly IQueueNotificationService _notificationService;
+        private readonly ICurrentUserService _currentUserService;
 
-        public PatientClinicalController(IApplicationDbContext context, IQueueNotificationService notificationService)
+        public PatientClinicalController(IApplicationDbContext context, IQueueNotificationService notificationService, ICurrentUserService currentUserService)
         {
             _context = context;
             _notificationService = notificationService;
+            _currentUserService = currentUserService;
         }
 
         [HttpGet("branches")]
@@ -164,11 +166,14 @@ namespace CodeX.Api.Controllers
         [HasPermission($"{SystemPermissions.Patients.ViewHistory},{SystemPermissions.DoctorDesk.View}")]
         public async Task<IActionResult> HasTokenToday(Guid id)
         {
-            var todayStart = DateTime.UtcNow.Date;
-            var todayEnd = todayStart.AddDays(1);
+            var dateLower = DateTime.UtcNow.Date.AddDays(-1);
+            var dateUpper = DateTime.UtcNow.Date.AddDays(2);
+            var recentThreshold = DateTime.UtcNow.AddHours(-24);
 
             var token = await _context.Tokens
-                .Where(t => t.PatientId == id && t.Queue.QueueDate >= todayStart && t.Queue.QueueDate < todayEnd)
+                .Include(t => t.Queue)
+                .Where(t => t.PatientId == id &&
+                           ((t.Queue.QueueDate >= dateLower && t.Queue.QueueDate < dateUpper) || t.CreatedAt >= recentThreshold))
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -177,7 +182,17 @@ namespace CodeX.Api.Controllers
                 return Ok(new { hasToken = false, status = "None" });
             }
 
-            return Ok(new { hasToken = true, status = token.Status.ToString() });
+            var hasVisit = await _context.PatientVisits.AnyAsync(v => v.TokenId == token.Id);
+
+            return Ok(new
+            {
+                hasToken = true,
+                tokenId = token.Id,
+                tokenNumber = token.TokenNumber,
+                status = token.Status.ToString(),
+                hasVisit = hasVisit,
+                queueId = token.QueueId
+            });
         }
 
         // 4. Create a Visit
@@ -224,9 +239,17 @@ namespace CodeX.Api.Controllers
                     return BadRequest("The provided booking token does not exist.");
                 }
 
-                if (token.Status != CodeX.Domain.Enums.TokenStatus.Called)
+                if (token.Status != CodeX.Domain.Enums.TokenStatus.Called && 
+                    token.Status != CodeX.Domain.Enums.TokenStatus.Completed && 
+                    token.Status != CodeX.Domain.Enums.TokenStatus.Pending)
                 {
-                    return BadRequest($"Cannot save consultation. The token status is '{token.Status}'. They must be 'Called' (in the consulting room) to save a record.");
+                    return BadRequest($"Cannot save consultation. The token status is '{token.Status}'. They must be active or called to save a record.");
+                }
+
+                if (token.Status == CodeX.Domain.Enums.TokenStatus.Pending)
+                {
+                    token.Status = CodeX.Domain.Enums.TokenStatus.Called;
+                    token.CalledAt = DateTime.UtcNow;
                 }
 
                 var existingVisitForThisPatient = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value && v.PatientId == id);
@@ -260,33 +283,79 @@ namespace CodeX.Api.Controllers
             }
             else
             {
-                // Auto-assign to an active token if none provided
-                var today = DateTime.UtcNow.Date;
-                var todaysTokens = await _context.Tokens
+                // Auto-assign to an active token if none provided (Timezone-tolerant & Multi-Priority)
+                var dateLower = DateTime.UtcNow.Date.AddDays(-1);
+                var dateUpper = DateTime.UtcNow.Date.AddDays(2);
+                var recentThreshold = DateTime.UtcNow.AddHours(-24);
+
+                var candidateTokens = await _context.Tokens
                     .Include(t => t.Queue)
-                    .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
+                    .Where(t => t.PatientId == id &&
+                               ((t.Queue.QueueDate >= dateLower && t.Queue.QueueDate < dateUpper) || t.CreatedAt >= recentThreshold))
                     .OrderByDescending(t => t.CreatedAt)
                     .ToListAsync();
 
-                if (!todaysTokens.Any())
+                // Candidate tokens that do NOT already have a consultation record
+                var availableCandidates = candidateTokens
+                    .Where(t => !_context.PatientVisits.Any(v => v.TokenId == t.Id))
+                    .ToList();
+
+                // Priority 1: A token that is currently 'Called'
+                var chosenToken = availableCandidates.FirstOrDefault(t => t.Status == CodeX.Domain.Enums.TokenStatus.Called);
+
+                // Priority 2: If none is Called, check for a Pending token on an open/active queue
+                if (chosenToken == null)
                 {
+                    chosenToken = availableCandidates.FirstOrDefault(t => t.Status == CodeX.Domain.Enums.TokenStatus.Pending);
+                    if (chosenToken != null)
+                    {
+                        chosenToken.Status = CodeX.Domain.Enums.TokenStatus.Called;
+                        chosenToken.CalledAt = DateTime.UtcNow;
+                    }
+                }
+
+                // Priority 3: A token that was Completed recently without a consultation visit
+                if (chosenToken == null)
+                {
+                    chosenToken = availableCandidates.FirstOrDefault(t => t.Status == CodeX.Domain.Enums.TokenStatus.Completed);
+                }
+
+                // Priority 4: If still null, check if this doctor's active queue currently has a 'Called' token
+                if (chosenToken == null)
+                {
+                    var doctorIdToSearch = dto.DoctorId != Guid.Empty ? dto.DoctorId : _currentUserService.DoctorId;
+                    if (doctorIdToSearch.HasValue)
+                    {
+                        var doctorActiveToken = await _context.Tokens
+                            .Include(t => t.Queue)
+                            .Where(t => t.Queue.DoctorId == doctorIdToSearch.Value &&
+                                        t.Status == CodeX.Domain.Enums.TokenStatus.Called &&
+                                        ((t.Queue.QueueDate >= dateLower && t.Queue.QueueDate < dateUpper) || t.CreatedAt >= recentThreshold) &&
+                                        !_context.PatientVisits.Any(v => v.TokenId == t.Id))
+                            .OrderByDescending(t => t.CreatedAt)
+                            .FirstOrDefaultAsync();
+
+                        if (doctorActiveToken != null)
+                        {
+                            doctorActiveToken.PatientId = id;
+                            chosenToken = doctorActiveToken;
+                        }
+                    }
+                }
+
+                if (chosenToken == null)
+                {
+                    if (candidateTokens.Any())
+                    {
+                        return BadRequest("All queue tokens for this patient today already have consultation records. Please edit the existing records instead of creating a new one.");
+                    }
                     return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
                 }
 
-                var activeToken = todaysTokens.First();
-                if (activeToken.Status != CodeX.Domain.Enums.TokenStatus.Called)
+                visit.TokenId = chosenToken.Id;
+                if (visit.DoctorId == Guid.Empty && chosenToken.Queue?.DoctorId != null)
                 {
-                    return BadRequest($"Cannot save consultation. The patient's token status is '{activeToken.Status}'. They must be 'Called' (in the consulting room) to save a new record.");
-                }
-
-                var availableToken = todaysTokens.FirstOrDefault(t => !_context.PatientVisits.Any(v => v.TokenId == t.Id));
-                if (availableToken != null)
-                {
-                    visit.TokenId = availableToken.Id;
-                }
-                else
-                {
-                    return BadRequest("All queue tokens for this patient today already have consultation records. Please edit the existing records instead of creating a new one.");
+                    visit.DoctorId = chosenToken.Queue.DoctorId;
                 }
             }
 
@@ -396,9 +465,13 @@ namespace CodeX.Api.Controllers
             if (!patientExists) return NotFound("Patient not found.");
 
             // Find today's active visit to append vitals to, or return error
-            var today = DateTime.UtcNow.Date;
+            var dateLower = DateTime.UtcNow.Date.AddDays(-1);
+            var dateUpper = DateTime.UtcNow.Date.AddDays(2);
+            var recentThreshold = DateTime.UtcNow.AddHours(-24);
+
             var todaysVisit = await _context.PatientVisits
-                .Where(v => v.PatientId == id && v.VisitDate >= today && v.VisitDate < today.AddDays(1))
+                .Where(v => v.PatientId == id && 
+                           ((v.VisitDate >= dateLower && v.VisitDate < dateUpper) || v.CreatedAt >= recentThreshold))
                 .OrderByDescending(v => v.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -407,8 +480,9 @@ namespace CodeX.Api.Controllers
                 // Let's check if they have a token today, if so we create a blank visit just for vitals
                 var todaysToken = await _context.Tokens
                     .Include(t => t.Queue)
-                    .Where(t => t.PatientId == id && t.Queue.QueueDate >= today && t.Queue.QueueDate < today.AddDays(1))
-                    .OrderByDescending(t => t.Queue.QueueDate)
+                    .Where(t => t.PatientId == id && 
+                               ((t.Queue.QueueDate >= dateLower && t.Queue.QueueDate < dateUpper) || t.CreatedAt >= recentThreshold))
+                    .OrderByDescending(t => t.CreatedAt)
                     .FirstOrDefaultAsync();
 
                 if (todaysToken == null)
