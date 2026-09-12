@@ -121,10 +121,37 @@ namespace CodeX.Api.Controllers
                     if (!currentPerms.Contains("Queue.AddPatient")) permsToAdd.Add("Queue.AddPatient");
                     if (!currentPerms.Contains("Queue.CallNext")) permsToAdd.Add("Queue.CallNext");
                     if (!currentPerms.Contains("Queue.CancelOfflinePatient")) permsToAdd.Add("Queue.CancelOfflinePatient");
+
+                    // New modules for SuperAdmin and OrgAdmin
+                    if (!currentPerms.Contains("Billing.View")) permsToAdd.Add("Billing.View");
+                    if (!currentPerms.Contains("Billing.CreateInvoice")) permsToAdd.Add("Billing.CreateInvoice");
+                    if (!currentPerms.Contains("Billing.RecordPayment")) permsToAdd.Add("Billing.RecordPayment");
+                    if (!currentPerms.Contains("Billing.CancelInvoice")) permsToAdd.Add("Billing.CancelInvoice");
+                    if (!currentPerms.Contains("Billing.ManageRateList")) permsToAdd.Add("Billing.ManageRateList");
+                    if (!currentPerms.Contains("Billing.Export")) permsToAdd.Add("Billing.Export");
+
+                    if (!currentPerms.Contains("Reports.View")) permsToAdd.Add("Reports.View");
+                    if (!currentPerms.Contains("Outbox.View")) permsToAdd.Add("Outbox.View");
+                    if (!currentPerms.Contains("Outbox.Retry")) permsToAdd.Add("Outbox.Retry");
+                    if (!currentPerms.Contains("AuditLogs.View")) permsToAdd.Add("AuditLogs.View");
+                    if (!currentPerms.Contains("Patients.ViewLifecycle")) permsToAdd.Add("Patients.ViewLifecycle");
                 }
                 if (role.Name == "BranchAdmin")
                 {
                     if (!currentPerms.Contains("Analytics.View")) permsToAdd.Add("Analytics.View");
+                    if (!currentPerms.Contains("Reports.View")) permsToAdd.Add("Reports.View");
+                    if (!currentPerms.Contains("Outbox.View")) permsToAdd.Add("Outbox.View");
+                    if (!currentPerms.Contains("Outbox.Retry")) permsToAdd.Add("Outbox.Retry");
+                    if (!currentPerms.Contains("AuditLogs.View")) permsToAdd.Add("AuditLogs.View");
+                    if (!currentPerms.Contains("Patients.ViewLifecycle")) permsToAdd.Add("Patients.ViewLifecycle");
+
+                    if (!currentPerms.Contains("Billing.View")) permsToAdd.Add("Billing.View");
+                    if (!currentPerms.Contains("Billing.CreateInvoice")) permsToAdd.Add("Billing.CreateInvoice");
+                    if (!currentPerms.Contains("Billing.RecordPayment")) permsToAdd.Add("Billing.RecordPayment");
+                    if (!currentPerms.Contains("Billing.CancelInvoice")) permsToAdd.Add("Billing.CancelInvoice");
+                    if (!currentPerms.Contains("Billing.ManageRateList")) permsToAdd.Add("Billing.ManageRateList");
+                    if (!currentPerms.Contains("Billing.Export")) permsToAdd.Add("Billing.Export");
+
                     if (!currentPerms.Contains("Sessions.View")) permsToAdd.Add("Sessions.View");
                     if (!currentPerms.Contains("Sessions.Add")) permsToAdd.Add("Sessions.Add");
                     if (!currentPerms.Contains("Sessions.Edit")) permsToAdd.Add("Sessions.Edit");
@@ -154,9 +181,11 @@ namespace CodeX.Api.Controllers
 
                         if (!currentPerms.Contains("Patients.View")) permsToAdd.Add("Patients.View");
                         if (!currentPerms.Contains("Patients.ViewHistory")) permsToAdd.Add("Patients.ViewHistory");
+                        if (!currentPerms.Contains("Patients.ViewLifecycle")) permsToAdd.Add("Patients.ViewLifecycle");
                         if (!currentPerms.Contains("Patients.Edit")) permsToAdd.Add("Patients.Edit");
 
                         if (!currentPerms.Contains("Pharmacy.View")) permsToAdd.Add("Pharmacy.View");
+                        if (!currentPerms.Contains("Billing.View")) permsToAdd.Add("Billing.View");
                     }
 
                     if (role.Name == "Receptionist")
@@ -177,6 +206,14 @@ namespace CodeX.Api.Controllers
                         if (!currentPerms.Contains("Patients.View")) permsToAdd.Add("Patients.View");
                         if (!currentPerms.Contains("Patients.Add")) permsToAdd.Add("Patients.Add");
                         if (!currentPerms.Contains("Patients.Edit")) permsToAdd.Add("Patients.Edit");
+                        if (!currentPerms.Contains("Patients.ViewLifecycle")) permsToAdd.Add("Patients.ViewLifecycle");
+
+                        if (!currentPerms.Contains("Billing.View")) permsToAdd.Add("Billing.View");
+                        if (!currentPerms.Contains("Billing.CreateInvoice")) permsToAdd.Add("Billing.CreateInvoice");
+                        if (!currentPerms.Contains("Billing.RecordPayment")) permsToAdd.Add("Billing.RecordPayment");
+                        if (!currentPerms.Contains("Billing.Export")) permsToAdd.Add("Billing.Export");
+
+                        if (!currentPerms.Contains("Outbox.View")) permsToAdd.Add("Outbox.View");
                     }
                 }
 

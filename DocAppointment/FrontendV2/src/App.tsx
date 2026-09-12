@@ -93,12 +93,12 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/roles" element={<PermissionRoute permissions={["Settings.ManageRoles"]}><RolesPermissionsPage /></PermissionRoute>} />
           <Route path="/pharmacy" element={<PermissionRoute permissions={["Pharmacy.View"]}><PharmacyPage /></PermissionRoute>} />
-          <Route path="/billing" element={<PermissionRoute permissions={["Settings.View"]}><BillingDashboardPage /></PermissionRoute>} />
-          <Route path="/billing/services" element={<PermissionRoute permissions={["Settings.View"]}><BillingServicesPage /></PermissionRoute>} />
-          <Route path="/audit-logs" element={<PermissionRoute permissions={["Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
-          <Route path="/reports" element={<PermissionRoute permissions={["Analytics.View"]}><ReportsDashboardPage /></PermissionRoute>} />
-          <Route path="/lifecycle" element={<PermissionRoute permissions={["Queue.View", "Analytics.View"]}><PatientLifecyclePage /></PermissionRoute>} />
-          <Route path="/outbox" element={<PermissionRoute permissions={["Settings.View", "Analytics.View"]}><OutboxDashboardPage /></PermissionRoute>} />
+          <Route path="/billing" element={<PermissionRoute permissions={["Billing.View"]}><BillingDashboardPage /></PermissionRoute>} />
+          <Route path="/billing/services" element={<PermissionRoute permissions={["Billing.ManageRateList", "Billing.View"]}><BillingServicesPage /></PermissionRoute>} />
+          <Route path="/audit-logs" element={<PermissionRoute permissions={["AuditLogs.View", "Settings.View"]}><AuditLogsPage /></PermissionRoute>} />
+          <Route path="/reports" element={<PermissionRoute permissions={["Reports.View", "Analytics.View"]}><ReportsDashboardPage /></PermissionRoute>} />
+          <Route path="/lifecycle" element={<PermissionRoute permissions={["Patients.ViewLifecycle", "Queue.View", "Analytics.View"]}><PatientLifecyclePage /></PermissionRoute>} />
+          <Route path="/outbox" element={<PermissionRoute permissions={["Outbox.View", "Settings.View"]}><OutboxDashboardPage /></PermissionRoute>} />
         </Route>
 
         {/* Default route */}

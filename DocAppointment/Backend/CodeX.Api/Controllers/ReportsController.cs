@@ -36,14 +36,14 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("branches")]
-        [HasPermission(SystemPermissions.Analytics.View)]
+        [HasPermission($"{SystemPermissions.Reports.View},{SystemPermissions.Analytics.View}")]
         public async Task<ActionResult<List<CodeX.Domain.Entities.Branch>>> GetBranches()
         {
             return await Mediator.Send(new CodeX.Application.Features.Branches.Queries.GetBranches.GetBranchesQuery());
         }
 
         [HttpGet("branch-analytics")]
-        [HasPermission(SystemPermissions.Analytics.View)]
+        [HasPermission($"{SystemPermissions.Reports.View},{SystemPermissions.Analytics.View}")]
         public async Task<ActionResult<BranchAnalyticsDto>> GetBranchAnalytics(
             [FromQuery] Guid? branchId,
             [FromQuery] DateTime? startDate,
@@ -339,7 +339,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("operational/patient-lifecycle")]
-        [HasPermission(SystemPermissions.Analytics.View)]
+        [HasPermission($"{SystemPermissions.Patients.ViewLifecycle},{SystemPermissions.Analytics.View},{SystemPermissions.Queue.View}")]
         public async Task<ActionResult<CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport.PatientLifecycleReportDto>> GetPatientLifecycleReport(
             [FromQuery] Guid? branchId,
             [FromQuery] Guid? doctorId,

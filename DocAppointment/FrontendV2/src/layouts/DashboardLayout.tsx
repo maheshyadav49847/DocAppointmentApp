@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, MessageSquare, CheckCircle, Save, ReceiptIndianRupee, BarChart3, MapPin, Route, Inbox } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, CheckCircle, Save, ReceiptIndianRupee, BarChart3, MapPin, Route, Inbox } from "lucide-react"
 import toast from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 
@@ -19,19 +19,19 @@ import { queueService } from "@/services/queueService"
 const getNavigation = (role: string, isDoctor: boolean) => {
   let nav = [
     { name: "Queue (Live)", href: "/queue", icon: Activity, requiredAny: ["Queue.View", "Patients.ViewHistory"] },
-    { name: "Patient Journey", href: "/lifecycle", icon: Route, requiredAny: ["Queue.View", "Analytics.View"] },
-    { name: "Outbox Hub", href: "/outbox", icon: Inbox, requiredAny: ["Settings.View", "Analytics.View"] },
+    { name: "Patient Journey", href: "/lifecycle", icon: Route, requiredAny: ["Patients.ViewLifecycle", "Queue.View", "Analytics.View"] },
+    { name: "Outbox Hub", href: "/outbox", icon: Inbox, requiredAny: ["Outbox.View", "Settings.View"] },
     { name: "Analytics", href: "/analytics", icon: LayoutDashboard, requiredAny: ["Analytics.View"] },
-    { name: "Reports", href: "/reports", icon: BarChart3, requiredAny: ["Analytics.View"] },
+    { name: "Reports", href: "/reports", icon: BarChart3, requiredAny: ["Reports.View", "Analytics.View"] },
     { name: "Branches", href: "/branches", icon: Building2, requiredAny: ["Branches.View"] },
     { name: "Doctors", href: "/doctors", icon: Stethoscope, requiredAny: ["Doctors.View"] },
     { name: "Patients", href: "/patients", icon: Users, requiredAny: ["Patients.View"] },
     { name: "Sessions", href: "/sessions", icon: Clock, requiredAny: ["Sessions.View"] },
     { name: "Staff", href: "/staff", icon: UserCog, requiredAny: ["Staff.View"] },
     { name: "Pharmacy", href: "/pharmacy", icon: Pill, requiredAny: ["Pharmacy.View"] },
-    { name: "Billing & Invoices", href: "/billing", icon: FileText, requiredAny: ["Settings.View"] },
-    { name: "Rate List", href: "/billing/services", icon: ReceiptIndianRupee, requiredAny: ["Settings.View"] },
-    { name: "Audit Log", href: "/audit-logs", icon: FileText, requiredAny: ["Settings.View"] },
+    { name: "Billing & Invoices", href: "/billing", icon: FileText, requiredAny: ["Billing.View"] },
+    { name: "Rate List", href: "/billing/services", icon: ReceiptIndianRupee, requiredAny: ["Billing.ManageRateList", "Billing.View"] },
+    { name: "Audit Log", href: "/audit-logs", icon: FileText, requiredAny: ["AuditLogs.View", "Settings.View"] },
   ];
   if (isDoctor) {
     if (role === 'doctor') {

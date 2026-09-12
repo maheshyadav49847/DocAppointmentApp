@@ -27,7 +27,7 @@ namespace CodeX.Infrastructure.Persistence
                 await SeedRolesAsync(context);
                 await AssignRolesToExistingStaffAsync(context);
                 await MigrateTenantRolesAsync(context);
-                await SyncOrgAdminPermissionsAsync(context);
+                await SyncTenantRolePermissionsAsync(context);
                 await SyncCountriesFromSaaSAsync(context, scope.ServiceProvider, logger);
             }
             catch (Exception ex)
@@ -62,19 +62,21 @@ namespace CodeX.Infrastructure.Persistence
                     SystemPermissions.Queue.RestoreToken, SystemPermissions.Queue.SendAlert, SystemPermissions.Queue.MarkDoctorArrived, 
                     SystemPermissions.Queue.EditPatient, SystemPermissions.Queue.CancelToken, SystemPermissions.Queue.CancelOfflinePatient,
                     SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
-                    SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit, SystemPermissions.Patients.Delete, SystemPermissions.Patients.ViewHistory,
+                    SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit, SystemPermissions.Patients.Delete, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle,
                     SystemPermissions.Staff.View, SystemPermissions.Staff.Add, SystemPermissions.Staff.Edit,
                     SystemPermissions.Doctors.View, SystemPermissions.Doctors.Add, SystemPermissions.Doctors.Edit,
                     SystemPermissions.Pharmacy.View, SystemPermissions.Pharmacy.AddStock, SystemPermissions.Pharmacy.EditStock, SystemPermissions.Pharmacy.DeleteStock, SystemPermissions.Pharmacy.GenerateBills,
-                    SystemPermissions.Analytics.View
+                    SystemPermissions.Billing.View, SystemPermissions.Billing.CreateInvoice, SystemPermissions.Billing.RecordPayment, SystemPermissions.Billing.CancelInvoice, SystemPermissions.Billing.ManageRateList, SystemPermissions.Billing.Export,
+                    SystemPermissions.Analytics.View, SystemPermissions.Reports.View, SystemPermissions.Outbox.View, SystemPermissions.Outbox.Retry, SystemPermissions.AuditLogs.View
                 }),
                 ("Doctor", "Doctor access to view their own queue and patient details", new[]
                 {
                     SystemPermissions.Queue.View, SystemPermissions.Queue.CallNext, 
                     SystemPermissions.Queue.CompleteToken, SystemPermissions.Queue.SkipToken, SystemPermissions.Queue.RestoreToken,
                     SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
-                    SystemPermissions.Patients.View, SystemPermissions.Patients.ViewHistory, SystemPermissions.DoctorDesk.View,
-                    SystemPermissions.Doctors.View
+                    SystemPermissions.Patients.View, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle, SystemPermissions.DoctorDesk.View,
+                    SystemPermissions.Doctors.View,
+                    SystemPermissions.Billing.View
                 }),
                 ("Receptionist", "Receptionist access to manage queue and register patients", new[]
                 {
@@ -83,16 +85,22 @@ namespace CodeX.Infrastructure.Persistence
                     SystemPermissions.Queue.SendAlert, SystemPermissions.Queue.MarkDoctorArrived, SystemPermissions.Queue.EditPatient, 
                     SystemPermissions.Queue.CancelToken, SystemPermissions.Queue.CancelOfflinePatient,
                     SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
-                    SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit,
-                    SystemPermissions.Doctors.View
+                    SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit, SystemPermissions.Patients.ViewLifecycle,
+                    SystemPermissions.Doctors.View,
+                    SystemPermissions.Billing.View, SystemPermissions.Billing.CreateInvoice, SystemPermissions.Billing.RecordPayment, SystemPermissions.Billing.Export,
+                    SystemPermissions.Outbox.View
                 }),
             };
 
-            var existingRoles = await context.Roles.Where(r => r.OrganizationId == Guid.Empty).ToListAsync();
+            var existingRoles = await context.Roles
+                .IgnoreQueryFilters()
+                .Where(r => r.OrganizationId == Guid.Empty)
+                .ToListAsync();
             
             foreach (var roleData in systemRoles)
             {
-                var role = existingRoles.FirstOrDefault(r => r.Name == roleData.Name);
+                var matchingRoles = existingRoles.Where(r => r.Name == roleData.Name).ToList();
+                var role = matchingRoles.FirstOrDefault();
                 if (role == null)
                 {
                     role = new Role
@@ -243,30 +251,80 @@ namespace CodeX.Infrastructure.Persistence
             await context.SaveChangesAsync();
         }
 
-        private static async Task SyncOrgAdminPermissionsAsync(ApplicationDbContext context)
+        private static async Task SyncTenantRolePermissionsAsync(ApplicationDbContext context)
         {
             var allPerms = SystemPermissions.GetAll().ToArray();
+
+            var expectedRolePermissions = new Dictionary<string, string[]>
+            {
+                { "SuperAdmin", allPerms },
+                { "OrgAdmin", allPerms },
+                {
+                    "BranchAdmin", new[]
+                    {
+                        SystemPermissions.Queue.View, SystemPermissions.Queue.AddPatient, SystemPermissions.Queue.CallNext, 
+                        SystemPermissions.Queue.EndSession, SystemPermissions.Queue.CompleteToken, SystemPermissions.Queue.SkipToken, 
+                        SystemPermissions.Queue.RestoreToken, SystemPermissions.Queue.SendAlert, SystemPermissions.Queue.MarkDoctorArrived, 
+                        SystemPermissions.Queue.EditPatient, SystemPermissions.Queue.CancelToken, SystemPermissions.Queue.CancelOfflinePatient,
+                        SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
+                        SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit, SystemPermissions.Patients.Delete, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle,
+                        SystemPermissions.Staff.View, SystemPermissions.Staff.Add, SystemPermissions.Staff.Edit,
+                        SystemPermissions.Doctors.View, SystemPermissions.Doctors.Add, SystemPermissions.Doctors.Edit,
+                        SystemPermissions.Pharmacy.View, SystemPermissions.Pharmacy.AddStock, SystemPermissions.Pharmacy.EditStock, SystemPermissions.Pharmacy.DeleteStock, SystemPermissions.Pharmacy.GenerateBills,
+                        SystemPermissions.Billing.View, SystemPermissions.Billing.CreateInvoice, SystemPermissions.Billing.RecordPayment, SystemPermissions.Billing.CancelInvoice, SystemPermissions.Billing.ManageRateList, SystemPermissions.Billing.Export,
+                        SystemPermissions.Analytics.View, SystemPermissions.Reports.View, SystemPermissions.Outbox.View, SystemPermissions.Outbox.Retry, SystemPermissions.AuditLogs.View
+                    }
+                },
+                {
+                    "Doctor", new[]
+                    {
+                        SystemPermissions.Queue.View, SystemPermissions.Queue.CallNext, 
+                        SystemPermissions.Queue.CompleteToken, SystemPermissions.Queue.SkipToken, SystemPermissions.Queue.RestoreToken,
+                        SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
+                        SystemPermissions.Patients.View, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle, SystemPermissions.DoctorDesk.View,
+                        SystemPermissions.Doctors.View,
+                        SystemPermissions.Billing.View
+                    }
+                },
+                {
+                    "Receptionist", new[]
+                    {
+                        SystemPermissions.Queue.View, SystemPermissions.Queue.AddPatient, SystemPermissions.Queue.CallNext, 
+                        SystemPermissions.Queue.CompleteToken, SystemPermissions.Queue.SkipToken, SystemPermissions.Queue.RestoreToken, 
+                        SystemPermissions.Queue.SendAlert, SystemPermissions.Queue.MarkDoctorArrived, SystemPermissions.Queue.EditPatient, 
+                        SystemPermissions.Queue.CancelToken, SystemPermissions.Queue.CancelOfflinePatient,
+                        SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
+                        SystemPermissions.Patients.View, SystemPermissions.Patients.Add, SystemPermissions.Patients.Edit, SystemPermissions.Patients.ViewLifecycle,
+                        SystemPermissions.Doctors.View,
+                        SystemPermissions.Billing.View, SystemPermissions.Billing.CreateInvoice, SystemPermissions.Billing.RecordPayment, SystemPermissions.Billing.Export,
+                        SystemPermissions.Outbox.View
+                    }
+                }
+            };
             
-            var orgAdminRoles = await context.Roles
+            var allSystemRoles = await context.Roles
                 .IgnoreQueryFilters()
                 .Include(r => r.RolePermissions)
-                .Where(r => r.Name == "OrgAdmin" || r.Name == "SuperAdmin")
+                .Where(r => r.IsSystemDefault && !r.IsDeleted)
                 .ToListAsync();
 
             bool anyChanges = false;
-            foreach (var role in orgAdminRoles)
+            foreach (var role in allSystemRoles)
             {
-                var existingPerms = role.RolePermissions.Select(rp => rp.Permission).ToHashSet();
-                foreach (var perm in allPerms)
+                if (expectedRolePermissions.TryGetValue(role.Name, out var targetPerms))
                 {
-                    if (!existingPerms.Contains(perm))
+                    var existingPerms = role.RolePermissions.Select(rp => rp.Permission).ToHashSet();
+                    foreach (var perm in targetPerms)
                     {
-                        role.RolePermissions.Add(new RolePermission
+                        if (!existingPerms.Contains(perm))
                         {
-                            RoleId = role.Id,
-                            Permission = perm
-                        });
-                        anyChanges = true;
+                            role.RolePermissions.Add(new RolePermission
+                            {
+                                RoleId = role.Id,
+                                Permission = perm
+                            });
+                            anyChanges = true;
+                        }
                     }
                 }
             }

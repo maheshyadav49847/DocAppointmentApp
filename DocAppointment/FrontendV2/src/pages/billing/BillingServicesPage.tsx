@@ -7,8 +7,10 @@ import { PlusCircle, SquarePen, Trash2, X, Save, Activity, LayoutGrid, Search, D
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function BillingServicesPage() {
+  const { can } = usePermissions();
   const { user } = useAuthStore();
   const organizationId = user?.orgId || '';
   const queryClient = useQueryClient();
@@ -194,12 +196,16 @@ export default function BillingServicesPage() {
                 className="pl-9 pr-4 py-2 w-full sm:w-64 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
               />
             </div>
-            <button onClick={handleExport} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
-              <Download className="w-4 h-4" /> Export CSV
-            </button>
-            <button onClick={() => handleOpenModal()} className="btn-primary shadow-sm shrink-0 px-4">
-              <PlusCircle className="w-4 h-4" /> Add Service
-            </button>
+            {can('Billing.Export') && (
+              <button onClick={handleExport} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                <Download className="w-4 h-4" /> Export CSV
+              </button>
+            )}
+            {can('Billing.ManageRateList') && (
+              <button onClick={() => handleOpenModal()} className="btn-primary shadow-sm shrink-0 px-4">
+                <PlusCircle className="w-4 h-4" /> Add Service
+              </button>
+            )}
           </div>
         </div>
 
@@ -242,12 +248,16 @@ export default function BillingServicesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onClick={() => handleOpenModal(service)} className="text-slate-400 hover:text-indigo-600 mr-3 transition-colors">
-                          <SquarePen className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => { if(window.confirm('Delete this service?')) deleteMutation.mutate(service.id); }} className="text-slate-400 hover:text-rose-600 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {can('Billing.ManageRateList') && (
+                          <>
+                            <button onClick={() => handleOpenModal(service)} className="text-slate-400 hover:text-indigo-600 mr-3 transition-colors">
+                              <SquarePen className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => { if(window.confirm('Delete this service?')) deleteMutation.mutate(service.id); }} className="text-slate-400 hover:text-rose-600 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))

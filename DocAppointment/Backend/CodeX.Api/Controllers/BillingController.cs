@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Features.Billing.Invoices.Commands.CancelInvoice;
+using CodeX.Api.Authorization;
+using CodeX.Domain.Constants;
 
 namespace CodeX.Api.Controllers
 {
@@ -31,12 +33,14 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("services")]
+        [HasPermission(SystemPermissions.Billing.View)]
         public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<ServiceItemDto>>> GetServices([FromQuery] GetServicesQuery query)
         {
             return await Mediator.Send(query);
         }
 
         [HttpGet("services/export")]
+        [HasPermission(SystemPermissions.Billing.Export)]
         public async Task<FileResult> ExportServices([FromQuery] CodeX.Application.Features.Billing.Services.Queries.ExportServices.ExportServicesQuery query)
         {
             var fileBytes = await Mediator.Send(query);
@@ -44,12 +48,14 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("services")]
+        [HasPermission(SystemPermissions.Billing.ManageRateList)]
         public async Task<ActionResult<Guid>> CreateService([FromBody] CreateServiceCommand command)
         {
             return await Mediator.Send(command);
         }
 
         [HttpPut("services/{id}")]
+        [HasPermission(SystemPermissions.Billing.ManageRateList)]
         public async Task<ActionResult> UpdateService(Guid id, [FromBody] UpdateServiceCommand command)
         {
             if (id != command.Id)
@@ -61,13 +67,15 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("services/{id}")]
+        [HasPermission(SystemPermissions.Billing.ManageRateList)]
         public async Task<ActionResult> DeleteService(Guid id)
         {
             await Mediator.Send(new DeleteServiceCommand(id));
             return NoContent();
         }
 
-                [HttpGet("pending-bills")]
+        [HttpGet("pending-bills")]
+        [HasPermission(SystemPermissions.Billing.View)]
         public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<PendingBillDto>>> GetPendingBills(
             [FromQuery] Guid branchId,
             [FromQuery] DateTime startDate,
@@ -80,6 +88,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("invoices")]
+        [HasPermission(SystemPermissions.Billing.View)]
         public async Task<ActionResult<CodeX.Application.Common.Models.PaginatedList<InvoiceListDto>>> GetInvoices(
             [FromQuery] Guid organizationId, 
             [FromQuery] Guid branchId, 
@@ -93,6 +102,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpGet("invoices/export")]
+        [HasPermission(SystemPermissions.Billing.Export)]
         public async Task<IActionResult> ExportInvoices(
             [FromQuery] Guid organizationId,
             [FromQuery] Guid branchId,
@@ -106,12 +116,14 @@ namespace CodeX.Api.Controllers
 
         
         [HttpGet("invoices/{id}")]
+        [HasPermission(SystemPermissions.Billing.View)]
         public async Task<ActionResult<InvoiceDetailDto>> GetInvoiceById(Guid id, [FromQuery] Guid organizationId)
         {
             return await Mediator.Send(new GetInvoiceByIdQuery(id, organizationId));
         }
 
         [HttpPost("invoices")]
+        [HasPermission(SystemPermissions.Billing.CreateInvoice)]
         public async Task<ActionResult<Guid>> CreateInvoice([FromBody] CreateInvoiceCommand command)
         {
             var result = await Mediator.Send(command);
@@ -136,6 +148,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("invoices/pay")]
+        [HasPermission(SystemPermissions.Billing.RecordPayment)]
         public async Task<ActionResult> PayInvoice([FromBody] PayInvoiceCommand command)
         {
             await Mediator.Send(command);
@@ -164,6 +177,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpPost("invoices/{id}/cancel")]
+        [HasPermission(SystemPermissions.Billing.CancelInvoice)]
         public async Task<ActionResult<bool>> CancelInvoice(Guid id, [FromBody] CancelInvoiceRequest request)
         {
             var result = await Mediator.Send(new CancelInvoiceCommand(id, request.OrganizationId));

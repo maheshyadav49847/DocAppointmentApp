@@ -12,8 +12,10 @@ import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
 import RecordPaymentModal from '../queue/components/RecordPaymentModal';
 import toast from 'react-hot-toast';
 import { branchService } from '@/services/branchService';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function BillingDashboardPage() {
+  const { can } = usePermissions();
   const { user, activeBranchId } = useAuthStore();
   const organizationId = user?.orgId || '';
   const branchId = activeBranchId || '';
@@ -318,20 +320,22 @@ export default function BillingDashboardPage() {
                           {new Date(bill.completedAt).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          onClick={() => {
-                            setBillingToken({
-                              id: bill.tokenId,
-                              patientId: bill.patientId,
-                              patientName: bill.patientName,
-                              queue: { doctorId: bill.doctorId }
-                            });
-                          }}
-                          className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm text-sm inline-flex items-center gap-1.5"
-                        >
-                          <ReceiptIndianRupee className="w-4 h-4" />
-                          Generate Bill
-                        </button>
+                        {can('Billing.CreateInvoice') && (
+                          <button
+                            onClick={() => {
+                              setBillingToken({
+                                id: bill.tokenId,
+                                patientId: bill.patientId,
+                                patientName: bill.patientName,
+                                queue: { doctorId: bill.doctorId }
+                              });
+                            }}
+                            className="px-4 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-lg font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors shadow-sm text-sm inline-flex items-center gap-1.5"
+                          >
+                            <ReceiptIndianRupee className="w-4 h-4" />
+                            Generate Bill
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -466,14 +470,16 @@ export default function BillingDashboardPage() {
                   className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 />
               </div>
-              <button
-                onClick={handleExportCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors"
-                title="Export to CSV"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
+              {can('Billing.Export') && (
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors"
+                  title="Export to CSV"
+                >
+                  <Download className="w-4 h-4" />
+                  Export
+                </button>
+              )}
             </div>
           </div>
           <div className="overflow-auto flex-1 bg-white p-4 sm:p-6">
@@ -535,7 +541,7 @@ export default function BillingDashboardPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-900">₹{inv.totalAmount}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right flex justify-end items-center gap-2">
-                          {inv.status !== 2 && inv.status !== 3 && (
+                          {inv.status !== 2 && inv.status !== 3 && can('Billing.RecordPayment') && (
                             <button onClick={() => setPaymentInvoice(inv)} className="text-emerald-600 hover:text-emerald-700 transition-colors p-2 hover:bg-emerald-50 rounded-lg flex items-center gap-1 font-semibold text-sm">
                               <CreditCard className="w-4 h-4" /> Pay
                             </button>

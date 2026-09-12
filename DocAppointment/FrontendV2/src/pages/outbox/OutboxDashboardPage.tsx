@@ -24,8 +24,10 @@ import { branchService } from '@/services/branchService';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/ui/PageLoader';
 import toast from 'react-hot-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function OutboxDashboardPage() {
+  const { can } = usePermissions();
   const queryClient = useQueryClient();
   const { user, activeBranchId } = useAuthStore();
   const role = user?.role?.toLowerCase().replace(/\s/g, '') || '';
@@ -454,7 +456,7 @@ export default function OutboxDashboardPage() {
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
-                        {(m.status === 'Failed' || m.status === 'DeadLetter' || m.status === 'Pending') && (
+                        {(m.status === 'Failed' || m.status === 'DeadLetter' || m.status === 'Pending') && can('Outbox.Retry') && (
                           <button
                             onClick={() => retryMutation.mutate(m.id)}
                             disabled={retryMutation.isPending}

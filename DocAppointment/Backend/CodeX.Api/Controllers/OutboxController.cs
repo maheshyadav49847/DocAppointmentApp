@@ -29,7 +29,7 @@ namespace CodeX.Api.Controllers
         /// Get paginated outbox messages with real-time status, filters, and statistics.
         /// </summary>
         [HttpGet("messages")]
-        [HasPermission(SystemPermissions.Analytics.View)]
+        [HasPermission(SystemPermissions.Outbox.View)]
         public async Task<IActionResult> GetOutboxMessages(
             [FromQuery] Guid? branchId,
             [FromQuery] string? channel,
@@ -149,7 +149,7 @@ namespace CodeX.Api.Controllers
         /// Retry a failed or dead-letter outbox message immediately.
         /// </summary>
         [HttpPost("messages/{id}/retry")]
-        [HasPermission(SystemPermissions.Analytics.View)]
+        [HasPermission(SystemPermissions.Outbox.Retry)]
         public async Task<IActionResult> RetryMessage(Guid id)
         {
             var message = await _context.OutboxMessages.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.Id == id);

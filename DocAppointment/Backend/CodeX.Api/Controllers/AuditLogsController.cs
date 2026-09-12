@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CodeX.Api.Controllers
 {
     [Authorize]
-    [HasPermission(SystemPermissions.Settings.View)]
+    [HasPermission(SystemPermissions.AuditLogs.View)]
     public class AuditLogsController : BaseApiController
     {
         private readonly IApplicationDbContext _context;

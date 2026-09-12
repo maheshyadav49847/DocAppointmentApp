@@ -15,6 +15,10 @@ namespace CodeX.Domain.Constants
             public const string Branches = "Branches";
             public const string Organizations = "Organizations";
             public const string Doctors = "Doctors";
+            public const string Billing = "Billing";
+            public const string Reports = "Reports";
+            public const string Outbox = "Outbox";
+            public const string AuditLogs = "AuditLogs";
         }
 
         public static class Queue
@@ -48,6 +52,32 @@ namespace CodeX.Domain.Constants
             public const string View = "Analytics.View";
         }
 
+        public static class Reports
+        {
+            public const string View = "Reports.View";
+        }
+
+        public static class Outbox
+        {
+            public const string View = "Outbox.View";
+            public const string Retry = "Outbox.Retry";
+        }
+
+        public static class Billing
+        {
+            public const string View = "Billing.View";
+            public const string CreateInvoice = "Billing.CreateInvoice";
+            public const string RecordPayment = "Billing.RecordPayment";
+            public const string CancelInvoice = "Billing.CancelInvoice";
+            public const string ManageRateList = "Billing.ManageRateList";
+            public const string Export = "Billing.Export";
+        }
+
+        public static class AuditLogs
+        {
+            public const string View = "AuditLogs.View";
+        }
+
         public static class DoctorDesk
         {
             public const string View = "DoctorDesk.View";
@@ -68,6 +98,7 @@ namespace CodeX.Domain.Constants
             public const string Edit = "Patients.Edit";
             public const string Delete = "Patients.Delete";
             public const string ViewHistory = "Patients.ViewHistory";
+            public const string ViewLifecycle = "Patients.ViewLifecycle";
         }
 
         public static class Staff
