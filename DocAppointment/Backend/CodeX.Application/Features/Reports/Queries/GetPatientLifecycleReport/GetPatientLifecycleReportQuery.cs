@@ -222,16 +222,6 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                     currentStage = "Cancelled";
                     countCancelled++;
                 }
-                else if (t.Status == TokenStatus.Pending)
-                {
-                    currentStage = "Waiting";
-                    countBooked++;
-                }
-                else if (t.Status == TokenStatus.Called)
-                {
-                    currentStage = "InConsultation";
-                    countBooked++;
-                }
                 else if (activeInvoice != null && (activeInvoice.Status == InvoiceStatus.Paid || activeInvoice.PaidAmount >= activeInvoice.TotalAmount))
                 {
                     currentStage = "Completed";
@@ -248,6 +238,16 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                 {
                     currentStage = "Consulted";
                     countConsulted++;
+                }
+                else if (t.Status == TokenStatus.Called)
+                {
+                    currentStage = "InConsultation";
+                    countBooked++;
+                }
+                else if (t.Status == TokenStatus.Pending)
+                {
+                    currentStage = "Waiting";
+                    countBooked++;
                 }
 
                 if (activeInvoice != null)

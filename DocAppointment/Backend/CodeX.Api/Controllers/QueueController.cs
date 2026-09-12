@@ -299,13 +299,26 @@ namespace CodeX.Api.Controllers
                 .OrderBy(t => t.TokenNumber)
                 .ToListAsync();
 
+            var tokenIds = tokens.Select(t => t.Id).ToList();
+            var tokensWithVisits = await _context.PatientVisits
+                .Where(v => v.TokenId.HasValue && tokenIds.Contains(v.TokenId.Value))
+                .Select(v => v.TokenId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            if (queue.CurrentTokenNumber > 0 && tokens.Any(t => t.TokenNumber == queue.CurrentTokenNumber && (t.Status == TokenStatus.Completed || tokensWithVisits.Contains(t.Id))))
+            {
+                queue.CurrentTokenNumber = 0;
+                await _context.SaveChangesAsync(default);
+            }
+
             var currentToken = tokens
-                .Where(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Called)
+                .Where(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Called && !tokensWithVisits.Contains(t.Id))
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefault();
 
-            var waitingCount = tokens.Count(t => t.Status == TokenStatus.Pending);
-            var completedCount = tokens.Count(t => t.Status == TokenStatus.Completed);
+            var waitingCount = tokens.Count(t => t.Status == TokenStatus.Pending && !tokensWithVisits.Contains(t.Id));
+            var completedCount = tokens.Count(t => t.Status == TokenStatus.Completed || tokensWithVisits.Contains(t.Id));
             var skippedCount = tokens.Count(t => t.Status == TokenStatus.Skipped);
             var cancelledCount = tokens.Count(t => t.Status == TokenStatus.Cancelled);
 
@@ -357,6 +370,33 @@ namespace CodeX.Api.Controllers
                 .Where(t => t.QueueId == queueId && !t.IsDeleted)
                 .OrderBy(t => t.TokenNumber)
                 .ToListAsync();
+
+            var upcomingTokenIds = tokens.Select(t => t.Id).ToList();
+            var upcomingTokensWithVisits = await _context.PatientVisits
+                .Where(v => v.TokenId.HasValue && upcomingTokenIds.Contains(v.TokenId.Value))
+                .Select(v => v.TokenId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            bool hasFixedTokens = false;
+            foreach (var t in tokens)
+            {
+                if (upcomingTokensWithVisits.Contains(t.Id) && t.Status != TokenStatus.Completed && t.Status != TokenStatus.Cancelled)
+                {
+                    t.Status = TokenStatus.Completed;
+                    t.CompletedAt ??= t.UpdatedAt ?? DateTime.UtcNow;
+                    hasFixedTokens = true;
+                }
+            }
+
+            if (hasFixedTokens)
+            {
+                if (queue.CurrentTokenNumber > 0 && tokens.Any(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Completed))
+                {
+                    queue.CurrentTokenNumber = 0;
+                }
+                await _context.SaveChangesAsync(default);
+            }
 
             var upcoming = tokens
                 .Select(t => new

@@ -256,10 +256,15 @@ namespace CodeX.Api.Controllers
                     return BadRequest($"Cannot save consultation. The token status is '{token.Status}'. They must be active or called to save a record.");
                 }
 
-                if (token.Status == CodeX.Domain.Enums.TokenStatus.Pending)
+                if (token.CalledAt == null)
                 {
-                    token.Status = CodeX.Domain.Enums.TokenStatus.Called;
                     token.CalledAt = DateTime.UtcNow;
+                }
+                token.Status = CodeX.Domain.Enums.TokenStatus.Completed;
+                token.CompletedAt = DateTime.UtcNow;
+                if (token.Queue != null && token.Queue.CurrentTokenNumber == token.TokenNumber)
+                {
+                    token.Queue.CurrentTokenNumber = 0;
                 }
 
                 var existingVisitForThisPatient = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value && v.PatientId == id);
@@ -362,6 +367,17 @@ namespace CodeX.Api.Controllers
                     return BadRequest("Consultation cannot be saved without a booking. Please edit an existing record or create a new booking for the patient.");
                 }
 
+                if (chosenToken.CalledAt == null)
+                {
+                    chosenToken.CalledAt = DateTime.UtcNow;
+                }
+                chosenToken.Status = CodeX.Domain.Enums.TokenStatus.Completed;
+                chosenToken.CompletedAt = DateTime.UtcNow;
+                if (chosenToken.Queue != null && chosenToken.Queue.CurrentTokenNumber == chosenToken.TokenNumber)
+                {
+                    chosenToken.Queue.CurrentTokenNumber = 0;
+                }
+
                 visit.TokenId = chosenToken.Id;
                 if (visit.DoctorId == Guid.Empty && chosenToken.Queue?.DoctorId != null)
                 {
@@ -456,9 +472,13 @@ namespace CodeX.Api.Controllers
                 if (defaultBranch != null) branchId = defaultBranch.Id;
             }
 
-            // Real-Time SignalR Broadcast: Consultation Saved
+            // Real-Time SignalR Broadcast: Token Updated and Consultation Saved
             try
             {
+                if (linkedToken != null)
+                {
+                    await _notificationService.NotifyTokenUpdated(branchId, linkedToken.QueueId, linkedToken.Queue?.CurrentTokenNumber ?? 0);
+                }
                 await _notificationService.NotifyConsultationSaved(branchId, visit.TokenId, id, patientObj?.Name ?? "Patient");
             }
             catch (Exception ex)

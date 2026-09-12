@@ -294,8 +294,14 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
       return res.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clinicalVisits", patientId] })
-      queryClient.invalidateQueries({ queryKey: ["attachments", patientId] })
+      queryClient.invalidateQueries({ queryKey: ["clinicalVisits"] })
+      queryClient.invalidateQueries({ queryKey: ["attachments"] })
+      queryClient.invalidateQueries({ queryKey: ["patient-token-today"] })
+      queryClient.invalidateQueries({ queryKey: ["queueDetails"] })
+      queryClient.invalidateQueries({ queryKey: ["upcomingTokens"] })
+      queryClient.invalidateQueries({ queryKey: ["activeQueue"] })
+      queryClient.invalidateQueries({ queryKey: ["queueStats"] })
+      queryClient.invalidateQueries({ queryKey: ["patientLifecycle"] })
 
       toast.success("Consultation saved successfully!")
 
