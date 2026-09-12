@@ -7,6 +7,7 @@ export interface OutboxMessageItem {
   tokenId?: string;
   tokenNumber?: number;
   patientName?: string;
+  patientPhone?: string;
   patientVisitId?: string;
   channel: string;
   messageType: string;

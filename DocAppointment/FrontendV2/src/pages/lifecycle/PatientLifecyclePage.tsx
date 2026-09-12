@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import {
   Route,
   Calendar as CalendarIcon,
+  CalendarDays,
   Search,
   Clock,
   Stethoscope,
@@ -266,23 +267,34 @@ export default function PatientLifecyclePage() {
 
         {/* Custom Date Pickers Row if selected */}
         {datePreset === 'custom' && (
-          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">From:</span>
+          <div className="flex items-center gap-2 shrink-0 pt-2 border-t border-slate-100">
+            <div className="relative">
+              <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
               <DatePicker
                 selected={customStart}
                 onChange={(d: Date | null) => d && setCustomStart(d)}
-                className="text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-50"
-                dateFormat="dd/MM/yyyy"
+                dateFormat="dd MMM yyyy"
+                showMonthDropdown
+                showYearDropdown
+                todayButton="Today"
+                dropdownMode="select"
+                className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                maxDate={customEnd}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500">To:</span>
+            <span className="text-slate-400 text-xs font-bold">to</span>
+            <div className="relative">
+              <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
               <DatePicker
                 selected={customEnd}
                 onChange={(d: Date | null) => d && setCustomEnd(d)}
-                className="text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-lg bg-slate-50"
-                dateFormat="dd/MM/yyyy"
+                dateFormat="dd MMM yyyy"
+                showMonthDropdown
+                showYearDropdown
+                todayButton="Today"
+                dropdownMode="select"
+                className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                minDate={customStart}
               />
             </div>
           </div>

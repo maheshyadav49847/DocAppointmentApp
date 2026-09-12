@@ -13,11 +13,14 @@ import {
   FileText,
   Building2,
   Calendar as CalendarIcon,
+  CalendarDays,
   RefreshCw,
   X,
   Eye,
-  Zap
+  Zap,
+  Phone
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { outboxService } from '@/services/outboxService';
 import type { OutboxMessageItem } from '@/services/outboxService';
 import { branchService } from '@/services/branchService';
@@ -346,21 +349,34 @@ export default function OutboxDashboardPage() {
 
         {/* Custom Date Pickers */}
         {datePreset === 'custom' && (
-          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-500 font-bold">Start:</span>
+          <div className="flex items-center gap-2 shrink-0 pt-3 border-t border-slate-100">
+            <div className="relative">
+              <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
               <DatePicker
                 selected={customStart}
                 onChange={(d: Date | null) => d && setCustomStart(d)}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium"
+                dateFormat="dd MMM yyyy"
+                showMonthDropdown
+                showYearDropdown
+                todayButton="Today"
+                dropdownMode="select"
+                className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                maxDate={customEnd}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-500 font-bold">End:</span>
+            <span className="text-slate-400 text-xs font-bold">to</span>
+            <div className="relative">
+              <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
               <DatePicker
                 selected={customEnd}
                 onChange={(d: Date | null) => d && setCustomEnd(d)}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium"
+                dateFormat="dd MMM yyyy"
+                showMonthDropdown
+                showYearDropdown
+                todayButton="Today"
+                dropdownMode="select"
+                className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                minDate={customStart}
               />
             </div>
           </div>
@@ -418,8 +434,25 @@ export default function OutboxDashboardPage() {
                       <div className="font-semibold text-slate-800">{m.messageType}</div>
                       <div className="mt-0.5">{getPriorityLabel(m.priority)}</div>
                     </td>
-                    <td className="px-3 py-3 font-mono text-[11px] text-slate-700 font-medium">
-                      {m.recipient}
+                    <td className="px-3 py-3">
+                      {m.patientPhone ? (
+                        <div>
+                          <div className="font-semibold text-slate-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
+                            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{m.patientPhone}</span>
+                          </div>
+                          {m.channel?.toLowerCase() === 'telegram' && (
+                            <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5" title={`Telegram Chat ID: ${m.recipient}`}>
+                              <Send className="w-2.5 h-2.5 text-sky-500 shrink-0" />
+                              <span>ID: {m.recipient}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="font-mono text-[11px] text-slate-700 font-medium">
+                          {m.recipient}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       {m.hasFile ? (
@@ -445,7 +478,7 @@ export default function OutboxDashboardPage() {
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap text-slate-500">
                       <div>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
-                      <div className="text-[10px] text-slate-400">{new Date(m.createdAt).toLocaleDateString()}</div>
+                      <div className="text-[10px] text-slate-400 font-medium">{format(new Date(m.createdAt), 'dd MMM yyyy')}</div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -532,9 +565,18 @@ export default function OutboxDashboardPage() {
             <div className="space-y-3 text-xs">
               <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1.5">
                 <div>Channel: <strong className="text-slate-900 uppercase font-black">{inspectItem.channel}</strong></div>
+                <div>Patient: <strong className="text-slate-900">{inspectItem.patientName || 'N/A'}</strong></div>
+                {inspectItem.patientPhone && (
+                  <div>Patient Phone: <strong className="text-slate-900">{inspectItem.patientPhone}</strong></div>
+                )}
                 <div>Message Type: <strong className="text-slate-900">{inspectItem.messageType}</strong></div>
                 <div>Priority Level: <strong className="text-slate-900">{inspectItem.priority}</strong></div>
-                <div>Recipient: <code className="bg-slate-200/60 px-1 py-0.5 rounded font-mono">{inspectItem.recipient}</code></div>
+                <div>
+                  Recipient Target: <code className="bg-slate-200/60 px-1 py-0.5 rounded font-mono">{inspectItem.recipient}</code>
+                  {inspectItem.channel?.toLowerCase() === 'telegram' && (
+                    <span className="text-[10px] text-slate-500 ml-1.5">(Telegram Chat ID)</span>
+                  )}
+                </div>
                 <div>Clinic Branch: <strong className="text-slate-900">{inspectItem.branchName}</strong></div>
               </div>
 

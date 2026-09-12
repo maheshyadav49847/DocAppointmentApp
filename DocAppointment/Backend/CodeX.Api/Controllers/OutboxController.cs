@@ -46,6 +46,8 @@ namespace CodeX.Api.Controllers
                     .Include(o => o.Branch)
                     .Include(o => o.Token)
                         .ThenInclude(t => t!.Patient)
+                    .Include(o => o.PatientVisit)
+                        .ThenInclude(pv => pv!.Patient)
                     .AsNoTracking();
 
                 // Branch filter
@@ -86,7 +88,8 @@ namespace CodeX.Api.Controllers
                         o.Recipient.ToLower().Contains(s) ||
                         (o.MessageBody != null && o.MessageBody.ToLower().Contains(s)) ||
                         (o.FileName != null && o.FileName.ToLower().Contains(s)) ||
-                        (o.Token != null && o.Token.Patient != null && o.Token.Patient.Name.ToLower().Contains(s)));
+                        (o.Token != null && o.Token.Patient != null && (o.Token.Patient.Name.ToLower().Contains(s) || (o.Token.Patient.Phone != null && o.Token.Patient.Phone.Contains(s)))) ||
+                        (o.PatientVisit != null && o.PatientVisit.Patient != null && (o.PatientVisit.Patient.Name.ToLower().Contains(s) || (o.PatientVisit.Patient.Phone != null && o.PatientVisit.Patient.Phone.Contains(s)))));
                 }
 
                 var totalCount = await query.CountAsync();
@@ -108,7 +111,16 @@ namespace CodeX.Api.Controllers
                         BranchName = o.Branch != null ? o.Branch.Name : "Clinic Branch",
                         o.TokenId,
                         TokenNumber = o.Token != null ? (int?)o.Token.TokenNumber : null,
-                        PatientName = o.Token != null && o.Token.Patient != null ? o.Token.Patient.Name : null,
+                        PatientName = o.Token != null && o.Token.Patient != null 
+                            ? o.Token.Patient.Name 
+                            : (o.PatientVisit != null && o.PatientVisit.Patient != null 
+                                ? o.PatientVisit.Patient.Name 
+                                : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.Name).FirstOrDefault()),
+                        PatientPhone = o.Token != null && o.Token.Patient != null 
+                            ? (o.Token.Patient.PhoneDialCode != null ? o.Token.Patient.PhoneDialCode + " " + o.Token.Patient.Phone : o.Token.Patient.Phone) 
+                            : (o.PatientVisit != null && o.PatientVisit.Patient != null 
+                                ? (o.PatientVisit.Patient.PhoneDialCode != null ? o.PatientVisit.Patient.PhoneDialCode + " " + o.PatientVisit.Patient.Phone : o.PatientVisit.Patient.Phone) 
+                                : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.PhoneDialCode != null ? p.PhoneDialCode + " " + p.Phone : p.Phone).FirstOrDefault()),
                         o.PatientVisitId,
                         o.Channel,
                         o.MessageType,
