@@ -21,7 +21,6 @@ import {
   X
 } from 'lucide-react';
 import { reportService } from '@/services/reportService';
-import { branchService } from '@/services/branchService';
 import { doctorService } from '@/services/doctorService';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/ui/PageLoader';
@@ -30,12 +29,9 @@ export default function PatientLifecyclePage() {
   const [searchParams] = useSearchParams();
   const urlSearch = searchParams.get('search') || '';
 
-  const { user, activeBranchId } = useAuthStore();
-  const role = user?.role?.toLowerCase().replace(/\s/g, '') || '';
-  const isMultiBranch = role === 'orgadmin' || role === 'superadmin';
+  const { activeBranchId } = useAuthStore();
 
   // Filters State
-  const [selectedBranch, setSelectedBranch] = useState<string>(activeBranchId || 'all');
   const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'week' | 'month' | 'custom'>('today');
   const [customStart, setCustomStart] = useState<Date>(() => new Date());
@@ -43,7 +39,7 @@ export default function PatientLifecyclePage() {
   const [searchQuery, setSearchQuery] = useState<string>(urlSearch);
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [page, setPage] = useState<number>(1);
-  const pageSize = 50;
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Selected item modal for detailed audit inspection
   const [inspectItem, setInspectItem] = useState<any | null>(null);
@@ -79,25 +75,22 @@ export default function PatientLifecyclePage() {
     return { startDate: s.toISOString(), endDate: e.toISOString() };
   }, [datePreset, customStart, customEnd]);
 
-  // Branches & Doctors query
-  const { data: myBranches = [] } = useQuery({
-    queryKey: ['my-branches'],
-    queryFn: () => branchService.getMyBranches(),
-  });
-
+  // Doctors query (filtered by active branch if selected)
   const { data: doctors = [] } = useQuery({
-    queryKey: ['org-doctors'],
-    queryFn: () => doctorService.getOrganizationDoctors(),
+    queryKey: ['org-doctors', activeBranchId],
+    queryFn: () => (activeBranchId && activeBranchId !== 'org' && activeBranchId !== 'all')
+      ? doctorService.getBranchDoctors(activeBranchId)
+      : doctorService.getOrganizationDoctors(),
   });
 
   // Main Lifecycle Report Query
   const { data: lifecycleData, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ['patient-lifecycle', selectedBranch, selectedDoctor, startDate, endDate, searchQuery, stageFilter, page],
+    queryKey: ['patient-lifecycle', activeBranchId, selectedDoctor, startDate, endDate, searchQuery, stageFilter, page, pageSize],
     queryFn: () =>
       reportService.getPatientLifecycleReport({
         startDate,
         endDate,
-        branchId: selectedBranch,
+        branchId: activeBranchId || undefined,
         doctorId: selectedDoctor,
         search: searchQuery,
         stage: stageFilter,
@@ -176,31 +169,7 @@ export default function PatientLifecyclePage() {
 
       {/* Control & Filter Bar */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Branch Filter */}
-          {isMultiBranch && (
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5" /> Branch / Clinic
-              </label>
-              <select
-                value={selectedBranch}
-                onChange={(e) => {
-                  setSelectedBranch(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-              >
-                <option value="all">All Branches</option>
-                {myBranches.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {/* Doctor Filter */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
@@ -575,26 +544,44 @@ export default function PatientLifecyclePage() {
         )}
 
         {/* Pagination Bar */}
-        {totalCount > pageSize && (
-          <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-600">
-            <span>
-              Showing {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, totalCount)} of {totalCount} visits
-            </span>
+        {totalCount > 0 && (
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span>
+                Showing <strong className="text-slate-800">{((page - 1) * pageSize) + 1}</strong> - <strong className="text-slate-800">{Math.min(page * pageSize, totalCount)}</strong> of <strong className="text-slate-800">{totalCount}</strong> visits
+              </span>
+              <div className="flex items-center gap-1.5 font-normal text-slate-500">
+                <span>Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-40 transition font-medium"
               >
                 Previous
               </button>
-              <span>
+              <span className="px-2 font-medium">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-40 transition font-medium"
               >
                 Next
               </button>

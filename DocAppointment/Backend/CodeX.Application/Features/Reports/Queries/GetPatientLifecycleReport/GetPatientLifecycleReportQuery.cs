@@ -109,10 +109,14 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
     public class GetPatientLifecycleReportQueryHandler : IRequestHandler<GetPatientLifecycleReportQuery, PatientLifecycleReportDto>
     {
         private readonly IApplicationDbContext _context;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
-        public GetPatientLifecycleReportQueryHandler(IApplicationDbContext context)
+        public GetPatientLifecycleReportQueryHandler(
+            IApplicationDbContext context,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<PatientLifecycleReportDto> Handle(GetPatientLifecycleReportQuery request, CancellationToken cancellationToken)
@@ -139,15 +143,29 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                 baseQuery = baseQuery.Where(t => t.Queue.DoctorId == request.DoctorId.Value);
             }
 
+            // Search query - supports Name, Phone (both raw & decrypted), Token number, Reference ID (CX-123456, cx-), and Invoice number
+            bool filterByDecryptedPhone = false;
+            string cleanSearch = string.Empty;
             if (!string.IsNullOrWhiteSpace(request.Search))
             {
                 var s = request.Search.Trim().ToLower();
+                cleanSearch = s;
+                var cleanCx = s.StartsWith("cx-", StringComparison.OrdinalIgnoreCase) ? s.Substring(3) : s;
+                int.TryParse(s, out var searchNum);
+
                 baseQuery = baseQuery.Where(t =>
                     t.Patient.Name.ToLower().Contains(s) ||
                     (t.Patient.Phone != null && t.Patient.Phone.Contains(s)) ||
-                    t.Patient.PatientCode.ToLower().Contains(s) ||
-                    t.Id.ToString().ToLower().Contains(s) ||
+                    (t.Patient.PatientCode != null && t.Patient.PatientCode.ToLower().Contains(s)) ||
+                    (searchNum > 0 && t.TokenNumber == searchNum) ||
+                    t.Id.ToString().ToLower().Contains(cleanCx) ||
                     t.Invoices.Any(i => i.InvoiceNumber.ToLower().Contains(s)));
+
+                // If searching contains digits or phone-like query, also check decrypted phone in memory
+                if (s.Any(char.IsDigit))
+                {
+                    filterByDecryptedPhone = true;
+                }
             }
 
             var tokens = await baseQuery
@@ -192,6 +210,8 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
             int countBilled = 0;
             int countCancelled = 0;
             decimal totalRevenue = 0;
+
+            var encKey = _configuration["EncryptionSettings:Key"] ?? string.Empty;
 
             foreach (var t in tokens)
             {
@@ -266,12 +286,46 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                     linkedOutbox = outboxT;
                 }
 
+                // Decrypt Phone Number
+                string? decryptedPhone = t.Patient?.Phone;
+                if (!string.IsNullOrEmpty(decryptedPhone))
+                {
+                    if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                    {
+                        decryptedPhone = CodeX.Application.Common.Helpers.NormalizationHelper.DecryptString(decryptedPhone, encKey);
+                    }
+                }
+
+                string? formattedPhone = decryptedPhone;
+                if (!string.IsNullOrEmpty(decryptedPhone) && !string.IsNullOrEmpty(t.Patient?.PhoneDialCode) && !decryptedPhone.StartsWith("+"))
+                {
+                    formattedPhone = $"{t.Patient.PhoneDialCode} {decryptedPhone}";
+                }
+
+                // If search included digits and did not match other fields, verify against decrypted phone
+                if (filterByDecryptedPhone && !string.IsNullOrEmpty(cleanSearch))
+                {
+                    bool matchesName = t.Patient?.Name?.ToLower().Contains(cleanSearch) ?? false;
+                    bool matchesCode = t.Patient?.PatientCode?.ToLower().Contains(cleanSearch) ?? false;
+                    bool matchesCx = t.Id.ToString().ToLower().Contains(cleanSearch);
+                    int.TryParse(cleanSearch, out var sNum);
+                    bool matchesTokenNum = sNum > 0 && t.TokenNumber == sNum;
+                    bool matchesInvoice = t.Invoices.Any(i => i.InvoiceNumber.ToLower().Contains(cleanSearch));
+                    bool matchesDecryptedPhone = (decryptedPhone != null && decryptedPhone.Contains(cleanSearch)) ||
+                                                 (formattedPhone != null && formattedPhone.Replace(" ", "").Contains(cleanSearch.Replace(" ", "")));
+
+                    if (!matchesName && !matchesCode && !matchesCx && !matchesTokenNum && !matchesInvoice && !matchesDecryptedPhone)
+                    {
+                        continue;
+                    }
+                }
+
                 var item = new PatientLifecycleItemDto
                 {
                     PatientId = t.PatientId,
                     PatientCode = t.Patient?.PatientCode ?? $"PT-{t.PatientId.ToString().Substring(0, 6).ToUpper()}",
                     PatientName = t.Patient?.Name ?? "Unknown",
-                    Phone = t.Patient?.Phone,
+                    Phone = formattedPhone,
                     Gender = t.Patient?.Gender,
                     Age = t.Patient?.Age,
 

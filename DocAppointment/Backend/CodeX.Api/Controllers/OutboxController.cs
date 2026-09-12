@@ -55,10 +55,22 @@ namespace CodeX.Api.Controllers
                         .ThenInclude(pv => pv!.Patient)
                     .AsNoTracking();
 
-                // Branch filter
-                if (branchId.HasValue && branchId.Value != Guid.Empty)
+                // Enforce branch-level isolation:
+                // If current user has a specific BranchId (Doctor, Receptionist, BranchAdmin), lock to that branch.
+                // If user is OrgAdmin (BranchId is null), allow branchId query param if specified, else query entire organization.
+                var effectiveBranchId = _currentUserService.BranchId;
+                if (!effectiveBranchId.HasValue && branchId.HasValue && branchId.Value != Guid.Empty)
                 {
-                    query = query.Where(o => o.BranchId == branchId.Value);
+                    effectiveBranchId = branchId.Value;
+                }
+
+                if (effectiveBranchId.HasValue && effectiveBranchId.Value != Guid.Empty)
+                {
+                    query = query.Where(o => o.BranchId == effectiveBranchId.Value);
+                }
+                else if (_currentUserService.OrgId != Guid.Empty)
+                {
+                    query = query.Where(o => o.Branch.OrganizationId == _currentUserService.OrgId);
                 }
 
                 // Channel filter (Telegram, WhatsApp, SMS, Email)
@@ -85,16 +97,29 @@ namespace CodeX.Api.Controllers
                     query = query.Where(o => o.CreatedAt <= endUtc);
                 }
 
-                // Search query
+                // Search query - supports Name, Phone, Token number, and Reference ID (e.g. CX-123456, cx-) case-insensitively
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var s = search.Trim().ToLower();
+                    var cleanCx = s.StartsWith("cx-", StringComparison.OrdinalIgnoreCase) ? s.Substring(3) : s;
+                    int.TryParse(s, out var searchNum);
+
                     query = query.Where(o =>
                         o.Recipient.ToLower().Contains(s) ||
                         (o.MessageBody != null && o.MessageBody.ToLower().Contains(s)) ||
                         (o.FileName != null && o.FileName.ToLower().Contains(s)) ||
-                        (o.Token != null && o.Token.Patient != null && (o.Token.Patient.Name.ToLower().Contains(s) || (o.Token.Patient.Phone != null && o.Token.Patient.Phone.Contains(s)))) ||
-                        (o.PatientVisit != null && o.PatientVisit.Patient != null && (o.PatientVisit.Patient.Name.ToLower().Contains(s) || (o.PatientVisit.Patient.Phone != null && o.PatientVisit.Patient.Phone.Contains(s)))));
+                        (searchNum > 0 && o.Token != null && o.Token.TokenNumber == searchNum) ||
+                        (o.TokenId.HasValue && o.TokenId.Value.ToString().ToLower().Contains(cleanCx)) ||
+                        (o.Token != null && o.Token.Patient != null && (
+                            o.Token.Patient.Name.ToLower().Contains(s) ||
+                            (o.Token.Patient.Phone != null && o.Token.Patient.Phone.Contains(s)) ||
+                            (o.Token.Patient.PatientCode != null && o.Token.Patient.PatientCode.ToLower().Contains(s))
+                        )) ||
+                        (o.PatientVisit != null && o.PatientVisit.Patient != null && (
+                            o.PatientVisit.Patient.Name.ToLower().Contains(s) ||
+                            (o.PatientVisit.Patient.Phone != null && o.PatientVisit.Patient.Phone.Contains(s)) ||
+                            (o.PatientVisit.Patient.PatientCode != null && o.PatientVisit.Patient.PatientCode.ToLower().Contains(s))
+                        )));
                 }
 
                 var totalCount = await query.CountAsync();

@@ -67,5 +67,49 @@ namespace CodeX.Application.Common.Helpers
             // If 10 or fewer digits, assume it's a local number with default +91
             return ("+91", digits);
         }
+
+        public static string? DecryptString(string? cipherText, string key)
+        {
+            if (string.IsNullOrEmpty(cipherText))
+                return cipherText;
+
+            try
+            {
+                byte[] iv = new byte[16];
+                byte[] buffer = Convert.FromBase64String(cipherText);
+
+                byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
+                if (keyBytes.Length != 16 && keyBytes.Length != 24 && keyBytes.Length != 32)
+                {
+                    Array.Resize(ref keyBytes, 32);
+                }
+
+                using (var aes = System.Security.Cryptography.Aes.Create())
+                {
+                    aes.Key = keyBytes;
+                    aes.IV = iv;
+                    var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+
+                    using (var memoryStream = new System.IO.MemoryStream(buffer))
+                    {
+                        using (var cryptoStream = new System.Security.Cryptography.CryptoStream((System.IO.Stream)memoryStream, decryptor, System.Security.Cryptography.CryptoStreamMode.Read))
+                        {
+                            using (var streamReader = new System.IO.StreamReader((System.IO.Stream)cryptoStream))
+                            {
+                                return streamReader.ReadToEnd();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (FormatException)
+            {
+                return cipherText;
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                return cipherText;
+            }
+        }
     }
 }
