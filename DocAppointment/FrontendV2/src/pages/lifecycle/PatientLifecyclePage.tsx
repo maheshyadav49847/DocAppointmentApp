@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import {
-  GitCommitHorizontal,
+  Route,
   Calendar as CalendarIcon,
   Search,
   Clock,
@@ -145,7 +145,7 @@ export default function PatientLifecyclePage() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
           <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <GitCommitHorizontal className="w-7 h-7" />
+            <Route className="w-7 h-7" />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
