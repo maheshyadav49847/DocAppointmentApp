@@ -286,13 +286,13 @@ export default function SessionsPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
+                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2 mt-auto">
                     {can('Sessions.Edit') && (
                       <button
                         onClick={() => { setEditingSession(session); setIsDailyForm(session.isDaily); setIsDrawerOpen(true); }}
-                        className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                        className="flex-1 h-10 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                       >
-                        <Edit className="w-4 h-4" /> Edit
+                        <Edit className="w-4 h-4 text-slate-500 shrink-0" /> Edit
                       </button>
                     )}
                     {can('Sessions.Delete') && (
@@ -302,9 +302,9 @@ export default function SessionsPage() {
                             deleteMutation.mutate(session.id)
                           }
                         }}
-                        className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 h-10 px-3 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 hover:text-red-700 rounded-lg shadow-sm hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                       >
-                        <Trash2 className="w-4 h-4" /> Delete
+                        <Trash2 className="w-4 h-4 text-red-600 shrink-0" /> Delete
                       </button>
                     )}
                   </div>

@@ -483,20 +483,20 @@ export default function StaffPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-4 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center justify-between gap-2 mt-auto">
+                    <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2 mt-auto">
                       {can('Staff.Edit') && (
                         <>
                           <button
                             onClick={() => { setEditingStaff(member); setIsDrawerOpen(true) }}
-                            className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                            className="flex-1 h-10 px-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                           >
-                            <Edit className="w-4 h-4" /> Edit
+                            <Edit className="w-4 h-4 text-slate-500 shrink-0" /> Edit
                           </button>
                           <button
                             onClick={() => { setValidationErrors({}); setResettingStaff(member); }}
-                            className="flex-1 btn-secondary text-xs px-3 py-2 border border-slate-200 rounded-lg font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-1.5"
+                            className="flex-1 h-10 px-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                           >
-                            <Key className="w-4 h-4" /> Reset
+                            <Key className="w-4 h-4 text-slate-500 shrink-0" /> Reset
                           </button>
                         </>
                       )}
@@ -505,9 +505,9 @@ export default function StaffPage() {
                           onClick={() => {
                             if (confirm('Permanently remove this staff member?')) deleteMutation.mutate(member.id)
                           }}
-                          className="flex-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                          className="flex-1 h-10 px-2.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 hover:text-red-700 rounded-lg shadow-sm hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
                         >
-                          <Trash2 className="w-4 h-4" /> Delete
+                          <Trash2 className="w-4 h-4 text-red-600 shrink-0" /> Delete
                         </button>
                       )}
                       {can('Staff.Edit') && (
@@ -515,16 +515,16 @@ export default function StaffPage() {
                           onClick={() => {
                             if (confirm(member.isActive ? 'Manually lock this staff member?' : 'Unlock & activate this staff member?')) toggleStatusMutation.mutate(member.id)
                           }}
-                          className={`flex-1 px-3 py-2 text-xs font-bold border rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                          className={`flex-1 h-10 px-2.5 text-xs font-bold border rounded-lg shadow-sm hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                             member.isActive
-                              ? 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100'
-                              : 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                              ? 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100 hover:border-amber-300'
+                              : 'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300'
                           }`}
                         >
                           {member.isActive ? (
-                            <><Lock className="w-4 h-4" /> Lock</>
+                            <><Lock className="w-4 h-4 shrink-0" /> Lock</>
                           ) : (
-                            <><LockKeyholeOpen className="w-4 h-4" /> Unlock</>
+                            <><LockKeyholeOpen className="w-4 h-4 shrink-0" /> Unlock</>
                           )}
                         </button>
                       )}
