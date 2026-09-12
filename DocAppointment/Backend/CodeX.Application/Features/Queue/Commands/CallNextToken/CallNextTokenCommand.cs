@@ -69,35 +69,58 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                 currentToken.CompletedAt = DateTime.UtcNow;
 
                 // Send Feedback Request to the patient who just finished
-                if (currentToken.Patient != null && !string.IsNullOrEmpty(currentToken.Patient.Phone))
+                if (currentToken.Patient != null)
                 {
                     try
                     {
-                        var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
-                        if (chatSession == null)
+                        ChatSession? chatSession = null;
+                        if (!string.IsNullOrEmpty(currentToken.Patient.Phone))
                         {
-                            chatSession = new ChatSession { PhoneNumber = currentToken.Patient.Phone };
-                            _context.ChatSessions.Add(chatSession);
+                            chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
+                            if (chatSession == null)
+                            {
+                                chatSession = new ChatSession { PhoneNumber = currentToken.Patient.Phone };
+                                _context.ChatSessions.Add(chatSession);
+                            }
+                            chatSession.CurrentState = "AWAITING_RATING_SCORE";
+                            chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
+                            _chatSessionCache.SetSession(chatSession);
                         }
-                        chatSession.CurrentState = "AWAITING_RATING_SCORE";
-                        chatSession.SelectedSessionId = currentToken.Id; // Reusing field to store TokenId for rating
-
-                        _chatSessionCache.SetSession(chatSession);
 
                         var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, chatSession);
-                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
+                        var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor?.Name ?? "Doctor", $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 
-                        var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(currentToken, queue.Branch, currentToken.Patient);
-                        if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
+                        var branch = queue.Branch ?? await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == queue.BranchId, cancellationToken);
+                        var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(currentToken, branch, currentToken.Patient);
+                        if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram && !string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
                         {
-                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId!, msg, queue.BranchId);
+                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId, msg, queue.BranchId);
+                            _context.MessageLogs.Add(new MessageLog
+                            {
+                                BranchId = queue.BranchId,
+                                RecipientPhone = currentToken.Patient.Phone ?? currentToken.Patient.TelegramChatId,
+                                MessageType = "RatingRequest_Telegram",
+                                Status = "Delivered",
+                                TokenId = currentToken.Id
+                            });
                         }
-                        else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
+                        else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp && !string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
                         {
-                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone!, msg, queue.BranchId);
+                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, msg, queue.BranchId);
+                            _context.MessageLogs.Add(new MessageLog
+                            {
+                                BranchId = queue.BranchId,
+                                RecipientPhone = currentToken.Patient.Phone,
+                                MessageType = "RatingRequest_WhatsApp",
+                                Status = "Delivered",
+                                TokenId = currentToken.Id
+                            });
                         }
                     }
-                    catch { /* Log and ignore */ }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[CALL_NEXT_RATING_ERROR] {ex.Message}");
+                    }
                 }
             }
 
