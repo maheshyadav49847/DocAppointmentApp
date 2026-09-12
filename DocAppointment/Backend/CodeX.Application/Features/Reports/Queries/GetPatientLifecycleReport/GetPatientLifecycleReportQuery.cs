@@ -234,15 +234,15 @@ namespace CodeX.Application.Features.Reports.Queries.GetPatientLifecycleReport
                     countConsulted++;
                     countBilled++;
                 }
-                else if (visit != null || t.Status == TokenStatus.Completed)
-                {
-                    currentStage = "Consulted";
-                    countConsulted++;
-                }
                 else if (t.Status == TokenStatus.Called)
                 {
                     currentStage = "InConsultation";
                     countBooked++;
+                }
+                else if (t.Status == TokenStatus.Completed || visit != null)
+                {
+                    currentStage = "Consulted";
+                    countConsulted++;
                 }
                 else if (t.Status == TokenStatus.Pending)
                 {

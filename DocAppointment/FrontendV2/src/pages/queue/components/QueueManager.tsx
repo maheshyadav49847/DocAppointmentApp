@@ -574,7 +574,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     style={{ zIndex: -1 }}
                   />
                 )}
-                {tab === 'waiting' ? `Waiting (${queue.waitingCount || 0})` :
+                {tab === 'waiting' ? `Waiting (${(queue.waitingCount || 0) + (hasActivePatient ? 1 : 0)})` :
                  tab === 'completed' ? `Served (${queue.completedCount || 0})` :
                  tab === 'skipped' ? `Skipped (${queue.skippedCount || 0})` :
                  `Cancelled (${queue.cancelledCount || 0})`}
@@ -624,7 +624,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                   const matchesSearch = t.patientName.toLowerCase().includes(search.toLowerCase()) || 
                                         t.tokenNumber.toString().includes(search)
                   if (!matchesSearch) return false
-                  if (activeTab === 'waiting') return t.status === 0
+                  if (activeTab === 'waiting') return t.status === 0 || t.status === 1
                   if (activeTab === 'completed') return t.status === 2
                   if (activeTab === 'skipped') return t.status === 3
                   if (activeTab === 'cancelled') return t.status === 4
@@ -679,12 +679,13 @@ export default function QueueManager({ sessionData, onBack }: any) {
                         {new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                     <td className="px-6 py-4">
                       {(() => {
-                         const waitMins = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
-                         const isLongWait = waitMins >= 60 && t.status === 0;
+                         if (t.status === 1) return <span className="text-emerald-700 text-xs font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> In Consultation</span>;
                          if (t.status === 2) return <span className="text-slate-400 text-xs font-medium">Finished</span>;
                          if (t.status === 4) return <span className="text-slate-400 text-xs font-medium">Cancelled</span>;
+                         const waitMins = Math.floor((new Date().getTime() - new Date(t.createdAt).getTime()) / 60000);
+                         const isLongWait = waitMins >= 60 && t.status === 0;
                          return (
                            <div className={`flex items-center gap-2 text-sm font-bold ${isLongWait ? 'text-rose-600' : 'text-slate-600'}`}>
                              {waitMins} mins
@@ -696,7 +697,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     {activeTab === 'waiting' && (
                       <td className="px-6 py-4 text-slate-600 font-medium">
                         {(() => {
-                           const position = filtered.indexOf(t) + 1;
+                           if (t.status === 1) {
+                             return (
+                               <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                                 Current
+                               </span>
+                             );
+                           }
+                           const position = filtered.filter((item: any) => item.status === 0).indexOf(t) + 1;
                            const etaMins = position * avgMinutes;
                            const etaTime = new Date(new Date().getTime() + etaMins * 60000);
                            return (
@@ -710,6 +718,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     )}
                     <td className="px-6 py-4">
                       {t.status === 0 && <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-bold rounded-full border border-amber-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending</span>}
+                      {t.status === 1 && <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Serving</span>}
                       {t.status === 2 && <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-full border border-indigo-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Served</span>}
                       {t.status === 3 && <span className="px-3 py-1 bg-rose-50 text-rose-600 text-xs font-bold rounded-full border border-rose-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Skipped</span>}
                       {t.status === 4 && <span className="px-3 py-1 bg-slate-50 text-slate-500 text-xs font-bold rounded-full border border-slate-200/60 inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Cancelled</span>}
@@ -717,6 +726,16 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     {activeTab !== 'cancelled' && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {t.status === 1 && can('Queue.CompleteToken') && (
+                            <button 
+                              onClick={() => completeMutation.mutate()} 
+                              disabled={completeMutation.isPending}
+                              className="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 font-bold text-xs flex items-center gap-1.5" 
+                              title="Finish Visit & Request Rating"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Finish Visit
+                            </button>
+                          )}
                           {t.status === 3 && can('Queue.RestoreToken') && (
                             <button onClick={() => requeueMutation.mutate(t.id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 font-medium text-sm flex items-center gap-1" title="Requeue">
                               <RotateCcw className="w-4 h-4" /> Restore

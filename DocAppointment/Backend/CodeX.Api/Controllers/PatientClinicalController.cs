@@ -2,6 +2,7 @@ using CodeX.Api.Authorization;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Constants;
 using CodeX.Domain.Entities;
+using CodeX.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -260,11 +261,14 @@ namespace CodeX.Api.Controllers
                 {
                     token.CalledAt = DateTime.UtcNow;
                 }
-                token.Status = CodeX.Domain.Enums.TokenStatus.Completed;
-                token.CompletedAt = DateTime.UtcNow;
-                if (token.Queue != null && token.Queue.CurrentTokenNumber == token.TokenNumber)
+                token.Status = CodeX.Domain.Enums.TokenStatus.Called;
+                if (token.Queue != null)
                 {
-                    token.Queue.CurrentTokenNumber = 0;
+                    token.Queue.CurrentTokenNumber = token.TokenNumber;
+                    if (token.Queue.Status == QueueStatus.Open || token.Queue.Status == QueueStatus.Paused)
+                    {
+                        token.Queue.Status = QueueStatus.Active;
+                    }
                 }
 
                 var existingVisitForThisPatient = await _context.PatientVisits.FirstOrDefaultAsync(v => v.TokenId == dto.TokenId.Value && v.PatientId == id);
@@ -371,11 +375,14 @@ namespace CodeX.Api.Controllers
                 {
                     chosenToken.CalledAt = DateTime.UtcNow;
                 }
-                chosenToken.Status = CodeX.Domain.Enums.TokenStatus.Completed;
-                chosenToken.CompletedAt = DateTime.UtcNow;
-                if (chosenToken.Queue != null && chosenToken.Queue.CurrentTokenNumber == chosenToken.TokenNumber)
+                chosenToken.Status = CodeX.Domain.Enums.TokenStatus.Called;
+                if (chosenToken.Queue != null)
                 {
-                    chosenToken.Queue.CurrentTokenNumber = 0;
+                    chosenToken.Queue.CurrentTokenNumber = chosenToken.TokenNumber;
+                    if (chosenToken.Queue.Status == QueueStatus.Open || chosenToken.Queue.Status == QueueStatus.Paused)
+                    {
+                        chosenToken.Queue.Status = QueueStatus.Active;
+                    }
                 }
 
                 visit.TokenId = chosenToken.Id;
