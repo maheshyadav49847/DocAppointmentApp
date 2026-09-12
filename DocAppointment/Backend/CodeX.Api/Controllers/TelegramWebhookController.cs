@@ -177,6 +177,7 @@ namespace CodeX.Api.Controllers
         private async Task HandleContactReceived(Guid branchId, Guid orgId, string chatId, TelegramContact contact, string lang)
         {
             var phone = NormalizationHelper.NormalizePhone(contact.PhoneNumber);
+            var (dialCode, localPhone) = NormalizationHelper.SplitPhoneAndDialCode(phone);
 
             // Find existing patient by phone
             var phoneVars = NormalizationHelper.GetPhoneVariations(phone);
@@ -188,7 +189,8 @@ namespace CodeX.Api.Controllers
             {
                 patient = new Patient
                 {
-                    Phone = phone,
+                    Phone = localPhone,
+                    PhoneDialCode = dialCode,
                     Name = "",
                     TelegramChatId = chatId,
                     OrganizationId = orgId

@@ -665,9 +665,11 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             if (patient == null)
             {
                 var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == session.BranchId, ct);
+                var (dialCode, localPhone) = NormalizationHelper.SplitPhoneAndDialCode(session.PhoneNumber);
                 patient = new Patient
                 {
-                    Phone = session.PhoneNumber,
+                    Phone = localPhone,
+                    PhoneDialCode = dialCode,
                     Name = name.Trim(),
                     OrganizationId = branch?.OrganizationId ?? Guid.Empty
                 };
