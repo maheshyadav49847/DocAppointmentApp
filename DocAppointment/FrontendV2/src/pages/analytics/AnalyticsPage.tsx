@@ -257,10 +257,13 @@ export default function AnalyticsPage() {
                     dateFormat="dd MMM yyyy"
                     showMonthDropdown
                     showYearDropdown
-                    className="w-32 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white"
+                    todayButton="Today"
+                    dropdownMode="select"
+                    className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    maxDate={customEnd}
                   />
                 </div>
-                <span className="text-slate-400">-</span>
+                <span className="text-slate-400 text-xs font-bold">to</span>
                 <div className="relative">
                   <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                   <DatePicker
@@ -269,7 +272,10 @@ export default function AnalyticsPage() {
                     dateFormat="dd MMM yyyy"
                     showMonthDropdown
                     showYearDropdown
-                    className="w-32 pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm bg-white"
+                    todayButton="Today"
+                    dropdownMode="select"
+                    className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                    minDate={customStart}
                   />
                 </div>
               </div>
@@ -483,7 +489,7 @@ export default function AnalyticsPage() {
                       <YAxis dataKey="doctorName" type="category" tick={{fontSize: 12}} width={120} />
                       <Tooltip formatter={(val) => `₹${Number(val).toLocaleString()}`} />
                       <Bar dataKey="totalRevenue" name="Revenue" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
-                        {financial.doctorRevenues.map((entry, index) => (
+                        {financial.doctorRevenues.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Bar>
@@ -507,7 +513,7 @@ export default function AnalyticsPage() {
                       <YAxis tick={{fontSize: 12}} />
                       <Tooltip formatter={(val) => `₹${Number(val).toLocaleString()}`} />
                       <Bar dataKey="totalAmount" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]}>
-                        {(financial as any).serviceRevenues.map((entry, index) => (
+                        {(financial as any).serviceRevenues.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
                         ))}
                       </Bar>
