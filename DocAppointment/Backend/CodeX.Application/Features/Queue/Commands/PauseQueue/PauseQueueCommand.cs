@@ -78,20 +78,14 @@ namespace CodeX.Application.Features.Queue.Commands.PauseQueue
                             request.DurationMinutes.ToString(), 
                             reasonStr);
 
-                        if (token.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
+                        var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(token, queue.Branch, token.Patient);
+                        if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                         {
-                            await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
+                            await _telegramService.SendTextMessage(token.Patient.TelegramChatId!, translatedMsg, queue.BranchId);
                         }
-                        else if (token.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(token.Patient.Phone))
+                        else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
                         {
-                            await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
-                        }
-                        else
-                        {
-                            if (!string.IsNullOrWhiteSpace(token.Patient.Phone))
-                                await _whatsappService.SendTextMessage(token.Patient.Phone, translatedMsg, queue.BranchId);
-                            else if (!string.IsNullOrWhiteSpace(token.Patient.TelegramChatId))
-                                await _telegramService.SendTextMessage(token.Patient.TelegramChatId, translatedMsg, queue.BranchId);
+                            await _whatsappService.SendTextMessage(token.Patient.Phone!, translatedMsg, queue.BranchId);
                         }
                     }
                 }

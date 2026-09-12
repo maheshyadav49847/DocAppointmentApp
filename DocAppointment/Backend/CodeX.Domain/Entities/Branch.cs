@@ -22,6 +22,13 @@ namespace CodeX.Domain.Entities
 
         public string? TelegramBotToken { get; set; }
 
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool IsTelegramConfigured => !string.IsNullOrWhiteSpace(TelegramBotToken);
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool IsWhatsAppConfigured => !string.IsNullOrWhiteSpace(WhatsAppNumber) &&
+            (string.Equals(WhatsAppProvider, "Twilio", System.StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(MetaPhoneNumberId));
+
         // Navigation Properties
         public virtual Organization? Organization { get; set; }
         public virtual ICollection<Doctor>? Doctors { get; set; } = new List<Doctor>();

@@ -260,16 +260,21 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                             : string.Empty;
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "BOOKING_CONFIRMED_ALERT", patient.Name, token.TokenNumber, waitTimeMsg);
                         
-                        if (!string.IsNullOrWhiteSpace(patient.TelegramChatId))
+                        var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(token, queue.Branch, patient);
+                        if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
+                        {
+                            await whatsapp.SendTextMessage(patient.Phone, msg, queue.BranchId);
+                            await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation_WhatsApp", "Delivered", tokenId: token.Id);
+                        }
+                        else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                         {
                             var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
-                            await telegram.SendTextMessage(patient.TelegramChatId, msg, queue.BranchId);
+                            await telegram.SendTextMessage(patient.TelegramChatId!, msg, queue.BranchId);
                             await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation_Telegram", "Delivered", tokenId: token.Id);
                         }
                         else
                         {
-                            await whatsapp.SendTextMessage(patient.Phone, msg, queue.BranchId);
-                            await LogMsg(queue.BranchId, patient.Phone, "BookingConfirmation", "Delivered", tokenId: token.Id);
+                            await LogMsg(queue.BranchId, patient.Phone ?? "N/A", "BookingConfirmation", "Skipped", error: "No active communication channel configured for this booking cycle.", tokenId: token.Id);
                         }
                     }
                 }

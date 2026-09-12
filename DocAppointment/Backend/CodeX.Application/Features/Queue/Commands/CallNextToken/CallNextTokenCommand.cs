@@ -87,23 +87,14 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, chatSession);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "FEEDBACK_REQUEST_ALERT", queue.Doctor.Name, $"Token #{currentToken.TokenNumber} ({currentToken.Patient?.Name ?? "Walk-in"}) - {currentToken.Id.ToString().Substring(0,8).ToUpper()}");
 
-                        bool sentViaTelegram = false;
-                        if (currentToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                        var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(currentToken, queue.Branch, currentToken.Patient);
+                        if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                         {
-                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId, msg, queue.BranchId);
-                            sentViaTelegram = true;
+                            await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId!, msg, queue.BranchId);
                         }
-                        else if (currentToken.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
+                        else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
                         {
-                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone, msg, queue.BranchId);
-                        }
-                        else
-                        {
-                            // Fallback
-                            if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
-                                await _whatsappService.SendTextMessage(currentToken.Patient.Phone, msg, queue.BranchId);
-                            else if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
-                                await _telegramService.SendTextMessage(currentToken.Patient.TelegramChatId, msg, queue.BranchId);
+                            await _whatsappService.SendTextMessage(currentToken.Patient.Phone!, msg, queue.BranchId);
                         }
                     }
                     catch { /* Log and ignore */ }
@@ -149,21 +140,14 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(nextToken.Patient, session);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "YOUR_TURN_ALERT", nextToken.TokenNumber);
 
-                        if (nextToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(nextToken.Patient.TelegramChatId))
+                        var turnChannel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(nextToken, queue.Branch, nextToken.Patient);
+                        if (turnChannel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                         {
-                            await _telegramService.SendTextMessage(nextToken.Patient.TelegramChatId, msg, queue.BranchId);
+                            await _telegramService.SendTextMessage(nextToken.Patient.TelegramChatId!, msg, queue.BranchId);
                         }
-                        else if (nextToken.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(nextToken.Patient.Phone))
+                        else if (turnChannel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
                         {
                             await _whatsappService.SendTextMessage(nextToken.Patient.Phone, msg, queue.BranchId);
-                        }
-                        else
-                        {
-                            // Fallback
-                            if (!string.IsNullOrWhiteSpace(nextToken.Patient.Phone))
-                                await _whatsappService.SendTextMessage(nextToken.Patient.Phone, msg, queue.BranchId);
-                            else if (!string.IsNullOrWhiteSpace(nextToken.Patient.TelegramChatId))
-                                await _telegramService.SendTextMessage(nextToken.Patient.TelegramChatId, msg, queue.BranchId);
                         }
                         await LogMessage(queue.BranchId, nextToken.Patient.Phone, "YourTurnAlert", "Delivered", tokenId: nextToken.Id);
                     }
@@ -216,21 +200,14 @@ namespace CodeX.Application.Features.Queue.Commands.CallNextToken
                         var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(upcomingPatient.Patient, session);
                         var msg = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.Get(language, "UPCOMING_TURN_ALERT", pos);
 
-                        if (upcomingPatient.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(upcomingPatient.Patient.TelegramChatId))
+                        var upcomingChannel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(upcomingPatient, queue.Branch, upcomingPatient.Patient);
+                        if (upcomingChannel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                         {
-                            await _telegramService.SendTextMessage(upcomingPatient.Patient.TelegramChatId, msg, queue.BranchId);
+                            await _telegramService.SendTextMessage(upcomingPatient.Patient.TelegramChatId!, msg, queue.BranchId);
                         }
-                        else if (upcomingPatient.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(upcomingPatient.Patient.Phone))
+                        else if (upcomingChannel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
                         {
                             await _whatsappService.SendTextMessage(upcomingPatient.Patient.Phone, msg, queue.BranchId);
-                        }
-                        else
-                        {
-                            // Fallback
-                            if (!string.IsNullOrWhiteSpace(upcomingPatient.Patient.Phone))
-                                await _whatsappService.SendTextMessage(upcomingPatient.Patient.Phone, msg, queue.BranchId);
-                            else if (!string.IsNullOrWhiteSpace(upcomingPatient.Patient.TelegramChatId))
-                                await _telegramService.SendTextMessage(upcomingPatient.Patient.TelegramChatId, msg, queue.BranchId);
                         }
                     }
                 }

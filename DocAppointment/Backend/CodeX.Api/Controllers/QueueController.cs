@@ -21,11 +21,16 @@ namespace CodeX.Api.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IQueueNotificationService? _queueNotificationService;
 
-        public QueueController(IApplicationDbContext context, ICurrentUserService currentUserService)
+        public QueueController(
+            IApplicationDbContext context,
+            ICurrentUserService currentUserService,
+            IQueueNotificationService? queueNotificationService = null)
         {
             _context = context;
             _currentUserService = currentUserService;
+            _queueNotificationService = queueNotificationService;
         }
 
         [HttpPost("initialize")]
@@ -286,15 +291,23 @@ namespace CodeX.Api.Controllers
 
             if (queue == null) return NotFound();
 
-            var currentToken = queue.Tokens
+            var tokens = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Include(t => t.Patient)
+                .Include(t => t.Invoices)
+                .Where(t => t.QueueId == queueId && !t.IsDeleted)
+                .OrderBy(t => t.TokenNumber)
+                .ToListAsync();
+
+            var currentToken = tokens
                 .Where(t => t.TokenNumber == queue.CurrentTokenNumber && t.Status == TokenStatus.Called)
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefault();
 
-            var waitingCount = queue.Tokens.Count(t => t.Status == TokenStatus.Pending);
-            var completedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Completed);
-            var skippedCount = queue.Tokens.Count(t => t.Status == TokenStatus.Skipped);
-            var cancelledCount = queue.Tokens.Count(t => t.Status == TokenStatus.Cancelled);
+            var waitingCount = tokens.Count(t => t.Status == TokenStatus.Pending);
+            var completedCount = tokens.Count(t => t.Status == TokenStatus.Completed);
+            var skippedCount = tokens.Count(t => t.Status == TokenStatus.Skipped);
+            var cancelledCount = tokens.Count(t => t.Status == TokenStatus.Cancelled);
 
             return Ok(new
             {
@@ -326,20 +339,26 @@ namespace CodeX.Api.Controllers
         public async Task<ActionResult<List<object>>> GetUpcomingTokens(Guid queueId)
         {
             var queue = await _context.DailyQueues
-                .Include(q => q.Tokens)
-                .ThenInclude(t => t.Patient)
-                .Include(q => q.Tokens)
-                .ThenInclude(t => t.Invoices)
-                .Include(q => q.Doctor)
+                .IgnoreQueryFilters()
                 .Include(q => q.Branch)
-                .FirstOrDefaultAsync(q => q.Id == queueId && 
-                    q.Branch.OrganizationId == _currentUserService.OrgId &&
-                    (_currentUserService.BranchId == null || _currentUserService.DoctorId.HasValue || q.BranchId == _currentUserService.BranchId));
+                .FirstOrDefaultAsync(q => q.Id == queueId && !q.IsDeleted);
 
             if (queue == null) return NotFound();
 
-            var upcoming = queue.Tokens
+            if (_currentUserService.OrgId != Guid.Empty && queue.Branch?.OrganizationId != _currentUserService.OrgId)
+            {
+                return Forbid();
+            }
+
+            var tokens = await _context.Tokens
+                .IgnoreQueryFilters()
+                .Include(t => t.Patient)
+                .Include(t => t.Invoices)
+                .Where(t => t.QueueId == queueId && !t.IsDeleted)
                 .OrderBy(t => t.TokenNumber)
+                .ToListAsync();
+
+            var upcoming = tokens
                 .Select(t => new
                 {
                     id = t.Id,
@@ -347,7 +366,7 @@ namespace CodeX.Api.Controllers
                     patientId = t.PatientId,
                     invoiceId = t.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Id,
                     invoiceStatus = t.Invoices.OrderByDescending(i => i.CreatedAt).FirstOrDefault(i => i.Status != CodeX.Domain.Enums.InvoiceStatus.Cancelled)?.Status,
-                    patientName = t.Patient?.Name ?? "Unknown",
+                    patientName = !string.IsNullOrWhiteSpace(t.Patient?.Name) ? t.Patient.Name : "Online Patient",
                     patientPhone = t.Patient?.Phone ?? "",
                     patientPhoneDialCode = t.Patient?.PhoneDialCode ?? "+91",
                     source = t.Source,
@@ -785,6 +804,28 @@ namespace CodeX.Api.Controllers
                 }
             }
 
+            if (patient == null)
+            {
+                patient = new Domain.Entities.Patient
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = queue.Branch.OrganizationId,
+                    Name = !string.IsNullOrWhiteSpace(patientName) ? patientName.Trim() : "Online Patient",
+                    TelegramChatId = chatId ?? "",
+                    Phone = "",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Patients.Add(patient);
+                patientId = patient.Id;
+            }
+            else
+            {
+                if (patient.OrganizationId == Guid.Empty)
+                {
+                    patient.OrganizationId = queue.Branch.OrganizationId;
+                }
+            }
+
             var tokenNumber = await _context.Tokens
                 .IgnoreQueryFilters()
                 .CountAsync(t => t.QueueId == queueId && !t.IsDeleted) + 1;
@@ -793,14 +834,12 @@ namespace CodeX.Api.Controllers
             {
                 QueueId = queueId,
                 OrganizationId = queue.Branch.OrganizationId,
+                PatientId = patient.Id,
                 TokenNumber = tokenNumber,
                 Status = Domain.Enums.TokenStatus.Pending,
                 Source = Domain.Enums.BookingSource.Telegram,
                 BookedAt = DateTime.UtcNow
             };
-
-            if (patientId.HasValue)
-                token.PatientId = patientId.Value;
 
             _context.Tokens.Add(token);
 
@@ -843,6 +882,15 @@ namespace CodeX.Api.Controllers
             }
 
             await _context.SaveChangesAsync(default);
+
+            try
+            {
+                if (_queueNotificationService != null)
+                {
+                    await _queueNotificationService.NotifyTokenCreated(queue.BranchId, queue.Id, tokenNumber, patient?.Name ?? "Online Patient");
+                }
+            }
+            catch { }
 
             return Ok(new { 
                 tokenNumber, 

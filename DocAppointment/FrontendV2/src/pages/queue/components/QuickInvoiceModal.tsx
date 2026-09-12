@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, ReceiptIndianRupee, Trash2, Plus, CreditCard, CheckCircle, Printer } from "lucide-react";
+import { X, ReceiptIndianRupee, Trash2, CreditCard, CheckCircle, Printer } from "lucide-react";
 import { handlePrintInvoice } from "@/utils/printHelper";
 import { branchService } from "@/services/branchService";
 import { api } from "@/lib/axios";
@@ -10,7 +10,7 @@ import { PaymentCheckoutUI, type PaymentEntry } from './PaymentCheckoutUI';
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any) {
+export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuccess }: any) {
   const { user, activeBranchId } = useAuthStore();
   const organizationId = user?.orgId || "";
   const branchId = activeBranchId || "";
@@ -38,6 +38,10 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
       }
       toast.success("Payment recorded!");
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
+      queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+      onSuccess?.();
       onClose();
     } catch (err: any) {
       toast.error(err.message || "Failed to record payment");
@@ -142,26 +146,14 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
     onSuccess: (invoiceId) => {
       toast.success("Invoice created successfully!");
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
+      queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
       setCreatedInvoiceId(invoiceId);
+      onSuccess?.();
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to create invoice");
-    }
-  });
-
-  const payInvoiceMut = useMutation({
-    mutationFn: async (data: {invoiceId: string, amount: number, mode: number}) => {
-      await api.post('/billing/invoices/pay', {
-        invoiceId: data.invoiceId,
-        organizationId,
-        amount: data.amount,
-        paymentMode: data.mode
-      });
-    },
-    onSuccess: () => {
-      toast.success("Payment recorded!");
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      onClose();
     }
   });
 
@@ -237,6 +229,12 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
                   onComplete={handleCompletePayment}
                   onPrint={() => {
                     handlePrintInvoice(createdInvoiceId, organizationId, activeBranch);
+                    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                    queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
+                    queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
+                    queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+                    onSuccess?.();
+                    onClose();
                   }}
                 />
               </div>
@@ -257,7 +255,15 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken }: any
                   Record Payment
                 </button>
                 <button 
-                  onClick={() => handlePrintInvoice(createdInvoiceId, organizationId, activeBranch)}
+                  onClick={() => {
+                    handlePrintInvoice(createdInvoiceId, organizationId, activeBranch);
+                    queryClient.invalidateQueries({ queryKey: ['invoices'] });
+                    queryClient.invalidateQueries({ queryKey: ['upcomingTokens'] });
+                    queryClient.invalidateQueries({ queryKey: ['queueDetails'] });
+                    queryClient.invalidateQueries({ queryKey: ['pending-bills'] });
+                    onSuccess?.();
+                    onClose();
+                  }}
                   className="flex-1 bg-white border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <Printer className="w-5 h-5" />

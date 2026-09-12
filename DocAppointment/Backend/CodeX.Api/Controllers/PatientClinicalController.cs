@@ -172,6 +172,8 @@ namespace CodeX.Api.Controllers
 
             var token = await _context.Tokens
                 .Include(t => t.Queue)
+                    .ThenInclude(q => q.Branch)
+                .Include(t => t.Patient)
                 .Where(t => t.PatientId == id &&
                            ((t.Queue.QueueDate >= dateLower && t.Queue.QueueDate < dateUpper) || t.CreatedAt >= recentThreshold))
                 .OrderByDescending(t => t.CreatedAt)
@@ -179,10 +181,13 @@ namespace CodeX.Api.Controllers
 
             if (token == null)
             {
-                return Ok(new { hasToken = false, status = "None" });
+                return Ok(new { hasToken = false, status = "None", recommendedChannel = "None" });
             }
 
             var hasVisit = await _context.PatientVisits.AnyAsync(v => v.TokenId == token.Id);
+            var branch = token.Queue?.Branch;
+            var patient = token.Patient;
+            var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(token, branch, patient);
 
             return Ok(new
             {
@@ -190,8 +195,13 @@ namespace CodeX.Api.Controllers
                 tokenId = token.Id,
                 tokenNumber = token.TokenNumber,
                 status = token.Status.ToString(),
+                bookingSource = token.Source.ToString(),
+                recommendedChannel = channel.ToString(),
+                isWhatsAppConfigured = branch?.IsWhatsAppConfigured ?? false,
+                isTelegramConfigured = branch?.IsTelegramConfigured ?? false,
                 hasVisit = hasVisit,
-                queueId = token.QueueId
+                queueId = token.QueueId,
+                branchId = branch?.Id
             });
         }
 
@@ -432,29 +442,43 @@ namespace CodeX.Api.Controllers
 
             await _context.SaveChangesAsync(default);
 
+            var patientObj = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
+            var branchId = Guid.Empty;
+            Token? linkedToken = null;
+            if (visit.TokenId.HasValue)
+            {
+                linkedToken = await _context.Tokens.Include(t => t.Queue).ThenInclude(q => q.Branch).FirstOrDefaultAsync(t => t.Id == visit.TokenId.Value);
+                if (linkedToken?.Queue != null) branchId = linkedToken.Queue.BranchId;
+            }
+            if (branchId == Guid.Empty)
+            {
+                var defaultBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.OrganizationId == (patientObj != null ? patientObj.OrganizationId : Guid.Empty));
+                if (defaultBranch != null) branchId = defaultBranch.Id;
+            }
+
             // Real-Time SignalR Broadcast: Consultation Saved
             try
             {
-                var patientObj = await _context.Patients.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
-                var branchId = Guid.Empty;
-                if (dto.TokenId.HasValue)
-                {
-                    var tokenObj = await _context.Tokens.Include(t => t.Queue).FirstOrDefaultAsync(t => t.Id == dto.TokenId.Value);
-                    if (tokenObj?.Queue != null) branchId = tokenObj.Queue.BranchId;
-                }
-                if (branchId == Guid.Empty)
-                {
-                    var defaultBranch = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.OrganizationId == (patientObj != null ? patientObj.OrganizationId : Guid.Empty));
-                    if (defaultBranch != null) branchId = defaultBranch.Id;
-                }
-                await _notificationService.NotifyConsultationSaved(branchId, dto.TokenId, id, patientObj?.Name ?? "Patient");
+                await _notificationService.NotifyConsultationSaved(branchId, visit.TokenId, id, patientObj?.Name ?? "Patient");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[SIGNALR_CONSULT_SAVED_ERROR] {ex.Message}");
             }
 
-            return Ok(new { id = visit.Id });
+            var branchForChannel = linkedToken?.Queue?.Branch ?? (branchId != Guid.Empty ? await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == branchId) : null);
+            var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(linkedToken, branchForChannel, patientObj);
+
+            return Ok(new 
+            { 
+                id = visit.Id,
+                tokenId = visit.TokenId,
+                bookingSource = linkedToken?.Source.ToString(),
+                recommendedChannel = channel.ToString(),
+                isWhatsAppConfigured = branchForChannel?.IsWhatsAppConfigured ?? false,
+                isTelegramConfigured = branchForChannel?.IsTelegramConfigured ?? false,
+                branchId = branchId
+            });
         }
 
         [HttpPost("{id}/vitals")]

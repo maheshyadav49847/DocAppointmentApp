@@ -100,7 +100,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
   const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
-    queryFn: () => queueService.getUpcomingTokens(queueId)
+    queryFn: () => queueService.getUpcomingTokens(queueId),
+    refetchInterval: 3000, // Poll every 3 seconds alongside queueDetails
   })
 
   // SignalR Hook
@@ -108,12 +109,12 @@ export default function QueueManager({ sessionData, onBack }: any) {
   useEffect(() => {
     if (connection) {
       const handleUpdate = (data: any) => {
-        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const incomingQueueId = String(data?.queueId || data?.QueueId || "").toLowerCase()
         const currentQueueId = String(queueId || "").toLowerCase()
-        console.log(`[QueueManager] TokenUpdated received. Incoming QueueId: ${incomingQueueId}, Current QueueId: ${currentQueueId}`)
+        console.log(`[QueueManager] Event received. Incoming QueueId: ${incomingQueueId}, Current QueueId: ${currentQueueId}`, data)
         
-        if (incomingQueueId === currentQueueId) {
-          console.log("[QueueManager] Queue IDs match, refetching tokens...")
+        if (!incomingQueueId || incomingQueueId === currentQueueId) {
+          console.log("[QueueManager] Refetching queue and tokens...")
           refetchQueue()
           refetchTokens()
         }
@@ -142,10 +143,14 @@ export default function QueueManager({ sessionData, onBack }: any) {
         }
       }
       connection.on('TokenUpdated', handleUpdate)
+      connection.on('TokenCreated', handleUpdate)
+      connection.on('InvoiceUpdated', handleUpdate)
       connection.on('QueueEnded', handleEnd)
       connection.on('DoctorArrived', handleDoctorArrived)
       return () => {
         connection.off('TokenUpdated', handleUpdate)
+        connection.off('TokenCreated', handleUpdate)
+        connection.off('InvoiceUpdated', handleUpdate)
         connection.off('QueueEnded', handleEnd)
         connection.off('DoctorArrived', handleDoctorArrived)
       }
@@ -775,7 +780,8 @@ export default function QueueManager({ sessionData, onBack }: any) {
 
       <QuickInvoiceModal 
         isOpen={!!billingToken} 
-        onClose={() => setBillingToken(null)} 
+        onClose={() => { setBillingToken(null); refetchTokens(); refetchQueue(); }} 
+        onSuccess={() => { refetchTokens(); refetchQueue(); }}
         billingToken={billingToken} 
       />
 
@@ -783,9 +789,11 @@ export default function QueueManager({ sessionData, onBack }: any) {
         <RecordPaymentModal 
           invoiceId={paymentToken.invoiceId}
           patientName={paymentToken.patientName}
-          onClose={() => setPaymentToken(null)}
+          onClose={() => { setPaymentToken(null); refetchTokens(); refetchQueue(); }}
           onPrint={(invId) => { 
             setPaymentToken(null); 
+            refetchTokens();
+            refetchQueue();
             import('@/utils/printHelper').then(m => m.handlePrintInvoice(invId, organizationId, activeBranch)); 
           }}
         />

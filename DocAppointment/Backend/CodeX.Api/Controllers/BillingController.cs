@@ -9,6 +9,7 @@ using CodeX.Application.Features.Billing.Invoices.Queries.GetPendingBills;
 using CodeX.Application.Features.Billing.Invoices.Queries.GetInvoiceById;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using CodeX.Application.Features.Billing.Invoices.Commands.CancelInvoice;
 
 namespace CodeX.Api.Controllers
@@ -19,9 +20,13 @@ namespace CodeX.Api.Controllers
     public class BillingController : BaseApiController
     {
         private readonly CodeX.Application.Common.Interfaces.IQueueNotificationService? _notificationService;
+        private readonly CodeX.Application.Common.Interfaces.IApplicationDbContext _context;
 
-        public BillingController(CodeX.Application.Common.Interfaces.IQueueNotificationService? notificationService = null)
+        public BillingController(
+            CodeX.Application.Common.Interfaces.IApplicationDbContext context,
+            CodeX.Application.Common.Interfaces.IQueueNotificationService? notificationService = null)
         {
+            _context = context;
             _notificationService = notificationService;
         }
 
@@ -115,6 +120,15 @@ namespace CodeX.Api.Controllers
                 if (_notificationService != null)
                 {
                     await _notificationService.NotifyInvoiceUpdated(command.BranchId, result, "INV-NEW", "Created");
+                    if (command.TokenId.HasValue && command.TokenId.Value != Guid.Empty)
+                    {
+                        var tok = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                            _context.Tokens.AsNoTracking(), t => t.Id == command.TokenId.Value);
+                        if (tok != null)
+                        {
+                            await _notificationService.NotifyTokenUpdated(command.BranchId, tok.QueueId, tok.TokenNumber);
+                        }
+                    }
                 }
             }
             catch { }
@@ -129,7 +143,20 @@ namespace CodeX.Api.Controllers
             {
                 if (_notificationService != null)
                 {
-                    await _notificationService.NotifyInvoiceUpdated(Guid.Empty, command.InvoiceId, "INV-PAID", "Paid");
+                    var inv = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                        _context.Invoices.AsNoTracking(), i => i.Id == command.InvoiceId);
+                    var bId = inv?.BranchId ?? Guid.Empty;
+                    await _notificationService.NotifyInvoiceUpdated(bId, command.InvoiceId, inv?.InvoiceNumber ?? "INV-PAID", "Paid");
+
+                    if (inv?.TokenId.HasValue == true && inv.TokenId.Value != Guid.Empty)
+                    {
+                        var tok = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                            _context.Tokens.AsNoTracking(), t => t.Id == inv.TokenId.Value);
+                        if (tok != null)
+                        {
+                            await _notificationService.NotifyTokenUpdated(bId, tok.QueueId, tok.TokenNumber);
+                        }
+                    }
                 }
             }
             catch { }
@@ -144,7 +171,20 @@ namespace CodeX.Api.Controllers
             {
                 if (_notificationService != null)
                 {
-                    await _notificationService.NotifyInvoiceUpdated(Guid.Empty, id, "INV-CANCELLED", "Cancelled");
+                    var inv = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                        _context.Invoices.AsNoTracking(), i => i.Id == id);
+                    var bId = inv?.BranchId ?? Guid.Empty;
+                    await _notificationService.NotifyInvoiceUpdated(bId, id, inv?.InvoiceNumber ?? "INV-CANCELLED", "Cancelled");
+
+                    if (inv?.TokenId.HasValue == true && inv.TokenId.Value != Guid.Empty)
+                    {
+                        var tok = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                            _context.Tokens.AsNoTracking(), t => t.Id == inv.TokenId.Value);
+                        if (tok != null)
+                        {
+                            await _notificationService.NotifyTokenUpdated(bId, tok.QueueId, tok.TokenNumber);
+                        }
+                    }
                 }
             }
             catch { }

@@ -278,10 +278,16 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
         dispatchPrescriptionInBackground({
           printElement: printRef.current,
           patient,
-          currentBranch,
+          currentBranch: {
+            name: currentBranch?.name,
+            isWhatsAppConfigured: res.data?.isWhatsAppConfigured ?? tokenTodayData?.isWhatsAppConfigured,
+            isTelegramConfigured: res.data?.isTelegramConfigured ?? tokenTodayData?.isTelegramConfigured,
+          },
           currentBranchId,
           tokenId: effectiveTokenId || payload.tokenId,
-          patientVisitId: res.data?.id
+          patientVisitId: res.data?.id,
+          bookingSource: res.data?.bookingSource || tokenTodayData?.bookingSource,
+          recommendedChannel: res.data?.recommendedChannel || tokenTodayData?.recommendedChannel
         });
       }
 

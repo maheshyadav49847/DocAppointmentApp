@@ -53,28 +53,28 @@ namespace CodeX.Application.Features.Queue.Commands.AlertPatient
             if (currentToken == null) 
                 throw new Exception("No active patient is currently being called. Please call a patient first.");
 
-            if (currentToken.Patient == null || string.IsNullOrEmpty(currentToken.Patient.Phone))
-                throw new Exception("Patient contact information (phone) is missing.");
+            if (currentToken.Patient == null || (string.IsNullOrEmpty(currentToken.Patient.Phone) && string.IsNullOrEmpty(currentToken.Patient.TelegramChatId)))
+                throw new Exception("Patient contact information is missing.");
 
-            var chatSession = await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken);
+            var chatSession = !string.IsNullOrEmpty(currentToken.Patient.Phone)
+                ? await _context.ChatSessions.FirstOrDefaultAsync(s => s.PhoneNumber == currentToken.Patient.Phone, cancellationToken)
+                : null;
             var language = CodeX.Application.Common.Helpers.WhatsAppTranslationHelper.GetPatientLanguage(currentToken.Patient, chatSession);
 
             try 
             {
-                if (currentToken.Source == CodeX.Domain.Enums.BookingSource.Telegram && !string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
+                var channel = CodeX.Application.Common.Helpers.ChannelRoutingHelper.ResolveChannel(currentToken, queue.Branch, currentToken.Patient);
+                if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.Telegram)
                 {
-                    await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId, language);
+                    await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId!, currentToken.TokenNumber, queue.BranchId, language);
                 }
-                else if (currentToken.Source == CodeX.Domain.Enums.BookingSource.WhatsApp && !string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
+                else if (channel == CodeX.Application.Common.Helpers.CommunicationChannel.WhatsApp)
                 {
-                    await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
+                    await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone!, currentToken.TokenNumber, queue.BranchId);
                 }
                 else
                 {
-                    if (!string.IsNullOrWhiteSpace(currentToken.Patient.Phone))
-                        await _whatsappService.SendYourTurnAlert(currentToken.Patient.Phone, currentToken.TokenNumber, queue.BranchId);
-                    else if (!string.IsNullOrWhiteSpace(currentToken.Patient.TelegramChatId))
-                        await _telegramService.SendYourTurnAlert(currentToken.Patient.TelegramChatId, currentToken.TokenNumber, queue.BranchId, language);
+                    throw new Exception("No active communication channel configured for this branch/patient.");
                 }
                 await LogMessage(queue.BranchId, currentToken.Patient.Phone, "AlertPatient", "Delivered", tokenId: currentToken.Id);
                 return true;

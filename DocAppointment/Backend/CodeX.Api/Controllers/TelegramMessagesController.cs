@@ -80,6 +80,12 @@ namespace CodeX.Api.Controllers
                 }
 
                 var resolvedBranchId = await ResolveBranchIdAsync(branchId, targetChatId);
+                var branchObj = await _context.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == resolvedBranchId);
+                if (branchObj == null || !branchObj.IsTelegramConfigured)
+                {
+                    return BadRequest(new { error = "Telegram is not configured for this clinic branch. Message was not queued." });
+                }
+
                 var message = body.Message ?? body.Text ?? string.Empty;
 
                 var outboxItem = new CodeX.Domain.Entities.OutboxMessage

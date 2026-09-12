@@ -50,7 +50,8 @@ export default function DoctorDeskPage() {
   const { data: upcomingTokens, refetch: refetchTokens } = useQuery({
     queryKey: ['upcomingTokens', queueId],
     queryFn: () => queueService.getUpcomingTokens(queueId),
-    enabled: !!queueId
+    enabled: !!queueId,
+    refetchInterval: 3000,
   })
 
   const { data: sessions, isLoading: isSessionsLoading } = useQuery({
@@ -86,9 +87,9 @@ export default function DoctorDeskPage() {
   useEffect(() => {
     if (connection) {
       const handleUpdate = (data: any) => {
-        const incomingQueueId = String(data.queueId || data.QueueId || "").toLowerCase()
+        const incomingQueueId = String(data?.queueId || data?.QueueId || "").toLowerCase()
         const currentQueueId = String(queueId || "").toLowerCase()
-        if (!queueId || incomingQueueId === currentQueueId) {
+        if (!queueId || !incomingQueueId || incomingQueueId === currentQueueId) {
           refetchQueue()
           if (queueId) refetchTokens()
         }
@@ -115,18 +116,22 @@ export default function DoctorDeskPage() {
       }
 
       connection.on('TokenUpdated', handleUpdate)
+      connection.on('TokenCreated', handleUpdate)
+      connection.on('InvoiceUpdated', handleUpdate)
       connection.on('QueueEnded', handleEnd)
       connection.on('QueueStarted', handleStart)
       connection.on('DoctorArrived', handleDoctorArrived)
 
       return () => {
         connection.off('TokenUpdated', handleUpdate)
+        connection.off('TokenCreated', handleUpdate)
+        connection.off('InvoiceUpdated', handleUpdate)
         connection.off('QueueEnded', handleEnd)
         connection.off('QueueStarted', handleStart)
         connection.off('DoctorArrived', handleDoctorArrived)
       }
     }
-  }, [connection, queueId, refetchQueue, refetchTokens])
+  }, [connection, queueId, refetchQueue, refetchTokens, queryClient])
 
   const callNextMutation = useMutation({
     mutationFn: () => queueService.callNext(queueId),

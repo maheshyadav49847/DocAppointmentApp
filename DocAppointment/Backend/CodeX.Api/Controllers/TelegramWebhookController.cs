@@ -26,6 +26,7 @@ namespace CodeX.Api.Controllers
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
         private readonly IChatSessionCache _chatSessionCache;
+        private readonly IQueueNotificationService? _queueNotificationService;
 
         public TelegramWebhookController(
             ILogger<TelegramWebhookController> logger,
@@ -33,7 +34,8 @@ namespace CodeX.Api.Controllers
             ITelegramService telegramService,
             IApplicationDbContext context,
             ICurrentUserService currentUserService,
-            IChatSessionCache chatSessionCache)
+            IChatSessionCache chatSessionCache,
+            IQueueNotificationService? queueNotificationService = null)
         {
             _logger = logger;
             _mediator = mediator;
@@ -41,6 +43,7 @@ namespace CodeX.Api.Controllers
             _context = context;
             _currentUserService = currentUserService;
             _chatSessionCache = chatSessionCache;
+            _queueNotificationService = queueNotificationService;
         }
 
         [AllowAnonymous]
@@ -109,6 +112,15 @@ namespace CodeX.Api.Controllers
                                         };
                                         _context.Tokens.Add(token);
                                         await _context.SaveChangesAsync(default);
+
+                                        try
+                                        {
+                                            if (_queueNotificationService != null)
+                                            {
+                                                await _queueNotificationService.NotifyTokenCreated(branch.Id, qId, tokenNumber, patient.Name);
+                                            }
+                                        }
+                                        catch { }
 
                                         string confirmMsg;
                                         if (lang == "mr")

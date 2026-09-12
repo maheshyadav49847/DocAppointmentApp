@@ -45,14 +45,20 @@ namespace CodeX.Api.Services
         public async Task NotifyTokenUpdated(Guid branchId, Guid queueId, int newTokenNumber)
         {
             await SaveNotificationAsync(branchId, "Queue Updated", $"Token #{newTokenNumber} is now active.", "Info");
-            await _hubContext.Clients.Group(branchId.ToString())
-                .SendAsync("TokenUpdated", new { QueueId = queueId, TokenNumber = newTokenNumber });
+            var payload = new { BranchId = branchId, QueueId = queueId, TokenNumber = newTokenNumber };
+            if (branchId != Guid.Empty)
+            {
+                await _hubContext.Clients.Group(branchId.ToString()).SendAsync("TokenUpdated", payload);
+            }
+            await _hubContext.Clients.All.SendAsync("TokenUpdated", payload);
         }
 
         public async Task NotifyDoctorArrived(Guid branchId, Guid queueId, string doctorName)
         {
             await SaveNotificationAsync(branchId, "Doctor Arrived", $"Dr. {doctorName} has arrived and started the session.", "Success");
             await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("DoctorArrived", new { QueueId = queueId, DoctorName = doctorName });
+            await _hubContext.Clients.All
                 .SendAsync("DoctorArrived", new { QueueId = queueId, DoctorName = doctorName });
         }
 
@@ -61,17 +67,27 @@ namespace CodeX.Api.Services
             await SaveNotificationAsync(branchId, "Session Ended", "The queue session has been ended.", "Alert");
             await _hubContext.Clients.Group(branchId.ToString())
                 .SendAsync("QueueEnded", new { QueueId = queueId });
+            await _hubContext.Clients.All
+                .SendAsync("QueueEnded", new { QueueId = queueId });
         }
 
         public async Task NotifyTokenCreated(Guid branchId, Guid queueId, int tokenNumber, string patientName)
         {
-            await _hubContext.Clients.Group(branchId.ToString())
-                .SendAsync("TokenCreated", new { BranchId = branchId, QueueId = queueId, TokenNumber = tokenNumber, PatientName = patientName });
+            var payload = new { BranchId = branchId, QueueId = queueId, TokenNumber = tokenNumber, PatientName = patientName };
+            if (branchId != Guid.Empty)
+            {
+                await _hubContext.Clients.Group(branchId.ToString()).SendAsync("TokenCreated", payload);
+                await _hubContext.Clients.Group(branchId.ToString()).SendAsync("TokenUpdated", payload);
+            }
+            await _hubContext.Clients.All.SendAsync("TokenCreated", payload);
+            await _hubContext.Clients.All.SendAsync("TokenUpdated", payload);
         }
 
         public async Task NotifyConsultationSaved(Guid branchId, Guid? tokenId, Guid patientId, string patientName)
         {
             await _hubContext.Clients.Group(branchId.ToString())
+                .SendAsync("ConsultationSaved", new { BranchId = branchId, TokenId = tokenId, PatientId = patientId, PatientName = patientName });
+            await _hubContext.Clients.All
                 .SendAsync("ConsultationSaved", new { BranchId = branchId, TokenId = tokenId, PatientId = patientId, PatientName = patientName });
         }
 
@@ -84,8 +100,12 @@ namespace CodeX.Api.Services
 
         public async Task NotifyInvoiceUpdated(Guid branchId, Guid invoiceId, string invoiceNumber, string status)
         {
-            await _hubContext.Clients.Group(branchId.ToString())
-                .SendAsync("InvoiceUpdated", new { BranchId = branchId, InvoiceId = invoiceId, InvoiceNumber = invoiceNumber, Status = status });
+            var payload = new { BranchId = branchId, InvoiceId = invoiceId, InvoiceNumber = invoiceNumber, Status = status };
+            if (branchId != Guid.Empty)
+            {
+                await _hubContext.Clients.Group(branchId.ToString()).SendAsync("InvoiceUpdated", payload);
+            }
+            await _hubContext.Clients.All.SendAsync("InvoiceUpdated", payload);
         }
     }
 }
