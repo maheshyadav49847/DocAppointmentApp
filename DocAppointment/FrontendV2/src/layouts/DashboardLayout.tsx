@@ -23,7 +23,6 @@ const getNavigation = (role: string, isDoctor: boolean) => {
     { name: "Outbox Hub", href: "/outbox", icon: Inbox, requiredAny: ["Settings.View", "Analytics.View"] },
     { name: "Analytics", href: "/analytics", icon: LayoutDashboard, requiredAny: ["Analytics.View"] },
     { name: "Reports", href: "/reports", icon: BarChart3, requiredAny: ["Analytics.View"] },
-    { name: "Chatbot Analyzer", href: "/analytics/chatbot", icon: MessageSquare, requiredAny: ["Analytics.View"] },
     { name: "Branches", href: "/branches", icon: Building2, requiredAny: ["Branches.View"] },
     { name: "Doctors", href: "/doctors", icon: Stethoscope, requiredAny: ["Doctors.View"] },
     { name: "Patients", href: "/patients", icon: Users, requiredAny: ["Patients.View"] },
