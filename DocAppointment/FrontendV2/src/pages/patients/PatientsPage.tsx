@@ -505,7 +505,7 @@ export default function PatientsPage() {
                               setEditingPatient(patient)
                               setIsDrawerOpen(true)
                             }}
-                            className="flex-1 h-10 btn-secondary text-xs px-2 flex items-center justify-center gap-1.5 whitespace-nowrap"
+                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
                           >
                             <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" /> Edit
                           </button>
@@ -516,7 +516,7 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
                             }}
-                            className="flex-1 h-10 btn-secondary text-xs px-2 flex items-center justify-center gap-1.5 text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100/60 border-indigo-200/70 whitespace-nowrap"
+                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/70 border border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-100/70 hover:border-indigo-300 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
                             title="View Patient Journey"
                           >
                             <Route className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> Journey
@@ -528,7 +528,7 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               navigate(`/consult/` + patient.id)
                             }}
-                            className="flex-1 h-10 btn-primary text-xs px-2 flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm"
+                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-indigo-600 border border-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
                           >
                             <Stethoscope className="w-3.5 h-3.5 shrink-0" /> Consult
                           </button>
@@ -539,10 +539,10 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               handleDeletePatient(patient)
                             }}
-                            className="flex-1 h-10 btn-secondary text-xs px-2 flex items-center justify-center gap-1.5 text-rose-600 bg-rose-50/60 hover:bg-rose-100/60 border-rose-200/80 hover:text-rose-700 hover:border-rose-300 whitespace-nowrap"
+                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg shadow-sm hover:bg-rose-100 hover:border-rose-300 hover:text-rose-700 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
                             title="Delete Patient"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Delete
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" /> Delete
                           </button>
                         )}
                       </div>
