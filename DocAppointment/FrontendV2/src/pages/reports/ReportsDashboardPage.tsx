@@ -201,13 +201,16 @@ export default function ReportsDashboardPage() {
     <div className="h-full flex flex-col bg-slate-50/50">
       {/* Header & Global Filters */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10 sticky top-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-            <BarChart3 className="w-6 h-6" />
+        <div className="flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+            <BarChart3 className="w-7 h-7" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">Reports Center</h1>
-            <p className="text-sm text-slate-500">Analytics and insights for your clinic</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <span className="text-slate-900">Reports</span>
+              <span className="text-indigo-600">Center</span>
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Analytics and insights for your clinic</p>
           </div>
         </div>
         

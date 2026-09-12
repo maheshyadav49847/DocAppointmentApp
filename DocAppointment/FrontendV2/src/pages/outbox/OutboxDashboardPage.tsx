@@ -149,32 +149,31 @@ export default function OutboxDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-              <Inbox className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Outbox Delivery Hub
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
-                Track real-time background message dispatch across Telegram, WhatsApp, SMS & Email
-              </p>
-            </div>
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
+        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
+          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
+            <Inbox className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <span className="text-slate-900">Outbox</span>
+              <span className="text-indigo-600">Delivery Hub</span>
+            </h1>
+            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">
+              Track real-time background message dispatch across Telegram, WhatsApp, SMS & Email
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-lg border text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow-sm ${
               autoRefresh
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                : 'bg-slate-50 border-slate-200 text-slate-600'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
             <Zap className={`w-3.5 h-3.5 ${autoRefresh ? 'fill-emerald-500' : ''}`} />
@@ -183,7 +182,7 @@ export default function OutboxDashboardPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-200"
+            className="p-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg transition border border-slate-200 shadow-sm"
             title="Refresh now"
           >
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
