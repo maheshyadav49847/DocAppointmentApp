@@ -64,5 +64,9 @@ export const patientService = {
   updatePatientProfile: async (id: string, data: Partial<Patient>): Promise<Patient> => {
     const response = await api.put(`/patientclinical/${id}`, data)
     return response.data
+  },
+
+  deletePatient: async (id: string): Promise<void> => {
+    await api.delete(`/patients/${id}`)
   }
 }

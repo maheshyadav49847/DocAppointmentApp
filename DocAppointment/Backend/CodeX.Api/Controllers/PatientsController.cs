@@ -214,6 +214,30 @@ namespace CodeX.Api.Controllers
 
             return Ok(history);
         }
+
+        [HttpDelete("{id}")]
+        [HasPermission(SystemPermissions.Patients.Delete)]
+        public async Task<IActionResult> DeletePatient(Guid id)
+        {
+            var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Id == id);
+            if (patient == null)
+            {
+                return NotFound(new { message = "Patient not found." });
+            }
+
+            if (_currentUserService.OrgId != Guid.Empty && patient.OrganizationId != _currentUserService.OrgId)
+            {
+                return Forbid();
+            }
+
+            patient.IsDeleted = true;
+            patient.IsActive = false;
+            patient.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(default);
+
+            return NoContent();
+        }
     }
 
     public class AddPatientDto

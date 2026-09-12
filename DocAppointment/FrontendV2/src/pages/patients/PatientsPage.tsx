@@ -11,8 +11,9 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, PlusCircle, Search, ChevronLeft, ChevronRight, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route, Trash2
 } from "lucide-react"
+import toast from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
 
 import { patientService } from "@/services/patientService"
@@ -74,6 +75,25 @@ export default function PatientsPage() {
       else if (error.response?.data?.extensions?.errors) setValidationErrors(error.response.data.extensions.errors)
     }
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await patientService.deletePatient(id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patients'] })
+      toast.success("Patient deleted successfully")
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to delete patient")
+    }
+  })
+
+  const handleDeletePatient = (patient: Patient) => {
+    if (window.confirm(`Are you sure you want to delete patient "${patient.name}"? This will remove them from active records.`)) {
+      deleteMutation.mutate(patient.id)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -208,10 +228,19 @@ export default function PatientsPage() {
               </button>
             </>
           )}
+          {can('Patients.Delete') && (
+            <button
+              onClick={() => handleDeletePatient(row.original)}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Delete Patient"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )
     }
-  ], [navigate, setEditingPatient, setIsDrawerOpen])
+  ], [navigate, setEditingPatient, setIsDrawerOpen, handleDeletePatient, can])
 
   const table = useReactTable({
     data: patients,
@@ -468,42 +497,57 @@ export default function PatientsPage() {
                       </div>
 
                       {/* Footer Actions */}
-                      <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3 mt-auto">
-                        {can('Patients.Edit') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingPatient(patient)
-                              setIsDrawerOpen(true)
-                            }}
-                            className="flex-1 btn-secondary text-xs px-3"
-                          >
-                            <Edit className="w-4 h-4" /> Edit
-                          </button>
-                        )}
-                        {can('Patients.ViewHistory') && (
-                          <>
+                      <div className="p-4 border-t border-slate-100 bg-slate-50/80 flex flex-col gap-2.5 mt-auto">
+                        <div className="flex items-center gap-2">
+                          {can('Patients.Edit') && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingPatient(patient)
+                                setIsDrawerOpen(true)
+                              }}
+                              className="flex-1 btn-secondary text-xs py-2 px-2.5 flex items-center justify-center gap-1.5 font-medium"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-slate-500" /> Edit
+                            </button>
+                          )}
+                          {can('Patients.ViewHistory') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
                               }}
-                              className="btn-secondary text-xs px-2.5"
-                              title="Patient Journey"
+                              className="flex-1 btn-secondary text-xs py-2 px-2.5 flex items-center justify-center gap-1.5 font-medium text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100/60 border-indigo-200/70"
+                              title="View Patient Journey"
                             >
-                              <Route className="w-4 h-4 text-indigo-600" />
+                              <Route className="w-3.5 h-3.5 text-indigo-600" /> Journey
                             </button>
+                          )}
+                          {can('Patients.Delete') && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                navigate(`/consult/` + patient.id)
+                                handleDeletePatient(patient)
                               }}
-                              className="flex-1 btn-primary text-xs px-3"
+                              className="flex-1 text-xs py-2 px-2.5 font-medium text-rose-600 bg-rose-50 border border-rose-200/80 hover:bg-rose-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
+                              title="Delete Patient"
                             >
-                              <Stethoscope className="w-4 h-4" />
-                              Consult
+                              <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Delete
                             </button>
-                          </>
+                          )}
+                        </div>
+
+                        {can('Patients.ViewHistory') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/consult/` + patient.id)
+                            }}
+                            className="w-full btn-primary text-xs py-2.5 px-3 flex items-center justify-center gap-2 font-semibold shadow-sm"
+                          >
+                            <Stethoscope className="w-4 h-4" />
+                            Consult
+                          </button>
                         )}
                       </div>
                     </div>
