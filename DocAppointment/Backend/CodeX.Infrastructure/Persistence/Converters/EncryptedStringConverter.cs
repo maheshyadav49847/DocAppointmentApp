@@ -52,7 +52,7 @@ namespace CodeX.Infrastructure.Persistence.Converters
             return Convert.ToBase64String(array);
         }
 
-        private static string? Decrypt(string? cipherText, string key)
+        public static string? Decrypt(string? cipherText, string key)
         {
             if (string.IsNullOrEmpty(cipherText))
                 return cipherText;

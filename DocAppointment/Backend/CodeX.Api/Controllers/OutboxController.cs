@@ -18,11 +18,16 @@ namespace CodeX.Api.Controllers
     {
         private readonly ICurrentUserService _currentUserService;
         private readonly IApplicationDbContext _context;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
-        public OutboxController(ICurrentUserService currentUserService, IApplicationDbContext context)
+        public OutboxController(
+            ICurrentUserService currentUserService, 
+            IApplicationDbContext context,
+            Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _currentUserService = currentUserService;
             _context = context;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -100,7 +105,7 @@ namespace CodeX.Api.Controllers
                 var failedCount = await query.CountAsync(o => o.Status == "Failed");
                 var deadLetterCount = await query.CountAsync(o => o.Status == "DeadLetter");
 
-                var items = await query
+                var rawItems = await query
                     .OrderByDescending(o => o.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
@@ -116,11 +121,16 @@ namespace CodeX.Api.Controllers
                             : (o.PatientVisit != null && o.PatientVisit.Patient != null 
                                 ? o.PatientVisit.Patient.Name 
                                 : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.Name).FirstOrDefault()),
-                        PatientPhone = o.Token != null && o.Token.Patient != null 
-                            ? (o.Token.Patient.PhoneDialCode != null ? o.Token.Patient.PhoneDialCode + " " + o.Token.Patient.Phone : o.Token.Patient.Phone) 
+                        RawPhone = o.Token != null && o.Token.Patient != null 
+                            ? o.Token.Patient.Phone
                             : (o.PatientVisit != null && o.PatientVisit.Patient != null 
-                                ? (o.PatientVisit.Patient.PhoneDialCode != null ? o.PatientVisit.Patient.PhoneDialCode + " " + o.PatientVisit.Patient.Phone : o.PatientVisit.Patient.Phone) 
-                                : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.PhoneDialCode != null ? p.PhoneDialCode + " " + p.Phone : p.Phone).FirstOrDefault()),
+                                ? o.PatientVisit.Patient.Phone
+                                : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.Phone).FirstOrDefault()),
+                        PhoneDialCode = o.Token != null && o.Token.Patient != null 
+                            ? o.Token.Patient.PhoneDialCode
+                            : (o.PatientVisit != null && o.PatientVisit.Patient != null 
+                                ? o.PatientVisit.Patient.PhoneDialCode
+                                : _context.Patients.Where(p => p.TelegramChatId == o.Recipient).Select(p => p.PhoneDialCode).FirstOrDefault()),
                         o.PatientVisitId,
                         o.Channel,
                         o.MessageType,
@@ -138,6 +148,68 @@ namespace CodeX.Api.Controllers
                         o.CreatedAt
                     })
                     .ToListAsync();
+
+                var encKey = _configuration["EncryptionSettings:Key"] ?? string.Empty;
+
+                var items = rawItems.Select(o =>
+                {
+                    string? decryptedPhone = null;
+                    if (!string.IsNullOrEmpty(o.RawPhone))
+                    {
+                        if (!string.IsNullOrEmpty(encKey) && encKey.Length >= 32)
+                        {
+                            decryptedPhone = CodeX.Infrastructure.Persistence.Converters.EncryptedStringConverter.Decrypt(o.RawPhone, encKey);
+                        }
+                        else
+                        {
+                            decryptedPhone = o.RawPhone;
+                        }
+                    }
+
+                    string? patientPhone = null;
+                    if (!string.IsNullOrEmpty(decryptedPhone))
+                    {
+                        // If decryptedPhone already starts with +, don't duplicate dial code
+                        if (decryptedPhone.StartsWith("+"))
+                        {
+                            patientPhone = decryptedPhone;
+                        }
+                        else if (!string.IsNullOrEmpty(o.PhoneDialCode))
+                        {
+                            patientPhone = o.PhoneDialCode + " " + decryptedPhone;
+                        }
+                        else
+                        {
+                            patientPhone = decryptedPhone;
+                        }
+                    }
+
+                    return new
+                    {
+                        o.Id,
+                        o.BranchId,
+                        o.BranchName,
+                        o.TokenId,
+                        o.TokenNumber,
+                        o.PatientName,
+                        PatientPhone = patientPhone,
+                        o.PatientVisitId,
+                        o.Channel,
+                        o.MessageType,
+                        o.Priority,
+                        o.Recipient,
+                        o.MessageBody,
+                        o.FileName,
+                        o.HasFile,
+                        o.Status,
+                        o.RetryCount,
+                        o.MaxRetries,
+                        o.NextRetryAtUtc,
+                        o.ProcessedAtUtc,
+                        o.ErrorMessage,
+                        o.CreatedAt
+                    };
+                }).ToList();
 
                 return Ok(new
                 {
