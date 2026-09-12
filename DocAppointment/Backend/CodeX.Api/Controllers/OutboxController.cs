@@ -1,10 +1,12 @@
 using CodeX.Api.Authorization;
+using CodeX.Application.Common.Helpers;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -47,6 +49,8 @@ namespace CodeX.Api.Controllers
         {
             try
             {
+                var encKey = _configuration["EncryptionSettings:Key"] ?? string.Empty;
+
                 var query = _context.OutboxMessages
                     .Include(o => o.Branch)
                     .Include(o => o.Token)
@@ -97,28 +101,61 @@ namespace CodeX.Api.Controllers
                     query = query.Where(o => o.CreatedAt <= endUtc);
                 }
 
-                // Search query - supports Name, Phone, Token number, and Reference ID (e.g. CX-123456, cx-) case-insensitively
+                // Search query - supports Name, Phone (decrypted match for both WhatsApp & Telegram), Token number, and Reference ID (e.g. CX-123456, cx-) case-insensitively
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     var s = search.Trim().ToLower();
                     var cleanCx = s.StartsWith("cx-", StringComparison.OrdinalIgnoreCase) ? s.Substring(3) : s;
                     int.TryParse(s, out var searchNum);
 
+                    var searchDigits = new string(s.Where(char.IsDigit).ToArray());
+                    var matchingPatientIds = new List<Guid>();
+                    var matchingTelegramChatIds = new List<string>();
+
+                    if (searchDigits.Length >= 3)
+                    {
+                        var patientsWithPhone = await _context.Patients
+                            .Where(p => (_currentUserService.OrgId == Guid.Empty || p.OrganizationId == _currentUserService.OrgId)
+                                        && (p.Phone != null || p.TelegramChatId != null))
+                            .Select(p => new { p.Id, p.Phone, p.TelegramChatId })
+                            .ToListAsync();
+
+                        foreach (var p in patientsWithPhone)
+                        {
+                            if (!string.IsNullOrEmpty(p.Phone))
+                            {
+                                var decrypted = !string.IsNullOrEmpty(encKey) ? NormalizationHelper.DecryptString(p.Phone, encKey) : p.Phone;
+                                var actualPhone = !string.IsNullOrEmpty(decrypted) && !decrypted.StartsWith("ERROR") ? decrypted : p.Phone;
+                                var phoneDigits = new string(actualPhone.Where(char.IsDigit).ToArray());
+
+                                if (phoneDigits.Contains(searchDigits))
+                                {
+                                    matchingPatientIds.Add(p.Id);
+                                    if (!string.IsNullOrEmpty(p.TelegramChatId))
+                                    {
+                                        matchingTelegramChatIds.Add(p.TelegramChatId);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     query = query.Where(o =>
                         o.Recipient.ToLower().Contains(s) ||
+                        (matchingTelegramChatIds.Count > 0 && matchingTelegramChatIds.Contains(o.Recipient)) ||
                         (o.MessageBody != null && o.MessageBody.ToLower().Contains(s)) ||
                         (o.FileName != null && o.FileName.ToLower().Contains(s)) ||
                         (searchNum > 0 && o.Token != null && o.Token.TokenNumber == searchNum) ||
                         (o.TokenId.HasValue && o.TokenId.Value.ToString().ToLower().Contains(cleanCx)) ||
                         (o.Token != null && o.Token.Patient != null && (
                             o.Token.Patient.Name.ToLower().Contains(s) ||
-                            (o.Token.Patient.Phone != null && o.Token.Patient.Phone.Contains(s)) ||
-                            (o.Token.Patient.PatientCode != null && o.Token.Patient.PatientCode.ToLower().Contains(s))
+                            (o.Token.Patient.PatientCode != null && o.Token.Patient.PatientCode.ToLower().Contains(s)) ||
+                            (matchingPatientIds.Count > 0 && matchingPatientIds.Contains(o.Token.Patient.Id))
                         )) ||
                         (o.PatientVisit != null && o.PatientVisit.Patient != null && (
                             o.PatientVisit.Patient.Name.ToLower().Contains(s) ||
-                            (o.PatientVisit.Patient.Phone != null && o.PatientVisit.Patient.Phone.Contains(s)) ||
-                            (o.PatientVisit.Patient.PatientCode != null && o.PatientVisit.Patient.PatientCode.ToLower().Contains(s))
+                            (o.PatientVisit.Patient.PatientCode != null && o.PatientVisit.Patient.PatientCode.ToLower().Contains(s)) ||
+                            (matchingPatientIds.Count > 0 && matchingPatientIds.Contains(o.PatientVisit.Patient.Id))
                         )));
                 }
 
@@ -173,8 +210,6 @@ namespace CodeX.Api.Controllers
                         o.CreatedAt
                     })
                     .ToListAsync();
-
-                var encKey = _configuration["EncryptionSettings:Key"] ?? string.Empty;
 
                 var items = rawItems.Select(o =>
                 {

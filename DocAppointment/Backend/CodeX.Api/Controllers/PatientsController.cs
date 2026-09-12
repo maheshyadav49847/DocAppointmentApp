@@ -1,10 +1,13 @@
 using CodeX.Api.Authorization;
+using CodeX.Application.Common.Helpers;
 using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Constants;
 using CodeX.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 
 namespace CodeX.Api.Controllers
 {
@@ -16,11 +19,13 @@ namespace CodeX.Api.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IConfiguration _configuration;
 
-        public PatientsController(IApplicationDbContext context, ICurrentUserService currentUserService)
+        public PatientsController(IApplicationDbContext context, ICurrentUserService currentUserService, IConfiguration configuration)
         {
             _context = context;
             _currentUserService = currentUserService;
+            _configuration = configuration;
         }
 
         [HttpGet("branches")]
@@ -67,8 +72,38 @@ namespace CodeX.Api.Controllers
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var searchTerm = search.ToLower();
-                query = query.Where(p => p.Name.ToLower().Contains(searchTerm) || p.Phone.Contains(searchTerm) || (p.PatientCode != null && p.PatientCode.ToLower().Contains(searchTerm)));
+                var searchTerm = search.Trim().ToLower();
+                var searchDigits = new string(searchTerm.Where(char.IsDigit).ToArray());
+                var matchingPatientIds = new List<Guid>();
+
+                if (searchDigits.Length >= 3)
+                {
+                    var encKey = _configuration["EncryptionSettings:Key"] ?? string.Empty;
+                    var candidatePatients = await _context.Patients
+                        .Where(p => (_currentUserService.OrgId == Guid.Empty || p.OrganizationId == _currentUserService.OrgId) && p.Phone != null)
+                        .Select(p => new { p.Id, p.Phone })
+                        .ToListAsync();
+
+                    foreach (var p in candidatePatients)
+                    {
+                        if (!string.IsNullOrEmpty(p.Phone))
+                        {
+                            var decrypted = !string.IsNullOrEmpty(encKey) ? NormalizationHelper.DecryptString(p.Phone, encKey) : p.Phone;
+                            var actualPhone = !string.IsNullOrEmpty(decrypted) && !decrypted.StartsWith("ERROR") ? decrypted : p.Phone;
+                            var phoneDigits = new string(actualPhone.Where(char.IsDigit).ToArray());
+
+                            if (phoneDigits.Contains(searchDigits))
+                            {
+                                matchingPatientIds.Add(p.Id);
+                            }
+                        }
+                    }
+                }
+
+                query = query.Where(p =>
+                    p.Name.ToLower().Contains(searchTerm) ||
+                    (p.PatientCode != null && p.PatientCode.ToLower().Contains(searchTerm)) ||
+                    (matchingPatientIds.Count > 0 && matchingPatientIds.Contains(p.Id)));
             }
 
             var totalCount = await query.CountAsync();
