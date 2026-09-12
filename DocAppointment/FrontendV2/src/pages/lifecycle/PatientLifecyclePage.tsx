@@ -347,7 +347,7 @@ export default function PatientLifecyclePage() {
         ) : items.length === 0 ? (
           <div className="bg-white p-12 text-center rounded-xl border border-slate-200 shadow-sm">
             <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
-              <GitCommitHorizontal className="w-8 h-8" />
+              <Route className="w-8 h-8" />
             </div>
             <h3 className="text-base font-bold text-slate-800">No Patient Visits Found</h3>
             <p className="text-xs text-slate-500 mt-1">Try changing the date range, branch, or stage filter.</p>

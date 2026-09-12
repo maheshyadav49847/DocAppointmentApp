@@ -14,7 +14,7 @@ export const initializeSignalR = async (token: string, branchId: string) => {
 
   const customLogger: signalR.ILogger = {
     log: (logLevel, message) => {
-      if (message.includes('stopped during negotiation')) return;
+      if (message.includes('stopped during negotiation') || message.includes('hub handshake could complete')) return;
       if (logLevel === signalR.LogLevel.Error) console.error(message);
       else if (logLevel === signalR.LogLevel.Warning) console.warn(message);
     }
@@ -142,7 +142,7 @@ export const initializeSignalR = async (token: string, branchId: string) => {
     console.log('SignalR Connected.');
     await connection.invoke('JoinBranchGroup', branchId);
   } catch (err: any) {
-    if (err?.message?.includes('stopped during negotiation')) {
+    if (err?.message?.includes('stopped during negotiation') || err?.message?.includes('hub handshake could complete')) {
       console.warn('SignalR start aborted (likely strict mode double effect).');
     } else {
       console.error('SignalR Connection Error: ', err);
