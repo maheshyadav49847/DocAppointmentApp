@@ -528,9 +528,10 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               navigate(`/consult/` + patient.id)
                             }}
-                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-indigo-600 border border-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg shadow-sm hover:bg-violet-100 hover:border-violet-300 hover:text-violet-800 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            title="Consult Patient"
                           >
-                            <Stethoscope className="w-3.5 h-3.5 shrink-0" /> Consult
+                            <Stethoscope className="w-3.5 h-3.5 text-violet-600 shrink-0" /> Consult
                           </button>
                         )}
                         {can('Patients.Delete') && (
