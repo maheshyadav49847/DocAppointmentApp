@@ -222,6 +222,8 @@ export default function BillingDashboardPage() {
                       showYearDropdown
                       todayButton="Today"
                       dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
                       className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                       maxDate={pendingCustomEnd}
                     />
@@ -237,6 +239,8 @@ export default function BillingDashboardPage() {
                       showYearDropdown
                       todayButton="Today"
                       dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
                       className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                       minDate={pendingCustomStart}
                       maxDate={new Date()}
@@ -429,6 +433,8 @@ export default function BillingDashboardPage() {
                       showYearDropdown
                       todayButton="Today"
                       dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
                       className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                       maxDate={historyCustomEnd}
                     />
@@ -444,6 +450,8 @@ export default function BillingDashboardPage() {
                       showYearDropdown
                       todayButton="Today"
                       dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
                       className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                       minDate={historyCustomStart}
                       maxDate={new Date()}

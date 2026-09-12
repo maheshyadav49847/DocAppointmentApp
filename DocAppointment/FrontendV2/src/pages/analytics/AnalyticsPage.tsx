@@ -259,6 +259,8 @@ export default function AnalyticsPage() {
                     showYearDropdown
                     todayButton="Today"
                     dropdownMode="select"
+                    portalId="root-portal"
+                    showDisabledMonthNavigation
                     className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                     maxDate={customEnd}
                   />
@@ -274,6 +276,8 @@ export default function AnalyticsPage() {
                     showYearDropdown
                     todayButton="Today"
                     dropdownMode="select"
+                    portalId="root-portal"
+                    showDisabledMonthNavigation
                     className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
                     minDate={customStart}
                   />

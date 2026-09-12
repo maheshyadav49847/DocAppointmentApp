@@ -998,6 +998,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                         showYearDropdown
                         todayButton="Today"
                         dropdownMode="select"
+                        showDisabledMonthNavigation
                         placeholderText="Select Follow-up Date"
                         minDate={new Date()}
                         portalId="root-portal"
