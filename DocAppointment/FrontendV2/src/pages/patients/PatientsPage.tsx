@@ -497,56 +497,52 @@ export default function PatientsPage() {
                       </div>
 
                       {/* Footer Actions */}
-                      <div className="p-4 border-t border-slate-100 bg-slate-50/80 flex flex-col gap-2.5 mt-auto">
-                        <div className="flex items-center gap-2">
-                          {can('Patients.Edit') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setEditingPatient(patient)
-                                setIsDrawerOpen(true)
-                              }}
-                              className="flex-1 btn-secondary text-xs py-2 px-2.5 flex items-center justify-center gap-1.5 font-medium"
-                            >
-                              <Edit className="w-3.5 h-3.5 text-slate-500" /> Edit
-                            </button>
-                          )}
-                          {can('Patients.ViewHistory') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
-                              }}
-                              className="flex-1 btn-secondary text-xs py-2 px-2.5 flex items-center justify-center gap-1.5 font-medium text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100/60 border-indigo-200/70"
-                              title="View Patient Journey"
-                            >
-                              <Route className="w-3.5 h-3.5 text-indigo-600" /> Journey
-                            </button>
-                          )}
-                          {can('Patients.Delete') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeletePatient(patient)
-                              }}
-                              className="flex-1 text-xs py-2 px-2.5 font-medium text-rose-600 bg-rose-50 border border-rose-200/80 hover:bg-rose-100 rounded-lg transition-all flex items-center justify-center gap-1.5"
-                              title="Delete Patient"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Delete
-                            </button>
-                          )}
-                        </div>
-
+                      <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2 mt-auto">
+                        {can('Patients.Edit') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingPatient(patient)
+                              setIsDrawerOpen(true)
+                            }}
+                            className="flex-1 btn-secondary text-xs py-2 px-2 flex items-center justify-center gap-1.5 font-medium whitespace-nowrap"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" /> Edit
+                          </button>
+                        )}
+                        {can('Patients.ViewHistory') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
+                            }}
+                            className="flex-1 btn-secondary text-xs py-2 px-2 flex items-center justify-center gap-1.5 font-medium text-indigo-700 bg-indigo-50/60 hover:bg-indigo-100/60 border-indigo-200/70 whitespace-nowrap"
+                            title="View Patient Journey"
+                          >
+                            <Route className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> Journey
+                          </button>
+                        )}
                         {can('Patients.ViewHistory') && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               navigate(`/consult/` + patient.id)
                             }}
-                            className="w-full btn-primary text-xs py-2.5 px-3 flex items-center justify-center gap-2 font-semibold shadow-sm"
+                            className="flex-1 btn-primary text-xs py-2 px-2 flex items-center justify-center gap-1.5 font-semibold whitespace-nowrap shadow-sm"
                           >
-                            <Stethoscope className="w-4 h-4" />
-                            Consult
+                            <Stethoscope className="w-3.5 h-3.5 shrink-0" /> Consult
+                          </button>
+                        )}
+                        {can('Patients.Delete') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeletePatient(patient)
+                            }}
+                            className="flex-1 text-xs py-2 px-2 font-medium text-rose-600 bg-rose-50 border border-rose-200/80 hover:bg-rose-100 rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
+                            title="Delete Patient"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" /> Delete
                           </button>
                         )}
                       </div>
