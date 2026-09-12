@@ -168,7 +168,7 @@ export default function ChatbotAnalyticsPage() {
                             
                             {/* Content Card */}
                             <div className={`w-full md:w-[calc(50%-2rem)] flex ${isUser ? "justify-end" : "justify-start"}`}>
-                              <div className={`p-4 rounded-2xl shadow-sm border max-w-sm w-full ${
+                              <div className={`p-4 rounded-xl shadow-sm border max-w-sm w-full ${
                                 isUser 
                                   ? (isTelegram ? "bg-sky-50 border-sky-200" : "bg-emerald-50 border-emerald-200") + " rounded-tr-sm" 
                                   : "bg-indigo-50 border-indigo-200 rounded-tl-sm"

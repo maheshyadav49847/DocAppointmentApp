@@ -94,7 +94,7 @@ export default function AuditLogsPage() {
         <div className="flex-1 p-4 sm:p-6 bg-slate-50/30 min-h-0 flex flex-col">
           <div className="bg-white rounded-b-lg border border-slate-200 shadow-sm overflow-auto flex-1">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 outline outline-1 outline-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
+              <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
                 <tr>
                   <th className="px-6 py-4">Timestamp</th>
                   <th className="px-6 py-4">Method & Path</th>

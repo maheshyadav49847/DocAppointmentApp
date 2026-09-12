@@ -192,7 +192,7 @@ export default function OutboxDashboardPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Send className="w-3.5 h-3.5 text-indigo-500" /> Total Outbox
           </div>
@@ -200,7 +200,7 @@ export default function OutboxDashboardPage() {
           <div className="text-[10px] text-slate-400 font-semibold mt-1">All queues</div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" /> Pending / Queue
           </div>
@@ -208,7 +208,7 @@ export default function OutboxDashboardPage() {
           <div className="text-[10px] text-amber-500 font-semibold mt-1">In background worker</div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Delivered / Sent
           </div>
@@ -216,7 +216,7 @@ export default function OutboxDashboardPage() {
           <div className="text-[10px] text-emerald-500 font-semibold mt-1">Confirmed delivery</div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <RotateCcw className="w-3.5 h-3.5 text-rose-500" /> Retry Backoff
           </div>
@@ -224,7 +224,7 @@ export default function OutboxDashboardPage() {
           <div className="text-[10px] text-rose-500 font-semibold mt-1">Scheduled next retry</div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="text-xs font-bold text-slate-400 mb-1 flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> Dead Letter
           </div>
@@ -234,7 +234,7 @@ export default function OutboxDashboardPage() {
       </div>
 
       {/* Filter Control Bar */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Branch */}
           {isMultiBranch && (
@@ -248,7 +248,7 @@ export default function OutboxDashboardPage() {
                   setSelectedBranch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none"
+                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none"
               >
                 <option value="all">All Clinics</option>
                 {myBranches.map((b: any) => (
@@ -271,7 +271,7 @@ export default function OutboxDashboardPage() {
                 setChannelFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none"
             >
               <option value="All">All Channels</option>
               <option value="Telegram">Telegram</option>
@@ -292,7 +292,7 @@ export default function OutboxDashboardPage() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none"
             >
               <option value="All">All Statuses</option>
               <option value="Pending">Pending (Queue)</option>
@@ -314,7 +314,7 @@ export default function OutboxDashboardPage() {
                 setDatePreset(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -337,7 +337,7 @@ export default function OutboxDashboardPage() {
                 setSearchQuery(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </div>
         </div>
@@ -366,12 +366,12 @@ export default function OutboxDashboardPage() {
       </div>
 
       {/* Outbox Messages Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-b-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? (
           <PageLoader message="Loading Outbox Messages..." minHeight="min-h-[400px]" />
         ) : items.length === 0 ? (
           <div className="text-center py-16 px-4">
-            <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 mx-auto mb-3">
+            <div className="w-14 h-14 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500 mx-auto mb-3">
               <Inbox className="w-7 h-7" />
             </div>
             <h3 className="text-base font-bold text-slate-800">No Outbox Messages Found</h3>
@@ -513,7 +513,7 @@ export default function OutboxDashboardPage() {
       {/* Inspect Item Modal */}
       {inspectItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-black text-slate-900">Outbox Message Audit</h3>
@@ -528,7 +528,7 @@ export default function OutboxDashboardPage() {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+              <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1.5">
                 <div>Channel: <strong className="text-slate-900 uppercase font-black">{inspectItem.channel}</strong></div>
                 <div>Message Type: <strong className="text-slate-900">{inspectItem.messageType}</strong></div>
                 <div>Priority Level: <strong className="text-slate-900">{inspectItem.priority}</strong></div>
@@ -536,7 +536,7 @@ export default function OutboxDashboardPage() {
                 <div>Clinic Branch: <strong className="text-slate-900">{inspectItem.branchName}</strong></div>
               </div>
 
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+              <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span>Current Status:</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${getStatusBadge(inspectItem.status)}`}>
@@ -550,14 +550,14 @@ export default function OutboxDashboardPage() {
               </div>
 
               {inspectItem.errorMessage && (
-                <div className="bg-rose-50 p-3.5 rounded-xl border border-rose-200 text-rose-700 space-y-1">
+                <div className="bg-rose-50 p-3.5 rounded-lg border border-rose-200 text-rose-700 space-y-1">
                   <div className="font-bold uppercase text-[10px]">Error Detail:</div>
                   <div className="font-mono break-all">{inspectItem.errorMessage}</div>
                 </div>
               )}
 
               {inspectItem.messageBody && (
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+                <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1">
                   <div className="font-bold text-slate-500 uppercase text-[10px]">Message Caption / Content:</div>
                   <div className="text-slate-800 bg-white p-2.5 rounded-lg border border-slate-200/60 break-words">
                     {inspectItem.messageBody}
@@ -573,7 +573,7 @@ export default function OutboxDashboardPage() {
                     retryMutation.mutate(inspectItem.id);
                     setInspectItem(null);
                   }}
-                  className={`px-4 py-2 text-white rounded-xl font-bold text-xs transition flex items-center gap-1.5 ${
+                  className={`px-4 py-2 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 ${
                     inspectItem.status === 'Pending'
                       ? 'bg-amber-600 hover:bg-amber-700'
                       : 'bg-rose-600 hover:bg-rose-700'
@@ -593,7 +593,7 @@ export default function OutboxDashboardPage() {
 
               <button
                 onClick={() => setInspectItem(null)}
-                className="px-5 py-2 bg-slate-900 text-white rounded-xl font-bold text-xs hover:bg-slate-800 transition"
+                className="px-5 py-2 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-slate-800 transition"
               >
                 Close
               </button>

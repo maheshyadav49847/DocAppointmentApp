@@ -323,11 +323,11 @@ export default function PatientsPage() {
         {/* View Content */}
         <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
           {viewMode === 'table' ? (
-            <div className="bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm relative">
+            <div className="overflow-x-auto bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
+                <thead>
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id}>
+                    <tr key={headerGroup.id} className="bg-slate-50 border-b border-slate-200">
                       {headerGroup.headers.map(header => (
                         <th key={header.id} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                           {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}

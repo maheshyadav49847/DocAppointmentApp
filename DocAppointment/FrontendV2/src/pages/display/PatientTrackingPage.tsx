@@ -93,8 +93,8 @@ export default function PatientTrackingPage() {
       <main className="max-w-md mx-auto p-4 space-y-4">
         
         {/* Doctor Info */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl font-black">
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xl font-black">
             {queue.doctorName?.charAt(0) || "D"}
           </div>
           <div className="flex-1">
@@ -111,7 +111,7 @@ export default function PatientTrackingPage() {
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-amber-50 rounded-3xl p-8 border border-amber-200 shadow-sm text-center relative overflow-hidden"
+              className="bg-amber-50 rounded-xl p-8 border border-amber-200 shadow-sm text-center relative overflow-hidden"
             >
               <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Pause className="w-8 h-8" />
@@ -127,7 +127,7 @@ export default function PatientTrackingPage() {
               )}
             </motion.div>
           ) : !hasActivePatient ? (
-            <div className="bg-white rounded-3xl p-10 border border-slate-200 shadow-sm text-center">
+            <div className="bg-white rounded-xl p-10 border border-slate-200 shadow-sm text-center">
               <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
                 <ShieldCheck className="w-8 h-8" />
               </div>
@@ -139,7 +139,7 @@ export default function PatientTrackingPage() {
               key={queue.currentTokenNumber}
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-8 shadow-xl text-center relative overflow-hidden text-white"
+              className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-8 shadow-xl text-center relative overflow-hidden text-white"
             >
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
               
@@ -151,7 +151,7 @@ export default function PatientTrackingPage() {
                 {queue.currentTokenNumber}
               </div>
               
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 inline-block w-full max-w-[280px]">
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 inline-block w-full max-w-[280px]">
                 <p className="font-bold text-lg truncate drop-shadow-sm">{queue.currentPatientName}</p>
               </div>
             </motion.div>
@@ -160,12 +160,12 @@ export default function PatientTrackingPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
             <Users className="w-5 h-5 text-indigo-500 mb-2" />
             <p className="text-3xl font-black text-slate-800 mb-1 tabular-nums tracking-tight">{queue.waitingCount ?? 0}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waiting</p>
           </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
             <Clock className="w-5 h-5 text-indigo-500 mb-2" />
             <p className="text-3xl font-black text-slate-800 mb-1 tabular-nums tracking-tight">~{avgMinutes}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Min/Patient</p>
@@ -173,7 +173,7 @@ export default function PatientTrackingPage() {
         </div>
 
         {/* Your Info Card placeholder */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center">
+        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center">
           <p className="text-sm font-medium text-slate-500 mb-4">Want to track your own position?</p>
           <div className="flex justify-center gap-2">
              <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold border border-slate-200 shadow-inner">

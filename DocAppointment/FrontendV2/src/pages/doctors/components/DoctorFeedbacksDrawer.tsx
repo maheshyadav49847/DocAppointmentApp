@@ -94,7 +94,7 @@ export default function DoctorFeedbacksDrawer({ isOpen, onClose, doctor }: Docto
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-slate-500">Average Rating</p>
                       <div className="flex items-end gap-2 mt-1">

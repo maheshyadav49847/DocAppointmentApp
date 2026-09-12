@@ -352,11 +352,11 @@ export default function AnalyticsPage() {
               <h3 className="text-base font-semibold text-slate-900 mb-6">Doctor Utilization (%)</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                  <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                     <tr>
-                      <th className="px-4 py-3 rounded-l-lg">Doctor</th>
+                      <th className="px-4 py-3">Doctor</th>
                       <th className="px-4 py-3">Booked / Capacity</th>
-                      <th className="px-4 py-3 rounded-r-lg">Utilization</th>
+                      <th className="px-4 py-3">Utilization</th>
                     </tr>
                   </thead>
                   <tbody>

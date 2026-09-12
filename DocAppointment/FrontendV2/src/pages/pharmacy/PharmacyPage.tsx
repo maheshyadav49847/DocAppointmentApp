@@ -326,12 +326,11 @@ export default function PharmacyPage() {
               </button>
             </div>
           ) : (
-            <div className="bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm relative overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[600px]">
-                <thead className="bg-slate-50 sticky top-0 sm:-top-6 z-20 shadow-sm outline outline-1 outline-slate-200">
+            <div className="overflow-x-auto bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[600px]">
+                <thead>
                   {table.getHeaderGroups().map(headerGroup => (
-                    <tr key={headerGroup.id}>
+                    <tr key={headerGroup.id} className="bg-slate-50 border-b border-slate-200">
                       {headerGroup.headers.map(header => (
                         <th key={header.id} className={`group/th px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap bg-slate-50 ${header.id === 'actions' ? 'text-right' : ''}`}>
                           {header.isPlaceholder ? null : (
@@ -368,7 +367,6 @@ export default function PharmacyPage() {
                 </tbody>
               </table>
             </div>
-          </div>
           )}
         </div>
 

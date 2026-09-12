@@ -174,7 +174,7 @@ export default function PatientLifecyclePage() {
       </div>
 
       {/* Control & Filter Bar */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Branch Filter */}
           {isMultiBranch && (
@@ -188,7 +188,7 @@ export default function PatientLifecyclePage() {
                   setSelectedBranch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               >
                 <option value="all">All Branches</option>
                 {myBranches.map((b: any) => (
@@ -211,7 +211,7 @@ export default function PatientLifecyclePage() {
                 setSelectedDoctor(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="all">All Doctors</option>
               {doctors.map((d: any) => (
@@ -233,7 +233,7 @@ export default function PatientLifecyclePage() {
                 setDatePreset(e.target.value);
                 setPage(1);
               }}
-              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -257,7 +257,7 @@ export default function PatientLifecyclePage() {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             </div>
@@ -345,7 +345,7 @@ export default function PatientLifecyclePage() {
         {isLoading ? (
           <PageLoader message="Loading patient lifecycle records..." />
         ) : items.length === 0 ? (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-12 text-center rounded-xl border border-slate-200 shadow-sm">
             <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
               <GitCommitHorizontal className="w-8 h-8" />
             </div>
@@ -356,12 +356,12 @@ export default function PatientLifecyclePage() {
           items.map((item: any) => (
             <div
               key={item.tokenId}
-              className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+              className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
             >
               {/* Card Header: Patient Identity & Global Status */}
               <div className="p-4 sm:p-5 bg-slate-50/60 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white font-black text-base flex items-center justify-center shadow-sm">
                     {item.patientName.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -590,10 +590,10 @@ export default function PatientLifecyclePage() {
       {/* Inspect Item Modal */}
       {inspectItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-5">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black">
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black">
                   {inspectItem.patientName.charAt(0)}
                 </div>
                 <div>

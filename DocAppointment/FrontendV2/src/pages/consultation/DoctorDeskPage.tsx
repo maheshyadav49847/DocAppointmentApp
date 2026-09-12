@@ -246,10 +246,10 @@ export default function DoctorDeskPage() {
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   key={session.id}
-                  className="bg-white group border border-slate-200 rounded-2xl p-6 shadow-sm transition-all text-left flex flex-col justify-between"
+                  className="bg-white group border border-slate-200 rounded-xl p-6 shadow-sm transition-all text-left flex flex-col justify-between"
                 >
                   <div className="mb-6">
-                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 border border-indigo-100/50">
+                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center mb-4 border border-indigo-100/50">
                       <Activity className="w-6 h-6" />
                     </div>
                     <h3 className="font-bold text-slate-800 text-lg group-hover:text-indigo-700 transition-colors line-clamp-1">{session.sessionName || 'Consultation Session'}</h3>
@@ -268,7 +268,7 @@ export default function DoctorDeskPage() {
                   <button
                     onClick={() => initializeQueueMutation.mutate(session.id)}
                     disabled={initializeQueueMutation.isPending}
-                    className="w-full bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 py-2.5 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-transparent border border-indigo-600 text-indigo-600 hover:bg-indigo-50 py-2.5 rounded-lg font-bold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                   >
                     {initializeQueueMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 text-indigo-600" />}
                     Start Session
@@ -277,7 +277,7 @@ export default function DoctorDeskPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center flex flex-col items-center max-w-lg shadow-sm">
+            <div className="bg-white p-8 rounded-xl border border-slate-200 text-center flex flex-col items-center max-w-lg shadow-sm">
               <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
                 <Play className="w-8 h-8 ml-1" />
               </div>
@@ -288,7 +288,7 @@ export default function DoctorDeskPage() {
               <button
                 onClick={() => quickStartMutation.mutate()}
                 disabled={quickStartMutation.isPending}
-                className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {quickStartMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
                 Quick Start Walk-in Session
