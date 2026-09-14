@@ -781,7 +781,7 @@ namespace CodeX.Api.Controllers
             {
                 patient = await _context.Patients
                     .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && p.OrganizationId == queue.Branch.OrganizationId && !p.IsDeleted);
 
                 if (patient != null)
                 {
@@ -869,7 +869,7 @@ namespace CodeX.Api.Controllers
             {
                 var matchingPatients = await _context.Patients
                     .IgnoreQueryFilters()
-                    .Where(p => !string.IsNullOrEmpty(chatId) && p.TelegramChatId == chatId && !p.IsDeleted)
+                    .Where(p => !string.IsNullOrEmpty(chatId) && p.TelegramChatId == chatId && p.OrganizationId == queue.Branch.OrganizationId && !p.IsDeleted)
                     .ToListAsync();
 
                 if (matchingPatients.Count == 0) matchingPatients.Add(patient);
@@ -940,7 +940,7 @@ namespace CodeX.Api.Controllers
 
             var patients = await _context.Patients
                 .IgnoreQueryFilters()
-                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .Where(p => p.TelegramChatId == chatId && p.OrganizationId == branch.OrganizationId && !p.IsDeleted)
                 .ToListAsync();
 
             if (patients.Count == 0)
@@ -1044,7 +1044,7 @@ namespace CodeX.Api.Controllers
 
             var patients = await _context.Patients
                 .IgnoreQueryFilters()
-                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .Where(p => p.TelegramChatId == chatId && p.OrganizationId == branch.OrganizationId && !p.IsDeleted)
                 .ToListAsync();
             if (patients.Count == 0) return NotFound("Patient not found");
 

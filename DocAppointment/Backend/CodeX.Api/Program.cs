@@ -28,7 +28,7 @@ if (string.IsNullOrEmpty(jwtSettingsConfig?.Secret) || jwtSettingsConfig.Secret.
 {
     throw new InvalidOperationException("CRITICAL: JWT Secret is not configured or is less than 32 characters.");
 }
-var allowedOriginsStr = builder.Configuration["AllowedOrigins"];
+var   = builder.Configuration["AllowedOrigins"];
 if (builder.Environment.IsProduction() && (string.IsNullOrEmpty(allowedOriginsStr) || allowedOriginsStr.Contains("*")))
 {
     throw new InvalidOperationException("CRITICAL: Wildcard CORS origins (*) are not allowed in Production.");

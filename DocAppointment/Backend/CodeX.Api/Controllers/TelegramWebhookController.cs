@@ -93,7 +93,9 @@ namespace CodeX.Api.Controllers
                             var queueIdStr = payload["queueId"];
                             if (Guid.TryParse(queueIdStr, out var qId))
                             {
-                                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+                                var patient = await _context.Patients
+                                    .IgnoreQueryFilters()
+                                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && p.OrganizationId == branch.OrganizationId && !p.IsDeleted);
                                 if (patient != null)
                                 {
                                     var queue = await _context.DailyQueues.Include(q => q.Doctor).FirstOrDefaultAsync(q => q.Id == qId);
@@ -179,11 +181,11 @@ namespace CodeX.Api.Controllers
             var phone = NormalizationHelper.NormalizePhone(contact.PhoneNumber);
             var (dialCode, localPhone) = NormalizationHelper.SplitPhoneAndDialCode(phone);
 
-            // Find existing patient by phone
+            // Find existing patient by phone within this organization
             var phoneVars = NormalizationHelper.GetPhoneVariations(phone);
             var patient = await _context.Patients
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => !p.IsDeleted && phoneVars.Contains(p.Phone));
+                .FirstOrDefaultAsync(p => !p.IsDeleted && p.OrganizationId == orgId && phoneVars.Contains(p.Phone));
 
             if (patient == null)
             {
@@ -199,10 +201,10 @@ namespace CodeX.Api.Controllers
             }
             else
             {
-                // Update all matching patients to have this Telegram Chat ID (in case of family profiles)
+                // Update all matching patients in this organization to have this Telegram Chat ID (in case of family profiles)
                 var patients = await _context.Patients
                     .IgnoreQueryFilters()
-                    .Where(p => !p.IsDeleted && phoneVars.Contains(p.Phone))
+                    .Where(p => !p.IsDeleted && p.OrganizationId == orgId && phoneVars.Contains(p.Phone))
                     .ToListAsync();
                 foreach (var p in patients)
                 {
@@ -254,16 +256,19 @@ namespace CodeX.Api.Controllers
         {
             var cleanText = text.Trim();
 
-            // Look up patient by Telegram Chat ID
-            var patient = await _context.Patients
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
-
-            // Determine current language: from patient preferences or ChatSession or incoming rawLang
-            string lang = NormalizeLanguage(rawLang);
             var branch = await _context.Branches
                 .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(b => b.Id == branchId && !b.IsDeleted);
+
+            // Look up patient by Telegram Chat ID within this branch's organization
+            var patient = branch != null 
+                ? await _context.Patients
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => !p.IsDeleted && p.OrganizationId == branch.OrganizationId && p.TelegramChatId == chatId)
+                : null;
+
+            // Determine current language: from patient preferences or ChatSession or incoming rawLang
+            string lang = NormalizeLanguage(rawLang);
 
             ChatSession? chatSession = null;
             if (patient != null && !string.IsNullOrEmpty(patient.Phone))
@@ -713,7 +718,7 @@ namespace CodeX.Api.Controllers
 
             var patientIds = await _context.Patients
                 .IgnoreQueryFilters()
-                .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                .Where(p => p.TelegramChatId == chatId && p.OrganizationId == branch.OrganizationId && !p.IsDeleted)
                 .Select(p => p.Id)
                 .ToListAsync();
 
@@ -979,7 +984,7 @@ namespace CodeX.Api.Controllers
 
             var patient = await _context.Patients
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => !p.IsDeleted && p.TelegramChatId == chatId);
+                .FirstOrDefaultAsync(p => !p.IsDeleted && p.OrganizationId == orgId && p.TelegramChatId == chatId);
             if (patient == null) return;
 
             string cbLang = "hi";
@@ -1043,7 +1048,7 @@ namespace CodeX.Api.Controllers
 
                 var patientIds = await _context.Patients
                     .IgnoreQueryFilters()
-                    .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                    .Where(p => p.TelegramChatId == chatId && p.OrganizationId == orgId && !p.IsDeleted)
                     .Select(p => p.Id)
                     .ToListAsync();
 
@@ -1068,7 +1073,7 @@ namespace CodeX.Api.Controllers
                     // Move currentFormId to consumedFormIds and reset currentFormId so subsequent HI gets a fresh form
                     var allPatients = await _context.Patients
                         .IgnoreQueryFilters()
-                        .Where(p => p.TelegramChatId == chatId && !p.IsDeleted)
+                        .Where(p => p.TelegramChatId == chatId && p.OrganizationId == orgId && !p.IsDeleted)
                         .ToListAsync();
 
                     foreach (var p in allPatients)
@@ -1195,9 +1200,11 @@ namespace CodeX.Api.Controllers
             var token = branch?.TelegramBotToken;
             if (string.IsNullOrWhiteSpace(token)) return;
 
-            var patient = await _context.Patients
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && !p.IsDeleted);
+            var patient = branch != null
+                ? await _context.Patients
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(p => p.TelegramChatId == chatId && p.OrganizationId == branch.OrganizationId && !p.IsDeleted)
+                : null;
 
             var formId = await GetOrCreateCurrentFormId(patient);
 
