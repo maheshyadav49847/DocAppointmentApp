@@ -19,7 +19,7 @@ namespace CodeX.Application.Features.Medicines.Commands
 
     public class ImportMedicinesCommand : IRequest<int>
     {
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
         public Guid UserId { get; set; }
         public List<MedicineImportDto> Medicines { get; set; } = new();
     }
@@ -38,9 +38,8 @@ namespace CodeX.Application.Features.Medicines.Commands
             if (request.Medicines == null || !request.Medicines.Any())
                 return 0;
 
-            // Fetch existing records for this organization to avoid exact duplicates
+            // Fetch existing records globally to avoid duplicates in shared catalog
             var existingRecords = await _context.Medicines.AsNoTracking()
-                .Where(m => m.OrganizationId == request.OrganizationId)
                 .Select(m => new { m.Name, m.Manufacturer, m.GenericName, m.MedicineTypeId })
                 .ToListAsync(cancellationToken);
 

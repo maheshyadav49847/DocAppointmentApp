@@ -6,7 +6,7 @@ namespace CodeX.Application.Features.Medicines.Commands
     public class UpdateMedicineCommand : IRequest<Unit>
     {
         public Guid Id { get; set; }
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? GenericName { get; set; }
         public Guid? MedicineTypeId { get; set; }
@@ -27,7 +27,7 @@ namespace CodeX.Application.Features.Medicines.Commands
         {
             var entity = await _context.Medicines.FindAsync(new object[] { request.Id }, cancellationToken);
 
-            if (entity == null || entity.OrganizationId != request.OrganizationId)
+            if (entity == null || entity.IsDeleted)
             {
                 throw new KeyNotFoundException($"MedicineMaster with id {request.Id} not found");
             }

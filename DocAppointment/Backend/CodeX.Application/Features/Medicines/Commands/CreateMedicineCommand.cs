@@ -6,7 +6,7 @@ namespace CodeX.Application.Features.Medicines.Commands
 {
     public class CreateMedicineCommand : IRequest<Guid>
     {
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? GenericName { get; set; }
         public Guid? MedicineTypeId { get; set; }

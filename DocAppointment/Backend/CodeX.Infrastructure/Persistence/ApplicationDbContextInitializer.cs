@@ -76,7 +76,8 @@ namespace CodeX.Infrastructure.Persistence
                     SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
                     SystemPermissions.Patients.View, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle, SystemPermissions.DoctorDesk.View,
                     SystemPermissions.Doctors.View,
-                    SystemPermissions.Billing.View
+                    SystemPermissions.Billing.View,
+                    SystemPermissions.Pharmacy.View
                 }),
                 ("Receptionist", "Receptionist access to manage queue and register patients", new[]
                 {
@@ -283,7 +284,8 @@ namespace CodeX.Infrastructure.Persistence
                         SystemPermissions.Sessions.View, SystemPermissions.Sessions.Add, SystemPermissions.Sessions.Edit, SystemPermissions.Sessions.Delete,
                         SystemPermissions.Patients.View, SystemPermissions.Patients.ViewHistory, SystemPermissions.Patients.ViewLifecycle, SystemPermissions.DoctorDesk.View,
                         SystemPermissions.Doctors.View,
-                        SystemPermissions.Billing.View
+                        SystemPermissions.Billing.View,
+                        SystemPermissions.Pharmacy.View
                     }
                 },
                 {

@@ -26,14 +26,19 @@ namespace CodeX.Api.Controllers
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        private Guid GetOrganizationId()
+        private Guid? TryGetOrganizationId()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value ?? User.FindFirst("orgId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim) || !Guid.TryParse(orgIdClaim, out var orgId))
+            if (!string.IsNullOrEmpty(orgIdClaim) && Guid.TryParse(orgIdClaim, out var orgId) && orgId != Guid.Empty)
             {
-                throw new UnauthorizedAccessException("Organization context not found in token.");
+                return orgId;
             }
-            return orgId;
+            return null;
+        }
+
+        private Guid GetOrganizationId()
+        {
+            return TryGetOrganizationId() ?? Guid.Empty;
         }
 
         private Guid GetUserId()
@@ -55,7 +60,7 @@ namespace CodeX.Api.Controllers
         {
             var query = new GetMedicinesQuery
             {
-                OrganizationId = GetOrganizationId(),
+                OrganizationId = TryGetOrganizationId(),
                 SearchTerm = search,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
@@ -90,7 +95,7 @@ namespace CodeX.Api.Controllers
             var query = new GetMedicineByIdQuery
             {
                 Id = id,
-                OrganizationId = GetOrganizationId()
+                OrganizationId = TryGetOrganizationId()
             };
             var result = await _mediator.Send(query);
             return Ok(result);
@@ -100,7 +105,7 @@ namespace CodeX.Api.Controllers
         [HasPermission(SystemPermissions.Pharmacy.AddStock)]
         public async Task<IActionResult> CreateMedicine([FromBody] CreateMedicineCommand command)
         {
-            command.OrganizationId = GetOrganizationId();
+            command.OrganizationId = TryGetOrganizationId();
             var id = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetMedicineById), new { id }, id);
         }
@@ -113,7 +118,7 @@ namespace CodeX.Api.Controllers
             {
                 return BadRequest("ID mismatch");
             }
-            command.OrganizationId = GetOrganizationId();
+            command.OrganizationId = TryGetOrganizationId();
             await _mediator.Send(command);
             return NoContent();
         }
@@ -125,7 +130,7 @@ namespace CodeX.Api.Controllers
             var command = new DeleteMedicineCommand
             {
                 Id = id,
-                OrganizationId = GetOrganizationId()
+                OrganizationId = TryGetOrganizationId()
             };
             await _mediator.Send(command);
             return NoContent();

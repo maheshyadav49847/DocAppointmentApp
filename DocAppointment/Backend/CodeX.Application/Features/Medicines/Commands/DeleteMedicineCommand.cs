@@ -6,7 +6,7 @@ namespace CodeX.Application.Features.Medicines.Commands
     public class DeleteMedicineCommand : IRequest<Unit>
     {
         public Guid Id { get; set; }
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
     }
 
     public class DeleteMedicineCommandHandler : IRequestHandler<DeleteMedicineCommand, Unit>
@@ -22,7 +22,7 @@ namespace CodeX.Application.Features.Medicines.Commands
         {
             var entity = await _context.Medicines.FindAsync(new object[] { request.Id }, cancellationToken);
 
-            if (entity == null || entity.OrganizationId != request.OrganizationId)
+            if (entity == null || entity.IsDeleted)
             {
                 throw new KeyNotFoundException($"MedicineMaster with id {request.Id} not found");
             }

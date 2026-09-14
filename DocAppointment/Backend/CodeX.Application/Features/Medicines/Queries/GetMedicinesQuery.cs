@@ -8,7 +8,7 @@ namespace CodeX.Application.Features.Medicines.Queries
 {
     public class GetMedicinesQuery : IRequest<PaginatedList<MedicineDto>>
     {
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
         public Guid? DoctorId { get; set; }
         public string? SearchTerm { get; set; }
         public int PageNumber { get; set; } = 1;

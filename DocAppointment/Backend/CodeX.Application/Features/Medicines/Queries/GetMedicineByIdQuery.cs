@@ -8,7 +8,7 @@ namespace CodeX.Application.Features.Medicines.Queries
     public class GetMedicineByIdQuery : IRequest<MedicineDto>
     {
         public Guid Id { get; set; }
-        public Guid OrganizationId { get; set; }
+        public Guid? OrganizationId { get; set; }
     }
 
     public class GetMedicineByIdQueryHandler : IRequestHandler<GetMedicineByIdQuery, MedicineDto>

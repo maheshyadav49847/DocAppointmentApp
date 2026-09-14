@@ -27,7 +27,8 @@ namespace CodeX.Infrastructure.Persistence.Configurations
             builder.HasOne(m => m.Organization)
                 .WithMany()
                 .HasForeignKey(m => m.OrganizationId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasOne(m => m.MedicineType)
                 .WithMany()
