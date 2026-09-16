@@ -11,6 +11,7 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
     {
         public string OrgName { get; init; } = string.Empty;
         public string OrgSlug { get; init; } = string.Empty;
+        public string AdminFullName { get; init; } = string.Empty;
         public string AdminEmail { get; init; } = string.Empty;
         public string AdminPassword { get; init; } = string.Empty;
         public string AdminPhoneNumber { get; init; } = string.Empty;
@@ -83,9 +84,30 @@ namespace CodeX.Application.Features.Organizations.Commands.RegisterOrganization
             }
 
             // 2. Create OrgAdmin Staff
-            var emailParts = normalizedEmail.Split('@')[0].Split('.');
-            var firstName = emailParts.Length > 0 ? char.ToUpper(emailParts[0][0]) + emailParts[0].Substring(1) : "Admin";
-            var lastName = emailParts.Length > 1 ? char.ToUpper(emailParts[1][0]) + emailParts[1].Substring(1) : "User";
+            string firstName;
+            string lastName;
+
+            if (!string.IsNullOrWhiteSpace(request.AdminFullName))
+            {
+                var nameParts = request.AdminFullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                firstName = nameParts[0];
+                lastName = nameParts.Length > 1 ? string.Join(" ", nameParts.Skip(1)) : string.Empty;
+            }
+            else
+            {
+                var emailUsername = normalizedEmail.Split('@')[0];
+                var dotParts = emailUsername.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                if (dotParts.Length > 1)
+                {
+                    firstName = char.ToUpper(dotParts[0][0]) + dotParts[0].Substring(1);
+                    lastName = char.ToUpper(dotParts[1][0]) + dotParts[1].Substring(1);
+                }
+                else
+                {
+                    firstName = char.ToUpper(emailUsername[0]) + emailUsername.Substring(1);
+                    lastName = string.Empty;
+                }
+            }
 
             PasswordValidator.Validate(request.AdminPassword, _configuration);
 

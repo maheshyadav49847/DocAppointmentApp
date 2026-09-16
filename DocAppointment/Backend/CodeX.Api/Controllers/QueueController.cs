@@ -44,15 +44,16 @@ namespace CodeX.Api.Controllers
                                 s.DoctorId == command.DoctorId &&
                                 s.Branch.OrganizationId == _currentUserService.OrgId);
 
-                // Branch Isolation
-                if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && !_currentUserService.DoctorId.HasValue)
+                // Branch Isolation: OrgAdmin and SuperAdmin have org-wide authority.
+                var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+                if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && !_currentUserService.DoctorId.HasValue)
                 {
                     sessionQuery = sessionQuery.Where(s => s.BranchId == _currentUserService.BranchId.Value);
                 }
 
                 if (!await sessionQuery.AnyAsync())
                 {
-                    return Forbid();
+                    return NotFound("Session not found for the specified branch and doctor.");
                 }
             }
 
@@ -64,65 +65,6 @@ namespace CodeX.Api.Controllers
         public async Task<ActionResult<List<CodeX.Application.Features.Queue.Queries.SearchQueuePatients.QueuePatientDto>>> SearchPatients([FromQuery] Guid? branchId, [FromQuery] string? search)
         {
             return await Mediator.Send(new CodeX.Application.Features.Queue.Queries.SearchQueuePatients.SearchQueuePatientsQuery(branchId, search ?? string.Empty));
-        }
-
-        [HttpPost("quick-start")]
-        [HasPermission($"{SystemPermissions.Queue.CallNext},{SystemPermissions.DoctorDesk.CallNext}")] // Ensures Doctor/Admin can do this
-        public async Task<ActionResult<Guid>> QuickStart()
-        {
-            var doctorId = _currentUserService.DoctorId;
-            if (doctorId == null)
-            {
-                // Fallback: If not a doctor, maybe they have a doctor assigned or we try to find one in the branch
-                var firstDoctor = await _context.Doctors.FirstOrDefaultAsync(d => d.OrganizationId == _currentUserService.OrgId);
-                if (firstDoctor == null) return BadRequest(new { message = "No doctor profile found for quick start." });
-                doctorId = firstDoctor.Id;
-            }
-
-            var branchId = _currentUserService.BranchId;
-            if (branchId == null || branchId == Guid.Empty)
-            {
-                var firstBranch = await _context.Branches.FirstOrDefaultAsync(b => b.OrganizationId == _currentUserService.OrgId);
-                if (firstBranch == null) return BadRequest(new { message = "No branch found for quick start." });
-                branchId = firstBranch.Id;
-            }
-
-            var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(null); // Assuming default TZ
-            var tomorrow = today.AddDays(1);
-
-            // Check if queue already running
-            var existingQueue = await _context.DailyQueues
-                .Where(q => q.DoctorId == doctorId && q.BranchId == branchId && q.QueueDate >= today && q.QueueDate < tomorrow && q.Status != QueueStatus.Completed && q.Status != QueueStatus.Cancelled)
-                .OrderByDescending(q => q.CreatedAt)
-                .FirstOrDefaultAsync();
-
-            if (existingQueue != null)
-            {
-                return Ok(existingQueue.Id); // Queue already running, just return it
-            }
-
-            // Find or create a session for today
-            var session = await _context.Sessions
-                .FirstOrDefaultAsync(s => s.DoctorId == doctorId && s.BranchId == branchId && s.SessionName == "Walk-in Session");
-
-            if (session == null)
-            {
-                session = new CodeX.Domain.Entities.Session
-                {
-                    DoctorId = doctorId.Value,
-                    BranchId = branchId.Value,
-                    SessionName = "Walk-in Session",
-                    StartTime = new TimeSpan(0, 0, 0),
-                    EndTime = new TimeSpan(23, 59, 59),
-                    IsDaily = true,
-                    DefaultCapacity = 100,
-                    IsActive = true
-                };
-                _context.Sessions.Add(session);
-                await _context.SaveChangesAsync(default);
-            }
-
-            return await Mediator.Send(new CreateDailyQueueCommand { DoctorId = doctorId.Value, SessionId = session.Id });
         }
 
         [HttpGet("branches")]
@@ -261,11 +203,12 @@ namespace CodeX.Api.Controllers
         [HasPermission($"{SystemPermissions.Queue.View},{SystemPermissions.DoctorDesk.View}")]
         public async Task<ActionResult<QueueStatsDto>> GetStats(Guid branchId)
         {
-            // IDOR Protection
+            // IDOR Protection: Ensure branch exists and belongs to current org
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
-            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return Forbid();
+            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return NotFound("Branch not found or has been deleted.");
 
-            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId && !_currentUserService.DoctorId.HasValue)
+            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+            if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId && !_currentUserService.DoctorId.HasValue)
             {
                 return Forbid();
             }
@@ -645,10 +588,28 @@ namespace CodeX.Api.Controllers
                 query = query.Where(q => q.Branch.OrganizationId == _currentUserService.OrgId);
             }
 
-            // If user has a DoctorId, restrict them to their own queues ONLY (ignore BranchId filter for them)
-            if (_currentUserService.DoctorId.HasValue)
+            // OrgAdmin and SuperAdmin have full authority over all queues in their organization
+            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+            if (isOrgAdminOrSuper)
             {
-                query = query.Where(q => q.DoctorId == _currentUserService.DoctorId.Value);
+                return await query.AnyAsync();
+            }
+
+            // If user has a DoctorId, restrict them to their own queues (auto-healing stale doctor claims if needed)
+            var doctorId = _currentUserService.DoctorId;
+            if (doctorId.HasValue)
+            {
+                var isDoctorActive = await _context.Doctors.AnyAsync(d => d.Id == doctorId.Value && !d.IsDeleted);
+                if (!isDoctorActive && Guid.TryParse(_currentUserService.UserId, out var userId))
+                {
+                    var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.Id == userId && !s.IsDeleted);
+                    if (staff?.DoctorId != null)
+                    {
+                        doctorId = staff.DoctorId.Value;
+                    }
+                }
+
+                query = query.Where(q => q.DoctorId == doctorId.Value);
             }
             // For other staff (e.g. receptionists), restrict by their current active BranchId
             else if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)

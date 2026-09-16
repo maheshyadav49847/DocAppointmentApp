@@ -51,20 +51,20 @@ export default function EndSessionModal({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
+          className="bg-white rounded shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]"
         >
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <Power className="w-5 h-5 text-rose-500" />
               End Session
             </h3>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-100 rounded transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="p-6 overflow-y-auto space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+            <div className="bg-amber-50 border border-amber-200 rounded p-4 flex gap-3">
               <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
                 <p className="font-semibold mb-1">There are {totalRemaining} remaining patients.</p>
@@ -75,7 +75,7 @@ export default function EndSessionModal({
 
             <div className="space-y-3">
               <label 
-                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-4 rounded border-2 cursor-pointer transition-colors ${
                   action === 'CancelRemaining' 
                     ? 'border-rose-500 bg-rose-50' 
                     : 'border-slate-200 hover:border-slate-300'
@@ -100,7 +100,7 @@ export default function EndSessionModal({
               </label>
 
               <label 
-                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-4 rounded border-2 cursor-pointer transition-colors ${
                   action === 'TransferRemaining' 
                     ? 'border-indigo-500 bg-indigo-50' 
                     : 'border-slate-200 hover:border-slate-300'
@@ -144,14 +144,14 @@ export default function EndSessionModal({
           <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
             <button 
               onClick={onClose} 
-              className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+              className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 rounded transition-colors"
             >
               Cancel
             </button>
             <button 
               onClick={handleConfirm}
               disabled={isPending || (action === 'TransferRemaining' && !targetSessionId)}
-              className="btn-danger px-6 py-2.5 rounded-xl shadow-sm"
+              className="btn-danger px-6 py-2.5 rounded shadow-sm"
             >
               {isPending ? 'Ending...' : 'End Session'}
             </button>

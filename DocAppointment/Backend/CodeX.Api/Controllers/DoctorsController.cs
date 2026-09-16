@@ -59,14 +59,16 @@ namespace CodeX.Api.Controllers
         [HasPermission(SystemPermissions.Doctors.View)]
         public async Task<ActionResult<List<DoctorDto>>> GetByBranch(Guid branchId)
         {
-            // Branch Isolation IDOR Protection
-            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId)
+            var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
+            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return NotFound("Branch not found or has been deleted.");
+
+            // Branch Isolation IDOR Protection: OrgAdmin, SuperAdmin, and Doctors have org-wide authority.
+            // Only branch-locked staff (e.g. Receptionist) are restricted to their assigned branch.
+            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+            if (!isOrgAdminOrSuper && !_currentUserService.DoctorId.HasValue && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != branchId)
             {
                 return Forbid();
             }
-
-            var branchExists = await _context.Branches.AnyAsync(b => b.Id == branchId && b.OrganizationId == _currentUserService.OrgId);
-            if (!branchExists && _currentUserService.OrgId != Guid.Empty) return Forbid();
 
             return await Mediator.Send(new GetDoctorsListQuery(branchId));
         }

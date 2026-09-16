@@ -29,6 +29,8 @@ import { useAuthStore } from "./store/authStore"
 import TelegramBookingForm from "./pages/telegram/TelegramBookingForm"
 import { usePermissions } from "./hooks/usePermissions"
 import { useAppHub } from "./hooks/useAppHub"
+import OnboardingWizardPage from "./pages/onboarding/OnboardingWizardPage"
+import { OnboardingRouteGuard } from "./components/auth/OnboardingRouteGuard"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -78,8 +80,9 @@ function App() {
         <Route path="/tv/:branchId" element={<TvDisplayPage />} />
         <Route path="/track/:queueId" element={<PatientTrackingPage />} />
         <Route path="/telegram-form" element={<TelegramBookingForm />} />
+        <Route path="/onboarding" element={<ProtectedRoute><OnboardingRouteGuard><OnboardingWizardPage /></OnboardingRouteGuard></ProtectedRoute>} />
 
-        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+        <Route element={<ProtectedRoute><OnboardingRouteGuard><DashboardLayout /></OnboardingRouteGuard></ProtectedRoute>}>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/queue" element={<PermissionRoute permissions={["Queue.View"]}><QueueDashboardPage /></PermissionRoute>} />
           <Route path="/doctor-desk" element={<PermissionRoute permissions={["DoctorDesk.View"]}><DoctorDeskPage /></PermissionRoute>} />

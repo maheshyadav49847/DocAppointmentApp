@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import { Building, Link as LinkIcon, Mail, Phone, Lock, UserPlus } from "lucide-react"
+import { Building, Link as LinkIcon, Mail, Phone, Lock, UserPlus, User } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import { authService } from "@/services/authService"
 const registerSchema = z.object({
   orgName: z.string().min(2, { message: "Organization name is required." }),
   orgSlug: z.string().min(2, { message: "Slug is required." }).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  adminFullName: z.string().min(2, { message: "Full name is required." }),
   adminEmail: z.string().email({ message: "Please enter a valid email address." }),
   adminPhoneNumber: z.string().min(10, { message: "Phone number must be valid." }),
   adminPassword: z.string()
@@ -50,6 +51,7 @@ export default function RegisterPage() {
       await authService.registerOrganization({
         orgName: data.orgName,
         orgSlug: data.orgSlug,
+        adminFullName: data.adminFullName,
         adminEmail: data.adminEmail,
         adminPhoneNumber: data.adminPhoneNumber,
         adminPassword: data.adminPassword,
@@ -125,6 +127,25 @@ export default function RegisterPage() {
             </p>
           ) : (
             <p className="text-xs text-slate-400 mt-1.5">Used for your hospital's public booking page.</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="adminFullName" className="text-slate-700 font-semibold text-sm flex items-center gap-1.5">
+            <User className="h-4 w-4 text-indigo-600" />
+            Admin Full Name
+          </Label>
+          <Input
+            id="adminFullName"
+            placeholder="e.g. Dr. Ganesh Ahire"
+            className="bg-slate-50/50 border-slate-200 text-slate-900 h-12 px-4 rounded-xl placeholder:text-slate-400 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 focus-visible:bg-white transition-all hover:border-slate-300"
+            {...register("adminFullName")}
+          />
+          {errors.adminFullName && (
+            <p className="text-xs text-red-500 mt-1.5 font-medium flex items-center gap-1">
+               <span className="w-1 h-1 rounded-full bg-red-500 inline-block"></span>
+               {errors.adminFullName.message}
+            </p>
           )}
         </div>
 

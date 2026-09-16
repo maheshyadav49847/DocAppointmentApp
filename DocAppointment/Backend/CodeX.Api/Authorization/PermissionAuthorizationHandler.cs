@@ -23,6 +23,13 @@ namespace CodeX.Api.Authorization
 
             _logger.LogInformation("Checking permissions. Required: {Required}. Role: {Role}, OrgId: {OrgId}", string.Join(", ", requiredPermissions), roleClaim, orgIdClaim);
 
+            // OrgAdmin and SuperAdmin possess all permissions across their organization by architecture rule
+            if (roleClaim == "SuperAdmin" || roleClaim == "OrgAdmin")
+            {
+                context.Succeed(requirement);
+                return;
+            }
+
             // If we have role and orgId, we check the DB directly to reflect permission changes instantly
             if (!string.IsNullOrEmpty(roleClaim) && Guid.TryParse(orgIdClaim, out var orgId))
             {
@@ -31,7 +38,9 @@ namespace CodeX.Api.Authorization
                 
                 var hasPermission = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(
                     System.Linq.Queryable.SelectMany(
-                        System.Linq.Queryable.Where(dbContext.Roles, r => r.Name == roleClaim && r.OrganizationId == orgId),
+                        Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(
+                            System.Linq.Queryable.Where(dbContext.Roles, r => r.Name == roleClaim && (r.OrganizationId == orgId || r.OrganizationId == Guid.Empty))
+                        ),
                         r => r.RolePermissions
                     ),
                     rp => requiredPermissions.Contains(rp.Permission)

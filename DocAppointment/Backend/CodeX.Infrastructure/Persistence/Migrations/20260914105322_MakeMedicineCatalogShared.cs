@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,9 +11,14 @@ namespace CodeX.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Medicines_Organizations_OrganizationId",
-                table: "Medicines");
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_Medicines_Organizations_OrganizationId') THEN
+                        ALTER TABLE ""Medicines"" DROP CONSTRAINT ""FK_Medicines_Organizations_OrganizationId"";
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "OrganizationId",
@@ -23,13 +28,15 @@ namespace CodeX.Infrastructure.Persistence.Migrations
                 oldClrType: typeof(Guid),
                 oldType: "uuid");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Medicines_Organizations_OrganizationId",
-                table: "Medicines",
-                column: "OrganizationId",
-                principalTable: "Organizations",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FK_Medicines_Organizations_OrganizationId') THEN
+                        ALTER TABLE ""Medicines"" ADD CONSTRAINT ""FK_Medicines_Organizations_OrganizationId""
+                        FOREIGN KEY (""OrganizationId"") REFERENCES ""Organizations"" (""Id"") ON DELETE SET NULL;
+                    END IF;
+                END $$;
+            ");
         }
 
         /// <inheritdoc />

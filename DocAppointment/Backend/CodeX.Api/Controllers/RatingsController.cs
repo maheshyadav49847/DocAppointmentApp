@@ -49,7 +49,8 @@ namespace CodeX.Api.Controllers
             {
                 var doctorQuery = _context.Doctors.Where(d => d.Id == doctorId && d.OrganizationId == _currentUserService.OrgId);
 
-                if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
+                var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+                if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty)
                 {
                     doctorQuery = doctorQuery.Where(d => d.Branches.Any(b => b.Id == _currentUserService.BranchId.Value));
                 }

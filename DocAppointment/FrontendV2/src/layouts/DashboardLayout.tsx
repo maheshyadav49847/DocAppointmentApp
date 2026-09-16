@@ -73,10 +73,13 @@ export default function DashboardLayout() {
   const isSessionActive = !!activeQueue;
 
   useEffect(() => {
-    if ((role === 'doctor' || role === 'orgadmin') && myBranches.length > 0 && !activeBranchId) {
-      setActiveBranchId(myBranches[0].id);
+    if (myBranches.length > 0) {
+      const isExistingBranch = activeBranchId && (activeBranchId === 'org' || myBranches.some(b => b.id === activeBranchId));
+      if (!isExistingBranch) {
+        setActiveBranchId(myBranches[0].id);
+      }
     }
-  }, [role, myBranches, activeBranchId, setActiveBranchId]);
+  }, [myBranches, activeBranchId, setActiveBranchId]);
 
   useEffect(() => {
     if (role === 'doctor' && isSessionActive && activeQueue.branchId) {

@@ -111,7 +111,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
           Invoice for <span className="font-semibold text-slate-700">{patientName}</span> is ready for payment.
         </p>
 
-        <div className="w-full bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
+        <div className="w-full bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-slate-500 text-sm">Total Billed:</span>
             <span className="font-semibold text-slate-700">₹{totalAmount}</span>
@@ -130,7 +130,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
 
         <button 
           onClick={onPrint}
-          className="w-full bg-white border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-white border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-md transition-colors flex items-center justify-center gap-2"
         >
           Print Bill Only
         </button>
@@ -148,7 +148,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
               <button
                 key={opt.label}
                 onClick={() => setSelectedMode(opt.value)}
-                className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${
+                className={`p-3 rounded-md border-2 flex flex-col items-center justify-center gap-2 transition-all ${
                   isSelected 
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm' 
                     : 'border-slate-100 bg-white text-slate-500 hover:border-indigo-200 hover:bg-slate-50'
@@ -249,7 +249,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
                     type="number"
                     value={singleAmount || ''}
                     onChange={(e) => setSingleAmount(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-lg font-bold text-slate-800 focus:bg-white focus:outline-indigo-500 focus:border-indigo-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-3 text-lg font-bold text-slate-800 focus:bg-white focus:outline-indigo-500 focus:border-indigo-500 transition-all"
                   />
                   {singleAmount > balanceDue && (
                     <p className="text-amber-600 text-xs mt-1.5 flex items-center gap-1">
@@ -266,7 +266,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
                       value={singleTxnId}
                       onChange={(e) => setSingleTxnId(e.target.value)}
                       placeholder="Enter reference number"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:bg-white focus:outline-indigo-500 focus:border-indigo-500 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-md px-4 py-3 text-sm focus:bg-white focus:outline-indigo-500 focus:border-indigo-500 transition-all"
                     />
                   </div>
                 )}
@@ -279,7 +279,7 @@ export const PaymentCheckoutUI: React.FC<PaymentCheckoutUIProps> = ({
           <button 
             onClick={handleSubmit}
             disabled={isProcessing || (selectedMode === 'split' ? !isSplitValid : !isSingleValid)}
-            className="w-full btn-primary py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all"
+            className="w-full btn-primary py-3.5 rounded-md flex items-center justify-center gap-2 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all"
           >
             {isProcessing ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>

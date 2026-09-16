@@ -123,7 +123,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
 
             <form noValidate autoComplete="off" onSubmit={handleSubmit} className="p-6">
               {error && (
-                <div className={`mb-6 p-4 text-sm border rounded-xl flex items-start gap-2 ${error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                <div className={`mb-6 p-4 text-sm border rounded-md flex items-start gap-2 ${error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
                   {error.toLowerCase().includes('already') || error.toLowerCase().includes('registered to') ? (
                     <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
                   ) : (
@@ -147,12 +147,12 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                       onFocus={() => setActiveField("name")}
                       onBlur={() => setTimeout(() => setActiveField(null), 200)}
                       placeholder="e.g. John Doe"
-                      className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                      className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-md text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
                       required
                       autoComplete="off"
                     />
                     {activeField === "name" && searchResults && searchResults.length > 0 && (
-                      <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto py-2 z-50">
+                      <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-md shadow-xl max-h-48 overflow-y-auto py-2 z-50">
                         {searchResults.map((patient: any) => (
                            <div 
                              key={patient.id} 
@@ -189,7 +189,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                         placeholder="10-digit number"
                       />
                     {activeField === "phone" && searchResults && searchResults.length > 0 && (
-                      <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto py-2 z-50">
+                      <div className="absolute top-full mt-2 w-full bg-white border border-slate-200 rounded-md shadow-xl max-h-48 overflow-y-auto py-2 z-50">
                         {searchResults.map((patient: any) => (
                            <div 
                              key={patient.id} 
@@ -214,7 +214,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   <button 
                     type="button" 
                     onClick={onClose}
-                    className="flex-1 py-2.5 px-4 border border-rose-500 text-rose-600 rounded-xl font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 px-4 border border-rose-500 text-rose-600 rounded-md font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
                   >
                     <X className="w-4 h-4" /> Cancel
                   </button>

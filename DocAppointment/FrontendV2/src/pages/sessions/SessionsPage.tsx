@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Calendar, Clock, PlusCircle, Edit, Trash2, AlertCircle, X, Save, Activity,
-  User, Building2, Users, FileText
+  User, Building2, Users, FileText, Stethoscope, Sparkles, CheckCircle2, ChevronRight, Hash, Repeat
 } from "lucide-react"
 
 import { sessionService } from "@/services/sessionService"
@@ -13,6 +13,34 @@ import { FieldError } from "@/components/ui/FieldError"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { PageLoader } from "@/components/ui/PageLoader"
 import { usePermissions } from "@/hooks/usePermissions"
+
+function formatTime12H(timeStr?: string): string {
+  if (!timeStr) return '--:--'
+  const parts = timeStr.split(':')
+  if (parts.length < 2) return timeStr
+  let hours = parseInt(parts[0], 10)
+  const minutes = parts[1]
+  if (isNaN(hours)) return timeStr
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12
+  hours = hours ? hours : 12
+  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`
+  return `${formattedHours}:${minutes} ${ampm}`
+}
+
+function calculateDuration(start?: string, end?: string): string {
+  if (!start || !end) return ''
+  const [sh, sm] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  if (isNaN(sh) || isNaN(eh)) return ''
+  let diffMinutes = (eh * 60 + (em || 0)) - (sh * 60 + (sm || 0))
+  if (diffMinutes < 0) diffMinutes += 24 * 60
+  const hours = Math.floor(diffMinutes / 60)
+  const mins = diffMinutes % 60
+  if (hours > 0 && mins > 0) return `${hours}h ${mins}m`
+  if (hours > 0) return `${hours} hrs`
+  return `${mins} mins`
+}
 
 export default function SessionsPage() {
   const { user, activeBranchId } = useAuthStore()
@@ -28,15 +56,61 @@ export default function SessionsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<any>(null)
   const [isDailyForm, setIsDailyForm] = useState(true)
+  const [startTimeVal, setStartTimeVal] = useState('09:00')
+  const [endTimeVal, setEndTimeVal] = useState('13:00')
+  const [capacityVal, setCapacityVal] = useState('30')
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
 
+  const liveDuration = calculateDuration(startTimeVal, endTimeVal)
+
+  const handleOpenAdd = () => {
+    setEditingSession(null)
+    setIsDailyForm(true)
+    setStartTimeVal('09:00')
+    setEndTimeVal('13:00')
+    setCapacityVal('30')
+    setApiError(null)
+    setValidationErrors({})
+    setIsDrawerOpen(true)
+  }
+
+  const handleOpenEdit = (session: any) => {
+    setEditingSession(session)
+    setIsDailyForm(session.isDaily)
+    setStartTimeVal(session.startTime?.substring(0, 5) || '09:00')
+    setEndTimeVal(session.endTime?.substring(0, 5) || '13:00')
+    setCapacityVal(String(session.defaultCapacity || 30))
+    setApiError(null)
+    setValidationErrors({})
+    setIsDrawerOpen(true)
+  }
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false)
+    setEditingSession(null)
+    setApiError(null)
+    setValidationErrors({})
+  }
 
   const { data: doctors } = useQuery({
     queryKey: ['sessions-doctors', orgId, selectedBranchId],
     queryFn: () => sessionService.getDoctors(selectedBranchId),
     enabled: !!selectedBranchId && !!orgId
   })
+
+  // Auto-select doctor if only one exists or doctor logs in
+  useEffect(() => {
+    if (doctors && doctors.length > 0 && !selectedDoctorId) {
+      if (user?.doctorId && doctors.some((d: any) => d.id === user.doctorId)) {
+        setSelectedDoctorId(user.doctorId)
+      } else {
+        setSelectedDoctorId(doctors[0].id)
+      }
+    }
+  }, [doctors, selectedDoctorId, user])
+
+  const selectedDoctorObj = doctors?.find((d: any) => d.id === selectedDoctorId)
 
   const { data: sessions, isLoading, error } = useQuery({
     queryKey: ['sessions', selectedDoctorId, selectedBranchId],
@@ -91,6 +165,7 @@ export default function SessionsPage() {
       queryClient.invalidateQueries({ queryKey: ['sessions', selectedDoctorId, selectedBranchId] })
       queryClient.invalidateQueries({ queryKey: ['queue-sessions'] })
       queryClient.invalidateQueries({ queryKey: ['doctorSessions'] })
+      toast.success("Shift deleted successfully")
     }
   })
 
@@ -99,7 +174,7 @@ export default function SessionsPage() {
     setApiError(null)
     setValidationErrors({})
     const formData = new FormData(e.currentTarget)
-    const isDaily = formData.get('isDaily') === 'true'
+    const isDaily = formData.get('isDaily') !== null ? formData.get('isDaily') === 'true' : isDailyForm
     const dayOfWeek = parseInt(formData.get('dayOfWeek') as string || '1')
 
     const startTimeStr = formData.get('startTime') as string
@@ -107,7 +182,6 @@ export default function SessionsPage() {
     const capacityStr = formData.get('defaultCapacity') as string
     const capacityNum = parseInt(capacityStr)
 
-    // Manual validation for time fields to use the custom messaging feature instead of browser tooltips
     const errors: Record<string, string[]> = {}
     if (!formData.get('sessionName')) errors.SessionName = ["Session Name is required."]
     if (!startTimeStr) errors.StartTime = ["Start time is required."]
@@ -153,163 +227,231 @@ export default function SessionsPage() {
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
+  // Metrics for selected doctor
+  const totalCapacity = sessions?.reduce((sum: number, s: any) => sum + (s.defaultCapacity || 0), 0) || 0
+  const dailyCount = sessions?.filter((s: any) => s.isDaily).length || 0
+  const specificCount = sessions?.filter((s: any) => !s.isDaily).length || 0
+
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
+    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
         <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <Calendar className="w-7 h-7" />
+          <div className="p-3 rounded text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <Calendar className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
               <span className="text-slate-900">Manage</span>
               <span className="text-indigo-600">Sessions</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Configure daily working hours and weekly schedules for professionals.</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Configure daily OPD hours, token limits, and recurring weekly doctor rosters.
+            </p>
           </div>
         </div>
 
+        {/* Doctor Summary Pill */}
+        {selectedDoctorObj && (
+          <div className="flex items-center gap-3 bg-white px-3.5 py-1.5 rounded border border-slate-200/80 shadow-2xs self-start lg:self-auto">
+            <div className="w-8 h-8 rounded bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-black text-sm">
+              {selectedDoctorObj.name?.charAt(0) || 'D'}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-900 leading-tight">Dr. {selectedDoctorObj.name.replace(/^Dr\.?\s*/i, '')}</p>
+              <p className="text-[11px] text-slate-500 font-medium">
+                {sessions?.length || 0} active {sessions?.length === 1 ? 'shift' : 'shifts'} configured
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+
       {/* Main Container */}
-      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
-        {/* Toolbar */}
-        <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
-          <div className="relative flex-1 sm:w-64 lg:w-80 group">
-            <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-            <select
-              value={selectedDoctorId}
-              onChange={(e) => setSelectedDoctorId(e.target.value)}
-              disabled={!selectedBranchId}
-              className="saas-input w-full appearance-none" style={{ paddingLeft: "2.5rem" }}
-            >
-              <option value="">Select Professional...</option>
-              {doctors?.map((doc: any) => (
-                <option key={doc.id} value={doc.id}>{doc.name}</option>
-              ))}
-            </select>
+      <div className="saas-card rounded overflow-hidden flex flex-col flex-1 min-h-0 border border-slate-200/80 shadow-sm bg-white">
+        {/* Toolbar Header */}
+        <div className="p-4 sm:px-6 border-b border-slate-100 bg-gradient-to-r from-white via-slate-50/50 to-indigo-50/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="relative flex-1 sm:max-w-xs group">
+              <Stethoscope className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+              <select
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                disabled={!selectedBranchId}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200/90 rounded text-xs sm:text-sm font-bold text-slate-800 focus:outline-none focus:border-indigo-500 shadow-2xs transition-all cursor-pointer"
+              >
+                <option value="">Select Doctor Schedule...</option>
+                {doctors?.map((doc: any) => (
+                  <option key={doc.id} value={doc.id}>Dr. {doc.name.replace(/^Dr\.?\s*/i, '')}</option>
+                ))}
+              </select>
+            </div>
+
+            {selectedDoctorId && sessions && sessions.length > 0 && (
+              <div className="hidden md:flex items-center gap-3 text-xs font-semibold text-slate-500 bg-white border border-slate-200/70 px-3 py-1.5 rounded shadow-2xs">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-xs bg-emerald-500"></span>
+                  {dailyCount > 0 ? `${dailyCount} Daily` : ''}
+                  {dailyCount > 0 && specificCount > 0 ? ' • ' : ''}
+                  {specificCount > 0 ? `${specificCount} Specific` : ''}
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="text-indigo-600 font-bold">Total Cap: {totalCapacity}</span>
+              </div>
+            )}
           </div>
 
           {can('Sessions.Add') && (
             <button
-              onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
+              onClick={handleOpenAdd}
               disabled={!selectedDoctorId}
-              className="btn-primary shrink-0 px-3 sm:px-5"
+              className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 h-9 rounded text-xs sm:text-sm font-bold transition-all shadow-xs shadow-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
-              <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
+              <PlusCircle className="w-4 h-4" /> <span>Add OPD Shift</span>
             </button>
           )}
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-auto p-6 bg-slate-50/30">
+        <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-50/40">
           {!selectedBranchId ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
-                <Building2 className="w-8 h-8 text-indigo-500" />
+            <div className="flex flex-col items-center justify-center h-80 text-center">
+              <div className="w-14 h-14 bg-white border border-slate-200 rounded flex items-center justify-center mb-4 shadow-xs text-slate-400">
+                <Building2 className="w-7 h-7" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700">No Facility Selected</h3>
-              <p className="text-sm text-slate-500 mt-1 max-w-sm">Please select a facility from the top right dropdown to view schedules.</p>
+              <h3 className="text-base font-black text-slate-800">No Clinic Branch Selected</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">Please select a clinic branch from the top header switcher to view schedules.</p>
             </div>
           ) : !selectedDoctorId ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                <User className="w-8 h-8 text-blue-500" />
+            <div className="flex flex-col items-center justify-center h-80 text-center">
+              <div className="w-14 h-14 bg-white border border-slate-200 rounded flex items-center justify-center mb-4 shadow-xs text-indigo-600 ring-4 ring-indigo-50/50">
+                <Stethoscope className="w-7 h-7" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700">No Doctor Selected</h3>
-              <p className="text-sm text-slate-500 mt-1 max-w-sm">Choose a professional from the toolbar to manage their working shifts.</p>
+              <h3 className="text-base font-black text-slate-900">Select Doctor Schedule</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm font-medium">Choose a doctor profile from the toolbar dropdown above to manage active shift timings.</p>
             </div>
           ) : isLoading ? (
-            <PageLoader message="Loading schedules..." minHeight="h-64" />
+            <PageLoader message="Loading OPD schedules..." minHeight="h-80" />
           ) : error ? (
-            <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-3 border border-red-100">
-              <AlertCircle className="w-5 h-5" />
-              <p className="text-sm font-medium">Failed to load sessions. Please try again.</p>
+            <div className="p-3.5 bg-rose-50 text-rose-700 rounded flex items-center gap-3 border border-rose-200">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+              <p className="text-xs font-bold">Failed to load doctor shifts. Please verify network connectivity and retry.</p>
             </div>
           ) : sessions?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
-                <Calendar className="w-8 h-8 text-indigo-500" />
+            <div className="flex flex-col items-center justify-center h-80 text-center max-w-md mx-auto py-8">
+              <div className="w-14 h-14 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded flex items-center justify-center mb-4 shadow-2xs">
+                <Calendar className="w-7 h-7" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-700">No Shifts Scheduled</h3>
-              <p className="text-sm text-slate-500 mt-1 mb-4">This professional has no active shifts. Click 'Add Shift' to create one.</p>
+              <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-extrabold rounded-sm mb-2 uppercase tracking-wide">
+                No Schedules
+              </span>
+              <h3 className="text-base font-black text-slate-900">No Shifts Configured Yet</h3>
+              <p className="text-xs text-slate-500 mt-1 mb-5 font-medium leading-relaxed">
+                This doctor does not have any active OPD slots. Add a daily or specific day shift to open appointments and live queue operations.
+              </p>
               {can('Sessions.Add') && (
                 <button
-                  onClick={() => { setEditingSession(null); setIsDailyForm(true); setIsDrawerOpen(true); }}
-                  className="btn-primary"
+                  onClick={handleOpenAdd}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded transition-all shadow-xs shadow-indigo-100 flex items-center gap-2"
                 >
-                  Create First Shift
+                  <PlusCircle className="w-4 h-4" /> Create First OPD Shift
                 </button>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
-              {sessions.map((session: any) => (
-                <div key={session.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
-                  {/* Header Section */}
-                  <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50 relative">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl -mr-10 -mt-10 opacity-60"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {sessions.map((session: any) => {
+                const duration = calculateDuration(session.startTime, session.endTime)
 
-                    <div className="flex justify-between items-start relative z-10">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform shrink-0">
-                          <Calendar className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{session.sessionName}</h3>
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
-                              <Calendar className="w-3 h-3" />
-                              {session.isDaily ? 'EVERY DAY' : days[session.dayOfWeek].toUpperCase()}
-                            </span>
+                return (
+                  <motion.div 
+                    key={session.id} 
+                    whileHover={{ y: -2 }}
+                    className="group relative bg-white rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-indigo-200 transition-all duration-200 overflow-hidden flex flex-col justify-between"
+                  >
+                    {/* Top Accent Strip */}
+                    <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-indigo-600" />
+
+                    {/* Header Section */}
+                    <div className="p-4 border-b border-slate-100/90 bg-gradient-to-b from-white to-slate-50/40">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-base shadow-2xs group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                            <Clock className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-extrabold text-slate-900 text-sm leading-snug truncate group-hover:text-indigo-600 transition-colors">
+                              {session.sessionName}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {session.isDaily ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-emerald-700 bg-emerald-50 text-[10px] font-extrabold border border-emerald-200 uppercase tracking-wider">
+                                  <span className="w-1.5 h-1.5 rounded-xs bg-emerald-500"></span> Daily OPD
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-indigo-700 bg-indigo-50 text-[10px] font-extrabold border border-indigo-200 uppercase tracking-wider">
+                                  {days[session.dayOfWeek]?.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Details Grid */}
-                  <div className="p-5 grid grid-cols-2 gap-y-5 gap-x-4 flex-1 bg-white">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 shrink-0"><Clock className="w-4 h-4" /></div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Hours</p>
-                        <p className="text-xs font-semibold text-slate-700 truncate">{session.startTime.substring(0, 5)} - {session.endTime.substring(0, 5)}</p>
+                    {/* Details Box */}
+                    <div className="p-4 bg-white space-y-3 flex-1">
+                      <div className="bg-slate-50/80 border border-slate-100 rounded-md p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
+                            <Clock className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <span>{formatTime12H(session.startTime)} — {formatTime12H(session.endTime)}</span>
+                          </div>
+                          {duration && (
+                            <span className="text-[10px] font-extrabold text-slate-500 bg-white px-1.5 py-0.5 rounded-xs border border-slate-200/80 shadow-2xs">
+                              {duration}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60 font-medium">
+                          <span className="text-slate-500 text-[11px] flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-slate-400" />
+                            Token Limit:
+                          </span>
+                          <span className="font-extrabold text-slate-800 text-xs">
+                            {session.defaultCapacity} Patients
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-xl bg-violet-50 text-violet-600 shrink-0"><Users className="w-4 h-4" /></div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Capacity</p>
-                        <p className="text-xs font-semibold text-slate-700 truncate">{session.defaultCapacity} Tokens</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2 mt-auto">
-                    {can('Sessions.Edit') && (
-                      <button
-                        onClick={() => { setEditingSession(session); setIsDailyForm(session.isDaily); setIsDrawerOpen(true); }}
-                        className="flex-1 h-10 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
-                      >
-                        <Edit className="w-4 h-4 text-slate-500 shrink-0" /> Edit
-                      </button>
-                    )}
-                    {can('Sessions.Delete') && (
-                      <button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this shift?')) {
-                            deleteMutation.mutate(session.id)
-                          }
-                        }}
-                        className="flex-1 h-10 px-3 text-xs font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 hover:text-red-700 rounded-lg shadow-sm hover:shadow hover:-translate-y-0.5 transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600 shrink-0" /> Delete
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                    {/* Footer Actions */}
+                    <div className="p-2.5 px-4 border-t border-slate-100 bg-slate-50/70 flex items-center gap-2">
+                      {can('Sessions.Edit') && (
+                        <button
+                          onClick={() => handleOpenEdit(session)}
+                          className="flex-1 h-8 px-3 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800 border border-indigo-200/80 hover:border-indigo-300 rounded-md shadow-2xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-indigo-600" /> <span>Edit</span>
+                        </button>
+                      )}
+                      {can('Sessions.Delete') && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete shift "${session.sessionName}"?`)) {
+                              deleteMutation.mutate(session.id)
+                            }
+                          }}
+                          className="flex-1 h-8 px-3 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 hover:text-rose-800 border border-rose-200/80 hover:border-rose-300 rounded-md shadow-2xs transition-all flex items-center justify-center gap-1.5 active:scale-98"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" /> <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
             </div>
           )}
         </div>
@@ -323,123 +465,270 @@ export default function SessionsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
-              className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-40"
+              onClick={handleCloseDrawer}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40"
             />
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l border-zinc-200"
+              transition={{ type: "spring", damping: 28, stiffness: 260 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l border-slate-200/80"
             >
-              <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
-                    {editingSession ? <Edit className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+              {/* Drawer Header */}
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-b from-slate-50/70 to-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-2xs">
+                    {editingSession ? <Edit className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                      <span className="text-slate-900">{editingSession ? 'Edit' : 'Add '}</span>
-                      <span className="text-indigo-600">{editingSession ? '' : 'New'} Shift</span>
+                    <h2 className="text-base font-black tracking-tight text-slate-900">
+                      {editingSession ? 'Edit' : 'Create'} <span className="text-indigo-600">OPD Shift</span>
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">{editingSession ? 'Update working hours.' : 'Create a new working schedule.'}</p>
+                    <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      {editingSession ? 'Modify working hours and token allocation.' : 'Define schedule & capacity for patient tokens.'}
+                    </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  onClick={handleCloseDrawer}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-all"
+                  aria-label="Close"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate autoComplete="off" id="session-form" onSubmit={handleSubmit} className="space-y-6">
+              {/* Drawer Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                {/* Doctor Context Banner */}
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50/80 border border-slate-200/80">
+                  <div className="w-8 h-8 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Stethoscope className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600">Assigned Doctor</div>
+                    <div className="text-xs font-bold text-slate-900 truncate">{selectedDoctorObj?.name || 'Selected Doctor'}</div>
+                  </div>
+                  {selectedDoctorObj?.specialization && (
+                    <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-xs border border-slate-200/80 shrink-0">
+                      {selectedDoctorObj.specialization}
+                    </span>
+                  )}
+                </div>
+
+                <form noValidate autoComplete="off" id="session-form" onSubmit={handleSubmit} className="space-y-4">
                   <ApiErrorAlert error={apiError} />
                   <FieldError errors={validationErrors} field="Session" />
-                  {/* Recurrence Toggle */}
-                  <div className="grid grid-cols-2 gap-3 p-1 bg-slate-100 rounded-xl">
-                    <label className="cursor-pointer">
-                      <input autoComplete="off" type="radio" name="isDaily" value="true" checked={isDailyForm} onChange={() => setIsDailyForm(true)} className="peer sr-only" />
-                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
-                        Daily
-                      </div>
-                    </label>
-                    <label className="cursor-pointer">
-                      <input autoComplete="off" type="radio" name="isDaily" value="false" checked={!isDailyForm} onChange={() => setIsDailyForm(false)} className="peer sr-only" />
-                      <div className="text-center py-2 text-sm font-medium text-slate-500 rounded-lg transition-all peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm">
+
+                  {/* Recurrence Mode Segmented Control */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                        <Repeat className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Recurrence Schedule</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-xs border border-indigo-100">
+                        {isDailyForm ? 'Repeats Daily' : 'Weekly Slot'}
+                      </span>
+                    </div>
+                    <input type="hidden" name="isDaily" value={String(isDailyForm)} />
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-indigo-50/60 rounded-md border border-indigo-100/90">
+                      <button
+                        type="button"
+                        onClick={() => setIsDailyForm(true)}
+                        className={`py-2 px-3 text-xs font-bold rounded-sm transition-all flex items-center justify-center gap-2 ${
+                          isDailyForm 
+                            ? 'bg-white text-indigo-700 shadow-2xs border border-indigo-200/80' 
+                            : 'text-indigo-800/70 hover:text-indigo-950 hover:bg-white/50'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${isDailyForm ? 'bg-emerald-500' : 'bg-indigo-300'}`} />
+                        Daily (All Days)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsDailyForm(false)}
+                        className={`py-2 px-3 text-xs font-bold rounded-sm transition-all flex items-center justify-center gap-2 ${
+                          !isDailyForm 
+                            ? 'bg-white text-indigo-700 shadow-2xs border border-indigo-200/80' 
+                            : 'text-indigo-800/70 hover:text-indigo-950 hover:bg-white/50'
+                        }`}
+                      >
+                        <Calendar className={`w-3.5 h-3.5 ${!isDailyForm ? 'text-indigo-600' : 'text-indigo-400'}`} />
                         Specific Day
-                      </div>
-                    </label>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="space-y-4">
+                  {/* Shift Form Fields */}
+                  <div className="space-y-3.5">
+                    {/* Shift Name */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <FileText className="w-4 h-4 text-blue-500" /> Session Name <span className="text-red-500">*</span>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Shift Name <span className="text-rose-500">*</span>
                       </label>
-                      <input required autoComplete="off" name="sessionName" defaultValue={editingSession?.sessionName} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="e.g. Morning OPD" />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <FileText className="w-3.5 h-3.5" />
+                        </div>
+                        <input 
+                          required 
+                          autoComplete="off" 
+                          name="sessionName" 
+                          defaultValue={editingSession?.sessionName} 
+                          className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-white border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400 text-slate-800 shadow-2xs" 
+                          placeholder="e.g. Morning OPD / Evening Shift" 
+                        />
+                      </div>
                       <FieldError errors={validationErrors} field="SessionName" />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Clock className="w-4 h-4 text-green-500" /> Start Time <span className="text-red-500">*</span>
-                        </label>
-                        <input required autoComplete="off" type="time" name="startTime" defaultValue={editingSession?.startTime?.substring(0, 5) || '09:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
-                        <FieldError errors={validationErrors} field="StartTime" />
+                    {/* Start and End Times with Live Duration */}
+                    <div className="p-3 bg-slate-50/70 border border-slate-200/80 rounded-lg space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                          Shift Timings
+                        </span>
+                        {liveDuration && (
+                          <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-xs border border-indigo-100">
+                            Duration: {liveDuration}
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Clock className="w-4 h-4 text-rose-500" /> End Time <span className="text-red-500">*</span>
-                        </label>
-                        <input required autoComplete="off" type="time" name="endTime" defaultValue={editingSession?.endTime?.substring(0, 5) || '13:00'} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
-                        <FieldError errors={validationErrors} field="EndTime" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Start Time <span className="text-rose-500">*</span>
+                          </label>
+                          <input 
+                            required 
+                            autoComplete="off" 
+                            type="time" 
+                            name="startTime" 
+                            value={startTimeVal}
+                            onChange={(e) => setStartTimeVal(e.target.value)}
+                            className="w-full h-9 px-3 text-xs font-bold bg-white border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all text-slate-800 shadow-2xs" 
+                          />
+                          <FieldError errors={validationErrors} field="StartTime" />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            End Time <span className="text-rose-500">*</span>
+                          </label>
+                          <input 
+                            required 
+                            autoComplete="off" 
+                            type="time" 
+                            name="endTime" 
+                            value={endTimeVal}
+                            onChange={(e) => setEndTimeVal(e.target.value)}
+                            className="w-full h-9 px-3 text-xs font-bold bg-white border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all text-slate-800 shadow-2xs" 
+                          />
+                          <FieldError errors={validationErrors} field="EndTime" />
+                        </div>
                       </div>
                     </div>
 
+                    {/* Token Capacity with Presets */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                        <Users className="w-4 h-4 text-purple-500" /> Max Token Capacity <span className="text-red-500">*</span>
-                      </label>
-                      <input required autoComplete="off" type="number" min="1" name="defaultCapacity" defaultValue={editingSession?.defaultCapacity || 30} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Max Token Capacity <span className="text-rose-500">*</span>
+                        </label>
+                        <span className="text-[11px] font-semibold text-slate-500">Per Shift Limit</span>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Hash className="w-3.5 h-3.5" />
+                        </div>
+                        <input 
+                          required 
+                          autoComplete="off" 
+                          type="number" 
+                          min="1" 
+                          name="defaultCapacity" 
+                          value={capacityVal}
+                          onChange={(e) => setCapacityVal(e.target.value)}
+                          className="w-full h-9 pl-9 pr-3 text-xs font-bold bg-white border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all text-slate-800 shadow-2xs" 
+                          placeholder="30" 
+                        />
+                      </div>
+                      {/* Presets */}
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Presets:</span>
+                        {['15', '25', '30', '40', '50'].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setCapacityVal(num)}
+                            className={`px-2 py-0.5 text-[10px] font-bold rounded-xs transition-all ${
+                              capacityVal === num
+                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                : 'bg-slate-100 hover:bg-slate-200/70 text-slate-600 border border-slate-200/60'
+                            }`}
+                          >
+                            {num}
+                          </button>
+                        ))}
+                      </div>
                       <FieldError errors={validationErrors} field="DefaultCapacity" />
-                      <p className="text-xs text-slate-500 mt-1">Maximum number of patients allowed per session.</p>
+                      <p className="text-[11px] text-slate-500 mt-1 font-medium">Maximum patient tokens issued per OPD shift.</p>
                     </div>
 
+                    {/* Specific Day Selector */}
                     {!isDailyForm && (
-                      <div className="day-selector-container animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-2">
-                          <Calendar className="w-4 h-4 text-indigo-500" /> Day of Week
+                      <motion.div 
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="pt-1"
+                      >
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Day of Week</span> <span className="text-rose-500">*</span>
                         </label>
-                        <select name="dayOfWeek" defaultValue={editingSession?.dayOfWeek || 1} className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
-                          {days.map((day, idx) => <option key={idx} value={idx}>{day}</option>)}
-                        </select>
+                        <div className="relative">
+                          <select 
+                            name="dayOfWeek" 
+                            defaultValue={editingSession?.dayOfWeek || 1} 
+                            className="w-full h-9 px-3 pr-8 text-xs font-bold bg-white border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 outline-none transition-all text-slate-800 shadow-2xs cursor-pointer appearance-none"
+                          >
+                            {days.map((day, idx) => (
+                              <option key={idx} value={idx} className="text-xs font-semibold">
+                                {day}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                            <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                          </div>
+                        </div>
                         <FieldError errors={validationErrors} field="DayOfWeek" />
-                      </div>
+                      </motion.div>
                     )}
                   </div>
                 </form>
               </div>
 
-              <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
+              {/* Drawer Footer */}
+              <div className="p-4 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => { setIsDrawerOpen(false); setEditingSession(null); setApiError(null); setValidationErrors({}); }}
-                  className="btn-danger"
+                  onClick={handleCloseDrawer}
+                  className="px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 hover:text-rose-800 border border-rose-200/80 hover:border-rose-300 rounded-md shadow-2xs transition-all flex items-center gap-1.5 active:scale-98"
                 >
-                  <X className="w-4 h-4" /> Cancel
+                  <X className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Cancel</span>
                 </button>
                 <button
                   type="submit"
                   form="session-form"
                   disabled={mutation.isPending}
-                  className="btn-primary"
+                  className="px-4.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 rounded-md shadow-xs shadow-indigo-100 transition-all flex items-center gap-2"
                 >
                   {mutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {editingSession ? 'Save Changes' : 'Create Shift'}
+                  <span>{editingSession ? 'Save Changes' : 'Create Shift'}</span>
                 </button>
               </div>
             </motion.div>

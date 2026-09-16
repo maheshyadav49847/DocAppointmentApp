@@ -140,8 +140,9 @@ namespace CodeX.Api.Controllers
         [HasPermission(SystemPermissions.Branches.Edit)]
         public async Task<IActionResult> Update(Guid id, Branch updatedBranch)
         {
-            // Branch Isolation
-            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            // Branch Isolation: OrgAdmin and SuperAdmin have org-wide branch access
+            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+            if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
             {
                 return Forbid();
             }
@@ -206,8 +207,9 @@ namespace CodeX.Api.Controllers
         [HasPermission(SystemPermissions.Branches.Delete)]
         public async Task<IActionResult> Delete(Guid id)
         {
-            // Branch Isolation
-            if (_currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            // Branch Isolation: OrgAdmin and SuperAdmin have org-wide branch access
+            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
+            if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
             {
                 return Forbid();
             }

@@ -200,7 +200,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative bg-white rounded-lg shadow-xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]"
         >
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
@@ -213,7 +213,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
                 Patient: <span className="font-bold text-slate-700">{billingToken.patientName}</span>
               </p>
             </div>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -249,7 +249,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <button 
                   onClick={() => setShowPaymentUI(true)}
-                  className="flex-1 btn-primary py-3 rounded-xl flex items-center justify-center gap-2"
+                  className="flex-1 btn-primary py-3 rounded-md flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-5 h-5" />
                   Record Payment
@@ -264,7 +264,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
                     onSuccess?.();
                     onClose();
                   }}
-                  className="flex-1 bg-white border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-white border-2 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-md transition-colors flex items-center justify-center gap-2"
                 >
                   <Printer className="w-5 h-5" />
                   Print Bill
@@ -281,7 +281,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
                </div>
                <div className="p-4 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                  {services?.filter(s => s.isActive).map(service => (
-                    <div key={service.id} className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm hover:border-indigo-300 transition-all flex flex-col justify-between">
+                    <div key={service.id} className="bg-white border border-slate-200 p-3 rounded-md shadow-sm hover:border-indigo-300 transition-all flex flex-col justify-between">
                       <div className="mb-2">
                         <span className="font-semibold text-sm text-slate-900 block truncate" title={service.name}>{service.name}</span>
                         <span className="text-xs text-slate-500">{service.category || 'General'}</span>
@@ -377,7 +377,7 @@ export default function QuickInvoiceModal({ isOpen, onClose, billingToken, onSuc
                   <button 
                     onClick={() => createInvoiceMut.mutate()}
                     disabled={cart.length === 0 || createInvoiceMut.isPending}
-                    className="w-full btn-primary py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full btn-primary py-3 rounded-md flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {createInvoiceMut.isPending ? (
                       <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>

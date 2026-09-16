@@ -17,6 +17,8 @@ interface AuthState {
   setAuth: (user: AuthUser, token: string) => void
   clearAuth: () => void
   setBranch: (branchId: string) => void
+  setDoctor: (doctorId: string) => void
+  setUser: (user: AuthUser) => void
   activeBranchId: string | null
   setActiveBranchId: (branchId: string | null) => void
 }
@@ -45,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
       },
       clearAuth: () => set({ user: null, token: null, isAuthenticated: false, activeBranchId: null }),
       setBranch: (branchId) => set((state) => ({ user: state.user ? { ...state.user, branchId } : null })),
+      setDoctor: (doctorId) => set((state) => ({ user: state.user ? { ...state.user, doctorId } : null })),
+      setUser: (user) => set({ user }),
       setActiveBranchId: (branchId) => set({ activeBranchId: branchId })
     }),
     {
