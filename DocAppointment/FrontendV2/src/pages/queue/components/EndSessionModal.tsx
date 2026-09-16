@@ -144,9 +144,9 @@ export default function EndSessionModal({
           <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
             <button 
               onClick={onClose} 
-              className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-200 rounded transition-colors"
+              className="btn-cancel px-5 py-2.5"
             >
-              Cancel
+              <X className="w-4 h-4" /> Cancel
             </button>
             <button 
               onClick={handleConfirm}

@@ -788,7 +788,7 @@ export default function PatientsPage() {
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="btn-danger"
+                  className="btn-cancel"
                 >
                   <X className="w-4 h-4" /> {editingPatient ? 'Close' : 'Cancel'}
                 </button>

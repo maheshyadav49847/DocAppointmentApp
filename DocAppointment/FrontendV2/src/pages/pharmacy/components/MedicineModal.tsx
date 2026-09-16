@@ -223,7 +223,7 @@ export default function MedicineModal({ isOpen, onClose, onSave, medicine }: Med
             </div>
 
             <div className="p-6 border-t bg-white flex justify-end gap-3">
-              <button type="button" onClick={onClose} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
+              <button type="button" onClick={onClose} className="btn-cancel"><X className="w-4 h-4" /> Cancel</button>
               <button type="submit" form="medicine-form" disabled={loading || !formData.name} className="btn-primary">
                 {loading ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {medicine ? 'Save Changes' : 'Save Medicine'}

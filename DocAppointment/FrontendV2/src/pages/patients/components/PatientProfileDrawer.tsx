@@ -318,7 +318,7 @@ export default function PatientProfileDrawer({ isOpen, onClose, editingPatient, 
               <button
                 type="button"
                 onClick={onClose}
-                className="btn-danger"
+                className="btn-cancel"
               >
                 <X className="w-4 h-4" /> {editingPatient ? 'Close' : 'Cancel'}
               </button>

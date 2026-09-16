@@ -601,7 +601,7 @@ export default function BranchesPage() {
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
+                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingBranch(null); setLogoBase64(''); }} className="btn-cancel"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="branch-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingBranch ? 'Save Changes' : 'Create Branch'}

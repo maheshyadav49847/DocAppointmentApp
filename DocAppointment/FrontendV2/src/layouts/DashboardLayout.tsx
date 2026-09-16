@@ -483,7 +483,7 @@ export default function DashboardLayout() {
                     </div>
                   </div>
                   <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                    <button type="button" onClick={() => setChangePasswordOpen(false)} className="btn-secondary px-4 py-2 text-sm flex items-center gap-1.5">
+                    <button type="button" onClick={() => setChangePasswordOpen(false)} className="btn-cancel px-4 py-2 text-sm flex items-center gap-1.5">
                       <X className="w-4 h-4" /> Cancel
                     </button>
                     <button type="submit" disabled={isChangingPassword} className="btn-primary text-sm flex items-center gap-1.5">

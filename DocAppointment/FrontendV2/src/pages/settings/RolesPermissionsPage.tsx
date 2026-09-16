@@ -320,7 +320,9 @@ export default function RolesPermissionsPage() {
                   </div>
                 </div>
                 <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                  <button type="button" onClick={() => setIsCreatingRole(false)} className="btn-secondary px-5 py-2">Cancel</button>
+                  <button type="button" onClick={() => setIsCreatingRole(false)} className="btn-cancel px-5 py-2">
+                    <X className="w-4 h-4" /> Cancel
+                  </button>
                   <button type="submit" disabled={createRoleMutation.isPending || !newRoleName.trim()} className="btn-primary px-5 py-2">
                     {createRoleMutation.isPending ? 'Creating...' : 'Create Role'}
                   </button>

@@ -162,9 +162,9 @@ export default function PauseSessionModal({
                 type="button"
                 onClick={onClose}
                 disabled={isPending}
-                className="btn-secondary"
+                className="btn-cancel"
               >
-                Cancel
+                <X className="w-4 h-4" /> Cancel
               </button>
               <button
                 type="submit"

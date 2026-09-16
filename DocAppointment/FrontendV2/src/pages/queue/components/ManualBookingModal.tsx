@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, Printer, CheckCircle } from "lucide-react"
+import { X, UserPlus, Phone, User, Activity, MapPin, Ticket, AlertTriangle, CheckCircle } from "lucide-react"
 import { queueService } from "@/services/queueService"
 import { motion, AnimatePresence } from "framer-motion"
 import PhoneInput from "@/components/PhoneInput"
@@ -140,7 +140,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   </label>
                   <div className="relative group">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-500 transition-colors" />
-                    <input autoComplete="off" 
+                    <input 
                       type="text" 
                       value={name}
                       onChange={e => { setName(e.target.value); setSelectedPatientId(null); }}
@@ -214,7 +214,7 @@ export default function ManualBookingModal({ isOpen, onClose, queueId, branchId,
                   <button 
                     type="button" 
                     onClick={onClose}
-                    className="flex-1 py-2.5 px-4 border border-rose-500 text-rose-600 rounded-md font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 btn-cancel py-2.5 px-4"
                   >
                     <X className="w-4 h-4" /> Cancel
                   </button>

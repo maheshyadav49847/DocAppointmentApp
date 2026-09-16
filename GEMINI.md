@@ -26,7 +26,8 @@
   5. **Modals**: Backdrop blur (`bg-slate-900/50 backdrop-blur-sm`), `rounded-lg` (8px) container, header with close button, and footer with Cancel/Save buttons.
 - **UI Roundness & Border Radius Invariant**:
   - **Cards & Modals**: Fixed at **8px** (`rounded-lg` / `border-radius: 8px`).
-  - **Buttons & Controls**: Fixed at **6px** (`rounded-md` / `.btn-primary` / `.btn-secondary` / `.btn-danger` / `.saas-input` / `select` / `textarea`).
+  - **Buttons & Controls**: Fixed at **6px** (`rounded-md` / `.btn-primary` / `.btn-secondary` / `.btn-cancel` / `.btn-danger` / `.saas-input` / `select` / `textarea`).
+  - **Cancel Buttons**: Standardized with `.btn-cancel` (soft light rose pastel background, readable rose text, subtle border, `<X />` icon). Never use harsh/solid bright red (`.btn-danger`) for Cancel/Dismiss.
   - **Badges & Tags**: Compact **4px** (`rounded-sm`).
   - **Prohibition**: NEVER use oversized bubbly/pill curves (`rounded-2xl`, `rounded-3xl`, or `rounded-full` on cards/modals/buttons).
 - **Reference**: Detailed code snippets and tokens are documented in `.agents/skills/ui-component-design-system/SKILL.md`.

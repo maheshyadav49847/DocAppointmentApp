@@ -799,7 +799,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                 <button
                   type="button"
                   onClick={() => { setIsDrawerOpen(false); setEditingDoctor(null); }}
-                  className="btn-danger"
+                  className="btn-cancel"
                 >
                   <X className="w-4 h-4" /> Cancel
                 </button>
@@ -892,7 +892,7 @@ const [isFeedbacksDrawerOpen, setIsFeedbacksDrawerOpen] = useState(false)
                     </div>
                   </div>
                   <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                    <button type="button" onClick={() => { setValidationErrors({}); setResettingDoctor(null); }} className="btn-danger flex items-center gap-1.5">
+                    <button type="button" onClick={() => { setValidationErrors({}); setResettingDoctor(null); }} className="btn-cancel">
                       <X className="w-4 h-4" /> Cancel
                     </button>
                     <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex items-center gap-1.5">

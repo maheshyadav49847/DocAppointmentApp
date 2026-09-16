@@ -701,7 +701,7 @@ export default function StaffPage() {
               </div>
 
               <div className="p-6 border-t bg-white flex justify-end gap-3">
-                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); setApiError(null); setValidationErrors({}); }} className="btn-danger"><X className="w-4 h-4" /> Cancel</button>
+                <button type="button" onClick={() => { setIsDrawerOpen(false); setEditingStaff(null); setApiError(null); setValidationErrors({}); }} className="btn-cancel"><X className="w-4 h-4" /> Cancel</button>
                 <button type="submit" form="staff-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">
                   {(createMutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {editingStaff ? 'Save Changes' : 'Create Account'}
@@ -785,7 +785,7 @@ export default function StaffPage() {
                   </div>
                 </div>
                 <div className="p-4 bg-zinc-50 border-t flex justify-end gap-3">
-                  <button type="button" onClick={() => { setValidationErrors({}); setResettingStaff(null); }} className="btn-danger flex items-center gap-1.5">
+                  <button type="button" onClick={() => { setValidationErrors({}); setResettingStaff(null); }} className="btn-cancel">
                     <X className="w-4 h-4" /> Cancel
                   </button>
                   <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex items-center gap-1.5">

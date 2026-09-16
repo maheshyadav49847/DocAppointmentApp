@@ -157,7 +157,7 @@ export default function TelegramConfigModal({ branch, onClose }: { branch: any, 
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-end gap-3">
-           <button type="button" onClick={onClose} className="btn-danger">
+           <button type="button" onClick={onClose} className="btn-cancel">
               <X className="w-4 h-4" /> Cancel
            </button>
            <button 

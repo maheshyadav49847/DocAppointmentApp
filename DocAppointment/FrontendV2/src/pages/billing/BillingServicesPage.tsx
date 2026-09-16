@@ -409,7 +409,7 @@ export default function BillingServicesPage() {
               </div>
               
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm font-bold border-2 border-rose-200 text-rose-600 rounded-lg hover:bg-rose-50 hover:border-rose-300 transition-all">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="btn-cancel">
                     <X className="w-4 h-4" /> Cancel
                   </button>
                   <button type="submit" form="service-form" disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary">

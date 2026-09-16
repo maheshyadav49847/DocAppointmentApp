@@ -981,7 +981,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                     />
                   </div>
                   <div className="pt-4 flex gap-3">
-                    <button type="button" onClick={() => setEditingToken(null)} className="flex-1 py-2.5 px-4 border border-rose-500 text-rose-600 rounded font-bold hover:bg-rose-50 transition-all flex items-center justify-center gap-2">
+                    <button type="button" onClick={() => setEditingToken(null)} className="flex-1 btn-cancel py-2.5 px-4">
                       <X className="w-4 h-4" /> Cancel
                     </button>
                     <button type="submit" disabled={updateTokenMutation.isPending} className="flex-[2] btn-primary flex items-center justify-center gap-2">

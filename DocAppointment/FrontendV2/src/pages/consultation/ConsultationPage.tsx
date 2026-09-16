@@ -587,7 +587,7 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                   setStagingFile(null)
                   const el = document.getElementById("consultation-file-input") as HTMLInputElement; if(el) el.value = "";
                 }}
-                className="btn-danger flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2"
+                className="btn-cancel flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap px-2 py-2"
               >
                 <X className="w-4 h-4" /> Cancel
               </button>

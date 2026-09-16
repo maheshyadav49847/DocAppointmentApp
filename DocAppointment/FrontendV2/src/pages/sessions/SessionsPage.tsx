@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Calendar, Clock, PlusCircle, Edit, Trash2, AlertCircle, X, Save, Activity,
-  User, Building2, Users, FileText, Stethoscope, Sparkles, CheckCircle2, ChevronRight, Hash, Repeat
+  Building2, Users, FileText, Stethoscope, ChevronRight, Hash, Repeat
 } from "lucide-react"
 
 import { sessionService } from "@/services/sessionService"
@@ -716,7 +716,7 @@ export default function SessionsPage() {
                 <button
                   type="button"
                   onClick={handleCloseDrawer}
-                  className="px-4 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 hover:text-rose-800 border border-rose-200/80 hover:border-rose-300 rounded-md shadow-2xs transition-all flex items-center gap-1.5 active:scale-98"
+                  className="btn-cancel"
                 >
                   <X className="w-3.5 h-3.5 text-rose-600" />
                   <span>Cancel</span>

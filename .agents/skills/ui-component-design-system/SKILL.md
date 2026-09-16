@@ -20,7 +20,7 @@ To ensure a sleek, clean, modern enterprise SaaS aesthetic (similar to Linear, m
 | :--- | :--- | :--- | :--- |
 | **Cards & Containers** | **8px** | `.saas-card`, `rounded-lg` | `border-radius: 8px` |
 | **Modals & Dialog Windows** | **8px** | `rounded-lg`, dialog shell | `border-radius: 8px` |
-| **Action Buttons** | **6px** | `.btn-primary`, `.btn-secondary`, `.btn-danger`, `rounded-md` | `border-radius: 6px` |
+| **Action Buttons** | **6px** | `.btn-primary`, `.btn-secondary`, `.btn-cancel`, `.btn-danger`, `rounded-md` | `border-radius: 6px` |
 | **Form Inputs & Dropdowns** | **6px** | `.saas-input`, `input`, `select`, `textarea`, `rounded-md` | `border-radius: 6px` |
 | **Segmented Controls & Tabs** | **6px** / **4px** | Container: `rounded-md`, Tab Item: `rounded-sm` | `border-radius: 6px / 4px` |
 | **Status Badges & Tags** | **4px** | `rounded-sm` (or compact `rounded`) | `border-radius: 4px` |
@@ -229,9 +229,15 @@ Never create ad-hoc button styling. Use the established CSS utility classes from
   <span>Save Changes</span>
 </button>
 
-{/* Secondary Action Button (Cancel, Back, Filter) */}
-<button className="btn-secondary">
+{/* Cancel / Dismiss Button (Always light rose tint with X icon) */}
+<button className="btn-cancel">
+  <X className="w-4 h-4 mr-1.5" />
   <span>Cancel</span>
+</button>
+
+{/* Secondary Action Button (Back, Filter, Neutral) */}
+<button className="btn-secondary">
+  <span>Go Back</span>
 </button>
 
 {/* Danger Action Button (Delete, Terminate) */}
