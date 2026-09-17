@@ -290,40 +290,40 @@ export default function DoctorDeskPage() {
       : (sessions || [])
 
     return (
-      <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-5 overflow-y-auto pr-1 custom-scrollbar">
+      <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
         {/* 1. Standard Page Header */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-          <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-            <div className="p-3 rounded text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+            <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
               <MonitorPlay className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
                 <span className="text-slate-900">Doctor</span>
                 <span className="text-indigo-600">Desk</span>
               </h1>
-              <p className="text-sm sm:text-base text-slate-500 font-medium mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
                 Consultation Workstation & Live Token Queue Controller
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 self-start xl:self-auto flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto flex-wrap">
             {/* Today's Date Pill */}
-            <div className="flex items-center gap-2 bg-white px-3.5 py-1.5 rounded border border-slate-200 shadow-sm text-xs font-bold text-slate-600">
-              <Calendar className="w-4 h-4 text-indigo-500" />
+            <div className="h-9 flex items-center gap-2 bg-white px-3 rounded-md border border-slate-200/90 shadow-2xs text-xs font-bold text-slate-600">
+              <Calendar className="w-3.5 h-3.5 text-indigo-500" />
               <span>{todayFormatted}</span>
             </div>
 
             {/* Doctor Switcher for OrgAdmin */}
             {allDoctors && allDoctors.length > 1 && (role === 'orgadmin' || !user?.doctorId) && (
-              <div className="flex items-center gap-2.5 bg-white px-3 py-1.5 rounded border border-slate-200 shadow-sm shrink-0">
-                <Stethoscope className="w-4 h-4 text-indigo-600 shrink-0" />
+              <div className="h-9 flex items-center gap-2 bg-white px-3 rounded-md border border-slate-200/90 shadow-2xs shrink-0">
+                <Stethoscope className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Doctor:</span>
                 <select
                   value={effectiveDoctorId}
                   onChange={(e) => setSelectedDoctorId(e.target.value)}
-                  className="bg-transparent text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pr-2"
+                  className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer pr-1"
                 >
                   {allDoctors.map((doc: any) => (
                     <option key={doc.id} value={doc.id}>
@@ -337,7 +337,7 @@ export default function DoctorDeskPage() {
         </div>
 
         {/* 2. Doctor Workstation Welcome Hero Banner */}
-        <div className="saas-card p-5 sm:p-6 rounded relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/25 to-white border-slate-200 shadow-sm shrink-0">
+        <div className="saas-card p-4 sm:p-5 rounded-lg relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/25 to-white border-slate-200/90 shadow-xs shrink-0">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
             {/* Left: Doctor Profile & Status */}
             <div className="flex items-start sm:items-center gap-4">
@@ -643,50 +643,50 @@ export default function DoctorDeskPage() {
   const nextPatient = pendingTokens[0]
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] lg:h-[calc(100vh-6rem)] space-y-4 pb-10 lg:pb-0">
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6 flex flex-col flex-1 min-h-0">
       {/* Page Header (Outside the Card) */}
-      <div className="shrink-0 px-2 sm:px-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3 rounded text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm shrink-0">
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
             <MonitorPlay className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Doctor</span>
               <span className="text-indigo-600">Desk</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
               Live OPD Consultation Workstation & Patient Queue
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 self-start sm:self-auto flex-wrap">
           {/* Today's Date Pill */}
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-slate-200 shadow-sm text-xs font-bold text-slate-600">
-            <Calendar className="w-4 h-4 text-indigo-500" />
+          <div className="h-9 flex items-center gap-2 bg-white px-3 rounded-md border border-slate-200/90 shadow-2xs text-xs font-bold text-slate-600">
+            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
             <span>{todayFormatted}</span>
           </div>
 
           {/* Doctor Pill */}
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded border border-slate-200 shadow-sm text-xs font-bold text-slate-700">
-            <Stethoscope className="w-4 h-4 text-indigo-600" />
+          <div className="h-9 flex items-center gap-2 bg-white px-3 rounded-md border border-slate-200/90 shadow-2xs text-xs font-bold text-slate-700">
+            <Stethoscope className="w-3.5 h-3.5 text-indigo-600" />
             <span>{doctorDisplayName}</span>
           </div>
         </div>
       </div>
 
       {/* Main Card */}
-      <div className="flex-1 flex flex-col bg-slate-50/50 rounded border border-slate-200 shadow-sm overflow-visible lg:overflow-hidden min-h-0">
+      <div className="saas-card overflow-hidden flex-1 flex flex-col min-h-[520px]">
 
         {/* Top Bar inside the Card */}
-        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col lg:flex-row lg:items-center justify-between shrink-0 shadow-xs gap-3 sm:gap-4 z-20">
+        <div className="bg-white border-b border-slate-200 p-2.5 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3 shrink-0 shadow-xs z-20">
           
           {/* LEFT SIDE: Session Info & Status */}
           {activeQueue && (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded bg-indigo-50 flex items-center justify-center border border-indigo-100 text-indigo-600 shrink-0 shadow-xs">
-                <Clock className="w-5 h-5" />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center border border-indigo-100 text-indigo-600 shrink-0 shadow-xs">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -694,20 +694,20 @@ export default function DoctorDeskPage() {
                     {activeQueue.sessionName}
                   </h3>
                   {activeQueue.status === 2 ? (
-                    <span className="px-2 py-0.5 bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-bold rounded-sm flex items-center gap-1 uppercase tracking-wider shrink-0">
+                    <span className="px-2 py-0.5 bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-bold rounded-sm flex items-center gap-1 uppercase tracking-wider shrink-0">
                       <Pause className="w-3 h-3 text-amber-600" /> Paused
                     </span>
                   ) : activeQueue.status === 1 ? (
-                    <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold rounded-sm flex items-center gap-1.5 uppercase tracking-wider shrink-0">
-                      <span className="w-2 h-2 rounded-xs bg-emerald-500 animate-pulse"></span> Live OPD
+                    <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-sm flex items-center gap-1.5 uppercase tracking-wider shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live OPD
                     </span>
                   ) : (
-                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-bold rounded-sm flex items-center gap-1.5 uppercase tracking-wider shrink-0">
-                      <span className="w-2 h-2 rounded-xs bg-indigo-500 animate-ping"></span> Check-in Required
+                    <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-sm flex items-center gap-1.5 uppercase tracking-wider shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></span> Check-in Required
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 font-medium">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5 font-medium">
                   <span className="flex items-center gap-1">
                     <Building2 className="w-3 h-3 text-slate-400" />
                     {activeBranchName}
@@ -719,7 +719,7 @@ export default function DoctorDeskPage() {
             </div>
           )}
 
-          {/* RIGHT SIDE: Action Buttons & Counters */}
+          {/* RIGHT SIDE: Action Buttons & Counters (All Uniform h-9 Height!) */}
           <div className="flex flex-wrap items-center justify-between lg:justify-end gap-2 sm:gap-2.5 w-full lg:w-auto">
             
             {/* Action Buttons Group */}
@@ -728,18 +728,18 @@ export default function DoctorDeskPage() {
               {/* Mark Arrival Button */}
               {can('DoctorDesk.MarkDoctorArrived') && (
                 activeQueue.status === 1 || activeQueue.status === 2 ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <div className="h-9 flex items-center gap-1.5 px-3 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Doctor Arrived</span>
                   </div>
                 ) : (
                   <button
                     onClick={() => markArrivedMutation.mutate()}
                     disabled={markArrivedMutation.isPending}
-                    className="flex items-center gap-2 px-3.5 py-1.5 rounded text-xs sm:text-sm font-extrabold transition-all bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm ring-2 ring-indigo-300 ring-offset-1"
+                    className="btn-primary h-9 px-3 sm:px-3.5 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm shadow-indigo-200 hover:shadow-indigo-300"
                     title="Mark Arrival & Open Consultations"
                   >
-                    {markArrivedMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stethoscope className="w-4 h-4" />}
+                    {markArrivedMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Stethoscope className="w-3.5 h-3.5" />}
                     <span>Mark Arrival</span>
                   </button>
                 )
@@ -751,20 +751,20 @@ export default function DoctorDeskPage() {
                   <button
                     onClick={() => resumeMutation.mutate()}
                     disabled={resumeMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm"
+                    className="h-9 px-3 rounded-md text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all flex items-center gap-1.5 shrink-0"
                     title="Resume consultation session"
                   >
-                    {resumeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    {resumeMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                     <span>Resume</span>
                   </button>
                 ) : (
                   <button
                     onClick={() => setIsPauseModalOpen(true)}
                     disabled={activeQueue.status !== 1}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-sm font-bold bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
+                    className="h-9 px-3 rounded-md text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 shadow-2xs transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
                     title={activeQueue.status !== 1 ? "Mark arrival first to pause" : "Pause consultation session"}
                   >
-                    <Pause className="w-4 h-4 text-amber-600" />
+                    <Pause className="w-3.5 h-3.5 text-amber-600" />
                     <span>Pause</span>
                   </button>
                 )
@@ -773,12 +773,12 @@ export default function DoctorDeskPage() {
               {/* Queue Drawer Quick Toggle */}
               <button
                 onClick={() => setIsQueueExpanded(!isQueueExpanded)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded text-xs sm:text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-xs transition-colors"
+                className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-2xs"
                 title="Toggle Patient Queue List"
               >
-                <Users className="w-4 h-4 text-indigo-600" />
+                <Users className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Queue</span>
-                <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xs text-[11px] font-extrabold leading-none">
+                <span className="px-1.5 py-0.5 bg-indigo-50 border border-indigo-200/80 text-indigo-700 rounded-sm text-[10px] font-black leading-none">
                   {pendingTokens.length}
                 </span>
               </button>
@@ -788,10 +788,10 @@ export default function DoctorDeskPage() {
                 href={`/tv/${branchId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-xs transition-colors"
+                className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-2xs"
                 title="Open Queue TV Display in a new tab"
               >
-                <MonitorPlay className="w-4 h-4 text-indigo-500" />
+                <MonitorPlay className="w-3.5 h-3.5 text-indigo-500" />
                 <span className="hidden sm:inline">TV View</span>
               </a>
 
@@ -800,32 +800,32 @@ export default function DoctorDeskPage() {
                 <button
                   onClick={handleEndSession}
                   disabled={endSessionMutation.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-sm font-bold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-xs transition-colors"
+                  className="btn-cancel h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-2xs"
                   title="End current session"
                 >
-                  {endSessionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+                  {endSessionMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Power className="w-3.5 h-3.5" />}
                   <span className="hidden sm:inline">End Session</span>
                 </button>
               )}
             </div>
 
             {/* Counters Pill */}
-            <div className="bg-slate-50 border border-slate-200 px-3 py-1 rounded flex items-center gap-3 shrink-0">
-              <div className="flex flex-col items-center justify-center min-w-[45px] sm:min-w-[50px]">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Waiting</span>
-                <span className="text-base sm:text-lg font-black text-indigo-600 leading-tight">{activeQueue.waitingCount}</span>
+            <div className="h-9 px-3 bg-slate-50 border border-slate-200/90 rounded-md flex items-center gap-3 shrink-0 shadow-2xs">
+              <div className="flex flex-col items-center justify-center min-w-[38px] sm:min-w-[44px]">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Waiting</span>
+                <span className="text-xs sm:text-sm font-black text-indigo-600 leading-tight mt-0.5">{activeQueue.waitingCount}</span>
               </div>
-              <div className="w-px h-6 bg-slate-200"></div>
-              <div className="flex flex-col items-center justify-center min-w-[45px] sm:min-w-[50px]">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Done</span>
-                <span className="text-base sm:text-lg font-black text-emerald-600 leading-tight">{activeQueue.completedCount}</span>
+              <div className="w-px h-5 bg-slate-200"></div>
+              <div className="flex flex-col items-center justify-center min-w-[38px] sm:min-w-[44px]">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Done</span>
+                <span className="text-xs sm:text-sm font-black text-emerald-600 leading-tight mt-0.5">{activeQueue.completedCount}</span>
               </div>
               {activeQueue.skippedCount > 0 && (
                 <>
-                  <div className="w-px h-6 bg-slate-200"></div>
-                  <div className="flex flex-col items-center justify-center min-w-[45px] sm:min-w-[50px]">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Skipped</span>
-                    <span className="text-base sm:text-lg font-black text-rose-500 leading-tight">{activeQueue.skippedCount}</span>
+                  <div className="w-px h-5 bg-slate-200"></div>
+                  <div className="flex flex-col items-center justify-center min-w-[38px] sm:min-w-[44px]">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Skipped</span>
+                    <span className="text-xs sm:text-sm font-black text-rose-500 leading-tight mt-0.5">{activeQueue.skippedCount}</span>
                   </div>
                 </>
               )}
@@ -1110,7 +1110,7 @@ export default function DoctorDeskPage() {
           </div>
 
           {/* MAIN AREA: Active EMR or Call Next Prompt */}
-          <div className="flex-1 flex flex-col overflow-y-auto relative min-h-0 bg-slate-50">
+          <div className="flex-1 flex flex-col overflow-y-auto relative min-h-0 bg-slate-50/50 p-3 sm:p-5">
             <AnimatePresence mode="wait">
               {!hasCurrentPatient ? (
                 <motion.div
@@ -1119,44 +1119,46 @@ export default function DoctorDeskPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.25 }}
-                  className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 min-h-[500px]"
+                  className="w-full max-w-xl mx-auto my-auto flex flex-col items-center justify-center py-2"
                 >
                   {/* CASE 1: Doctor Arrival Required */}
                   {activeQueue.status !== 1 && activeQueue.status !== 2 ? (
-                    <div className="saas-card w-full max-w-2xl p-6 sm:p-8 rounded border-slate-200 shadow-md bg-gradient-to-b from-white via-indigo-50/20 to-white text-center relative overflow-hidden">
-                      <div className="w-16 h-16 rounded bg-indigo-600 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200 relative">
-                        <Stethoscope className="w-8 h-8" />
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white animate-ping" />
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white" />
+                    <div className="saas-card w-full p-4 sm:p-5 text-center relative overflow-hidden border-slate-200/90 shadow-sm bg-white">
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" />
+
+                      <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-indigo-200/60 relative">
+                        <Stethoscope className="w-5 h-5" />
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white animate-ping" />
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 mb-3">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/70 mb-2">
+                        <Sparkles className="w-3 h-3 text-indigo-600" />
                         Chamber Ready • Arrival Required
                       </span>
 
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+                      <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mb-1">
                         Welcome, {doctorDisplayName}
                       </h2>
-                      <p className="text-sm sm:text-base text-slate-500 max-w-lg mx-auto mb-6 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-3.5 leading-relaxed">
                         Your session <strong className="text-slate-800 font-semibold">{activeQueue.sessionName}</strong> is active at <strong className="text-slate-800 font-semibold">{activeBranchName}</strong>. Please confirm your arrival to alert reception, sync waiting room screens, and start calling patients.
                       </p>
 
                       {can('DoctorDesk.MarkDoctorArrived') && (
-                        <div className="flex items-center justify-center mb-8">
+                        <div className="flex items-center justify-center mb-3.5">
                           <button
                             onClick={() => markArrivedMutation.mutate()}
                             disabled={markArrivedMutation.isPending}
-                            className="w-full sm:w-auto px-7 py-3 rounded font-extrabold text-sm sm:text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all flex items-center justify-center gap-2.5 active:scale-98"
+                            className="btn-primary h-10 px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm"
                           >
                             {markArrivedMutation.isPending ? (
                               <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>Marking Arrival...</span>
                               </>
                             ) : (
                               <>
-                                <Stethoscope className="w-5 h-5" />
+                                <Stethoscope className="w-4 h-4" />
                                 <span>Mark Arrival & Open Consultations</span>
                               </>
                             )}
@@ -1165,45 +1167,52 @@ export default function DoctorDeskPage() {
                       )}
 
                       {/* 3 System Highlights */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6 border-t border-slate-100 text-left">
-                        <div className="bg-white/90 rounded p-3 border border-slate-100 shadow-xs">
-                          <div className="w-7 h-7 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
-                            <Bell className="w-4 h-4" />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 pt-3 border-t border-slate-100 text-left">
+                        <div className="bg-slate-50/80 rounded-lg p-2 sm:p-2.5 border border-slate-200/60 flex sm:flex-col items-center sm:items-start gap-2.5 sm:gap-1.5">
+                          <div className="w-6 h-6 rounded-md bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0">
+                            <Bell className="w-3.5 h-3.5" />
                           </div>
-                          <p className="text-xs font-bold text-slate-800">Alerts Reception</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Staff sees you are seated & ready for patients.</p>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">Alerts Reception</p>
+                            <p className="text-[11px] text-slate-500 leading-tight">Staff sees you are seated & ready.</p>
+                          </div>
                         </div>
-                        <div className="bg-white/90 rounded p-3 border border-slate-100 shadow-xs">
-                          <div className="w-7 h-7 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
-                            <MonitorPlay className="w-4 h-4" />
+                        <div className="bg-slate-50/80 rounded-lg p-2 sm:p-2.5 border border-slate-200/60 flex sm:flex-col items-center sm:items-start gap-2.5 sm:gap-1.5">
+                          <div className="w-6 h-6 rounded-md bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0">
+                            <MonitorPlay className="w-3.5 h-3.5" />
                           </div>
-                          <p className="text-xs font-bold text-slate-800">Syncs Waiting TV</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Displays 'Consulting Now' status on TV screen.</p>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">Syncs Waiting TV</p>
+                            <p className="text-[11px] text-slate-500 leading-tight">Displays 'Consulting Now' status.</p>
+                          </div>
                         </div>
-                        <div className="bg-white/90 rounded p-3 border border-slate-100 shadow-xs">
-                          <div className="w-7 h-7 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
-                            <Users className="w-4 h-4" />
+                        <div className="bg-slate-50/80 rounded-lg p-2 sm:p-2.5 border border-slate-200/60 flex sm:flex-col items-center sm:items-start gap-2.5 sm:gap-1.5">
+                          <div className="w-6 h-6 rounded-md bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0">
+                            <Users className="w-3.5 h-3.5" />
                           </div>
-                          <p className="text-xs font-bold text-slate-800">Activates Queue</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Call tokens in sequence with one click.</p>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">Activates Queue</p>
+                            <p className="text-[11px] text-slate-500 leading-tight">Call tokens in sequence live.</p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   ) : activeQueue.status === 2 ? (
                     /* CASE 2: Session Paused */
-                    <div className="saas-card w-full max-w-xl p-6 sm:p-8 rounded border-amber-200 shadow-md bg-gradient-to-b from-white via-amber-50/30 to-white text-center">
-                      <div className="w-16 h-16 rounded bg-amber-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-200">
-                        <Pause className="w-8 h-8" />
+                    <div className="saas-card w-full max-w-lg p-4 sm:p-5 text-center relative overflow-hidden border-amber-200/90 shadow-sm bg-white">
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600" />
+                      <div className="w-11 h-11 rounded-lg bg-amber-500 text-white flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-amber-200/60">
+                        <Pause className="w-5 h-5" />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 mb-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-2">
                         Consultation Paused
                       </span>
 
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+                      <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mb-1">
                         Session is on a Break
                       </h2>
-                      <p className="text-sm sm:text-base text-slate-600 max-w-md mx-auto mb-2">
+                      <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mb-1.5">
                         {activeQueue.pauseReason ? (
                           <span>Reason: <strong>{activeQueue.pauseReason}</strong></span>
                         ) : (
@@ -1211,16 +1220,16 @@ export default function DoctorDeskPage() {
                         )}
                       </p>
                       {activeQueue.pausedUntil && (
-                        <p className="text-xs font-semibold text-amber-700 mb-6">
+                        <p className="text-xs font-semibold text-amber-700 mb-3">
                           Estimated return at ~{new Date(activeQueue.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       )}
 
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                      <div className="flex flex-wrap items-center justify-center gap-2.5 mt-3">
                         <button
                           onClick={() => resumeMutation.mutate()}
                           disabled={resumeMutation.isPending}
-                          className="w-full sm:w-auto px-7 py-3 rounded font-extrabold text-sm sm:text-base bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200 transition-all flex items-center justify-center gap-2 active:scale-98"
+                          className="btn-primary h-10 px-5 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm"
                         >
                           {resumeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                           <span>Resume Consultations</span>
@@ -1230,7 +1239,7 @@ export default function DoctorDeskPage() {
                           <button
                             onClick={handleEndSession}
                             disabled={endSessionMutation.isPending}
-                            className="w-full sm:w-auto px-5 py-3 rounded font-bold text-sm bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 shadow-xs transition-colors flex items-center justify-center gap-2"
+                            className="btn-cancel h-10 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5"
                           >
                             <Power className="w-4 h-4" />
                             <span>End Session</span>
@@ -1240,37 +1249,38 @@ export default function DoctorDeskPage() {
                     </div>
                   ) : pendingTokens.length > 0 && nextPatient ? (
                     /* CASE 3: Doctor Arrived & Patients Waiting */
-                    <div className="saas-card w-full max-w-2xl p-6 sm:p-8 rounded border-slate-200 shadow-md bg-white text-center relative overflow-hidden">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-sm text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-4">
-                        <Users className="w-3.5 h-3.5 text-indigo-600" />
+                    <div className="saas-card w-full max-w-lg p-4 sm:p-5 text-center relative overflow-hidden border-slate-200/90 shadow-sm bg-white">
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700" />
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/70 mb-2.5">
+                        <Users className="w-3 h-3 text-indigo-600" />
                         <span>Up Next in Line • {pendingTokens.length} Patient{pendingTokens.length > 1 ? 's' : ''} Waiting</span>
                       </div>
 
                       {/* Next Patient Card */}
-                      <div className="bg-slate-50 border border-slate-200/80 rounded p-4 sm:p-5 my-2 max-w-lg mx-auto flex items-center gap-4 text-left shadow-xs hover:border-indigo-200 transition-colors">
-                        <div className="w-12 h-12 rounded bg-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-md shadow-indigo-200 shrink-0">
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-3 sm:p-3.5 my-2 max-w-md mx-auto flex items-center gap-3 text-left shadow-2xs hover:border-indigo-200 transition-colors">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-xs shrink-0">
                           #{nextPatient.tokenNumber}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-extrabold text-slate-900 text-base sm:text-lg truncate">
+                            <h3 className="font-extrabold text-slate-900 text-sm sm:text-base truncate">
                               {nextPatient.patientName}
                             </h3>
                             {nextPatient.source === 0 ? (
-                              <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1 shrink-0">
                                 <Smartphone className="w-3 h-3 text-emerald-500" /> WhatsApp
                               </span>
                             ) : nextPatient.source === 3 ? (
-                              <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 flex items-center gap-1 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 flex items-center gap-1 shrink-0">
                                 <Send className="w-3 h-3 text-sky-500" /> Telegram
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1 shrink-0">
                                 <Phone className="w-3 h-3 text-slate-400" /> Walk-in
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
                             <span>Phone: {nextPatient.patientPhone || 'Not provided'}</span>
                             {nextPatient.isPriority && (
                               <span className="px-1.5 py-0.2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xs text-[10px] font-bold">
@@ -1283,20 +1293,20 @@ export default function DoctorDeskPage() {
 
                       {/* Main Call Action */}
                       {can('DoctorDesk.CallNext') && (
-                        <div className="mt-5 mb-5">
+                        <div className="mt-3 mb-3">
                           <button
                             onClick={() => callNextMutation.mutate()}
                             disabled={callNextMutation.isPending}
-                            className="px-8 py-3.5 rounded font-extrabold text-sm sm:text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all flex items-center justify-center gap-2.5 mx-auto active:scale-98"
+                            className="btn-primary h-10 px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 mx-auto shadow-sm"
                           >
                             {callNextMutation.isPending ? (
                               <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                                 <span>Calling Token #{nextPatient.tokenNumber}...</span>
                               </>
                             ) : (
                               <>
-                                <Bell className="w-5 h-5" />
+                                <Bell className="w-4 h-4" />
                                 <span>Call Patient #{nextPatient.tokenNumber}</span>
                               </>
                             )}
@@ -1305,10 +1315,10 @@ export default function DoctorDeskPage() {
                       )}
 
                       {/* Secondary Options */}
-                      <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => setIsQueueExpanded(true)}
-                          className="px-3.5 py-1.5 rounded text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs transition-colors flex items-center gap-1.5"
+                          className="btn-secondary h-8 px-3 text-xs font-bold flex items-center gap-1.5"
                         >
                           <Users className="w-3.5 h-3.5 text-indigo-600" />
                           <span>View Full Queue ({pendingTokens.length})</span>
@@ -1316,7 +1326,7 @@ export default function DoctorDeskPage() {
 
                         <button
                           onClick={() => setIsPauseModalOpen(true)}
-                          className="px-3.5 py-1.5 rounded text-xs font-bold text-amber-700 bg-white hover:bg-amber-50 border border-amber-200 shadow-xs transition-colors flex items-center gap-1.5"
+                          className="h-8 px-3 rounded-md text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100/70 border border-amber-200 shadow-2xs transition-colors flex items-center gap-1.5"
                         >
                           <Coffee className="w-3.5 h-3.5 text-amber-600" />
                           <span>Take a Break</span>
@@ -1325,46 +1335,41 @@ export default function DoctorDeskPage() {
                     </div>
                   ) : (
                     /* CASE 4: Doctor Arrived & Queue Clear */
-                    <div className="saas-card w-full max-w-2xl p-6 sm:p-8 rounded border-slate-200 shadow-md bg-gradient-to-b from-white via-emerald-50/20 to-white text-center">
-                      <div className="w-16 h-16 rounded bg-emerald-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
-                        <CheckCircle2 className="w-8 h-8" />
+                    <div className="saas-card w-full max-w-lg p-4 sm:p-5 text-center relative overflow-hidden border-slate-200/90 shadow-sm bg-white">
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600" />
+                      <div className="w-11 h-11 rounded-lg bg-emerald-500 text-white flex items-center justify-center mx-auto mb-2.5 shadow-md shadow-emerald-200/60">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 mb-3">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-2">
+                        <Sparkles className="w-3 h-3 text-emerald-600" />
                         Queue is Clear
                       </span>
 
-                      <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+                      <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight mb-1">
                         All Caught Up!
                       </h2>
-                      <p className="text-sm sm:text-base text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-3.5 leading-relaxed">
                         There are currently no patients waiting in the queue for <strong className="text-slate-800 font-semibold">{activeQueue.sessionName}</strong>. New walk-in registrations and online bookings will appear here live.
                       </p>
 
-                      {/* 2 Quick Action Cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+                      {/* 2 Quick Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-center gap-2.5 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => setIsPauseModalOpen(true)}
-                          className="p-3.5 rounded bg-white hover:bg-amber-50/50 border border-slate-200 hover:border-amber-200 shadow-xs text-left transition-all group"
+                          className="btn-secondary h-9 px-4 text-xs font-bold text-amber-700 hover:bg-amber-50/70 border-amber-200 flex items-center gap-1.5"
                         >
-                          <div className="w-8 h-8 rounded bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                            <Coffee className="w-4 h-4" />
-                          </div>
-                          <p className="text-xs font-bold text-slate-800 group-hover:text-amber-700 transition-colors">Take a Break</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Pause active session</p>
+                          <Coffee className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Take a Break</span>
                         </button>
 
                         <button
                           onClick={handleEndSession}
                           disabled={endSessionMutation.isPending}
-                          className="p-3.5 rounded bg-white hover:bg-rose-50/50 border border-slate-200 hover:border-rose-200 shadow-xs text-left transition-all group"
+                          className="btn-cancel h-9 px-4 text-xs font-bold flex items-center gap-1.5"
                         >
-                          <div className="w-8 h-8 rounded bg-rose-50 text-rose-600 flex items-center justify-center mb-2 group-hover:bg-rose-600 group-hover:text-white transition-all">
-                            <Power className="w-4 h-4" />
-                          </div>
-                          <p className="text-xs font-bold text-slate-800 group-hover:text-rose-600 transition-colors">End Session</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Finish OPD for today</p>
+                          <Power className="w-3.5 h-3.5" />
+                          <span>End Session</span>
                         </button>
                       </div>
                     </div>
