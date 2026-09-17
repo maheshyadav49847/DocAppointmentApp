@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/axios';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { Printer, CheckCircle, Search, FileText, ReceiptIndianRupee, User, Download, CalendarDays, Clock, History, CreditCard } from 'lucide-react';
+import { Printer, CheckCircle, Search, FileText, ReceiptIndianRupee, User, Download, CalendarDays, Clock, History, CreditCard, X } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { billingService } from '@/services/billingService';
@@ -150,71 +150,78 @@ export default function BillingDashboardPage() {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6 p-6">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <FileText className="w-7 h-7" />
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Billing &</span>
               <span className="text-indigo-600">Invoices</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage patient bills, generate invoices, and record payments.</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Manage patient bills, generate invoices, and record payments.
+            </p>
           </div>
         </div>
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
+
+        {/* Tab switcher */}
+        <div className="flex items-center bg-white border border-slate-200 rounded-md p-0.5 shadow-xs shrink-0 h-9">
           <button 
-            className={`px-5 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'pending' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`h-full px-3 text-xs font-semibold rounded-sm transition-all flex items-center gap-1.5 ${activeTab === 'pending' ? 'bg-indigo-50 text-indigo-600 shadow-xs' : 'text-slate-400 hover:text-slate-600'}`}
             onClick={() => setActiveTab('pending')}
           >
-            <span className="relative flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Pending Bills
-              {pendingTotalCount > 0 && (
-                <span className="absolute -top-1 -right-4 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-              )}
-            </span>
+            <Clock className="w-3.5 h-3.5" />
+            <span>Pending Bills</span>
+            {pendingTotalCount > 0 && (
+              <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse ml-0.5"></span>
+            )}
           </button>
           <button 
-            className={`px-5 py-2 text-sm font-bold rounded-md transition-all flex items-center gap-2 ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`h-full px-3 text-xs font-semibold rounded-sm transition-all flex items-center gap-1.5 ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-600 shadow-xs' : 'text-slate-400 hover:text-slate-600'}`}
             onClick={() => setActiveTab('history')}
           >
-            <History className="w-4 h-4" />
-            History
+            <History className="w-3.5 h-3.5" />
+            <span>History</span>
           </button>
         </div>
       </div>
 
       {activeTab === 'pending' && (
-        <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-500" /> Pending Bills
-              <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 ml-2">
-                {pendingTotalCount} Pending
-              </span>
-            </h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
-                  <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
-                  <select
-                    value={pendingDateRange}
-                    onChange={(e) => { setPendingDateRange(e.target.value); setPendingPage(1); }}
-                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-                  >
-                    <option value="today">Today</option>
-                    <option value="yesterday">Yesterday</option>
-                    <option value="this_week">This Week</option>
-                    <option value="this_month">This Month</option>
-                    <option value="custom">Custom Range</option>
-                  </select>
-                </div>
-                {pendingDateRange === 'custom' && (
-                <div className="flex items-center gap-2">
+        <div className="saas-card overflow-hidden">
+          {/* Toolbar */}
+          <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                Pending Bills
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-sm border border-slate-200">
+                  {pendingTotalCount} Pending
+                </span>
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <div className="flex items-center bg-white border border-slate-200 rounded-md px-2.5 h-9 shadow-xs shrink-0">
+                <CalendarDays className="w-3.5 h-3.5 text-slate-400 mr-2" />
+                <select
+                  value={pendingDateRange}
+                  onChange={(e) => { setPendingDateRange(e.target.value); setPendingPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {pendingDateRange === 'custom' && (
+                <div className="flex items-center gap-1.5">
                   <div className="relative">
-                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <DatePicker
                       selected={pendingCustomStart}
                       onChange={(date: Date | null) => { if(date) { setPendingCustomStart(date); setPendingPage(1); } }}
@@ -225,13 +232,13 @@ export default function BillingDashboardPage() {
                       dropdownMode="select"
                       portalId="root-portal"
                       showDisabledMonthNavigation
-                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200 rounded-md text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-xs"
                       maxDate={pendingCustomEnd}
                     />
                   </div>
                   <span className="text-slate-400 text-xs font-bold">to</span>
                   <div className="relative">
-                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <DatePicker
                       selected={pendingCustomEnd}
                       onChange={(date: Date | null) => { if(date) { setPendingCustomEnd(date); setPendingPage(1); } }}
@@ -242,46 +249,57 @@ export default function BillingDashboardPage() {
                       dropdownMode="select"
                       portalId="root-portal"
                       showDisabledMonthNavigation
-                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200 rounded-md text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-xs"
                       minDate={pendingCustomStart}
                       maxDate={new Date()}
                     />
                   </div>
                 </div>
-                )}
+              )}
+
               <select 
                 value={pendingPageSize}
                 onChange={(e) => { setPendingPageSize(Number(e.target.value)); setPendingPage(1); }}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs"
               >
                 <option value={10}>10 rows</option>
                 <option value={20}>20 rows</option>
                 <option value={50}>50 rows</option>
               </select>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+
+              <div className="relative flex-1 sm:w-64 group">
+                <Search className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" />
                 <input 
                   type="text"
                   placeholder="Search pending bills..."
                   value={pendingSearch}
                   onChange={(e) => { setPendingSearch(e.target.value); setPendingPage(1); }}
-                  className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="saas-input h-9 w-full text-xs"
+                  style={{ paddingLeft: "2.35rem", paddingRight: pendingSearch ? "2rem" : "0.75rem" }}
                 />
+                {pendingSearch && (
+                  <button
+                    onClick={() => { setPendingSearch(''); setPendingPage(1); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
           
-          <div className="overflow-auto flex-1 bg-white p-4 sm:p-6">
-            <div className="bg-white rounded-b-xl border border-slate-200 shadow-sm w-full min-w-max overflow-hidden">
-              <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Token Ref ID</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Doctor</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Booking Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Consulted At</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Action</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Token Ref ID</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Doctor</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Booking Date</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Consulted At</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -347,7 +365,6 @@ export default function BillingDashboardPage() {
                 )}
               </tbody>
             </table>
-            </div>
           </div>
 
           {/* Standardized Pagination */}
@@ -366,30 +383,34 @@ export default function BillingDashboardPage() {
       )}
 
       {activeTab === 'history' && (
-        <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-500" /> Invoice History
-            </h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
-                  <CalendarDays className="w-4 h-4 text-slate-400 mr-2" />
-                  <select
-                    value={historyDateRange}
-                    onChange={(e) => { setHistoryDateRange(e.target.value); setHistoryPage(1); }}
-                    className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
-                  >
-                    <option value="today">Today</option>
-                    <option value="yesterday">Yesterday</option>
-                    <option value="this_week">This Week</option>
-                    <option value="this_month">This Month</option>
-                    <option value="custom">Custom Range</option>
-                  </select>
-                </div>
-                {historyDateRange === 'custom' && (
-                <div className="flex items-center gap-2">
+        <div className="saas-card overflow-hidden">
+          {/* Toolbar */}
+          <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                Invoice History
+              </h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              <div className="flex items-center bg-white border border-slate-200 rounded-md px-2.5 h-9 shadow-xs shrink-0">
+                <CalendarDays className="w-3.5 h-3.5 text-slate-400 mr-2" />
+                <select
+                  value={historyDateRange}
+                  onChange={(e) => { setHistoryDateRange(e.target.value); setHistoryPage(1); }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {historyDateRange === 'custom' && (
+                <div className="flex items-center gap-1.5">
                   <div className="relative">
-                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <DatePicker
                       selected={historyCustomStart}
                       onChange={(date: Date | null) => { if(date) { setHistoryCustomStart(date); setHistoryPage(1); } }}
@@ -400,13 +421,13 @@ export default function BillingDashboardPage() {
                       dropdownMode="select"
                       portalId="root-portal"
                       showDisabledMonthNavigation
-                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200 rounded-md text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-xs"
                       maxDate={historyCustomEnd}
                     />
                   </div>
                   <span className="text-slate-400 text-xs font-bold">to</span>
                   <div className="relative">
-                    <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-400 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                     <DatePicker
                       selected={historyCustomEnd}
                       onChange={(date: Date | null) => { if(date) { setHistoryCustomEnd(date); setHistoryPage(1); } }}
@@ -417,118 +438,139 @@ export default function BillingDashboardPage() {
                       dropdownMode="select"
                       portalId="root-portal"
                       showDisabledMonthNavigation
-                      className="pl-9 pr-3 py-2 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200 rounded-md text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-xs"
                       minDate={historyCustomStart}
                       maxDate={new Date()}
                     />
                   </div>
                 </div>
-                )}
+              )}
+
               <select 
                 value={historyPageSize}
                 onChange={(e) => { setHistoryPageSize(Number(e.target.value)); setHistoryPage(1); }}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs"
               >
                 <option value={10}>10 rows</option>
                 <option value={20}>20 rows</option>
                 <option value={50}>50 rows</option>
               </select>
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+
+              <div className="relative flex-1 sm:w-64 group">
+                <Search className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" />
                 <input 
                   type="text"
                   placeholder="Search invoices..."
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  className="pl-9 pr-4 py-2 w-full sm:w-64 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  className="saas-input h-9 w-full text-xs"
+                  style={{ paddingLeft: "2.35rem", paddingRight: historySearch ? "2rem" : "0.75rem" }}
                 />
+                {historySearch && (
+                  <button
+                    onClick={() => setHistorySearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
+
               {can('Billing.Export') && (
                 <button
                   onClick={handleExportCSV}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors"
+                  className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5"
                   title="Export to CSV"
                 >
-                  <Download className="w-4 h-4" />
-                  Export
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Export</span>
                 </button>
               )}
             </div>
           </div>
-          <div className="overflow-auto flex-1 bg-white p-4 sm:p-6">
-            <div className="bg-white rounded-b-xl border border-slate-200 shadow-sm w-full min-w-max overflow-hidden">
-              <table className="w-full text-left border-collapse">
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Invoice #</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Token Ref ID</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Doctor</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Booking Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Payment Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Action</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Invoice #</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Token Ref ID</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Patient Name</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Doctor</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Booking Date</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Payment Date</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                  <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {isLoadingInvoices ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={9} className="px-4 py-12 text-center text-slate-500">
                       <div className="flex justify-center mb-2"><PageLoader /></div>
                       Loading history...
                     </td>
                   </tr>
                 ) : invoices.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500 font-medium">No invoices found.</td>
+                    <td colSpan={9} className="px-4 py-12 text-center text-slate-500 font-medium text-sm">No invoices found.</td>
                   </tr>
                 ) : (
                   invoices.map((inv: any) => (
                     <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-indigo-600">{inv.invoiceNumber}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 font-bold text-indigo-600 text-xs">{inv.invoiceNumber}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {inv.tokenReferenceId ? (
-                          <span className="font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-1 rounded">
+                          <span className="font-bold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-sm text-xs">
                             {inv.tokenReferenceId}
                           </span>
                         ) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">{inv.patientName}</td>
-                      <td className="px-6 py-4 text-slate-600">{inv.doctorName || '-'}</td>
-                      <td className="px-6 py-4 text-slate-500">
+                      <td className="px-4 py-3 text-slate-900 font-semibold text-xs">{inv.patientName}</td>
+                      <td className="px-4 py-3 text-slate-600 text-xs">{inv.doctorName || '-'}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">
                         {inv.bookingDate ? new Date(inv.bookingDate).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
-                      <td className="px-6 py-4 text-slate-500">
+                      <td className="px-4 py-3 text-slate-500 text-xs">
                         {inv.paymentDate ? new Date(inv.paymentDate).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold uppercase tracking-wider ${
-                          inv.status === 2 ? 'bg-emerald-100 text-emerald-700' :
-                          inv.status === 1 ? 'bg-amber-100 text-amber-700' :
-                          inv.status === 3 ? 'bg-rose-100 text-rose-700' :
-                          'bg-slate-100 text-slate-600'
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded-sm text-[10px] font-extrabold uppercase tracking-wider border ${
+                          inv.status === 2 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          inv.status === 1 ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          inv.status === 3 ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                          'bg-slate-50 text-slate-600 border-slate-200'
                         }`}>
                           {inv.status === 2 ? 'Paid' : inv.status === 1 ? 'Partial' : inv.status === 3 ? 'Cancelled' : 'Unpaid'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-900">₹{inv.totalAmount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right flex justify-end items-center gap-2">
+                      <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-900 text-xs">₹{inv.totalAmount}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="flex justify-end items-center gap-1">
                           {inv.status !== 2 && inv.status !== 3 && can('Billing.RecordPayment') && (
-                            <button onClick={() => setPaymentInvoice(inv)} className="text-emerald-600 hover:text-emerald-700 transition-colors p-2 hover:bg-emerald-50 rounded-lg flex items-center gap-1 font-semibold text-sm">
-                              <CreditCard className="w-4 h-4" /> Pay
+                            <button 
+                              onClick={() => setPaymentInvoice(inv)} 
+                              className="h-7 px-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-md flex items-center gap-1 font-bold text-xs transition-colors shadow-2xs"
+                            >
+                              <CreditCard className="w-3 h-3" /> Pay
                             </button>
                           )}
-                          <button onClick={() => handlePrint(inv)} className="text-slate-400 hover:text-indigo-600 transition-colors p-2 hover:bg-indigo-50 rounded-lg">
-                            <Printer className="w-4 h-4" />
+                          <button 
+                            onClick={() => handlePrint(inv)} 
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs transition-all"
+                            title="Print Invoice"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
                           </button>
-                        </td>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
-            </div>
           </div>
           
           {/* Standardized Pagination */}

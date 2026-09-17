@@ -90,3 +90,11 @@
   - **Navigation Buttons**: Uniform `h-8 w-8 rounded-md bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 text-slate-600 disabled:opacity-40` with Lucide `ChevronLeft` and `ChevronRight`.
   - **Page Pill**: Centralized `px-2.5 py-1 rounded-md bg-white border border-slate-200/90 text-xs font-semibold text-slate-700 shadow-2xs` displaying `Page <span className="text-indigo-600 font-extrabold">{pageIndex + 1}</span> of {pageCount}`.
 - **Reference**: Detailed code snippets and implementation guides are documented in `.agents/skills/ui-component-design-system/SKILL.md`.
+
+### 8. Page Layout Spacing & Uniform Sidebar Gap Invariant (Zero Nested Page Padding)
+- **Master Layout Padding Standard**: The master application layout (`DashboardLayout.tsx`) already provides uniform responsive padding for page content: `<main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col min-h-0 overflow-y-auto">`.
+- **Zero Nested / Double Padding**: Every page component (`*Page.tsx`) must NEVER apply its own outer horizontal padding (e.g. `p-6` or `p-8`) to its root container. Adding nested padding causes an unsightly, excessive gap between the left sidebar and page content.
+- **Root Container Standard**: Every page component root element MUST strictly use:
+  `className="animate-in fade-in duration-500 space-y-3.5 pb-6"`
+  (or `space-y-4 pb-6`). This ensures identical, pixel-perfect alignment, compact ergonomics, and a uniform gap from the sidebar across ALL application pages (Branches, Doctors, Patients, Staff, Billing, Rate List, etc.).
+- **Reference**: Detailed code snippets and tokens are documented in `.agents/skills/ui-component-design-system/SKILL.md`.

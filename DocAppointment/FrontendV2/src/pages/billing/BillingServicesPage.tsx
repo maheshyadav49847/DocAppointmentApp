@@ -148,124 +148,150 @@ export default function BillingServicesPage() {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6 p-6">
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
       {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <LayoutGrid className="w-7 h-7" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <LayoutGrid className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Rate List /</span>
               <span className="text-indigo-600">Service Master</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage the clinic's master list of procedures, tests, and their default prices.</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Manage the clinic's master list of procedures, tests, and their default prices.
+            </p>
           </div>
         </div>
       </div>
 
       {/* Main Card */}
-      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="saas-card overflow-hidden">
         {/* Toolbar */}
-        <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+        <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
               Services
-              <span className="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 ml-2">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-sm border border-slate-200">
                 {totalCount} Total
               </span>
             </h2>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <select 
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-sm"
+              className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs transition-all"
             >
               <option value={10}>10 rows</option>
               <option value={20}>20 rows</option>
               <option value={50}>50 rows</option>
             </select>
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative flex-1 sm:w-64 group">
+              <Search className="w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 transition-colors pointer-events-none" />
               <input 
                 type="text"
                 placeholder="Search services..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="pl-9 pr-4 py-2 w-full sm:w-64 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+                className="saas-input h-9 w-full text-xs"
+                style={{ paddingLeft: "2.35rem", paddingRight: search ? "2rem" : "0.75rem" }}
               />
+              {search && (
+                <button
+                  onClick={() => { setSearch(''); setPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             {can('Billing.Export') && (
-              <button onClick={handleExport} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
-                <Download className="w-4 h-4" /> Export CSV
+              <button 
+                onClick={handleExport} 
+                className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" /> 
+                <span className="hidden sm:inline">Export CSV</span>
               </button>
             )}
             {can('Billing.ManageRateList') && (
-              <button onClick={() => handleOpenModal()} className="btn-primary shadow-sm shrink-0 px-4">
-                <PlusCircle className="w-4 h-4" /> Add Service
+              <button 
+                onClick={() => handleOpenModal()} 
+                className="btn-primary h-9 px-3 sm:px-3.5 text-xs font-bold shrink-0 flex items-center gap-1.5"
+              >
+                <PlusCircle className="w-3.5 h-3.5" /> 
+                <span>Add Service</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Table Area */}
-        <div className="overflow-auto flex-1 bg-white p-4 sm:p-6">
-          <div className="bg-white rounded-b-xl border border-slate-200 shadow-sm w-full min-w-max overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Service Name</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Category</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Default Price</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-slate-100">
+              {isLoading ? (
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Service Name</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Category</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Default Price</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Actions</th>
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                    <div className="flex justify-center mb-2"><PageLoader /></div>
+                    Loading rate list...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                      <div className="flex justify-center mb-2"><PageLoader /></div>
-                      Loading rate list...
+              ) : services?.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12 text-slate-500 text-sm">
+                    No services found.
+                  </td>
+                </tr>
+              ) : (
+                services?.map((service: any) => (
+                  <tr key={service.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="px-4 py-3 whitespace-nowrap font-bold text-slate-900 text-sm">{service.name}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-500 font-medium text-xs">{service.category || '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-900 font-bold text-sm">₹{service.defaultPrice}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 inline-flex text-[10px] uppercase font-bold tracking-wider rounded-sm border ${service.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                        {service.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                      {can('Billing.ManageRateList') && (
+                        <div className="flex items-center justify-end gap-1">
+                          <button 
+                            onClick={() => handleOpenModal(service)} 
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs transition-all"
+                            title="Edit Service"
+                          >
+                            <SquarePen className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => { if(window.confirm('Delete this service?')) deleteMutation.mutate(service.id); }} 
+                            className="w-7 h-7 rounded-md flex items-center justify-center text-slate-500 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200/90 hover:border-rose-200 shadow-2xs transition-all"
+                            title="Delete Service"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ) : services?.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-12 text-slate-500">
-                      No services found.
-                    </td>
-                  </tr>
-                ) : (
-                  services?.map((service: any) => (
-                    <tr key={service.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-900">{service.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-medium">{service.category || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-slate-900 font-bold">₹{service.defaultPrice}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 inline-flex text-[10px] uppercase font-bold tracking-wider rounded-md border ${service.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                          {service.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {can('Billing.ManageRateList') && (
-                          <>
-                            <button onClick={() => handleOpenModal(service)} className="text-slate-400 hover:text-indigo-600 mr-3 transition-colors">
-                              <SquarePen className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => { if(window.confirm('Delete this service?')) deleteMutation.mutate(service.id); }} className="text-slate-400 hover:text-rose-600 transition-colors">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Standardized Pagination */}

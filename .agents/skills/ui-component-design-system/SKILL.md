@@ -78,10 +78,11 @@ Whenever form controls (inputs, textboxes, selects, dropdowns, date pickers) and
 | **Forms & Modal Actions** | **40px** | `h-10` | Form inputs (`saas-input h-10`), Form selects (`h-10`), Modal footer buttons (`btn-cancel h-10`, `btn-primary h-10`) |
 | **Table Rows & Card Actions** | **32px** or **28px** | `h-8 w-8` or `h-7 w-7` | Action icon buttons (Edit, Delete, Feedback, Reset Password) inside data tables and card footers |
 
-### 3. ⛔ Strict Prohibitions:
+### 3. ⛔ Strict Prohibitions & Input Standards:
 - **NO Mismatched Heights in Same Row**: Never pair an input with an adjacent button where one is 38px and the other is 42px or 34px.
 - **NO Arbitrary Padding Mixes**: Never rely on random vertical padding combinations (e.g. mixing `py-1.5`, `py-2`, `py-2.5` on sibling controls) without an explicit fixed height utility (`h-9` or `h-10`).
 - **NO Taller/Shorter Action Buttons**: In modal footers or card action bars, never make the "Cancel" button shorter or taller than the "Save / Submit" button.
+- **Search Icon Clearance (Zero Overlap Invariant)**: When pairing `<Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />` with `saas-input`, always ensure `style={{ paddingLeft: "2.35rem", paddingRight: search ? "2rem" : "0.75rem" }}` (or `!pl-9.5`) is explicitly applied so the placeholder/value text never collides with or overlaps the lens icon.
 
 ---
 
@@ -116,6 +117,33 @@ import { DataTablePagination } from "@/components/ui/DataTablePagination";
   onNextPage={() => setPageIndex(p => p + 1)}
 />
 ```
+
+```
+
+---
+
+## 0.4 Page Layout Container Spacing & Uniform Sidebar Gap Invariant (ZERO NESTED PADDING INVARIANT)
+
+Every page in the application must have an identical, seamless visual distance from the application sidebar and top navigation bar.
+
+### 1. The Core Rule: Zero Nested / Double Padding
+- In `DashboardLayout.tsx`, the master application container already provides responsive layout padding:
+  `<main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col min-h-0 overflow-y-auto">`
+- **Strictly NO Nested Padding in Page Components**: Individual page components (`*Page.tsx`) must **NEVER** declare additional outer horizontal padding (such as `p-6` or `p-8`) on their root wrapper.
+- Adding `p-6` inside `<main>` doubles the spacing (`32px + 24px = 56px`), causing an unsightly large gap between the sidebar and the main content.
+
+### 2. Standard Root Container Token:
+All page components must strictly use:
+```tsx
+<div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+  {/* Page Header */}
+  {/* Stats Strip */}
+  {/* Main SaaS Card */}
+</div>
+```
+- Use `space-y-3.5` (or `space-y-4`) for vertical rhythm.
+- Use `pb-6` for comfortable bottom breathing room.
+- NEVER add `p-6`, `p-8`, or `px-6` to the page component root.
 
 ---
 
