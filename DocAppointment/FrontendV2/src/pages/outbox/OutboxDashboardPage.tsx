@@ -42,7 +42,7 @@ export default function OutboxDashboardPage() {
   const [customStart, setCustomStart] = useState<Date>(() => new Date());
   const [customEnd, setCustomEnd] = useState<Date>(() => new Date());
   const [page, setPage] = useState<number>(1);
-  const pageSize = 25;
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Selected message for inspect modal
   const [inspectItem, setInspectItem] = useState<OutboxMessageItem | null>(null);
@@ -169,31 +169,32 @@ export default function OutboxDashboardPage() {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="w-12 h-12 rounded-lg text-indigo-600 flex items-center justify-center border border-indigo-100 bg-indigo-50/50 shadow-xs shrink-0">
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
             <Inbox className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Outbox</span>
-              <span className="text-indigo-600">Delivery Hub</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <span className="text-indigo-600">Hub</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
                 Worker Engine
               </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-              Track real-time background message dispatch across Telegram, WhatsApp, SMS & Email.
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Track real-time background message dispatch across Telegram, WhatsApp, SMS & Email
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        {/* Action Controls - Uniform h-9 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`px-3.5 py-2 rounded-md border text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow-2xs ${
+            className={`h-9 px-3 rounded-md border text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
               autoRefresh
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/80'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -205,7 +206,7 @@ export default function OutboxDashboardPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="btn-secondary px-3.5 py-2 text-xs sm:text-sm font-bold shadow-2xs"
+            className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
             title="Refresh now"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
@@ -214,219 +215,221 @@ export default function OutboxDashboardPage() {
         </div>
       </div>
 
-      {/* KPI Stats Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="saas-card p-3.5 flex items-center justify-between">
+      {/* 2. KPI Stats Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Outbox</div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">{totalCount}</div>
-            <div className="text-[10px] text-slate-400 font-medium mt-0.5">All queues</div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Outbox</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{totalCount}</h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">All queues</p>
           </div>
-          <div className="w-8 h-8 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-            <Send className="w-4 h-4" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
 
-        <div className="saas-card p-3.5 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-500" />
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending / Queue</div>
-            <div className="text-xl sm:text-2xl font-black text-amber-600 mt-0.5">{pendingCount}</div>
-            <div className="text-[10px] text-amber-500 font-medium mt-0.5">In background worker</div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending / Queue</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">{pendingCount}</h3>
+            <p className="text-[10px] sm:text-[11px] text-amber-600/80 font-medium mt-0.5">In background worker</p>
           </div>
-          <div className="w-8 h-8 rounded-md bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-            <Clock className="w-4 h-4" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
 
-        <div className="saas-card p-3.5 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Delivered / Sent</div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5">{sentCount}</div>
-            <div className="text-[10px] text-emerald-500 font-medium mt-0.5">Confirmed delivery</div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Delivered / Sent</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{sentCount}</h3>
+            <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Confirmed delivery</p>
           </div>
-          <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-4 h-4" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
 
-        <div className="saas-card p-3.5 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-600" />
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Retry Backoff</div>
-            <div className="text-xl sm:text-2xl font-black text-rose-600 mt-0.5">{failedCount}</div>
-            <div className="text-[10px] text-rose-500 font-medium mt-0.5">Scheduled next retry</div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Retry Backoff</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">{failedCount}</h3>
+            <p className="text-[10px] sm:text-[11px] text-rose-600/80 font-medium mt-0.5">Scheduled retry</p>
           </div>
-          <div className="w-8 h-8 rounded-md bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-            <RotateCcw className="w-4 h-4" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
 
-        <div className="saas-card p-3.5 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-600 to-red-700" />
           <div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dead Letter</div>
-            <div className="text-xl sm:text-2xl font-black text-red-700 mt-0.5">{deadLetterCount}</div>
-            <div className="text-[10px] text-red-500 font-medium mt-0.5">Max retries crossed</div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Dead Letter</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-red-700 mt-0.5">{deadLetterCount}</h3>
+            <p className="text-[10px] sm:text-[11px] text-red-600/80 font-medium mt-0.5">Max retries crossed</p>
           </div>
-          <div className="w-8 h-8 rounded-md bg-red-50 border border-red-100 text-red-600 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-4 h-4" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-red-50 border border-red-100 text-red-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
       </div>
 
-      {/* Filter Control Bar */}
-      <div className="saas-card p-4 sm:p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Channel Filter */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-indigo-600" /> Dispatch Channel
-            </label>
-            <select
-              value={channelFilter}
-              onChange={(e) => {
-                setChannelFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2 text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
-            >
-              <option value="All">All Channels</option>
-              <option value="Telegram">Telegram</option>
-              <option value="WhatsApp">WhatsApp</option>
-              <option value="SMS">SMS</option>
-              <option value="Email">Email</option>
-            </select>
-          </div>
+      {/* 3. Main SaaS Card with Embedded Top Toolbar, Table, and Standard Pagination */}
+      <div className="saas-card overflow-hidden">
+        {/* Embedded Top Toolbar Header - Strict Uniform h-9 Controls */}
+        <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-2.5">
+            {/* Filters Row: Channel, Status, Date Preset, Custom Pickers, PageSize (Strict Uniform h-9) */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {/* Channel Filter */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <Radio className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={channelFilter}
+                  onChange={(e) => {
+                    setChannelFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by channel"
+                >
+                  <option value="All">All Channels</option>
+                  <option value="Telegram">Telegram</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="SMS">SMS</option>
+                  <option value="Email">Email</option>
+                </select>
+              </div>
 
-          {/* Status Filter */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" /> Delivery Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2 text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Pending">Pending (Queue)</option>
-              <option value="Processing">Processing</option>
-              <option value="Sent">Sent (Success)</option>
-              <option value="Failed">Failed (Retrying)</option>
-              <option value="DeadLetter">DeadLetter (Exhausted)</option>
-            </select>
-          </div>
+              {/* Status Filter */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by status"
+                >
+                  <option value="All">All Statuses ({totalCount})</option>
+                  <option value="Pending">Pending ({pendingCount})</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Sent">Sent / Delivered ({sentCount})</option>
+                  <option value="Failed">Failed / Retry ({failedCount})</option>
+                  <option value="DeadLetter">Dead Letter ({deadLetterCount})</option>
+                </select>
+              </div>
 
-          {/* Date Selector */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <CalendarIcon className="w-3.5 h-3.5 text-indigo-600" /> Date Range
-            </label>
-            <select
-              value={datePreset}
-              onChange={(e: any) => {
-                setDatePreset(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2 text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="week">Past 7 Days</option>
-              <option value="month">Past 30 Days</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
+              {/* Date Preset Filter */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={datePreset}
+                  onChange={(e: any) => {
+                    setDatePreset(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by date preset"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">Past 7 Days</option>
+                  <option value="month">Past 30 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
 
-          {/* Live Search */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5 text-indigo-600" /> Search Recipient / File
-            </label>
-            <div className="relative">
+              {/* Custom Date Pickers */}
+              {datePreset === 'custom' && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="relative">
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={customStart}
+                      onChange={(d: Date | null) => d && setCustomStart(d)}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
+                      maxDate={customEnd}
+                    />
+                  </div>
+                  <span className="text-slate-400 text-xs font-bold">to</span>
+                  <div className="relative">
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={customEnd}
+                      onChange={(d: Date | null) => d && setCustomEnd(d)}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
+                      minDate={customStart}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Rows Per Page */}
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="h-9 bg-white border border-slate-200/90 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-2xs transition-all"
+                title="Rows per page"
+              >
+                {[10, 25, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    Show {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Input with SKILL-mandated paddingLeft: 2.5rem clearance */}
+            <div className="relative flex-1 sm:w-64 md:w-64 lg:w-72 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
               <input
-                type="text"
-                placeholder="ChatId, Phone, Patient name..."
+                type="search"
+                placeholder="Search Chat ID, Phone, Patient..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md pl-9 pr-3 py-2 text-slate-800 font-semibold placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs"
+                className="saas-input h-9 w-full text-xs pr-8"
+                style={{ paddingLeft: "2.5rem" }}
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Custom Date Pickers */}
-        {datePreset === 'custom' && (
-          <div className="flex items-center gap-2 shrink-0 pt-3 border-t border-slate-100">
-            <div className="relative">
-              <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-              <DatePicker
-                selected={customStart}
-                onChange={(d: Date | null) => d && setCustomStart(d)}
-                dateFormat="dd MMM yyyy"
-                showMonthDropdown
-                showYearDropdown
-                todayButton="Today"
-                dropdownMode="select"
-                portalId="root-portal"
-                showDisabledMonthNavigation
-                className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                maxDate={customEnd}
-              />
-            </div>
-            <span className="text-slate-400 text-xs font-bold">to</span>
-            <div className="relative">
-              <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-              <DatePicker
-                selected={customEnd}
-                onChange={(d: Date | null) => d && setCustomEnd(d)}
-                dateFormat="dd MMM yyyy"
-                showMonthDropdown
-                showYearDropdown
-                todayButton="Today"
-                dropdownMode="select"
-                portalId="root-portal"
-                showDisabledMonthNavigation
-                className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                minDate={customStart}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Quick Status Segmented Switcher Tabs */}
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" /> Quick Status:
-          </span>
-          <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-md border border-slate-200/80 overflow-x-auto scrollbar-none">
-            {['All', 'Pending', 'Processing', 'Sent', 'Failed', 'DeadLetter'].map((st) => (
-              <button
-                key={st}
-                onClick={() => {
-                  setStatusFilter(st);
-                  setPage(1);
-                }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-all whitespace-nowrap ${
-                  statusFilter === st
-                    ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                }`}
-              >
-                {st === 'All' ? 'All Statuses' : st === 'DeadLetter' ? 'Dead Letter' : st}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Outbox Messages Table Container */}
-      <div className="saas-card overflow-hidden">
+        {/* Outbox Messages Table / Content Container */}
         {isLoading ? (
           <PageLoader message="Loading Outbox Messages..." minHeight="min-h-[350px]" />
         ) : items.length === 0 ? (

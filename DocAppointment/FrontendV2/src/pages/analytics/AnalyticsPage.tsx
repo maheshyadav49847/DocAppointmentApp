@@ -210,42 +210,44 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col min-h-full space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="w-12 h-12 rounded-lg text-indigo-600 flex items-center justify-center border border-indigo-100 bg-indigo-50/50 shadow-xs shrink-0">
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2.5 flex-wrap">
-              <span className="text-slate-900">Analytics &</span>
-              <span className="text-indigo-600">Reports</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+              <span className="text-slate-900">Performance</span>
+              <span className="text-indigo-600">Analytics</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
                 Intelligence Hub
               </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
               Data-driven insights for {format(displayStart, 'MMM d, yyyy')} - {format(displayEnd, 'MMM d, yyyy')}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        {/* Header Actions & Filters - Uniform h-9 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button 
             onClick={handleExportCsv}
-            className="btn-secondary px-3.5 py-2 text-xs sm:text-sm font-bold shadow-2xs"
+            className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+            title="Export analytics to Excel"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 text-slate-500" />
             <span>Export CSV</span>
           </button>
           
-          <div className="relative">
-            <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+            <CalendarDays className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
             <select 
               value={dateRangeMode}
               onChange={(e) => setDateRangeMode(e.target.value)}
-              className="pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -256,9 +258,9 @@ export default function AnalyticsPage() {
           </div>
 
           {dateRangeMode === 'custom' && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="relative">
-                <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                 <DatePicker
                   selected={customStart}
                   onChange={(date: Date | null) => date && setCustomStart(date)}
@@ -269,13 +271,13 @@ export default function AnalyticsPage() {
                   dropdownMode="select"
                   portalId="root-portal"
                   showDisabledMonthNavigation
-                  className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                  className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   maxDate={customEnd}
                 />
               </div>
               <span className="text-slate-400 text-xs font-bold">to</span>
               <div className="relative">
-                <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                 <DatePicker
                   selected={customEnd}
                   onChange={(date: Date | null) => date && setCustomEnd(date)}
@@ -286,7 +288,7 @@ export default function AnalyticsPage() {
                   dropdownMode="select"
                   portalId="root-portal"
                   showDisabledMonthNavigation
-                  className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
+                  className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   minDate={customStart}
                 />
               </div>
@@ -295,14 +297,14 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Segmented Navigation Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-md border border-slate-200/80 w-fit overflow-x-auto scrollbar-none shrink-0">
+      {/* Segmented Navigation Tabs - Strict Uniform h-9 Height */}
+      <div className="saas-card p-1.5 flex flex-wrap items-center gap-1.5 bg-white border border-slate-200/90 shadow-2xs w-fit">
         <button
           onClick={() => setActiveTab('operational')}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-sm transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
+          className={`h-9 px-3.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === 'operational'
-              ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
           }`}
         >
           <Activity className="w-3.5 h-3.5 shrink-0" />
@@ -310,10 +312,10 @@ export default function AnalyticsPage() {
         </button>
         <button
           onClick={() => setActiveTab('financial')}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-sm transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
+          className={`h-9 px-3.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === 'financial'
-              ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
           }`}
         >
           <ReceiptIndianRupee className="w-3.5 h-3.5 shrink-0" />
@@ -321,10 +323,10 @@ export default function AnalyticsPage() {
         </button>
         <button
           onClick={() => setActiveTab('clinical')}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-sm transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
+          className={`h-9 px-3.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
             activeTab === 'clinical'
-              ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
           }`}
         >
           <BriefcaseMedical className="w-3.5 h-3.5 shrink-0" />
@@ -333,10 +335,10 @@ export default function AnalyticsPage() {
         {isSuperAdmin && (
           <button
             onClick={() => setActiveTab('system')}
-            className={`px-3.5 py-1.5 text-xs font-bold rounded-sm transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
+            className={`h-9 px-3.5 rounded-md text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shrink-0 ${
               activeTab === 'system'
-                ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
             }`}
           >
             <Monitor className="w-3.5 h-3.5 shrink-0" />
@@ -347,57 +349,61 @@ export default function AnalyticsPage() {
 
       {/* OPERATIONAL TAB */}
       {activeTab === 'operational' && operational && (
-        <div className="space-y-6 animate-in fade-in shrink-0">
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+        <div className="space-y-3.5 animate-in fade-in shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Footfall</div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{operational.totalTokens}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Total registered visits</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Footfall</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{operational.totalTokens}</h3>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Total registered visits</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Completion Rate</div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5">
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Completion Rate</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">
                   {operational.totalTokens ? Math.round((operational.completedTokens / operational.totalTokens) * 100) : 0}%
-                </div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">{operational.completedTokens} visits fulfilled</div>
+                </h3>
+                <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">{operational.completedTokens} visits fulfilled</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-            </div>
-
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
-              <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">No-Show / Cancelled</div>
-                <div className="text-2xl sm:text-3xl font-black text-rose-600 mt-0.5">{operational.noShowTokens + operational.cancelledTokens}</div>
-                <div className="text-[10px] text-rose-500 font-medium mt-0.5">{operational.cancelledTokens} cancelled • {operational.noShowTokens} no-show</div>
-              </div>
-              <div className="w-10 h-10 rounded-md bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Avg Wait Time</div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-600 mt-0.5">{operational.averageWaitTimeMinutes} min</div>
-                <div className="text-[10px] text-amber-600 font-medium mt-0.5">Door to doctor consult</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">No-Show / Cancelled</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">{operational.noShowTokens + operational.cancelledTokens}</h3>
+                <p className="text-[10px] sm:text-[11px] text-rose-600/80 font-medium mt-0.5">{operational.cancelledTokens} cancelled • {operational.noShowTokens} no-show</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-500" />
+              <div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Avg Wait Time</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">{operational.averageWaitTimeMinutes} min</h3>
+                <p className="text-[10px] sm:text-[11px] text-amber-600/80 font-medium mt-0.5">Door to doctor consult</p>
+              </div>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="saas-card p-5 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-indigo-600" /> Peak Footfall Hours
@@ -422,7 +428,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Stethoscope className="w-4 h-4 text-indigo-600" /> Doctor Utilization (%)
@@ -466,33 +472,35 @@ export default function AnalyticsPage() {
 
       {/* FINANCIAL TAB */}
       {activeTab === 'financial' && financial && (
-        <div className="space-y-6 animate-in fade-in shrink-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3.5">
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+        <div className="space-y-3.5 animate-in fade-in shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Revenue</div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5">₹{financial.totalRevenue.toLocaleString('en-IN')}</div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Settled income across services</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">₹{financial.totalRevenue.toLocaleString('en-IN')}</h3>
+                <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Settled income across services</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <ReceiptIndianRupee className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <ReceiptIndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Outstanding Dues</div>
-                <div className="text-2xl sm:text-3xl font-black text-rose-600 mt-0.5">₹{financial.outstandingDues.toLocaleString('en-IN')}</div>
-                <div className="text-[10px] text-rose-500 font-medium mt-0.5">Uncollected receivables</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Outstanding Dues</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">₹{financial.outstandingDues.toLocaleString('en-IN')}</h3>
+                <p className="text-[10px] sm:text-[11px] text-rose-600/80 font-medium mt-0.5">Uncollected receivables</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 saas-card p-5 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+            <div className="lg:col-span-2 saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-emerald-600" /> Revenue Trend
@@ -528,7 +536,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <PieChartIcon className="w-4 h-4 text-indigo-600" /> Payment Breakdown
@@ -564,7 +572,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* DAILY COLLECTION REPORT (DCR) */}
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-blue-600" /> Daily Collection (DCR)
@@ -590,7 +598,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* DOCTOR REVENUE GRAPH */}
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Stethoscope className="w-4 h-4 text-purple-600" /> Doctor-wise Revenue
@@ -619,7 +627,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* SERVICE REVENUE GRAPH */}
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <ReceiptIndianRupee className="w-4 h-4 text-emerald-600" /> Department Revenue
@@ -648,7 +656,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* OUTSTANDING DUES GRAPH */}
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-600" /> Outstanding Receivables
@@ -677,33 +685,35 @@ export default function AnalyticsPage() {
 
       {/* CLINICAL TAB */}
       {activeTab === 'clinical' && clinical && (
-        <div className="space-y-6 animate-in fade-in shrink-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+        <div className="space-y-3.5 animate-in fade-in shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Patients</div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{clinical.newPatients}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">First-time registrations</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">New Patients</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{clinical.newPatients}</h3>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">First-time registrations</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Returning (Retention)</div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5">{clinical.returningPatients}</div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Follow-up & repeat care</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Returning (Retention)</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{clinical.returningPatients}</h3>
+                <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Follow-up & repeat care</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <CalendarDays className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="saas-card p-5 sm:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-purple-600" /> Patient Demographics (Age)
@@ -723,7 +733,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="saas-card p-5 sm:p-6">
+            <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <BriefcaseMedical className="w-4 h-4 text-indigo-600" /> Top Diagnoses
@@ -751,54 +761,58 @@ export default function AnalyticsPage() {
 
       {/* SYSTEM TAB */}
       {activeTab === 'system' && system && (
-        <div className="space-y-6 animate-in fade-in shrink-0">
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+        <div className="space-y-3.5 animate-in fade-in shrink-0">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Tenants</div>
-                <div className="text-2xl sm:text-3xl font-black text-slate-900 mt-0.5">{system.totalOrganizations}</div>
-                <div className="text-[10px] text-slate-500 font-medium mt-0.5">Registered clinics</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Tenants</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{system.totalOrganizations}</h3>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Registered clinics</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Tenants</div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5">{system.activeOrganizations}</div>
-                <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Live subscriptions</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Tenants</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{system.activeOrganizations}</h3>
+                <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Live subscriptions</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-600" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Platform Tokens</div>
-                <div className="text-2xl sm:text-3xl font-black text-indigo-600 mt-0.5">{system.totalTokensBooked}</div>
-                <div className="text-[10px] text-indigo-500 font-medium mt-0.5">All appointments booked</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Platform Tokens</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-indigo-600 mt-0.5">{system.totalTokensBooked}</h3>
+                <p className="text-[10px] sm:text-[11px] text-indigo-600/80 font-medium mt-0.5">All appointments booked</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                <Activity className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
 
-            <div className="saas-card p-4 sm:p-5 flex items-center justify-between">
+            <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-amber-500" />
               <div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">API Messages</div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-600 mt-0.5">{system.totalMessagesSent}</div>
-                <div className="text-[10px] text-amber-600 font-medium mt-0.5">Dispatches sent</div>
+                <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">API Messages</p>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-amber-600 mt-0.5">{system.totalMessagesSent}</h3>
+                <p className="text-[10px] sm:text-[11px] text-amber-600/80 font-medium mt-0.5">Dispatches sent</p>
               </div>
-              <div className="w-10 h-10 rounded-md bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                <Monitor className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Monitor className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
 
-          <div className="saas-card p-5 sm:p-6">
+          <div className="saas-card p-4 sm:p-4.5 border-slate-200/90 shadow-2xs bg-white">
             <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-indigo-600" /> Platform Growth (6 Months)

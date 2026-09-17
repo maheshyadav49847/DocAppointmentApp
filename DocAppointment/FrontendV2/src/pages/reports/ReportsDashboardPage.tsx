@@ -196,30 +196,32 @@ export default function ReportsDashboardPage() {
 
 
   return (
-    <div className="h-full flex flex-col bg-slate-50/50">
-      {/* Header & Global Filters */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-10 sticky top-0">
-        <div className="flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <BarChart3 className="w-7 h-7" />
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <BarChart3 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Reports</span>
               <span className="text-indigo-600">Center</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Analytics and insights for your clinic</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Analytics, operational summaries, and financial intelligence for your clinic
+            </p>
           </div>
         </div>
-        
-        {/* Global Filters */}
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto pb-2 sm:pb-0">
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
-            <CalendarIcon className="w-4 h-4 text-slate-400 mr-2" />
+
+        {/* Global Filters Toolbar - Uniform h-9 */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+            <CalendarIcon className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
             <select 
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
             >
               <option value="today">Today</option>
               <option value="yesterday">Yesterday</option>
@@ -228,10 +230,11 @@ export default function ReportsDashboardPage() {
               <option value="custom">Custom Range</option>
             </select>
           </div>
+
           {dateRange === 'custom' && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <div className="relative">
-                <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                 <DatePicker
                   selected={customStart}
                   onChange={(date: Date | null) => date && setCustomStart(date)}
@@ -242,13 +245,13 @@ export default function ReportsDashboardPage() {
                   dropdownMode="select"
                   portalId="root-portal"
                   showDisabledMonthNavigation
-                  className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                  className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   maxDate={customEnd}
                 />
               </div>
               <span className="text-slate-400 text-xs font-bold">to</span>
               <div className="relative">
-                <CalendarDays className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
                 <DatePicker
                   selected={customEnd}
                   onChange={(date: Date | null) => date && setCustomEnd(date)}
@@ -259,143 +262,146 @@ export default function ReportsDashboardPage() {
                   dropdownMode="select"
                   portalId="root-portal"
                   showDisabledMonthNavigation
-                  className="pl-9 pr-3 py-1.5 w-36 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer"
+                  className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
                   minDate={customStart}
                 />
               </div>
             </div>
           )}
-          
 
-          
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 shrink-0">
-            <UserCircle className="w-4 h-4 text-slate-400 mr-2" />
+          <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+            <UserCircle className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
             <select 
               value={selectedDoctor}
               onChange={(e) => setSelectedDoctor(e.target.value)}
-              className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
             >
               <option value="all">All Doctors</option>
               {(doctors as any[]).map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           </div>
-          
-          <button onClick={handleExport} className="flex items-center justify-center p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors shrink-0 tooltip-trigger" title="Export current report">
-            <Download className="w-5 h-5" />
+
+          <button 
+            onClick={handleExport} 
+            className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs" 
+            title="Export current report to CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-slate-200 flex-shrink-0 flex flex-col overflow-y-auto">
-          <div className="p-4 space-y-6">
-            {categories.map(category => {
-              const Icon = category.icon;
-              const isActiveCategory = activeCategory === category.id;
-              
-              return (
-                <div key={category.id} className="space-y-1">
-                  <button 
-                    onClick={() => {
-                      setActiveCategory(category.id);
-                      const firstMap: Record<string, string> = { financial: 'dcr', operational: 'footfall', clinical: 'diagnosis_summary', inventory: 'stock_summary' };
-                      setActiveReport(firstMap[category.id] || 'dcr');
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
-                      isActiveCategory ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 ${isActiveCategory ? 'text-indigo-600' : ''}`} />
-                    {category.label}
-                  </button>
-                  
-                  {isActiveCategory && (() => {
-                    const reportMap: Record<string, {id: string; label: string}[]> = {
-                      financial: financialReports,
-                      operational: operationalReports,
-                      clinical: clinicalReports,
-                      inventory: inventoryReports,
-                    };
-                    const reports = reportMap[category.id];
-                    if (!reports) return null;
-                    return (
-                      <div className="pl-11 pr-2 space-y-1 py-1">
-                        {reports.map(report => (
-                          <button
-                            key={report.id}
-                            onClick={() => setActiveReport(report.id)}
-                            className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                              activeReport === report.id ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-500 font-medium hover:text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            {report.label}
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      {/* Category Tabs Strip */}
+      <div className="saas-card p-1.5 flex flex-wrap items-center gap-1.5 bg-white border border-slate-200/90 shadow-2xs">
+        {categories.map(category => {
+          const Icon = category.icon;
+          const isActiveCategory = activeCategory === category.id;
+          return (
+            <button
+              key={category.id}
+              onClick={() => {
+                setActiveCategory(category.id);
+                const firstMap: Record<string, string> = { financial: 'dcr', operational: 'footfall', clinical: 'diagnosis_summary', inventory: 'stock_summary' };
+                setActiveReport(firstMap[category.id] || 'dcr');
+              }}
+              className={`h-9 px-3 sm:px-4 rounded-md text-xs font-bold transition-all flex items-center gap-2 ${
+                isActiveCategory 
+                  ? 'bg-indigo-600 text-white shadow-xs' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActiveCategory ? 'text-white' : 'text-slate-400'}`} />
+              <span>{category.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+      {/* Sub-report Selection Pills */}
+      {(() => {
+        const reportMap: Record<string, {id: string; label: string}[]> = {
+          financial: financialReports,
+          operational: operationalReports,
+          clinical: clinicalReports,
+          inventory: inventoryReports,
+        };
+        const reports = reportMap[activeCategory];
+        if (!reports || reports.length === 0) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-2">
+            {reports.map(report => (
+              <button
+                key={report.id}
+                onClick={() => setActiveReport(report.id)}
+                className={`h-9 px-3.5 rounded-md text-xs transition-all shadow-2xs flex items-center gap-1.5 ${
+                  activeReport === report.id
+                    ? 'bg-indigo-50 text-indigo-700 font-extrabold border border-indigo-200/90'
+                    : 'bg-white text-slate-600 font-semibold border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span>{report.label}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Main Content Area */}
+      <div className="space-y-3.5">
            {activeReport === 'dcr' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Daily Collection Report</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Daily Collection Report</h2>
                 {dcrLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><IndianRupee className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Collection</p><h3 className="text-2xl font-bold text-slate-900">₹{dcrData?.totalCollection || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Wallet className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Cash</p><h3 className="text-2xl font-bold text-slate-900">₹{dcrData?.cashCollection || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Building className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">UPI / Online</p><h3 className="text-2xl font-bold text-slate-900">₹{(dcrData?.upiCollection || 0) + (dcrData?.onlineCollection || 0)}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-orange-50 text-orange-600 rounded-lg"><CreditCard className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Card</p><h3 className="text-2xl font-bold text-slate-900">₹{dcrData?.cardCollection || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Transaction Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Date</th>
-                              <th className="px-6 py-3">Invoice</th>
-                              <th className="px-6 py-3">Patient</th>
-                              <th className="px-6 py-3">Mode</th>
-                              <th className="px-6 py-3">Txn ID</th>
-                              <th className="px-6 py-3 text-right">Amount</th>
+                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5">Invoice</th>
+                              <th className="px-4 py-2.5">Patient</th>
+                              <th className="px-4 py-2.5">Mode</th>
+                              <th className="px-4 py-2.5">Txn ID</th>
+                              <th className="px-4 py-2.5 text-right">Amount</th>
                             </tr>
                           </thead>
                           <tbody>
                             {dcrData?.detailedRows?.map((row: any) => (
                               <tr key={row.paymentId + Math.random().toString()} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(row.paymentDate).toLocaleString()}</td>
-                                <td className="px-6 py-4 font-medium text-indigo-600">{row.invoiceNumber}</td>
-                                <td className="px-6 py-4">{row.patientName}</td>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(row.paymentDate).toLocaleString()}</td>
+                                <td className="px-4 py-3 font-medium text-indigo-600">{row.invoiceNumber}</td>
+                                <td className="px-4 py-3">{row.patientName}</td>
+                                <td className="px-4 py-3">
                                   <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{row.paymentMode}</span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-500">{row.transactionId || '-'}</td>
-                                <td className="px-6 py-4 text-right font-bold text-slate-900">₹{row.amount}</td>
+                                <td className="px-4 py-3 text-slate-500">{row.transactionId || '-'}</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-900">₹{row.amount}</td>
                               </tr>
                             ))}
                             {(!dcrData?.detailedRows || dcrData.detailedRows.length === 0) && (
@@ -412,55 +418,55 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'doctor_revenue' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Doctor Revenue Report</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Doctor Revenue Report</h2>
                 {docLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Billing</p><h3 className="text-2xl font-bold text-slate-900">₹{docData?.totalRevenueGenerated || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><IndianRupee className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Revenue Collected</p><h3 className="text-2xl font-bold text-slate-900">₹{docData?.totalRevenueCollected || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-red-50 text-red-600 rounded-lg"><TrendingUp className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Discounts Given</p><h3 className="text-2xl font-bold text-slate-900">₹{docData?.totalDiscountsGiven || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Doctor Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Date</th>
-                              <th className="px-6 py-3">Doctor</th>
-                              <th className="px-6 py-3">Patient</th>
-                              <th className="px-6 py-3">Invoice</th>
-                              <th className="px-6 py-3">Status</th>
-                              <th className="px-6 py-3 text-right">Total</th>
-                              <th className="px-6 py-3 text-right">Paid</th>
+                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5">Doctor</th>
+                              <th className="px-4 py-2.5">Patient</th>
+                              <th className="px-4 py-2.5">Invoice</th>
+                              <th className="px-4 py-2.5">Status</th>
+                              <th className="px-4 py-2.5 text-right">Total</th>
+                              <th className="px-4 py-2.5 text-right">Paid</th>
                             </tr>
                           </thead>
                           <tbody>
                             {docData?.detailedRows?.map((row: any) => (
                               <tr key={row.invoiceId + Math.random().toString()} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.doctorName}</td>
-                                <td className="px-6 py-4">{row.patientName}</td>
-                                <td className="px-6 py-4 font-medium text-indigo-600">{row.invoiceNumber}</td>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.doctorName}</td>
+                                <td className="px-4 py-3">{row.patientName}</td>
+                                <td className="px-4 py-3 font-medium text-indigo-600">{row.invoiceNumber}</td>
+                                <td className="px-4 py-3">
                                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${row.status === 'Paid' ? 'bg-green-100 text-green-700' : row.status === 'Unpaid' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{row.status}</span>
                                 </td>
-                                <td className="px-6 py-4 text-right font-medium">₹{row.totalAmount}</td>
-                                <td className="px-6 py-4 text-right font-bold text-slate-900">₹{row.paidAmount}</td>
+                                <td className="px-4 py-3 text-right font-medium">₹{row.totalAmount}</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-900">₹{row.paidAmount}</td>
                               </tr>
                             ))}
                             {(!docData?.detailedRows || docData.detailedRows.length === 0) && (
@@ -477,42 +483,42 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'service_revenue' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Service & Department Revenue</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Service & Department Revenue</h2>
                 {svcLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Service Revenue</p><h3 className="text-2xl font-bold text-slate-900">₹{svcData?.totalServiceRevenue || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><Package className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Services Performed</p><h3 className="text-2xl font-bold text-slate-900">{svcData?.totalServicesPerformed || 0}</h3></div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Service Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Service Name</th>
-                              <th className="px-6 py-3">Category</th>
-                              <th className="px-6 py-3 text-right">Quantity</th>
-                              <th className="px-6 py-3 text-right">Revenue</th>
+                              <th className="px-4 py-2.5">Service Name</th>
+                              <th className="px-4 py-2.5">Category</th>
+                              <th className="px-4 py-2.5 text-right">Quantity</th>
+                              <th className="px-4 py-2.5 text-right">Revenue</th>
                             </tr>
                           </thead>
                           <tbody>
                             {svcData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.serviceName}</td>
-                                <td className="px-6 py-4"><span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{row.category}</span></td>
-                                <td className="px-6 py-4 text-right font-medium">{row.totalQuantity}</td>
-                                <td className="px-6 py-4 text-right font-bold text-slate-900">₹{row.totalRevenue}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.serviceName}</td>
+                                <td className="px-4 py-3"><span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{row.category}</span></td>
+                                <td className="px-4 py-3 text-right font-medium">{row.totalQuantity}</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-900">₹{row.totalRevenue}</td>
                               </tr>
                             ))}
                             {(!svcData?.detailedRows || svcData.detailedRows.length === 0) && (
@@ -529,48 +535,48 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'outstanding' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Outstanding Dues & Receivables</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Outstanding Dues & Receivables</h2>
                 {duesLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-red-50 text-red-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Outstanding</p><h3 className="text-2xl font-bold text-red-600">₹{duesData?.totalOutstandingAmount || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-orange-50 text-orange-600 rounded-lg"><FileText className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Pending Invoices</p><h3 className="text-2xl font-bold text-slate-900">{duesData?.totalOutstandingInvoices || 0}</h3></div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Pending Invoices List</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Date</th>
-                              <th className="px-6 py-3">Invoice</th>
-                              <th className="px-6 py-3">Patient</th>
-                              <th className="px-6 py-3">Phone</th>
-                              <th className="px-6 py-3 text-center">Overdue</th>
-                              <th className="px-6 py-3 text-right">Pending Amount</th>
+                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5">Invoice</th>
+                              <th className="px-4 py-2.5">Patient</th>
+                              <th className="px-4 py-2.5">Phone</th>
+                              <th className="px-4 py-2.5 text-center">Overdue</th>
+                              <th className="px-4 py-2.5 text-right">Pending Amount</th>
                             </tr>
                           </thead>
                           <tbody>
                             {duesData?.detailedRows?.map((row: any) => (
                               <tr key={row.invoiceId + Math.random().toString()} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 font-medium text-indigo-600">{row.invoiceNumber}</td>
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.patientName}</td>
-                                <td className="px-6 py-4">{row.patientPhone || '-'}</td>
-                                <td className="px-6 py-4 text-center">
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 font-medium text-indigo-600">{row.invoiceNumber}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.patientName}</td>
+                                <td className="px-4 py-3">{row.patientPhone || '-'}</td>
+                                <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-1 rounded text-xs font-medium ${row.daysOverdue > 30 ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{row.daysOverdue} Days</span>
                                 </td>
-                                <td className="px-6 py-4 text-right font-bold text-red-600">₹{row.pendingAmount}</td>
+                                <td className="px-4 py-3 text-right font-bold text-red-600">₹{row.pendingAmount}</td>
                               </tr>
                             ))}
                             {(!duesData?.detailedRows || duesData.detailedRows.length === 0) && (
@@ -587,47 +593,47 @@ export default function ReportsDashboardPage() {
            {/* OPERATIONAL REPORTS */}
            {activeReport === 'footfall' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Patient Footfall Analysis</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Patient Footfall Analysis</h2>
                 {footfallLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Footfall</p><h3 className="text-2xl font-bold text-slate-900">{footfallData?.totalFootfall || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><TrendingUp className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Highest Daily Footfall</p><h3 className="text-2xl font-bold text-slate-900">{footfallData?.highestFootfallInADay || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Avg Daily Footfall</p><h3 className="text-2xl font-bold text-slate-900">{Math.round(footfallData?.averageDailyFootfall || 0)}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Daily Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Date</th>
-                              <th className="px-6 py-3 text-right">Total Tokens</th>
-                              <th className="px-6 py-3 text-right">Completed</th>
-                              <th className="px-6 py-3 text-right">Cancelled</th>
+                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5 text-right">Total Tokens</th>
+                              <th className="px-4 py-2.5 text-right">Completed</th>
+                              <th className="px-4 py-2.5 text-right">Cancelled</th>
                             </tr>
                           </thead>
                           <tbody>
                             {footfallData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 text-right font-bold text-slate-800">{row.totalTokens}</td>
-                                <td className="px-6 py-4 text-right font-medium text-green-600">{row.completedTokens}</td>
-                                <td className="px-6 py-4 text-right font-medium text-red-600">{row.cancelledTokens}</td>
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-800">{row.totalTokens}</td>
+                                <td className="px-4 py-3 text-right font-medium text-green-600">{row.completedTokens}</td>
+                                <td className="px-4 py-3 text-right font-medium text-red-600">{row.cancelledTokens}</td>
                               </tr>
                             ))}
                             {(!footfallData?.detailedRows || footfallData.detailedRows.length === 0) && (
@@ -644,53 +650,53 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'appointment_summary' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Appointment Summary</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Appointment Summary</h2>
                 {apptLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><CalendarIcon className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total</p><h3 className="text-2xl font-bold text-slate-900">{apptData?.totalAppointments || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><CheckCircle className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Completed</p><h3 className="text-2xl font-bold text-slate-900">{apptData?.totalCompleted || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-yellow-50 text-yellow-600 rounded-lg"><Clock className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Pending</p><h3 className="text-2xl font-bold text-slate-900">{apptData?.totalPending || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-red-50 text-red-600 rounded-lg"><XCircle className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Cancelled</p><h3 className="text-2xl font-bold text-slate-900">{apptData?.totalCancelled || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Doctor Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Doctor</th>
-                              <th className="px-6 py-3 text-right">Total</th>
-                              <th className="px-6 py-3 text-right">Completed</th>
-                              <th className="px-6 py-3 text-right">Pending</th>
-                              <th className="px-6 py-3 text-right">Cancelled</th>
+                              <th className="px-4 py-2.5">Doctor</th>
+                              <th className="px-4 py-2.5 text-right">Total</th>
+                              <th className="px-4 py-2.5 text-right">Completed</th>
+                              <th className="px-4 py-2.5 text-right">Pending</th>
+                              <th className="px-4 py-2.5 text-right">Cancelled</th>
                             </tr>
                           </thead>
                           <tbody>
                             {apptData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.doctorName}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.totalAppointments}</td>
-                                <td className="px-6 py-4 text-right font-medium text-green-600">{row.completed}</td>
-                                <td className="px-6 py-4 text-right font-medium text-yellow-600">{row.pending}</td>
-                                <td className="px-6 py-4 text-right font-medium text-red-600">{row.cancelled}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.doctorName}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.totalAppointments}</td>
+                                <td className="px-4 py-3 text-right font-medium text-green-600">{row.completed}</td>
+                                <td className="px-4 py-3 text-right font-medium text-yellow-600">{row.pending}</td>
+                                <td className="px-4 py-3 text-right font-medium text-red-600">{row.cancelled}</td>
                               </tr>
                             ))}
                             {(!apptData?.detailedRows || apptData.detailedRows.length === 0) && (
@@ -707,43 +713,43 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'queue_performance' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Queue & Wait Time</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Queue & Wait Time</h2>
                 {waitLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-yellow-50 text-yellow-600 rounded-lg"><Clock className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Avg Wait Time</p><h3 className="text-2xl font-bold text-slate-900">{Math.round(waitData?.overallAvgWaitTimeMinutes || 0)} mins</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Avg Consultation Time</p><h3 className="text-2xl font-bold text-slate-900">{Math.round(waitData?.overallAvgConsultationTimeMinutes || 0)} mins</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Doctor Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Doctor</th>
-                              <th className="px-6 py-3 text-right">Tokens Processed</th>
-                              <th className="px-6 py-3 text-right">Avg Wait Time</th>
-                              <th className="px-6 py-3 text-right">Avg Consult Time</th>
+                              <th className="px-4 py-2.5">Doctor</th>
+                              <th className="px-4 py-2.5 text-right">Tokens Processed</th>
+                              <th className="px-4 py-2.5 text-right">Avg Wait Time</th>
+                              <th className="px-4 py-2.5 text-right">Avg Consult Time</th>
                             </tr>
                           </thead>
                           <tbody>
                             {waitData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.doctorName}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.totalTokensProcessed}</td>
-                                <td className="px-6 py-4 text-right font-medium text-yellow-600">{Math.round(row.avgWaitTimeMinutes)} mins</td>
-                                <td className="px-6 py-4 text-right font-medium text-indigo-600">{Math.round(row.avgConsultationTimeMinutes)} mins</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.doctorName}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.totalTokensProcessed}</td>
+                                <td className="px-4 py-3 text-right font-medium text-yellow-600">{Math.round(row.avgWaitTimeMinutes)} mins</td>
+                                <td className="px-4 py-3 text-right font-medium text-indigo-600">{Math.round(row.avgConsultationTimeMinutes)} mins</td>
                               </tr>
                             ))}
                             {(!waitData?.detailedRows || waitData.detailedRows.length === 0) && (
@@ -760,39 +766,39 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'staff_productivity' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Staff Productivity</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Staff Productivity</h2>
                 {staffLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Tokens Handled</p><h3 className="text-2xl font-bold text-slate-900">{staffData?.totalTokensGeneratedByStaff || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Staff Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Staff Name</th>
-                              <th className="px-6 py-3 text-right">Tokens Handled</th>
-                              <th className="px-6 py-3 text-right">Completed</th>
-                              <th className="px-6 py-3 text-right">Cancelled</th>
+                              <th className="px-4 py-2.5">Staff Name</th>
+                              <th className="px-4 py-2.5 text-right">Tokens Handled</th>
+                              <th className="px-4 py-2.5 text-right">Completed</th>
+                              <th className="px-4 py-2.5 text-right">Cancelled</th>
                             </tr>
                           </thead>
                           <tbody>
                             {staffData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.staffName}</td>
-                                <td className="px-6 py-4 text-right font-medium text-indigo-600">{row.tokensGenerated}</td>
-                                <td className="px-6 py-4 text-right font-medium text-green-600">{row.appointmentsCompleted}</td>
-                                <td className="px-6 py-4 text-right font-medium text-red-600">{row.appointmentsCancelled}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.staffName}</td>
+                                <td className="px-4 py-3 text-right font-medium text-indigo-600">{row.tokensGenerated}</td>
+                                <td className="px-4 py-3 text-right font-medium text-green-600">{row.appointmentsCompleted}</td>
+                                <td className="px-4 py-3 text-right font-medium text-red-600">{row.appointmentsCancelled}</td>
                               </tr>
                             ))}
                             {(!staffData?.detailedRows || staffData.detailedRows.length === 0) && (
@@ -810,37 +816,37 @@ export default function ReportsDashboardPage() {
            {/* CLINICAL REPORTS */}
            {activeReport === 'diagnosis_summary' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Diagnosis & Treatment Summary</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Diagnosis & Treatment Summary</h2>
                 {diagLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Diagnoses Recorded</p><h3 className="text-2xl font-bold text-slate-900">{diagData?.totalDiagnosesRecorded || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Top Diagnoses</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Diagnosis</th>
-                              <th className="px-6 py-3 text-right">Cases</th>
-                              <th className="px-6 py-3 text-right">% of Total</th>
+                              <th className="px-4 py-2.5">Diagnosis</th>
+                              <th className="px-4 py-2.5 text-right">Cases</th>
+                              <th className="px-4 py-2.5 text-right">% of Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {diagData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.diagnosis}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.totalCases}</td>
-                                <td className="px-6 py-4 text-right font-medium text-slate-500">{row.percentageOfTotal}%</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.diagnosis}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.totalCases}</td>
+                                <td className="px-4 py-3 text-right font-medium text-slate-500">{row.percentageOfTotal}%</td>
                               </tr>
                             ))}
                             {(!diagData?.detailedRows || diagData.detailedRows.length === 0) && (
@@ -857,41 +863,41 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'patient_demographics' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Patient Demographics</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Patient Demographics</h2>
                 {demoLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Users className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Unique Patients</p><h3 className="text-2xl font-bold text-slate-900">{demoData?.totalPatients || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Age & Gender Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Age Group</th>
-                              <th className="px-6 py-3 text-right">Male</th>
-                              <th className="px-6 py-3 text-right">Female</th>
-                              <th className="px-6 py-3 text-right">Other</th>
-                              <th className="px-6 py-3 text-right font-bold">Total</th>
+                              <th className="px-4 py-2.5">Age Group</th>
+                              <th className="px-4 py-2.5 text-right">Male</th>
+                              <th className="px-4 py-2.5 text-right">Female</th>
+                              <th className="px-4 py-2.5 text-right">Other</th>
+                              <th className="px-4 py-2.5 text-right font-bold">Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {demoData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.ageGroup}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.male}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.female}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.other}</td>
-                                <td className="px-6 py-4 text-right font-bold text-indigo-600">{row.total}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.ageGroup}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.male}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.female}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.other}</td>
+                                <td className="px-4 py-3 text-right font-bold text-indigo-600">{row.total}</td>
                               </tr>
                             ))}
                             {(!demoData?.detailedRows || demoData.detailedRows.length === 0) && (
@@ -908,47 +914,47 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'new_vs_returning' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">New vs Returning Patients</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">New vs Returning Patients</h2>
                 {retLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Users className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">New Patients</p><h3 className="text-2xl font-bold text-slate-900">{retData?.totalNewPatients || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-green-50 text-green-600 rounded-lg"><CheckCircle className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Returning Patients</p><h3 className="text-2xl font-bold text-slate-900">{retData?.totalReturningPatients || 0}</h3></div>
                       </div>
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><TrendingUp className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Retention Rate</p><h3 className="text-2xl font-bold text-slate-900">{retData?.returningPatientPercentage || 0}%</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Daily Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Date</th>
-                              <th className="px-6 py-3 text-right">New Patients</th>
-                              <th className="px-6 py-3 text-right">Returning Patients</th>
-                              <th className="px-6 py-3 text-right">Total Tokens</th>
+                              <th className="px-4 py-2.5">Date</th>
+                              <th className="px-4 py-2.5 text-right">New Patients</th>
+                              <th className="px-4 py-2.5 text-right">Returning Patients</th>
+                              <th className="px-4 py-2.5 text-right">Total Tokens</th>
                             </tr>
                           </thead>
                           <tbody>
                             {retData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 text-right font-medium text-blue-600">{row.newPatients}</td>
-                                <td className="px-6 py-4 text-right font-medium text-green-600">{row.returningPatients}</td>
-                                <td className="px-6 py-4 text-right font-bold text-slate-800">{row.totalTokens}</td>
+                                <td className="px-4 py-3 whitespace-nowrap">{new Date(row.date).toLocaleDateString()}</td>
+                                <td className="px-4 py-3 text-right font-medium text-blue-600">{row.newPatients}</td>
+                                <td className="px-4 py-3 text-right font-medium text-green-600">{row.returningPatients}</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-800">{row.totalTokens}</td>
                               </tr>
                             ))}
                             {(!retData?.detailedRows || retData.detailedRows.length === 0) && (
@@ -965,37 +971,37 @@ export default function ReportsDashboardPage() {
 
            {activeReport === 'referral_tracking' && (
              <div className="space-y-6">
-                <h2 className="text-xl font-bold text-slate-900">Referral Source Tracking</h2>
+                <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Referral Source Tracking</h2>
                 {refLoading ? (
                   <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Activity className="w-6 h-6" /></div>
                         <div><p className="text-sm text-slate-500 font-medium">Total Bookings</p><h3 className="text-2xl font-bold text-slate-900">{refData?.totalBookings || 0}</h3></div>
                       </div>
                     </div>
                     
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex justify-between items-center">
                         <h3 className="font-bold text-slate-800">Source Breakdown</h3>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                          <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
                             <tr>
-                              <th className="px-6 py-3">Source</th>
-                              <th className="px-6 py-3 text-right">Total Bookings</th>
-                              <th className="px-6 py-3 text-right">% of Total</th>
+                              <th className="px-4 py-2.5">Source</th>
+                              <th className="px-4 py-2.5 text-right">Total Bookings</th>
+                              <th className="px-4 py-2.5 text-right">% of Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {refData?.detailedRows?.map((row: any, i: number) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="px-6 py-4 font-bold text-slate-800">{row.source}</td>
-                                <td className="px-6 py-4 text-right font-medium">{row.totalBookings}</td>
-                                <td className="px-6 py-4 text-right font-medium text-slate-500">{row.percentage}%</td>
+                                <td className="px-4 py-3 font-bold text-slate-800">{row.source}</td>
+                                <td className="px-4 py-3 text-right font-medium">{row.totalBookings}</td>
+                                <td className="px-4 py-3 text-right font-medium text-slate-500">{row.percentage}%</td>
                               </tr>
                             ))}
                             {(!refData?.detailedRows || refData.detailedRows.length === 0) && (
@@ -1019,7 +1025,6 @@ export default function ReportsDashboardPage() {
                 <p className="text-slate-500 mt-2">This report is planned for future phases.</p>
              </div>
            )}
-        </div>
       </div>
     </div>
   );

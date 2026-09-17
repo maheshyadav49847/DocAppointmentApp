@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { DownloadCloud, UploadCloud, Pill, PlusCircle, Search, Edit, Trash2, Activity, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { DownloadCloud, UploadCloud, Pill, PlusCircle, Search, Edit, Trash2, Activity, ArrowUp, ArrowDown, ArrowUpDown, X } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
 import { medicineService, type MedicineDto } from "../../services/medicineService";
 import MedicineModal from "./components/MedicineModal";
@@ -194,19 +194,19 @@ export default function PharmacyPage() {
             {can('Pharmacy.EditStock') && (
               <button
                 onClick={() => openEditModal(med)}
-                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs hover:shadow-xs transition-all"
                 title="Edit"
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
             {can('Pharmacy.DeleteStock') && (
               <button
                 onClick={() => handleDelete(med.id)}
-                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200/90 hover:border-rose-200 shadow-2xs hover:shadow-xs transition-all"
                 title="Delete"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             )}
           </div>
@@ -234,30 +234,35 @@ export default function PharmacyPage() {
   });
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 mb-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent shrink-0">
-            <Pill className="w-7 h-7" />
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* 1. Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <Pill className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Pharmacy</span>
               <span className="text-indigo-600">Database</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage global medicine database for prescriptions.</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Manage global medicine catalog, dosages, manufacturers & stock inventory.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
-          
-          <div className="flex items-center justify-between sm:justify-start gap-3 w-full lg:w-auto order-2 lg:order-1">
-             <select
+      {/* 2. Main SaaS Card with Embedded Top Toolbar */}
+      <div className="saas-card overflow-hidden">
+        {/* Toolbar - Strict Uniform h-9 Controls */}
+        <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+          {/* Left Side: Page Size & Template Download (Uniform h-9) */}
+          <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 w-full md:w-auto order-2 md:order-1">
+            <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
+              className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs transition-all"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -265,24 +270,36 @@ export default function PharmacyPage() {
               ))}
             </select>
             <button 
-              className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+              className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
               onClick={downloadTemplate}
               title="Download exact CSV format required for import"
             >
-              <DownloadCloud className="w-4 h-4" /> <span className="hidden sm:inline">Template</span>
+              <DownloadCloud className="w-3.5 h-3.5 text-slate-500" /> 
+              <span>Template</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-1 lg:order-2 justify-end overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
-            <div className="relative flex-1 min-w-[140px] sm:w-64 group">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          {/* Right Side: Search Input & Action Buttons (Identical h-9 Height!) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 w-full md:w-auto order-1 md:order-2">
+            <div className="relative flex-1 sm:w-64 md:w-64 lg:w-72 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
               <input
-                type="text"
-                placeholder="Search..."
+                type="search"
+                placeholder="Search medicines..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="saas-input h-9 w-full text-xs pr-8"
+                style={{ paddingLeft: "2.5rem" }}
               />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             
             <input autoComplete="off" 
@@ -296,25 +313,28 @@ export default function PharmacyPage() {
             {can('Pharmacy.AddStock') && (
               <>
                 <button 
-                  className="btn-secondary shrink-0 px-3" 
+                  className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-2xs" 
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isImporting}
                 >
-                  {isImporting ? <Activity className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                  <span className="hidden sm:inline">
+                  {isImporting ? <Activity className="w-3.5 h-3.5 animate-spin text-indigo-600" /> : <UploadCloud className="w-3.5 h-3.5 text-slate-500" />}
+                  <span>
                     {isImporting ? (uploadProgress !== null ? `Uploading ${uploadProgress}%` : 'Importing...') : 'Import CSV'}
                   </span>
                 </button>
 
-                <button onClick={openAddModal} className="btn-primary shrink-0 px-3 sm:px-5">
-                  <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Medicine</span>
+                <button 
+                  onClick={openAddModal} 
+                  className="btn-primary h-9 px-3 sm:px-3.5 text-xs font-bold shrink-0 flex items-center gap-1.5"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" /> <span>Add Medicine</span>
                 </button>
               </>
             )}
           </div>
         </div>
 
-        <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
+        <div className="p-3 sm:p-4 bg-slate-50/40">
           {isLoading ? (
             <PageLoader message="Loading medicines..." minHeight="min-h-[30vh]" />
           ) : (paginatedData?.items?.length || 0) === 0 ? (

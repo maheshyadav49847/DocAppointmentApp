@@ -45,7 +45,7 @@ export default function PatientLifecyclePage() {
   const [searchQuery, setSearchQuery] = useState<string>(urlSearch);
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [page, setPage] = useState<number>(1);
-  const pageSize = 25;
+  const [pageSize, setPageSize] = useState<number>(25);
 
   // Selected item modal for detailed audit inspection
   const [inspectItem, setInspectItem] = useState<any | null>(null);
@@ -164,23 +164,23 @@ export default function PatientLifecyclePage() {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6 pb-24">
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 xl:gap-6 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5 shrink-0">
-          <div className="w-12 h-12 rounded-lg text-indigo-600 flex items-center justify-center border border-indigo-100 bg-indigo-50/50 shadow-xs shrink-0">
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
             <Route className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-2.5 flex-wrap">
-              <span className="text-slate-900">Patient Journey &</span>
-              <span className="text-indigo-600">Lifecycle</span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+              <span className="text-slate-900">Patient</span>
+              <span className="text-indigo-600">Journey</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
                 End-to-End Audit
               </span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-              Track booking, live queue, doctor consultation, prescription delivery, and billing in one unified timeline.
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Track booking, live queue, doctor consultation, prescription delivery, and billing in one unified timeline
             </p>
           </div>
         </div>
@@ -189,7 +189,8 @@ export default function PatientLifecyclePage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="btn-secondary px-3.5 py-2 text-xs sm:text-sm font-bold shadow-2xs"
+            className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+            title="Refresh now"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -197,205 +198,239 @@ export default function PatientLifecyclePage() {
         </div>
       </div>
 
-      {/* Control & Filter Bar */}
-      <div className="saas-card p-4 sm:p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {/* Doctor Filter */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <Stethoscope className="w-3.5 h-3.5 text-indigo-600" /> Doctor
-            </label>
-            <select
-              value={selectedDoctor}
-              onChange={(e) => {
-                setSelectedDoctor(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2 text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
-            >
-              <option value="all">All Doctors</option>
-              {doctors.map((d: any) => (
-                <option key={d.id} value={d.id}>
-                  {d.name} ({d.specialization || 'Consultant'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Range Selector */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <CalendarIcon className="w-3.5 h-3.5 text-indigo-600" /> Date Selection
-            </label>
-            <select
-              value={datePreset}
-              onChange={(e: any) => {
-                setDatePreset(e.target.value);
-                setPage(1);
-              }}
-              className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2 text-slate-800 font-semibold focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs cursor-pointer"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="week">Past 7 Days</option>
-              <option value="month">Past 30 Days</option>
-              <option value="custom">Custom Date Range</option>
-            </select>
-          </div>
-
-          {/* Search Box */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5 text-indigo-600" /> Search Patient / Token / Bill #
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Name, Phone, CX-123456..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full text-xs sm:text-sm bg-slate-50/80 border border-slate-200 rounded-md pl-9 pr-3 py-2 text-slate-800 font-semibold placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition-all shadow-2xs"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-
-        {/* Custom Date Pickers Row if selected */}
-        {datePreset === 'custom' && (
-          <div className="flex items-center gap-2 shrink-0 pt-3 border-t border-slate-100">
-            <div className="relative">
-              <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-              <DatePicker
-                selected={customStart}
-                onChange={(d: Date | null) => d && setCustomStart(d)}
-                dateFormat="dd MMM yyyy"
-                showMonthDropdown
-                showYearDropdown
-                todayButton="Today"
-                dropdownMode="select"
-                portalId="root-portal"
-                showDisabledMonthNavigation
-                className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                maxDate={customEnd}
-              />
-            </div>
-            <span className="text-slate-400 text-xs font-bold">to</span>
-            <div className="relative">
-              <CalendarDays className="w-4 h-4 text-indigo-500 absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
-              <DatePicker
-                selected={customEnd}
-                onChange={(d: Date | null) => d && setCustomEnd(d)}
-                dateFormat="dd MMM yyyy"
-                showMonthDropdown
-                showYearDropdown
-                todayButton="Today"
-                dropdownMode="select"
-                portalId="root-portal"
-                showDisabledMonthNavigation
-                className="pl-9 pr-3 py-2 w-38 bg-slate-50/80 border border-slate-200 rounded-md text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                minDate={customStart}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Quick Lifecycle Stage Pill Filters */}
-        <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1 flex items-center gap-1">
-            <Route className="w-3.5 h-3.5 text-indigo-600" /> Stage:
-          </span>
-          <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-md border border-slate-200/80 overflow-x-auto scrollbar-none">
-            {['All', 'Waiting', 'InConsultation', 'Consulted', 'Billed', 'Completed', 'Cancelled'].map((st) => (
-              <button
-                key={st}
-                onClick={() => {
-                  setStageFilter(st);
-                  setPage(1);
-                }}
-                className={`px-3 py-1.5 text-xs font-bold rounded-sm transition-all whitespace-nowrap ${
-                  stageFilter === st
-                    ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200/80'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                }`}
-              >
-                {st === 'All' ? 'All Visits' : st}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Metrics Summary Strip */}
+      {/* 2. Metrics Summary Strip */}
       {lifecycleData && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="saas-card p-3.5 flex items-center justify-between">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Booked</div>
-              <div className="text-xl font-black text-slate-900 mt-0.5">{lifecycleData.totalBooked || 0}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Booked</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{lifecycleData.totalBooked || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">All visits</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-              <Ticket className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Ticket className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="saas-card p-3.5 flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Consulted</div>
-              <div className="text-xl font-black text-indigo-600 mt-0.5">{lifecycleData.totalConsulted || 0}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Consulted</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-indigo-600 mt-0.5">{lifecycleData.totalConsulted || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-indigo-600/80 font-medium mt-0.5">Visits completed</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-              <Stethoscope className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="saas-card p-3.5 flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Invoices Generated</div>
-              <div className="text-xl font-black text-blue-600 mt-0.5">{lifecycleData.totalBilled || 0}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Invoices Gen</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-blue-600 mt-0.5">{lifecycleData.totalBilled || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-blue-600/80 font-medium mt-0.5">Billed tokens</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-              <ReceiptIndianRupee className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ReceiptIndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="saas-card p-3.5 flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-400 to-emerald-600" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Revenue</div>
-              <div className="text-xl font-black text-emerald-600 mt-0.5">₹{lifecycleData.totalRevenue?.toLocaleString('en-IN') || 0}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">₹{lifecycleData.totalRevenue?.toLocaleString('en-IN') || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Settled invoices</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-              <ReceiptIndianRupee className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ReceiptIndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="saas-card p-3.5 flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-rose-600" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cancelled</div>
-              <div className="text-xl font-black text-rose-600 mt-0.5">{lifecycleData.totalCancelled || 0}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cancelled</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5">{lifecycleData.totalCancelled || 0}</h3>
+              <p className="text-[10px] sm:text-[11px] text-rose-600/80 font-medium mt-0.5">No-show / revoked</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-              <Ban className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Ban className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
 
-          <div className="saas-card p-3.5 flex items-center justify-between">
+          <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-purple-600" />
             <div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Matched Visits</div>
-              <div className="text-xl font-black text-slate-800 mt-0.5">{totalCount}</div>
+              <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Matched Visits</p>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-purple-700 mt-0.5">{totalCount}</h3>
+              <p className="text-[10px] sm:text-[11px] text-purple-600/80 font-medium mt-0.5">Filtered results</p>
             </div>
-            <div className="w-8 h-8 rounded-md bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Lifecycle Timeline List */}
-      <div className="space-y-4">
+      {/* 3. Main Journey Container with Unified Toolbar */}
+      <div className="saas-card overflow-hidden">
+        {/* Unified Top Toolbar Header - Strict Uniform h-9 Controls */}
+        <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-2.5">
+            {/* Filters Row: Doctor, Stage, Date Range, Custom Pickers, PageSize (Strict Uniform h-9) */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+              {/* Doctor Filter */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <Stethoscope className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={selectedDoctor}
+                  onChange={(e) => {
+                    setSelectedDoctor(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by doctor"
+                >
+                  <option value="all">All Doctors</option>
+                  {doctors.map((d: any) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.specialization || 'Consultant'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Stage Filter */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <Route className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={stageFilter}
+                  onChange={(e) => {
+                    setStageFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by stage"
+                >
+                  <option value="All">All Stages</option>
+                  <option value="Waiting">Waiting</option>
+                  <option value="InConsultation">In Consultation</option>
+                  <option value="Consulted">Consulted</option>
+                  <option value="Billed">Billed</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              {/* Date Range Selector */}
+              <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2.5 shadow-2xs">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
+                <select
+                  value={datePreset}
+                  onChange={(e: any) => {
+                    setDatePreset(e.target.value);
+                    setPage(1);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  title="Filter by date preset"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="week">Past 7 Days</option>
+                  <option value="month">Past 30 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {/* Custom Date Pickers */}
+              {datePreset === 'custom' && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="relative">
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={customStart}
+                      onChange={(d: Date | null) => d && setCustomStart(d)}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
+                      maxDate={customEnd}
+                    />
+                  </div>
+                  <span className="text-slate-400 text-xs font-bold">to</span>
+                  <div className="relative">
+                    <CalendarDays className="w-3.5 h-3.5 text-indigo-500 absolute left-2.5 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                    <DatePicker
+                      selected={customEnd}
+                      onChange={(d: Date | null) => d && setCustomEnd(d)}
+                      dateFormat="dd MMM yyyy"
+                      showMonthDropdown
+                      showYearDropdown
+                      todayButton="Today"
+                      dropdownMode="select"
+                      portalId="root-portal"
+                      showDisabledMonthNavigation
+                      className="pl-8 pr-2.5 h-9 w-32 bg-white border border-slate-200/90 rounded-md text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-2xs"
+                      minDate={customStart}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Rows Per Page */}
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="h-9 bg-white border border-slate-200/90 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-2xs transition-all"
+                title="Rows per page"
+              >
+                {[10, 25, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    Show {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Box with SKILL paddingLeft: 2.5rem clearance */}
+            <div className="relative flex-1 sm:w-64 md:w-64 lg:w-72 group">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors pointer-events-none" />
+              <input
+                type="search"
+                placeholder="Search Patient, Phone, CX-123456..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="saas-input h-9 w-full text-xs pr-8"
+                style={{ paddingLeft: "2.5rem" }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline Journey Content */}
+        <div className="p-3 sm:p-4 bg-slate-50/40">
+          <div className="space-y-3.5">
         {isLoading ? (
           <PageLoader message="Loading patient lifecycle records..." />
         ) : items.length === 0 ? (
@@ -623,23 +658,22 @@ export default function PatientLifecyclePage() {
           ))
         )}
 
-        {/* Standardized Pagination */}
-        {totalCount > 0 && (
-          <div className="saas-card overflow-hidden border border-slate-200 shadow-xs">
-            <DataTablePagination
-              pageIndex={page - 1}
-              pageSize={pageSize}
-              totalCount={totalCount}
-              pageCount={totalPages}
-              canPreviousPage={page > 1}
-              canNextPage={page < totalPages}
-              onPageChange={(newIdx) => setPage(newIdx + 1)}
-              className="border-t-0"
-            />
           </div>
+        </div>
+
+        {/* Standardized Pagination as footer of Main SaaS Card */}
+        {totalCount > 0 && (
+          <DataTablePagination
+            pageIndex={page - 1}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            pageCount={totalPages}
+            canPreviousPage={page > 1}
+            canNextPage={page < totalPages}
+            onPageChange={(newIdx) => setPage(newIdx + 1)}
+          />
         )}
       </div>
-
       {/* Inspect Item Modal */}
       {inspectItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
