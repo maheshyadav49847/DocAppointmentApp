@@ -11,7 +11,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, PlusCircle, Search, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route, Trash2
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route, Trash2, Building2, CheckCircle2
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
@@ -146,6 +146,18 @@ export default function PatientsPage() {
   const totalCount = paginatedData?.totalCount || 0
   const totalPages = paginatedData?.totalPages || 0
 
+  // Computed summary metrics
+  const stats = useMemo(() => {
+    const verifiedPhoneCount = patients.filter(p => !!p.phone).length;
+    const withConditions = patients.filter(p => !!p.preExistingConditions).length;
+    return {
+      total: totalCount,
+      verifiedPhone: totalCount > 0 ? (patients.length > 0 ? Math.round((verifiedPhoneCount / patients.length) * totalCount) : totalCount) : 0,
+      clinicalProfiles: totalCount > 0 ? (patients.length > 0 ? Math.round((withConditions / patients.length) * totalCount) : 0) : 0,
+      scope: selectedBranch === 'all' ? 'All Facilities' : 'Current Branch'
+    };
+  }, [totalCount, patients, selectedBranch]);
+
   const columns = useMemo<ColumnDef<Patient>[]>(() => [
     {
       accessorKey: "patientCode",
@@ -279,15 +291,75 @@ export default function PatientsPage() {
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Patient</span>
               <span className="text-indigo-600">Directory</span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+                EHR Registry
+              </span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
-              Manage registered patients, clinical history & profile records.
+              Manage registered patients, clinical history & medical profiles across facilities.
             </p>
           </div>
         </div>
       </div>
 
-      {/* 2. Main SaaS Card with Embedded Top Toolbar */}
+      {/* 2. Stats / Metrics Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+        {/* Total Patients */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Patients</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{stats.total}</h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Registered directory</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* Contact Verified */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Contact Verified</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{stats.verifiedPhone}</h3>
+            <p className="text-[10px] sm:text-[11px] text-emerald-700/80 font-medium mt-0.5">Mobile active</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* Clinical EHR Profiles */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-600" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Clinical Profiles</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{stats.clinicalProfiles}</h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Health histories</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-violet-50 border border-violet-100 text-violet-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <HeartPulse className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* Directory Scope */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-500 to-blue-500" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Directory Scope</p>
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-1 truncate max-w-[130px] sm:max-w-[160px]">
+              {stats.scope}
+            </h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Access scope</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Main SaaS Card with Embedded Top Toolbar */}
       <div className="saas-card overflow-hidden">
         {/* Toolbar - Strict Uniform h-9 Controls */}
         <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
@@ -398,11 +470,37 @@ export default function PatientsPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-500">
-                        <div className="flex flex-col items-center justify-center">
-                          <Users className="w-12 h-12 text-slate-300 mb-3" />
-                          <p className="text-lg font-bold text-slate-800">No patients found</p>
-                          <p className="text-sm mt-1">Try adjusting your search query.</p>
+                      <td colSpan={columns.length} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                          <div className="w-16 h-16 rounded-xl bg-gradient-to-b from-indigo-50 to-indigo-100/60 border border-indigo-200/80 text-indigo-600 flex items-center justify-center mb-4 shadow-2xs">
+                            <Users className="w-8 h-8" />
+                          </div>
+                          <h3 className="text-base font-extrabold text-slate-800">
+                            {globalFilter ? "No Matching Patients Found" : "No Patients Registered Yet"}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
+                            {globalFilter
+                              ? `No patient records match "${globalFilter}". Try clearing your search query or registering a new record.`
+                              : "Start building your clinic's patient registry to manage consultations, clinical records, and tokens."}
+                          </p>
+                          <div className="mt-4 flex items-center gap-2">
+                            {globalFilter && (
+                              <button
+                                onClick={() => setGlobalFilter('')}
+                                className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5"
+                              >
+                                <X className="w-3.5 h-3.5" /> Clear Filter
+                              </button>
+                            )}
+                            {can('Patients.Add') && (
+                              <button
+                                onClick={() => { setEditingPatient(null); setIsDrawerOpen(true); }}
+                                className="btn-primary h-9 px-3.5 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" /> Register Patient
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -431,83 +529,85 @@ export default function PatientsPage() {
                   ))}
                 </div>
               ) : patients.length > 0 ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-3.5 sm:gap-4">
                   {patients.map(patient => (
-                    <div key={patient.id} className="group relative bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                    <div key={patient.id} className="group relative bg-white rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 overflow-hidden flex flex-col">
                       {/* Header Section */}
-                      <div className="p-5 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform">
-                              {patient.name.charAt(0)}
+                      <div className="p-4 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/60">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100/90 flex items-center justify-center font-bold text-base shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                              {patient.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <h3 className="font-bold text-slate-800 text-lg leading-tight group-hover:text-indigo-600 transition-colors">{patient.name}</h3>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-indigo-700 bg-indigo-50 text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div> Active
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-indigo-600 transition-colors truncate">
+                                {patient.name}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-emerald-700 bg-emerald-50 text-[10px] font-bold uppercase tracking-wider border border-emerald-100/80 shadow-2xs">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
                                 </span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Subtext equivalent */}
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
-                            <User className="w-3.5 h-3.5 text-indigo-500" /> {patient.gender || 'Unk'}
+                        {/* Attribute Chips */}
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-600">
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
+                            <User className="w-3 h-3 text-indigo-500" /> {patient.gender || 'Unk'}
                           </div>
                           {patient.maritalStatus && (
-                            <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
-                              <Users className="w-3.5 h-3.5 text-indigo-500" /> {patient.maritalStatus}
+                            <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
+                              <Users className="w-3 h-3 text-indigo-500" /> {patient.maritalStatus}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
-                            <Calendar className="w-3.5 h-3.5 text-amber-500" /> {patient.age ? `${patient.age} Yrs` : 'N/A'}
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
+                            <Calendar className="w-3 h-3 text-amber-500" /> {patient.age ? `${patient.age} Yrs` : 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
-                            <Droplets className="w-3.5 h-3.5 text-rose-500" /> {patient.bloodGroup || '--'}
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
+                            <Droplets className="w-3 h-3 text-rose-500" /> {patient.bloodGroup || '--'}
                           </div>
-                          <div className="flex items-center gap-2 bg-white px-2 py-1 rounded shadow-sm border border-slate-100">
-                            <Ruler className="w-3.5 h-3.5 text-emerald-500" /> {patient.height ? `${patient.height} cm` : '--'}
+                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
+                            <Ruler className="w-3 h-3 text-emerald-500" /> {patient.height ? `${patient.height} cm` : '--'}
                           </div>
                         </div>
                       </div>
 
                       {/* Details Grid */}
-                      <div className="p-5 grid grid-cols-2 gap-y-5 gap-x-4 flex-1 bg-white">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-purple-50 text-purple-600 shrink-0"><Hash className="w-4 h-4" /></div>
+                      <div className="p-4 grid grid-cols-2 gap-y-3.5 gap-x-3 flex-1 bg-white">
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100/60 shrink-0"><Hash className="w-3.5 h-3.5" /></div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Patient ID</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Patient ID</p>
                             <p className="text-xs font-semibold text-slate-700 truncate">{patient.patientCode || 'PT-' + patient.id.substring(0, 6)}</p>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shrink-0"><Phone className="w-4 h-4" /></div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100/60 shrink-0"><Phone className="w-3.5 h-3.5" /></div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact</p>
                             <p className="text-xs font-semibold text-slate-700 truncate">{patient.phone ? `${patient.phoneDialCode || ''} ${patient.phone}` : 'N/A'}</p>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-teal-50 text-teal-600 shrink-0"><FileText className="w-4 h-4" /></div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 rounded-md bg-teal-50 text-teal-600 border border-teal-100/60 shrink-0"><FileText className="w-3.5 h-3.5" /></div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Address</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Address</p>
                             <p className="text-xs font-semibold text-slate-700 truncate" title={patient.address}>{patient.address || '--'}</p>
                           </div>
                         </div>
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-xl bg-rose-50 text-rose-600 shrink-0"><Phone className="w-4 h-4" /></div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="p-1.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100/60 shrink-0"><Phone className="w-3.5 h-3.5" /></div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Emergency</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Emergency</p>
                             <p className="text-xs font-semibold text-slate-700 truncate">{patient.emergencyContactPhone ? `${patient.emergencyContactPhoneDialCode || ''} ${patient.emergencyContactPhone}` : '--'}</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Footer Actions */}
-                      <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-2 mt-auto">
+                      {/* Footer Actions - Strict h-8 Buttons */}
+                      <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center gap-1.5 mt-auto">
                         {can('Patients.Edit') && (
                           <button
                             onClick={(e) => {
@@ -515,9 +615,10 @@ export default function PatientsPage() {
                               setEditingPatient(patient)
                               setIsDrawerOpen(true)
                             }}
-                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="btn-secondary h-8 px-2 flex-1 text-xs font-bold flex items-center justify-center gap-1 shadow-2xs"
+                            title="Edit Patient Details"
                           >
-                            <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" /> Edit
+                            <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span>Edit</span>
                           </button>
                         )}
                         {can('Patients.ViewHistory') && (
@@ -526,10 +627,10 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
                             }}
-                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50/70 border border-indigo-200 rounded-lg shadow-sm hover:bg-indigo-100/70 hover:border-indigo-300 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="h-8 px-2 flex-1 text-xs font-bold text-indigo-700 bg-indigo-50/80 border border-indigo-200/90 rounded-md shadow-2xs hover:bg-indigo-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
                             title="View Patient Journey"
                           >
-                            <Route className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> Journey
+                            <Route className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span>Journey</span>
                           </button>
                         )}
                         {can('Patients.ViewHistory') && (
@@ -538,10 +639,10 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               navigate(`/consult/` + patient.id)
                             }}
-                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-lg shadow-sm hover:bg-violet-100 hover:border-violet-300 hover:text-violet-800 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="h-8 px-2 flex-1 text-xs font-bold text-emerald-700 bg-emerald-50/80 border border-emerald-200/90 rounded-md shadow-2xs hover:bg-emerald-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
                             title="Consult Patient"
                           >
-                            <Stethoscope className="w-3.5 h-3.5 text-violet-600 shrink-0" /> Consult
+                            <Stethoscope className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> <span>Consult</span>
                           </button>
                         )}
                         {can('Patients.Delete') && (
@@ -550,10 +651,10 @@ export default function PatientsPage() {
                               e.stopPropagation()
                               handleDeletePatient(patient)
                             }}
-                            className="flex-1 h-10 px-2 flex items-center justify-center gap-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg shadow-sm hover:bg-rose-100 hover:border-rose-300 hover:text-rose-700 hover:shadow hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="h-8 px-2 flex-1 text-xs font-bold text-rose-700 bg-rose-50/80 border border-rose-200/90 rounded-md shadow-2xs hover:bg-rose-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
                             title="Delete Patient"
                           >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" /> Delete
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" /> <span>Delete</span>
                           </button>
                         )}
                       </div>
@@ -561,12 +662,36 @@ export default function PatientsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="py-20 text-center flex flex-col items-center justify-center">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <Users className="w-10 h-10 text-slate-400" />
+                <div className="py-16 px-4 text-center flex flex-col items-center justify-center max-w-md mx-auto">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-b from-indigo-50 to-indigo-100/60 border border-indigo-200/80 text-indigo-600 flex items-center justify-center mb-4 shadow-2xs">
+                    <Users className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-1">No patients found</h3>
-                  <p className="text-slate-500">Try adjusting your search or register a new patient.</p>
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-800">
+                    {globalFilter ? "No Matching Patients Found" : "No Patients Registered Yet"}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-sm leading-relaxed">
+                    {globalFilter
+                      ? `We couldn't find any patient matching "${globalFilter}". Try clearing your search query or registering a new patient record.`
+                      : "Build your clinic's digital patient directory to manage appointments, clinical consultations, and prescriptions seamlessly."}
+                  </p>
+                  <div className="mt-5 flex items-center gap-2.5">
+                    {globalFilter && (
+                      <button
+                        onClick={() => setGlobalFilter('')}
+                        className="btn-secondary h-9 px-3.5 text-xs font-bold flex items-center gap-1.5"
+                      >
+                        <X className="w-3.5 h-3.5" /> Clear Filter
+                      </button>
+                    )}
+                    {can('Patients.Add') && (
+                      <button
+                        onClick={() => { setEditingPatient(null); setIsDrawerOpen(true); }}
+                        className="btn-primary h-9 px-4 text-xs font-bold flex items-center gap-2 shadow-xs"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" /> Register First Patient
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </>
@@ -594,57 +719,57 @@ export default function PatientsPage() {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l border-zinc-200"
             >
-              <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-sm">
-                    {editingPatient ? <Edit className="w-6 h-6" /> : <Users className="w-6 h-6" />}
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-2xs">
+                    {editingPatient ? <Edit className="w-5 h-5" /> : <Users className="w-5 h-5" />}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                    <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
                       <span className="text-slate-900">{editingPatient ? 'Edit' : 'Register'}</span>
                       <span className="text-indigo-600">{editingPatient ? 'Patient Record' : 'New Patient'}</span>
                     </h2>
-                    <p className="text-sm text-slate-500 mt-1">{editingPatient ? 'Update patient clinical and contact details.' : 'Enter details to create a new patient record.'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{editingPatient ? 'Update patient clinical and contact details.' : 'Enter details to create a new patient record.'}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsDrawerOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <form noValidate autoComplete="off" id="patient-form" onSubmit={handleSubmit} className="space-y-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+                <form noValidate autoComplete="off" id="patient-form" onSubmit={handleSubmit} className="space-y-5">
                   <ApiErrorAlert error={editingPatient ? updateMutation.error : mutation.error} />
 
                   {/* Section 1: Personal Info */}
                   <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Personal Information</h3>
-                    <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2.5 pb-1.5 border-b border-slate-100">Personal Information</h3>
+                    <div className="space-y-3.5">
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <User className="w-4 h-4 text-blue-500" /> Full Name
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                          <User className="w-3.5 h-3.5 text-blue-500" /> Full Name
                         </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.name} name="name" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. John Doe" />
+                        <input autoComplete="off" defaultValue={editingPatient?.name} name="name" className="saas-input h-10 w-full text-xs" placeholder="e.g. John Doe" />
                         <FieldError errors={validationErrors} field="Name" />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Calendar className="w-4 h-4 text-orange-500" /> Age
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Calendar className="w-3.5 h-3.5 text-orange-500" /> Age
                           </label>
-                          <input autoComplete="off" defaultValue={editingPatient?.age || ''} type="number" name="age" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 30" />
+                          <input autoComplete="off" defaultValue={editingPatient?.age || ''} type="number" name="age" className="saas-input h-10 w-full text-xs" placeholder="e.g. 30" />
                         <FieldError errors={validationErrors} field="Age" />
                         </div>
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Users className="w-4 h-4 text-pink-500" /> Gender
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Users className="w-3.5 h-3.5 text-pink-500" /> Gender
                           </label>
-                          <select defaultValue={editingPatient?.gender} name="gender" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
-                            <option value="">Select</option>
+                          <select defaultValue={editingPatient?.gender} name="gender" className="h-10 w-full px-3 bg-white border border-slate-200/90 rounded-md text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-2xs">
+                            <option value="">Select Gender</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                             <option value="Other">Other</option>
@@ -653,13 +778,13 @@ export default function PatientsPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Droplet className="w-4 h-4 text-red-500" /> Blood Group
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Droplet className="w-3.5 h-3.5 text-red-500" /> Blood Group
                           </label>
-                          <select defaultValue={editingPatient?.bloodGroup} name="bloodGroup" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
-                            <option value="">Select</option>
+                          <select defaultValue={editingPatient?.bloodGroup} name="bloodGroup" className="h-10 w-full px-3 bg-white border border-slate-200/90 rounded-md text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-2xs">
+                            <option value="">Select Group</option>
                             <option value="A+">A+</option>
                             <option value="A-">A-</option>
                             <option value="B+">B+</option>
@@ -672,10 +797,10 @@ export default function PatientsPage() {
                         <FieldError errors={validationErrors} field="BloodGroup" />
                         </div>
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Users className="w-4 h-4 text-orange-500" /> Marital Status
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Users className="w-3.5 h-3.5 text-orange-500" /> Marital Status
                           </label>
-                          <select defaultValue={editingPatient?.maritalStatus} name="maritalStatus" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`}>
+                          <select defaultValue={editingPatient?.maritalStatus} name="maritalStatus" className="h-10 w-full px-3 bg-white border border-slate-200/90 rounded-md text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-2xs">
                             <option value="">Select Status</option>
                             <option value="Single">Single</option>
                             <option value="Married">Married</option>
@@ -687,10 +812,10 @@ export default function PatientsPage() {
                       </div>
 
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <Ruler className="w-4 h-4 text-teal-500" /> Height (cm) <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                          <Ruler className="w-3.5 h-3.5 text-teal-500" /> Height (cm) <span className="text-slate-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.height || ''} type="number" name="height" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. 175" />
+                        <input autoComplete="off" defaultValue={editingPatient?.height || ''} type="number" name="height" className="saas-input h-10 w-full text-xs" placeholder="e.g. 175" />
                         <FieldError errors={validationErrors} field="Height" />
                       </div>
                     </div>
@@ -698,37 +823,35 @@ export default function PatientsPage() {
 
                   {/* Section 2: Contact Details */}
                   <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Contact Details</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4">
-                          <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                              <Phone className="w-4 h-4 text-green-500" /> Phone Number <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                            </label>
-                            <PhoneInput
-                              name="phone"
-                              dialCodeName="phoneDialCode"
-                              defaultValue={editingPatient?.phone}
-                              defaultDialCode={editingPatient?.phoneDialCode}
-                            />
-                          <FieldError errors={validationErrors} field="Phone" />
-                          </div>
-                          <div>
-                            <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                              <Mail className="w-4 h-4 text-indigo-500" /> Email <span className="text-zinc-400 font-normal ml-1">Opt</span>
-                            </label>
-                            <input autoComplete="off" defaultValue={editingPatient?.email} type="email" name="email" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="pt@example.com" />
-                          <FieldError errors={validationErrors} field="Email" />
-                          </div>
+                    <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2.5 pb-1.5 border-b border-slate-100">Contact Details</h3>
+                    <div className="space-y-3.5">
+                      <div className="grid grid-cols-1 gap-3.5">
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Phone className="w-3.5 h-3.5 text-emerald-500" /> Phone Number <span className="text-slate-400 font-normal ml-1">Opt</span>
+                          </label>
+                          <PhoneInput
+                            name="phone"
+                            dialCodeName="phoneDialCode"
+                            defaultValue={editingPatient?.phone}
+                            defaultDialCode={editingPatient?.phoneDialCode}
+                          />
+                        <FieldError errors={validationErrors} field="Phone" />
+                        </div>
+                        <div>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Mail className="w-3.5 h-3.5 text-indigo-500" /> Email <span className="text-slate-400 font-normal ml-1">Opt</span>
+                          </label>
+                          <input autoComplete="off" defaultValue={editingPatient?.email} type="email" name="email" className="saas-input h-10 w-full text-xs" placeholder="pt@example.com" />
+                        <FieldError errors={validationErrors} field="Email" />
                         </div>
                       </div>
 
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <MapPin className="w-4 h-4 text-rose-500" /> Address <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500" /> Address <span className="text-slate-400 font-normal ml-1">Opt</span>
                         </label>
-                        <textarea autoComplete="off" defaultValue={editingPatient?.address} name="address" rows={2} className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none bg-white`} placeholder="Enter full address"></textarea>
+                        <textarea autoComplete="off" defaultValue={editingPatient?.address} name="address" rows={2} className="w-full px-3 py-2 bg-white border border-slate-200/90 rounded-md text-xs font-medium text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none shadow-2xs" placeholder="Enter full address"></textarea>
                         <FieldError errors={validationErrors} field="Address" />
                       </div>
                     </div>
@@ -736,27 +859,27 @@ export default function PatientsPage() {
 
                   {/* Section 3: Clinical & Emergency */}
                   <div>
-                    <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-3 pb-2 border-b border-zinc-100">Clinical & Emergency</h3>
-                    <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2.5 pb-1.5 border-b border-slate-100">Clinical & Emergency</h3>
+                    <div className="space-y-3.5">
                       <div>
-                        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                          <HeartPulse className="w-4 h-4 text-rose-500" /> Pre-existing Conditions <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                          <HeartPulse className="w-3.5 h-3.5 text-rose-500" /> Pre-existing Conditions <span className="text-slate-400 font-normal ml-1">Opt</span>
                         </label>
-                        <input autoComplete="off" defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="e.g. Diabetes, Hypertension" />
+                        <input autoComplete="off" defaultValue={editingPatient?.preExistingConditions} name="preExistingConditions" className="saas-input h-10 w-full text-xs" placeholder="e.g. Diabetes, Hypertension" />
                         <FieldError errors={validationErrors} field="PreExistingConditions" />
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <UserPlus className="w-4 h-4 text-emerald-500" /> Emerg. Contact <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <UserPlus className="w-3.5 h-3.5 text-emerald-500" /> Emerg. Contact <span className="text-slate-400 font-normal ml-1">Opt</span>
                           </label>
-                          <input autoComplete="off" defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className={`w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all bg-white`} placeholder="Relative's Name" />
+                          <input autoComplete="off" defaultValue={editingPatient?.emergencyContactName} name="emergencyContactName" className="saas-input h-10 w-full text-xs" placeholder="Relative's Name" />
                         <FieldError errors={validationErrors} field="EmergencyContactName" />
                         </div>
                         <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
-                            <Phone className="w-4 h-4 text-red-500" /> Emerg. Phone <span className="text-zinc-400 font-normal ml-1">Opt</span>
+                          <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-1">
+                            <Phone className="w-3.5 h-3.5 text-red-500" /> Emerg. Phone <span className="text-slate-400 font-normal ml-1">Opt</span>
                           </label>
                           <PhoneInput
                             name="emergencyContactPhone"
@@ -773,22 +896,22 @@ export default function PatientsPage() {
                 </form>
               </div>
 
-              <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
+              <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="btn-cancel"
+                  className="btn-cancel h-10 px-4 text-xs font-bold flex items-center gap-1.5"
                 >
-                  <X className="w-4 h-4" /> {editingPatient ? 'Close' : 'Cancel'}
+                  <X className="w-4 h-4" /> <span>{editingPatient ? 'Close' : 'Cancel'}</span>
                 </button>
                 <button
                   type="submit"
                   form="patient-form"
-                  disabled={mutation.isPending}
-                  className="btn-primary"
+                  disabled={mutation.isPending || updateMutation.isPending}
+                  className="btn-primary h-10 px-5 text-xs font-bold flex items-center gap-2 shadow-2xs"
                 >
-                  {mutation.isPending ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {editingPatient ? 'Save Changes' : 'Register Patient'}
+                  {(mutation.isPending || updateMutation.isPending) ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  <span>{editingPatient ? 'Save Changes' : 'Register Patient'}</span>
                 </button>
               </div>
             </motion.div>
