@@ -11,7 +11,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Users, PlusCircle, Search, AlertCircle,
-  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, FileText, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route, Trash2, Building2
+  Phone, Hash, Droplets, User, Calendar, X, Activity, Save, Stethoscope, Edit, LayoutGrid, List, Ruler, Mail, MapPin, HeartPulse, UserPlus, Droplet, Route, Trash2, Building2
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
@@ -531,132 +531,160 @@ export default function PatientsPage() {
               ) : patients.length > 0 ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-3.5 sm:gap-4">
                   {patients.map(patient => (
-                    <div key={patient.id} className="group relative bg-white rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 overflow-hidden flex flex-col">
+                    <div key={patient.id} className="bg-white rounded-lg border border-slate-200/90 shadow-2xs hover:shadow-lg hover:border-indigo-200/90 hover:-translate-y-0.5 transition-all duration-300 flex flex-col group relative overflow-hidden">
+                      {/* Top accent line */}
+                      <div className="h-1 w-full bg-slate-100 group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-indigo-500 transition-all duration-300" />
+
                       {/* Header Section */}
-                      <div className="p-4 border-b border-slate-100 bg-gradient-to-br from-white to-slate-50/60">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100/90 flex items-center justify-center font-bold text-base shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                      <div className="p-3 sm:p-3.5 border-b border-slate-100 bg-gradient-to-b from-slate-50/70 to-white">
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+                            {/* Patient Avatar */}
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-gradient-to-br from-indigo-50 via-indigo-100/70 to-white border border-indigo-100 text-indigo-600 flex items-center justify-center font-extrabold text-base shadow-xs shrink-0 group-hover:scale-105 transition-transform duration-300">
                               {patient.name.charAt(0).toUpperCase()}
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="font-bold text-slate-800 text-base leading-tight group-hover:text-indigo-600 transition-colors truncate">
+
+                            {/* Name & Badges */}
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-extrabold text-slate-900 text-base leading-snug group-hover:text-indigo-600 transition-colors break-words" title={patient.name}>
                                 {patient.name}
                               </h3>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-emerald-700 bg-emerald-50 text-[10px] font-bold uppercase tracking-wider border border-emerald-100/80 shadow-2xs">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {/* Status Badge */}
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active
+                                </span>
+                                {/* Patient Code Badge */}
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-700 bg-indigo-50/80 border border-indigo-200/70 px-2 py-0.5 rounded-full shadow-2xs">
+                                  <Hash className="w-2.5 h-2.5 text-indigo-500" /> {patient.patientCode || 'PT-' + patient.id.substring(0, 6)}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Attribute Chips */}
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-600">
-                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
-                            <User className="w-3 h-3 text-indigo-500" /> {patient.gender || 'Unk'}
-                          </div>
+                        {/* Credential Pills */}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100/80 text-[11px] font-medium text-slate-600">
+                          <span className="inline-flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                            <User className="w-3 h-3 text-indigo-500 shrink-0" /> {patient.gender || 'Unk'}
+                          </span>
                           {patient.maritalStatus && (
-                            <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
-                              <Users className="w-3 h-3 text-indigo-500" /> {patient.maritalStatus}
-                            </div>
+                            <span className="inline-flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                              <Users className="w-3 h-3 text-indigo-500 shrink-0" /> {patient.maritalStatus}
+                            </span>
                           )}
-                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
-                            <Calendar className="w-3 h-3 text-amber-500" /> {patient.age ? `${patient.age} Yrs` : 'N/A'}
+                          <span className="inline-flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                            <Calendar className="w-3 h-3 text-amber-500 shrink-0" /> {patient.age ? `${patient.age} Yrs` : 'N/A'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                            <Droplets className="w-3 h-3 text-rose-500 shrink-0" /> {patient.bloodGroup || '--'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                            <Ruler className="w-3 h-3 text-emerald-500 shrink-0" /> {patient.height ? `${patient.height} cm` : '--'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Body: Clean Stacked Rows (matching Doctor card pattern) */}
+                      <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2 bg-white">
+                        {/* Contact Row */}
+                        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
+                              <Phone className="w-3 h-3" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Contact</p>
+                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">{patient.phone ? `${patient.phoneDialCode || ''} ${patient.phone}` : 'N/A'}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
-                            <Droplets className="w-3 h-3 text-rose-500" /> {patient.bloodGroup || '--'}
+                        </div>
+
+                        {/* Address Row */}
+                        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-6 h-6 rounded-md bg-teal-50 border border-teal-100/60 text-teal-600 flex items-center justify-center shrink-0 shadow-2xs">
+                              <MapPin className="w-3 h-3" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Address</p>
+                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5" title={patient.address}>{patient.address || '--'}</p>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 bg-white px-2 py-0.5 rounded-sm shadow-2xs border border-slate-200/80 text-[11px]">
-                            <Ruler className="w-3 h-3 text-emerald-500" /> {patient.height ? `${patient.height} cm` : '--'}
+                        </div>
+
+                        {/* Emergency Row */}
+                        <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-6 h-6 rounded-md bg-rose-50 border border-rose-100/60 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
+                              <HeartPulse className="w-3 h-3" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Emergency</p>
+                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">{patient.emergencyContactPhone ? `${patient.emergencyContactPhoneDialCode || ''} ${patient.emergencyContactPhone}` : '--'}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Details Grid */}
-                      <div className="p-4 grid grid-cols-2 gap-y-3.5 gap-x-3 flex-1 bg-white">
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-1.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100/60 shrink-0"><Hash className="w-3.5 h-3.5" /></div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Patient ID</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.patientCode || 'PT-' + patient.id.substring(0, 6)}</p>
-                          </div>
+                      {/* Card Footer Actions (matching Doctor card pattern) */}
+                      <div className="px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200/80 px-2.5 py-1 rounded-md shadow-2xs shrink-0">
+                          <Activity className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>OPD Patient</span>
                         </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-1.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100/60 shrink-0"><Phone className="w-3.5 h-3.5" /></div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.phone ? `${patient.phoneDialCode || ''} ${patient.phone}` : 'N/A'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-1.5 rounded-md bg-teal-50 text-teal-600 border border-teal-100/60 shrink-0"><FileText className="w-3.5 h-3.5" /></div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Address</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate" title={patient.address}>{patient.address || '--'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <div className="p-1.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100/60 shrink-0"><Phone className="w-3.5 h-3.5" /></div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Emergency</p>
-                            <p className="text-xs font-semibold text-slate-700 truncate">{patient.emergencyContactPhone ? `${patient.emergencyContactPhoneDialCode || ''} ${patient.emergencyContactPhone}` : '--'}</p>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Footer Actions - Strict h-8 Buttons */}
-                      <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center gap-1.5 mt-auto">
-                        {can('Patients.Edit') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingPatient(patient)
-                              setIsDrawerOpen(true)
-                            }}
-                            className="btn-secondary h-8 px-2 flex-1 text-xs font-bold flex items-center justify-center gap-1 shadow-2xs"
-                            title="Edit Patient Details"
-                          >
-                            <Edit className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span>Edit</span>
-                          </button>
-                        )}
-                        {can('Patients.ViewHistory') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
-                            }}
-                            className="h-8 px-2 flex-1 text-xs font-bold text-indigo-700 bg-indigo-50/80 border border-indigo-200/90 rounded-md shadow-2xs hover:bg-indigo-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
-                            title="View Patient Journey"
-                          >
-                            <Route className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> <span>Journey</span>
-                          </button>
-                        )}
-                        {can('Patients.ViewHistory') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigate(`/consult/` + patient.id)
-                            }}
-                            className="h-8 px-2 flex-1 text-xs font-bold text-emerald-700 bg-emerald-50/80 border border-emerald-200/90 rounded-md shadow-2xs hover:bg-emerald-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
-                            title="Consult Patient"
-                          >
-                            <Stethoscope className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> <span>Consult</span>
-                          </button>
-                        )}
-                        {can('Patients.Delete') && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeletePatient(patient)
-                            }}
-                            className="h-8 px-2 flex-1 text-xs font-bold text-rose-700 bg-rose-50/80 border border-rose-200/90 rounded-md shadow-2xs hover:bg-rose-100/80 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
-                            title="Delete Patient"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" /> <span>Delete</span>
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1 ml-auto shrink-0">
+                          {can('Patients.Edit') && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingPatient(patient)
+                                setIsDrawerOpen(true)
+                              }}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs hover:shadow-xs transition-all"
+                              title="Edit Patient Details"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {can('Patients.ViewHistory') && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/lifecycle?search=${encodeURIComponent(patient.name)}`)
+                                }}
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs hover:shadow-xs transition-all"
+                                title="View Patient Journey"
+                              >
+                                <Route className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  navigate(`/consult/` + patient.id)
+                                }}
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 border border-slate-200/90 hover:border-emerald-200 shadow-2xs hover:shadow-xs transition-all"
+                                title="Consult Patient"
+                              >
+                                <Stethoscope className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                          {can('Patients.Delete') && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeletePatient(patient)
+                              }}
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200/90 hover:border-rose-200 shadow-2xs hover:shadow-xs transition-all"
+                              title="Delete Patient"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
