@@ -27,6 +27,8 @@ import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
 import DoctorFeedbacksDrawer from "./components/DoctorFeedbacksDrawer"
 import { DataTablePagination } from "@/components/ui/DataTablePagination"
+import { MaskedPhone } from "@/components/ui/MaskedPhone"
+import { MaskedEmail } from "@/components/ui/MaskedEmail"
 
 
 function DoctorRatingBadge({ doctor, onClick }: { doctor: Doctor; onClick: (e: React.MouseEvent) => void }) {
@@ -99,15 +101,6 @@ export default function DoctorsPage() {
     return { total, active, specialties, multiBranch }
   }, [doctors])
 
-  const formatPhone = (dialCode?: string, number?: string) => {
-    if (!number) return 'N/A'
-    const cleanNum = number.replace(/^\+/, '')
-    const cleanCode = dialCode ? dialCode.replace(/^\+/, '') : '91'
-    if (cleanNum.startsWith(cleanCode)) {
-      return `+${cleanNum}`
-    }
-    return `+${cleanCode} ${cleanNum}`
-  }
 
   const mutation = useMutation({
     mutationFn: async (data: Omit<Doctor, 'id'>) => {
@@ -252,8 +245,16 @@ export default function DoctorsPage() {
       header: "Contact",
       cell: ({ row }) => (
         <div>
-          <div className="text-xs font-semibold text-slate-800">{formatPhone(row.original.mobileDialCode, row.original.mobile)}</div>
-          <div className="text-[11px] text-slate-500">{row.original.emailId || 'N/A'}</div>
+          <div>
+            <MaskedPhone
+              phone={row.original.mobile}
+              dialCode={row.original.mobileDialCode}
+              textClassName="text-xs font-semibold text-slate-800"
+            />
+          </div>
+          <div className="mt-0.5">
+            <MaskedEmail email={row.original.emailId} emptyText="N/A" textClassName="text-[11px] font-semibold text-slate-500" />
+          </div>
         </div>
       )
     },
@@ -625,13 +626,19 @@ export default function DoctorsPage() {
                       <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2 bg-white">
                         {/* Contact Row */}
                         <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                               <Phone className="w-3 h-3" />
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Contact</p>
-                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">{formatPhone(doc.mobileDialCode, doc.mobile)}</p>
+                              <div className="mt-0.5">
+                                <MaskedPhone
+                                  phone={doc.mobile}
+                                  dialCode={doc.mobileDialCode}
+                                  textClassName="text-xs font-semibold text-slate-800"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -642,9 +649,11 @@ export default function DoctorsPage() {
                             <div className="w-6 h-6 rounded-md bg-teal-50 border border-teal-100/60 text-teal-600 flex items-center justify-center shrink-0 shadow-2xs">
                               <Mail className="w-3 h-3" />
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Email</p>
-                              <p className="text-xs font-semibold text-slate-800 break-all mt-0.5">{doc.emailId || '--'}</p>
+                              <div className="mt-0.5">
+                                <MaskedEmail email={doc.emailId} emptyText="--" textClassName="text-xs font-semibold text-slate-800" />
+                              </div>
                             </div>
                           </div>
                         </div>

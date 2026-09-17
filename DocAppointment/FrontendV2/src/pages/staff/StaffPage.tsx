@@ -26,6 +26,8 @@ import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
 import { DataTablePagination } from "@/components/ui/DataTablePagination"
 import { PageLoader } from "@/components/ui/PageLoader"
+import { MaskedPhone } from "@/components/ui/MaskedPhone"
+import { MaskedEmail } from "@/components/ui/MaskedEmail"
 
 export default function StaffPage() {
   const { user, activeBranchId } = useAuthStore()
@@ -254,11 +256,16 @@ export default function StaffPage() {
       header: "Contact",
       cell: ({ row }) => (
         <div className="flex flex-col gap-1 text-xs text-slate-600 font-medium">
-          <div className="flex items-center gap-2">
-            <Phone className="w-3.5 h-3.5 text-slate-400" /> {row.original.phoneNumber ? `${row.original.phoneNumberDialCode || ''} ${row.original.phoneNumber}` : 'N/A'}
+          <div className="flex items-center gap-1.5">
+            <MaskedPhone
+              phone={row.original.phoneNumber}
+              dialCode={row.original.phoneNumberDialCode}
+              showIcon
+              textClassName="text-xs font-semibold text-slate-700"
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <Mail className="w-3.5 h-3.5 text-slate-400" /> {row.original.email}
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <MaskedEmail email={row.original.email} showIcon textClassName="text-xs font-semibold text-slate-700" />
           </div>
         </div>
       )
@@ -597,15 +604,19 @@ export default function StaffPage() {
                     <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2 bg-white">
                       {/* Contact Row */}
                       <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                             <Phone className="w-3 h-3" />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Contact</p>
-                            <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">
-                              {member.phoneNumber ? `${member.phoneNumberDialCode || ''} ${member.phoneNumber}` : 'N/A'}
-                            </p>
+                            <div className="mt-0.5">
+                              <MaskedPhone
+                                phone={member.phoneNumber}
+                                dialCode={member.phoneNumberDialCode}
+                                textClassName="text-xs font-semibold text-slate-800"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -616,9 +627,11 @@ export default function StaffPage() {
                           <div className="w-6 h-6 rounded-md bg-teal-50 border border-teal-100/60 text-teal-600 flex items-center justify-center shrink-0 shadow-2xs">
                             <Mail className="w-3 h-3" />
                           </div>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Email</p>
-                            <p className="text-xs font-semibold text-slate-800 break-all mt-0.5">{member.email || '--'}</p>
+                            <div className="mt-0.5">
+                              <MaskedEmail email={member.email} emptyText="--" textClassName="text-xs font-semibold text-slate-800" />
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
   Loader2, Bell, Play, Pause, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope, Clock, Smartphone, Send, Phone,
-  Calendar, Sparkles, ArrowRight, ChevronRight, Coffee
+  Calendar, Sparkles, ArrowRight, ChevronRight, Coffee, Star
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { useAuthStore } from "@/store/authStore"
@@ -17,6 +17,7 @@ import PauseSessionModal from "../queue/components/PauseSessionModal"
 import { motion, AnimatePresence } from "framer-motion"
 import { PageLoader } from "@/components/ui/PageLoader"
 import { useNavigate } from "react-router-dom"
+import { MaskedPhone } from "@/components/ui/MaskedPhone"
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -1051,7 +1052,7 @@ export default function DoctorDeskPage() {
                               {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" /> :
                                token.source === 3 ? <Send className="w-3 h-3 text-sky-500" /> :
                                <Phone className="w-3 h-3 text-slate-400" />}
-                              <span>{token.patientPhone || 'Walk-in'}</span>
+                              <MaskedPhone phone={token.patientPhone} emptyText="Walk-in" textClassName="text-[11px] text-slate-600 font-semibold" />
                             </span>
                             <span className="text-slate-300">•</span>
                             <span className="text-slate-400 text-[10px]">#{idx + 1} in line</span>
@@ -1084,7 +1085,7 @@ export default function DoctorDeskPage() {
                             {token.source === 0 ? <Smartphone className="w-3 h-3 text-emerald-500" /> :
                              token.source === 3 ? <Send className="w-3 h-3 text-sky-500" /> :
                              <Phone className="w-3 h-3 text-slate-400" />}
-                            <span>{token.patientPhone || 'No Phone'}</span>
+                            <MaskedPhone phone={token.patientPhone} emptyText="No Phone" textClassName="text-[11px] text-slate-600 font-semibold" />
                           </div>
                         </div>
                         {can('DoctorDesk.RestoreToken') && (
@@ -1280,14 +1281,16 @@ export default function DoctorDeskPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                            <span>Phone: {nextPatient.patientPhone || 'Not provided'}</span>
+                          <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                            <span className="flex items-center gap-1">
+                              Phone: <MaskedPhone phone={nextPatient.patientPhone} emptyText="Not provided" textClassName="text-xs font-semibold text-slate-700" />
+                            </span>
                             {nextPatient.isPriority && (
                               <span className="px-1.5 py-0.2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xs text-[10px] font-bold">
                                 Priority
                               </span>
                             )}
-                          </p>
+                          </div>
                         </div>
                       </div>
 

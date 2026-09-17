@@ -17,7 +17,6 @@ import {
   X,
   Eye,
   Zap,
-  Phone,
   Radio
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,6 +25,7 @@ import type { OutboxMessageItem } from '@/services/outboxService';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { MaskedPhone } from '@/components/ui/MaskedPhone';
 import toast from 'react-hot-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -482,9 +482,8 @@ export default function OutboxDashboardPage() {
                     <td className="px-3 py-3.5">
                       {m.patientPhone ? (
                         <div>
-                          <div className="font-semibold text-slate-900 text-xs flex items-center gap-1.5 whitespace-nowrap">
-                            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span>{m.patientPhone}</span>
+                          <div className="font-semibold text-slate-900 text-xs whitespace-nowrap">
+                            <MaskedPhone phone={m.patientPhone} showIcon textClassName="text-xs font-semibold text-slate-900" />
                           </div>
                           {m.channel?.toLowerCase() === 'telegram' && (
                             <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5" title={`Telegram Chat ID: ${m.recipient}`}>

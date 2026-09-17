@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Eye,
   RefreshCw,
-  Phone,
   Ticket,
   Building2,
   X,
@@ -30,6 +29,7 @@ import { doctorService } from '@/services/doctorService';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { DataTablePagination } from '@/components/ui/DataTablePagination';
+import { MaskedPhone } from '@/components/ui/MaskedPhone';
 
 export default function PatientLifecyclePage() {
   const [searchParams] = useSearchParams();
@@ -466,9 +466,11 @@ export default function PatientLifecyclePage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 mt-0.5 font-medium">
                       {item.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-slate-400" /> {item.phone}
-                        </span>
+                        <MaskedPhone
+                          phone={item.phone}
+                          showIcon
+                          textClassName="text-xs text-slate-600 font-semibold"
+                        />
                       )}
                       {item.gender && (
                         <span>

@@ -23,6 +23,7 @@ import { FieldError } from "@/components/ui/FieldError"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { usePermissions } from "@/hooks/usePermissions"
 import { DataTablePagination } from "@/components/ui/DataTablePagination"
+import { MaskedPhone } from "@/components/ui/MaskedPhone"
 
 export default function PatientsPage() {
   const { user, activeBranchId } = useAuthStore()
@@ -191,10 +192,12 @@ export default function PatientsPage() {
       accessorKey: "phone",
       header: "Contact",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
-          <Phone className="w-4 h-4 text-slate-400" />
-          {row.original.phone ? `${row.original.phoneDialCode || ''} ${row.original.phone}` : 'N/A'}
-        </div>
+        <MaskedPhone
+          phone={row.original.phone}
+          dialCode={row.original.phoneDialCode}
+          showIcon
+          textClassName="text-xs font-semibold text-slate-700"
+        />
       )
     },
     {
@@ -589,13 +592,19 @@ export default function PatientsPage() {
                       <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2 bg-white">
                         {/* Contact Row */}
                         <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-md bg-blue-50 border border-blue-100/60 text-blue-600 flex items-center justify-center shrink-0 shadow-2xs">
                               <Phone className="w-3 h-3" />
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Contact</p>
-                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">{patient.phone ? `${patient.phoneDialCode || ''} ${patient.phone}` : 'N/A'}</p>
+                              <div className="mt-0.5">
+                                <MaskedPhone
+                                  phone={patient.phone}
+                                  dialCode={patient.phoneDialCode}
+                                  textClassName="text-xs font-semibold text-slate-800"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -615,13 +624,20 @@ export default function PatientsPage() {
 
                         {/* Emergency Row */}
                         <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-md bg-rose-50 border border-rose-100/60 text-rose-600 flex items-center justify-center shrink-0 shadow-2xs">
                               <HeartPulse className="w-3 h-3" />
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Emergency</p>
-                              <p className="text-xs font-semibold text-slate-800 break-words mt-0.5">{patient.emergencyContactPhone ? `${patient.emergencyContactPhoneDialCode || ''} ${patient.emergencyContactPhone}` : '--'}</p>
+                              <div className="mt-0.5">
+                                <MaskedPhone
+                                  phone={patient.emergencyContactPhone}
+                                  dialCode={patient.emergencyContactPhoneDialCode}
+                                  emptyText="--"
+                                  textClassName="text-xs font-semibold text-slate-800"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>

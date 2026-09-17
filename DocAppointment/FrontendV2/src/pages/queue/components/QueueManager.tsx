@@ -21,6 +21,7 @@ import RecordPaymentModal from './RecordPaymentModal';
 import { motion, AnimatePresence } from "framer-motion"
 import { usePermissions } from "@/hooks/usePermissions"
 import PhoneInput from "@/components/PhoneInput"
+import { MaskedPhone } from "@/components/ui/MaskedPhone"
 
 function LiveTimer({ startedAt }: { startedAt: string | null }) {
   const [elapsed, setElapsed] = useState(0)
@@ -765,7 +766,7 @@ export default function QueueManager({ sessionData, onBack }: any) {
                         {t.source === 0 ? <span title="WhatsApp Booking"><Smartphone className="w-3.5 h-3.5 text-emerald-500" /></span> :
                          t.source === 3 ? <span title="Telegram Booking"><Send className="w-3.5 h-3.5 text-sky-500" /></span> :
                          <span title="Walk-in/Phone Booking"><Phone className="w-3.5 h-3.5 text-slate-400" /></span>}
-                        <span>{t.patientPhone}</span>
+                        <MaskedPhone phone={t.patientPhone} dialCode={(t as any).patientPhoneDialCode} textClassName="text-xs font-semibold text-slate-700" />
                       </div>
                     </td>
                     <td className="px-6 py-3.5 text-slate-600 font-medium">
