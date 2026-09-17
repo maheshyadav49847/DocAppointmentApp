@@ -24,6 +24,9 @@ namespace CodeX.Infrastructure.Persistence
                     await context.Database.MigrateAsync();
                 }
 
+                await context.Database.ExecuteSqlRawAsync(
+                    "UPDATE \"Branches\" SET \"Status\" = CASE WHEN \"IsActive\" = false THEN 'Inactive' ELSE 'Active' END WHERE \"Status\" IS NULL OR \"Status\" = '';");
+
                 await SeedRolesAsync(context);
                 await AssignRolesToExistingStaffAsync(context);
                 await MigrateTenantRolesAsync(context);

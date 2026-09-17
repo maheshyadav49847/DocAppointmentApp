@@ -8,6 +8,7 @@ import { Printer, CheckCircle, Search, FileText, ReceiptIndianRupee, User, Downl
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { billingService } from '@/services/billingService';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import QuickInvoiceModal from '../queue/components/QuickInvoiceModal';
 import RecordPaymentModal from '../queue/components/RecordPaymentModal';
 import toast from 'react-hot-toast';
@@ -349,53 +350,17 @@ export default function BillingDashboardPage() {
             </div>
           </div>
 
-          {/* Pending Bills Pagination Controls */}
-          {pendingTotalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 mt-auto">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-bold text-slate-700">{(pendingPage - 1) * pendingPageSize + 1}</span> to <span className="font-bold text-slate-700">{Math.min(pendingPage * pendingPageSize, pendingTotalCount)}</span> of <span className="font-bold text-slate-700">{pendingTotalCount}</span> entries
-              </div>
-              <div className="flex gap-1.5">
-                <button 
-                  disabled={pendingPage === 1}
-                  onClick={() => setPendingPage(p => Math.max(1, p - 1))}
-                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 text-slate-700"
-                >
-                  Prev
-                </button>
-                {(() => {
-                  const maxVisible = 5;
-                  let startPage = Math.max(1, pendingPage - Math.floor(maxVisible / 2));
-                  let endPage = startPage + maxVisible - 1;
-                  
-                  if (endPage > pendingTotalPages) {
-                    endPage = pendingTotalPages;
-                    startPage = Math.max(1, endPage - maxVisible + 1);
-                  }
-
-                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(pageNum => (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPendingPage(pageNum)}
-                      className={`min-w-[32px] px-2 py-1 border rounded text-sm font-bold transition-colors ${
-                        pendingPage === pageNum 
-                          ? 'bg-indigo-600 border-indigo-600 text-white' 
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700 bg-white'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ));
-                })()}
-                <button 
-                  disabled={pendingPage === pendingTotalPages || pendingTotalPages === 0}
-                  onClick={() => setPendingPage(p => Math.min(pendingTotalPages, p + 1))}
-                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 text-slate-700"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+          {/* Standardized Pagination */}
+          {pendingTotalCount > 0 && (
+            <DataTablePagination
+              pageIndex={pendingPage - 1}
+              pageSize={pendingPageSize}
+              totalCount={pendingTotalCount}
+              pageCount={pendingTotalPages}
+              canPreviousPage={pendingPage > 1}
+              canNextPage={pendingPage < pendingTotalPages}
+              onPageChange={(newIdx) => setPendingPage(newIdx + 1)}
+            />
           )}
         </div>
       )}
@@ -566,53 +531,17 @@ export default function BillingDashboardPage() {
             </div>
           </div>
           
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50 mt-auto">
-              <div className="text-sm text-slate-500">
-                Showing <span className="font-bold text-slate-700">{(historyPage - 1) * historyPageSize + 1}</span> to <span className="font-bold text-slate-700">{Math.min(historyPage * historyPageSize, totalCount)}</span> of <span className="font-bold text-slate-700">{totalCount}</span> entries
-              </div>
-              <div className="flex gap-1.5">
-                <button 
-                  disabled={historyPage === 1}
-                  onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
-                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 text-slate-700"
-                >
-                  Prev
-                </button>
-                {(() => {
-                  const maxVisible = 5;
-                  let startPage = Math.max(1, historyPage - Math.floor(maxVisible / 2));
-                  let endPage = startPage + maxVisible - 1;
-                  
-                  if (endPage > totalPages) {
-                    endPage = totalPages;
-                    startPage = Math.max(1, endPage - maxVisible + 1);
-                  }
-
-                  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i).map(pageNum => (
-                    <button
-                      key={pageNum}
-                      onClick={() => setHistoryPage(pageNum)}
-                      className={`min-w-[32px] px-2 py-1 border rounded text-sm font-bold transition-colors ${
-                        historyPage === pageNum 
-                          ? 'bg-indigo-600 border-indigo-600 text-white' 
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700 bg-white'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ));
-                })()}
-                <button 
-                  disabled={historyPage === totalPages || totalPages === 0}
-                  onClick={() => setHistoryPage(p => Math.min(totalPages, p + 1))}
-                  className="px-3 py-1 border border-slate-200 rounded text-sm font-medium hover:bg-slate-50 disabled:opacity-50 text-slate-700"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+          {/* Standardized Pagination */}
+          {totalCount > 0 && (
+            <DataTablePagination
+              pageIndex={historyPage - 1}
+              pageSize={historyPageSize}
+              totalCount={totalCount}
+              pageCount={totalPages}
+              canPreviousPage={historyPage > 1}
+              canNextPage={historyPage < totalPages}
+              onPageChange={(newIdx) => setHistoryPage(newIdx + 1)}
+            />
           )}
         </div>
       )}

@@ -18,6 +18,7 @@ import { generatePdfFromElement } from "../../utils/pdfUtils"
 import { dispatchPrescriptionInBackground } from "@/services/prescriptionDispatchService"
 import toast from "react-hot-toast"
 import { PageLoader } from "@/components/ui/PageLoader"
+import { DataTablePagination } from "@/components/ui/DataTablePagination"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 
@@ -1188,24 +1189,19 @@ export default function ConsultationPage({ patientId: propPatientId, isEmbedded 
                     </div>
                   ))
                 )}
-                {/* History Pagination */}
-                {totalHistoryPages > 1 && (
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
-                    <button
-                      disabled={historyPage === 1}
-                      onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
-                      className="px-3 py-1.5 text-sm font-bold text-slate-700 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                      Previous
-                    </button>
-                    <span className="text-xs font-bold text-slate-500">Page {historyPage} of {totalHistoryPages}</span>
-                    <button
-                      disabled={historyPage === totalHistoryPages}
-                      onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}
-                      className="px-3 py-1.5 text-sm font-bold text-slate-700 bg-transparent border border-slate-300 hover:bg-slate-50 rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                      Next
-                    </button>
+                {/* Standardized History Pagination */}
+                {visitsData?.totalCount > 0 && (
+                  <div className="mt-4 pt-2 border-t border-slate-200">
+                    <DataTablePagination
+                      pageIndex={historyPage - 1}
+                      pageSize={5}
+                      totalCount={visitsData?.totalCount || 0}
+                      pageCount={totalHistoryPages}
+                      canPreviousPage={historyPage > 1}
+                      canNextPage={historyPage < totalHistoryPages}
+                      onPageChange={(newIdx) => setHistoryPage(newIdx + 1)}
+                      className="border-t-0 p-1 sm:p-2 bg-transparent"
+                    />
                   </div>
                 )}
               </div>

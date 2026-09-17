@@ -24,15 +24,23 @@ namespace CodeX.Api.Controllers
         {
             var query = _context.Branches.AsQueryable();
 
+            if (_currentUserService.OrgId != Guid.Empty)
+            {
+                query = query.Where(b => b.OrganizationId == _currentUserService.OrgId);
+            }
+
             if (_currentUserService.DoctorId.HasValue)
             {
                 // Doctors only see branches they are assigned to
                 query = query.Where(b => b.Doctors.Any(d => d.Id == _currentUserService.DoctorId.Value));
             }
-            // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
-            else if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+            else
             {
-                query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
+                bool isOrgWideAdmin = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin");
+                if (!isOrgWideAdmin && _currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+                {
+                    query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
+                }
             }
 
             return await query.ToListAsync();
@@ -42,7 +50,8 @@ namespace CodeX.Api.Controllers
         public async Task<ActionResult<Branch>> Get(Guid id)
         {
             // Branch Isolation: strictly bound users (like Receptionists) can only view their TokenBranchId
-            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty && _currentUserService.TokenBranchId.Value != id)
+            bool isOrgWideAdmin = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin");
+            if (!isOrgWideAdmin && _currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty && _currentUserService.TokenBranchId.Value != id)
             {
                 return Forbid();
             }
@@ -75,13 +84,21 @@ namespace CodeX.Api.Controllers
 
             var query = _context.Branches.Where(b => b.OrganizationId == parsedOrgId);
 
-            // Branch Isolation (Use TokenBranchId to ignore X-Branch-Id header so we can list all ALLOWED branches)
-            if (_currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
+            bool isOrgWideAdmin = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin");
+
+            // Branch Isolation: Only isolate non-admin roles (e.g. Receptionist) to their TokenBranchId
+            if (!isOrgWideAdmin && _currentUserService.TokenBranchId.HasValue && _currentUserService.TokenBranchId.Value != Guid.Empty)
             {
                 query = query.Where(b => b.Id == _currentUserService.TokenBranchId.Value);
             }
 
             return await query.ToListAsync();
+        }
+
+        private static string NormalizeString(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+            return System.Text.RegularExpressions.Regex.Replace(value.Trim(), @"\s+", " ").ToLowerInvariant();
         }
 
         [HttpPost]
@@ -93,22 +110,27 @@ namespace CodeX.Api.Controllers
             branch.OrganizationId = _currentUserService.OrgId;
 
             var errors = new Dictionary<string, string[]>();
-            if (string.IsNullOrWhiteSpace(branch.Name)) errors.Add("Name", new[] { "Name is required." });
-            if (string.IsNullOrWhiteSpace(branch.Address)) errors.Add("Address", new[] { "Address is required." });
+            if (string.IsNullOrWhiteSpace(branch.Name)) errors.Add("Name", new[] { "Branch Name is required." });
+            if (string.IsNullOrWhiteSpace(branch.Address)) errors.Add("Address", new[] { "Physical Address is required." });
             if (string.IsNullOrWhiteSpace(branch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
             if (string.IsNullOrWhiteSpace(branch.LogoBase64)) errors.Add("LogoBase64", new[] { "Branch Logo is required." });
             if (errors.Any()) return BadRequest(new { errors });
 
-            // Code-level check: Prevent duplicate branch name in same organization
-            var name = branch.Name.Trim();
-            var duplicateExists = await _context.Branches.AnyAsync(b => 
-                b.OrganizationId == branch.OrganizationId && 
-                b.Name.ToLower() == name.ToLower() && 
-                !b.IsDeleted);
+            // Fetch existing branches in the organization to perform normalized case and space-insensitive checks
+            var existingOrgBranches = await _context.Branches
+                .Where(b => b.OrganizationId == branch.OrganizationId && !b.IsDeleted)
+                .ToListAsync();
 
-            if (duplicateExists)
+            var normalizedName = NormalizeString(branch.Name);
+            if (existingOrgBranches.Any(b => NormalizeString(b.Name) == normalizedName))
             {
-                return BadRequest(new { message = $"A branch with the name '{name}' already exists in your organization." });
+                return BadRequest(new { message = $"A branch with the name '{branch.Name.Trim()}' already exists in your organization." });
+            }
+
+            var normalizedAddress = NormalizeString(branch.Address);
+            if (existingOrgBranches.Any(b => NormalizeString(b.Address) == normalizedAddress))
+            {
+                return BadRequest(new { message = "A branch with this physical address already exists in your organization." });
             }
 
             if (!string.IsNullOrWhiteSpace(branch.WhatsAppNumber))
@@ -127,9 +149,12 @@ namespace CodeX.Api.Controllers
                 var duplicateBotExists = await _context.Branches.AnyAsync(b => b.TelegramBotToken == botToken && !b.IsDeleted);
                 if (duplicateBotExists)
                 {
-                    return BadRequest(new { message = $"This Telegram Bot Token is already registered with another branch." });
+                    return BadRequest(new { message = "This Telegram Bot Token is already registered with another branch." });
                 }
             }
+
+            branch.Status = "Active";
+            branch.IsActive = true;
 
             _context.Branches.Add(branch);
             await _context.SaveChangesAsync(default);
@@ -152,24 +177,33 @@ namespace CodeX.Api.Controllers
 
             if (branch == null) return NotFound();
 
+            if (string.Equals(branch.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Closed branches cannot be modified." });
+            }
+
             var errors = new Dictionary<string, string[]>();
-            if (string.IsNullOrWhiteSpace(updatedBranch.Name)) errors.Add("Name", new[] { "Name is required." });
-            if (string.IsNullOrWhiteSpace(updatedBranch.Address)) errors.Add("Address", new[] { "Address is required." });
+            if (string.IsNullOrWhiteSpace(updatedBranch.Name)) errors.Add("Name", new[] { "Branch Name is required." });
+            if (string.IsNullOrWhiteSpace(updatedBranch.Address)) errors.Add("Address", new[] { "Physical Address is required." });
             if (string.IsNullOrWhiteSpace(updatedBranch.WhatsAppNumber)) errors.Add("WhatsAppNumber", new[] { "WhatsApp Number is required." });
             if (string.IsNullOrWhiteSpace(updatedBranch.LogoBase64) && string.IsNullOrWhiteSpace(branch.LogoBase64)) errors.Add("LogoBase64", new[] { "Branch Logo is required." });
             if (errors.Any()) return BadRequest(new { errors });
 
-            var name = updatedBranch.Name.Trim();
-            // Code-level check: Prevent duplicate branch name in same organization
-            var duplicateExists = await _context.Branches.AnyAsync(b => 
-                b.Id != id &&
-                b.OrganizationId == branch.OrganizationId && 
-                b.Name.ToLower() == name.ToLower() && 
-                !b.IsDeleted);
+            // Fetch existing branches in the organization to perform normalized case and space-insensitive checks
+            var existingOrgBranches = await _context.Branches
+                .Where(b => b.Id != id && b.OrganizationId == branch.OrganizationId && !b.IsDeleted)
+                .ToListAsync();
 
-            if (duplicateExists)
+            var normalizedName = NormalizeString(updatedBranch.Name);
+            if (existingOrgBranches.Any(b => NormalizeString(b.Name) == normalizedName))
             {
-                return BadRequest(new { message = $"Another branch with the name '{name}' already exists in your organization." });
+                return BadRequest(new { message = $"Another branch with the name '{updatedBranch.Name.Trim()}' already exists in your organization." });
+            }
+
+            var normalizedAddress = NormalizeString(updatedBranch.Address);
+            if (existingOrgBranches.Any(b => NormalizeString(b.Address) == normalizedAddress))
+            {
+                return BadRequest(new { message = "Another branch with this physical address already exists in your organization." });
             }
 
             if (!string.IsNullOrWhiteSpace(updatedBranch.WhatsAppNumber))
@@ -188,42 +222,169 @@ namespace CodeX.Api.Controllers
                 var duplicateBotExists = await _context.Branches.AnyAsync(b => b.Id != id && b.TelegramBotToken == botToken && !b.IsDeleted);
                 if (duplicateBotExists)
                 {
-                    return BadRequest(new { message = $"This Telegram Bot Token is already registered with another branch." });
+                    return BadRequest(new { message = "This Telegram Bot Token is already registered with another branch." });
                 }
             }
 
-            branch.Name = name;
-            branch.Address = updatedBranch.Address;
-            branch.WhatsAppNumber = updatedBranch.WhatsAppNumber;
+            // Handle Status
+            if (!string.IsNullOrWhiteSpace(updatedBranch.Status))
+            {
+                if (string.Equals(updatedBranch.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "To close a branch, please use the Branch Closure workflow after settling all dependencies." });
+                }
+                else if (string.Equals(updatedBranch.Status, "Inactive", StringComparison.OrdinalIgnoreCase))
+                {
+                    branch.Status = "Inactive";
+                    branch.IsActive = false;
+                }
+                else
+                {
+                    branch.Status = "Active";
+                    branch.IsActive = true;
+                }
+            }
+
+            branch.Name = updatedBranch.Name.Trim();
+            branch.Address = updatedBranch.Address.Trim();
+            branch.WhatsAppNumber = updatedBranch.WhatsAppNumber.Trim();
             branch.WhatsAppDialCode = updatedBranch.WhatsAppDialCode ?? "+91";
-            branch.IsActive = updatedBranch.IsActive;
-            branch.LogoBase64 = updatedBranch.LogoBase64;
+            branch.Timezone = updatedBranch.Timezone ?? branch.Timezone;
+            if (!string.IsNullOrWhiteSpace(updatedBranch.LogoBase64))
+            {
+                branch.LogoBase64 = updatedBranch.LogoBase64;
+            }
             branch.TelegramBotToken = updatedBranch.TelegramBotToken;
 
             await _context.SaveChangesAsync(default);
             return NoContent();
         }
-        [HttpDelete("{id}")]
-        [HasPermission(SystemPermissions.Branches.Delete)]
-        public async Task<IActionResult> Delete(Guid id)
+
+        [HttpGet("{id}/dependencies")]
+        public async Task<ActionResult<BranchDependencySummary>> GetDependencies(Guid id)
         {
-            // Branch Isolation: OrgAdmin and SuperAdmin have org-wide branch access
-            var isOrgAdminOrSuper = _currentUserService.IsInRole("OrgAdmin") || _currentUserService.IsInRole("SuperAdmin") || User.IsInRole("OrgAdmin") || User.IsInRole("SuperAdmin");
-            if (!isOrgAdminOrSuper && _currentUserService.BranchId.HasValue && _currentUserService.BranchId.Value != Guid.Empty && _currentUserService.BranchId.Value != id)
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == id);
+            if (branch == null) return NotFound();
+
+            if (branch.OrganizationId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty)
             {
                 return Forbid();
             }
 
-            var branch = await _context.Branches
-                .FirstOrDefaultAsync(b => b.Id == id);
+            // 1. Active Doctors assigned to this branch
+            var activeDoctors = await _context.Doctors
+                .Where(d => d.OrganizationId == branch.OrganizationId && !d.IsDeleted && d.Branches.Any(b => b.Id == id))
+                .Select(d => d.Name)
+                .ToListAsync();
 
+            // 2. Active Sessions in this branch
+            var activeSessions = await _context.Sessions
+                .Where(s => s.BranchId == id && !s.IsDeleted && s.IsActive)
+                .Select(s => s.SessionName)
+                .ToListAsync();
+
+            // 3. Active Staff assigned to this branch
+            var activeStaff = await _context.Staff
+                .Include(s => s.Role)
+                .Where(s => s.BranchId == id && !s.IsDeleted && s.IsActive)
+                .Select(s => new { s.FirstName, s.LastName, RoleName = s.Role != null ? s.Role.Name : "Staff" })
+                .ToListAsync();
+
+            var branchAdminsCount = activeStaff.Count(s =>
+                s.RoleName.Equals("BranchAdmin", StringComparison.OrdinalIgnoreCase) ||
+                s.RoleName.Equals("Branch Admin", StringComparison.OrdinalIgnoreCase));
+
+            // 4. Pending / In-progress tokens for today
+            var activeTokensCount = await _context.Tokens
+                .Where(t => t.Queue.BranchId == id && !t.IsDeleted &&
+                    (t.Status == Domain.Enums.TokenStatus.Pending ||
+                     t.Status == Domain.Enums.TokenStatus.Called))
+                .CountAsync();
+
+            // 5. Unsettled invoices
+            var unsettledInvoicesCount = await _context.Invoices
+                .Where(i => i.BranchId == id && !i.IsDeleted && i.Status != Domain.Enums.InvoiceStatus.Paid)
+                .CountAsync();
+
+            var dependencies = new List<string>();
+            if (activeDoctors.Count > 0)
+                dependencies.Add($"{activeDoctors.Count} active doctor(s) assigned: {string.Join(", ", activeDoctors.Take(3))}{(activeDoctors.Count > 3 ? "..." : "")}");
+            if (activeSessions.Count > 0)
+                dependencies.Add($"{activeSessions.Count} active recurring OPD session(s) scheduled.");
+            if (activeStaff.Count > 0)
+                dependencies.Add($"{activeStaff.Count} active staff member(s) assigned (including {branchAdminsCount} Branch Admin).");
+            if (activeTokensCount > 0)
+                dependencies.Add($"{activeTokensCount} pending/in-progress queue token(s) today.");
+            if (unsettledInvoicesCount > 0)
+                dependencies.Add($"{unsettledInvoicesCount} invoice(s) with pending payments.");
+
+            return Ok(new BranchDependencySummary
+            {
+                CanClose = dependencies.Count == 0,
+                ActiveDoctorsCount = activeDoctors.Count,
+                ActiveSessionsCount = activeSessions.Count,
+                ActiveStaffCount = activeStaff.Count,
+                BranchAdminsCount = branchAdminsCount,
+                ActiveQueueTokensCount = activeTokensCount,
+                UnsettledInvoicesCount = unsettledInvoicesCount,
+                Dependencies = dependencies
+            });
+        }
+
+        [HttpPost("{id}/close")]
+        [HasPermission(SystemPermissions.Branches.Edit)]
+        public async Task<IActionResult> CloseBranch(Guid id, [FromBody] CloseBranchRequest request)
+        {
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == id);
             if (branch == null) return NotFound();
 
-            // Soft delete
-            branch.IsDeleted = true;
+            if (branch.OrganizationId != _currentUserService.OrgId && _currentUserService.OrgId != Guid.Empty)
+            {
+                return Forbid();
+            }
+
+            if (string.Equals(branch.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "This branch is already closed." });
+            }
+
+            if (string.IsNullOrWhiteSpace(request?.ClosureRemark))
+            {
+                return BadRequest(new { message = "Closure remark is mandatory to close a branch." });
+            }
+
+            // Verify zero dependencies
+            var hasActiveDoctors = await _context.Doctors.AnyAsync(d => d.OrganizationId == branch.OrganizationId && !d.IsDeleted && d.Branches.Any(b => b.Id == id));
+            var hasActiveSessions = await _context.Sessions.AnyAsync(s => s.BranchId == id && !s.IsDeleted && s.IsActive);
+            var hasActiveStaff = await _context.Staff.AnyAsync(s => s.BranchId == id && !s.IsDeleted && s.IsActive);
+            var hasActiveTokens = await _context.Tokens.AnyAsync(t => t.Queue.BranchId == id && !t.IsDeleted &&
+                (t.Status == Domain.Enums.TokenStatus.Pending ||
+                 t.Status == Domain.Enums.TokenStatus.Called));
+            var hasUnsettledInvoices = await _context.Invoices.AnyAsync(i => i.BranchId == id && !i.IsDeleted && i.Status != Domain.Enums.InvoiceStatus.Paid);
+
+            if (hasActiveDoctors || hasActiveSessions || hasActiveStaff || hasActiveTokens || hasUnsettledInvoices)
+            {
+                return BadRequest(new { message = "Cannot close branch. All active doctors, sessions, staff, pending tokens, and unsettled invoices must be settled first." });
+            }
+
+            branch.Status = "Closed";
+            branch.IsActive = false;
+            branch.ClosureRemark = request.ClosureRemark.Trim();
+            branch.ClosedAt = DateTime.UtcNow;
+            if (Guid.TryParse(_currentUserService.UserId, out var parsedUserId))
+            {
+                branch.ClosedBy = parsedUserId;
+            }
+
             await _context.SaveChangesAsync(default);
-            
-            return NoContent();
+            return Ok(new { message = "Branch closed successfully.", branchId = id });
+        }
+
+        [HttpDelete("{id}")]
+        [HasPermission(SystemPermissions.Branches.Delete)]
+        public IActionResult Delete(Guid id)
+        {
+            return BadRequest(new { message = "Branch deletion is prohibited. Please use the Branch Closure workflow with dependency settlement." });
         }
 
         [HttpPost("telegram/test")]
@@ -302,5 +463,22 @@ namespace CodeX.Api.Controllers
     {
         public string Token { get; set; } = string.Empty;
         public string WebhookUrl { get; set; } = string.Empty;
+    }
+
+    public class BranchDependencySummary
+    {
+        public bool CanClose { get; set; }
+        public int ActiveDoctorsCount { get; set; }
+        public int ActiveSessionsCount { get; set; }
+        public int ActiveStaffCount { get; set; }
+        public int BranchAdminsCount { get; set; }
+        public int ActiveQueueTokensCount { get; set; }
+        public int UnsettledInvoicesCount { get; set; }
+        public List<string> Dependencies { get; set; } = new();
+    }
+
+    public class CloseBranchRequest
+    {
+        public string ClosureRemark { get; set; } = string.Empty;
     }
 }

@@ -88,9 +88,9 @@ namespace CodeX.Application.Features.Auth.Commands.Login
                 new List<string>();
 
             Guid? dynamicBranchId = staff.BranchId;
-            if (staff.DoctorId.HasValue)
+            if (staff.DoctorId.HasValue || staff.Role?.Name == "OrgAdmin" || staff.Role?.Name == "SuperAdmin")
             {
-                // Doctors are inherently org-level because they can be assigned sessions in any branch
+                // OrgAdmins, SuperAdmins, and Doctors are org-level and operate across all branches
                 dynamicBranchId = null;
             }
 

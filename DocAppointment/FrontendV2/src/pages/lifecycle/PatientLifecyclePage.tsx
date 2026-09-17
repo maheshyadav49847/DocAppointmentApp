@@ -29,6 +29,7 @@ import { reportService } from '@/services/reportService';
 import { doctorService } from '@/services/doctorService';
 import { useAuthStore } from '@/store/authStore';
 import { PageLoader } from '@/components/ui/PageLoader';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
 export default function PatientLifecyclePage() {
   const [searchParams] = useSearchParams();
@@ -44,7 +45,7 @@ export default function PatientLifecyclePage() {
   const [searchQuery, setSearchQuery] = useState<string>(urlSearch);
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const pageSize = 25;
 
   // Selected item modal for detailed audit inspection
   const [inspectItem, setInspectItem] = useState<any | null>(null);
@@ -622,49 +623,19 @@ export default function PatientLifecyclePage() {
           ))
         )}
 
-        {/* Pagination Bar */}
+        {/* Standardized Pagination */}
         {totalCount > 0 && (
-          <div className="saas-card p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-semibold text-slate-600">
-            <div className="flex items-center gap-4 flex-wrap">
-              <span>
-                Showing <strong className="text-slate-800">{((page - 1) * pageSize) + 1}</strong> - <strong className="text-slate-800">{Math.min(page * pageSize, totalCount)}</strong> of <strong className="text-slate-800">{totalCount}</strong> visits
-              </span>
-              <div className="flex items-center gap-1.5 font-normal text-slate-500">
-                <span>Rows per page:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setPage(1);
-                  }}
-                  className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-md text-slate-700 font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="btn-secondary px-3 py-1.5 text-xs font-bold disabled:opacity-40"
-              >
-                Previous
-              </button>
-              <span className="px-2 font-bold text-slate-700">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="btn-secondary px-3 py-1.5 text-xs font-bold disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
+          <div className="saas-card overflow-hidden border border-slate-200 shadow-xs">
+            <DataTablePagination
+              pageIndex={page - 1}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              pageCount={totalPages}
+              canPreviousPage={page > 1}
+              canNextPage={page < totalPages}
+              onPageChange={(newIdx) => setPage(newIdx + 1)}
+              className="border-t-0"
+            />
           </div>
         )}
       </div>

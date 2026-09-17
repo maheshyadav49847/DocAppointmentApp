@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import PhoneInput from "@/components/PhoneInput"
@@ -10,22 +10,26 @@ import {
 } from "@tanstack/react-table"
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
-  Building2, MapPin, Smartphone, Activity, ArrowRight,
-  Edit, Trash2, PlusCircle, X, Search, MessageSquare,
-  LayoutGrid, List, Save, Image, Send
+  Building2, MapPin, Smartphone, Activity, ArrowRight, ArrowRightLeft,
+  Edit, PlusCircle, X, Search, MessageSquare,
+  LayoutGrid, List, Save, Image, Send, Lock,
+  Radio, Globe, AlertOctagon, BookOpen
 } from "lucide-react"
 import toast from "react-hot-toast"
 
 import { branchService } from "@/services/branchService"
+import type { Branch } from "@/services/branchService"
 
 import { PageLoader } from "@/components/ui/PageLoader"
 import { useAuthStore } from "@/store/authStore"
 import WhatsAppConfigModal from "./components/WhatsAppConfigModal"
 import TelegramConfigModal from "./components/TelegramConfigModal"
+import BranchClosureModal from "./components/BranchClosureModal"
+import BranchConfigGuideModal from "./components/BranchConfigGuideModal"
 import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
-import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
+import { DataTablePagination } from "@/components/ui/DataTablePagination"
 
 export default function BranchesPage() {
   const { user, setBranch: setAuthBranch, activeBranchId, setActiveBranchId } = useAuthStore()
@@ -36,10 +40,14 @@ export default function BranchesPage() {
 
   const queryClient = useQueryClient()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [editingBranch, setEditingBranch] = useState<any>(null)
+  const [isGuideOpen, setIsGuideOpen] = useState(false)
+  const [guideChannel, setGuideChannel] = useState<'whatsapp' | 'telegram' | 'all'>('all')
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null)
+  const [closureBranch, setClosureBranch] = useState<Branch | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [whatsappConfigBranch, setWhatsappConfigBranch] = useState<any>(null)
-  const [telegramConfigBranch, setTelegramConfigBranch] = useState<any>(null)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [whatsappConfigBranch, setWhatsappConfigBranch] = useState<Branch | null>(null)
+  const [telegramConfigBranch, setTelegramConfigBranch] = useState<Branch | null>(null)
   const [logoBase64, setLogoBase64] = useState<string>('')
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [apiError, setApiError] = useState<any>(null)
@@ -49,10 +57,21 @@ export default function BranchesPage() {
     pageSize: 10,
   })
 
-  const { data: branches, isLoading } = useQuery({
+  useEffect(() => {
+    const handleOpenGuide = (e: any) => {
+      const ch = e.detail?.channel || e.detail?.tab || 'all'
+      setGuideChannel(ch)
+      setIsGuideOpen(true)
+    }
+    window.addEventListener('open-branch-guide', handleOpenGuide)
+    return () => window.removeEventListener('open-branch-guide', handleOpenGuide)
+  }, [])
+
+  const { data: branches, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['branches', orgId],
     queryFn: () => branchService.getBranches(orgId || ''),
-    enabled: !!orgId && orgId !== 'undefined'
+    enabled: !!orgId && orgId !== 'undefined',
+    refetchOnWindowFocus: false,
   })
 
   const createMutation = useMutation({
@@ -86,17 +105,6 @@ export default function BranchesPage() {
     }
   })
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => branchService.deleteBranch(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['branches'] })
-      toast.success("Branch deleted successfully")
-    },
-    onError: (error: any) => {
-      handleApiError(error, "Failed to delete branch")
-    }
-  })
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setApiError(null)
@@ -114,13 +122,15 @@ export default function BranchesPage() {
       return
     }
 
+    const statusValue = editingBranch ? (formData.get('status') as string || 'Active') : 'Active'
     const data = {
       name: formData.get('name'),
       address: formData.get('address'),
       whatsAppNumber: formData.get('whatsAppNumber'),
       whatsAppDialCode: formData.get('whatsAppDialCode'),
       timezone: formData.get('timezone'),
-      isActive: formData.get('isActive') === 'on',
+      status: statusValue,
+      isActive: statusValue === 'Active',
       logoBase64
     }
     if (editingBranch) updateMutation.mutate({ ...editingBranch, ...data })
@@ -132,33 +142,91 @@ export default function BranchesPage() {
     setActiveBranchId(id)
   }
 
+  const isBranchWhatsAppConfigured = (b: Branch) => {
+    // Configured if backend flag is true OR if Meta Phone Number ID is linked OR if provider is explicitly Twilio
+    return !!(
+      b.isWhatsAppConfigured ||
+      b.metaPhoneNumberId ||
+      (b.whatsAppProvider === 'Twilio' && b.whatsAppNumber)
+    )
+  }
+
+  const isBranchTelegramConfigured = (b: Branch) => {
+    return !!(b.isTelegramConfigured || b.telegramBotToken)
+  }
+
+  const formatWhatsAppDisplay = (dialCode?: string, number?: string) => {
+    if (!number) return 'Not registered'
+    const trimmed = number.trim()
+    if (trimmed.startsWith('+')) return trimmed
+    return `${dialCode || '+91'} ${trimmed}`.trim()
+  }
+
+  const stats = useMemo(() => {
+    const list: Branch[] = branches || []
+    return {
+      total: list.length,
+      active: list.filter(b => b.status === 'Active').length,
+      inactive: list.filter(b => b.status === 'Inactive').length,
+      closed: list.filter(b => b.status === 'Closed').length,
+      waConnected: list.filter(isBranchWhatsAppConfigured).length,
+      telegramConnected: list.filter(isBranchTelegramConfigured).length
+    }
+  }, [branches])
+
   const filteredBranches = useMemo(() => {
-    return branches?.filter((b: any) =>
-      (b.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (b.address?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-    ) || []
-  }, [branches, searchQuery])
+    return (branches || []).filter((b: Branch) => {
+      const matchesSearch =
+        (b.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (b.address?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (b.whatsAppNumber || '').includes(searchQuery)
+      
+      const bStatus = (b.status || (b.isActive ? 'Active' : 'Inactive')).toLowerCase()
+      const matchesStatus =
+        statusFilter === 'all' ? true : bStatus === statusFilter.toLowerCase()
+
+      return matchesSearch && matchesStatus
+    })
+  }, [branches, searchQuery, statusFilter])
 
   const columns = useMemo<ColumnDef<any>[]>(() => [
     {
       accessorKey: "name",
       header: "Branch",
       cell: ({ row }) => {
-        const branch = row.original
+        const branch: Branch = row.original
         const isActiveContext = branch.id === currentBranchId
+        const isClosed = branch.status === 'Closed'
+        const isInactive = branch.status === 'Inactive'
         return (
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border ${isActiveContext ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border ${isActiveContext ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
               <Building2 className="w-5 h-5" />
             </div>
             <div>
               <div className="font-bold text-slate-900 leading-tight flex items-center gap-2">
                 {branch.name}
-                {isActiveContext && <span className="bg-indigo-500 text-white text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded">Active Context</span>}
+                {isActiveContext && <span className="bg-indigo-500 text-white text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm">Active Context</span>}
               </div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className={`w-1.5 h-1.5 rounded-full ${branch.isActive ? 'bg-indigo-500' : 'bg-rose-500'}`} />
-                <span className="text-xs font-medium text-slate-500">{branch.isActive ? 'Online & Accepting Bookings' : 'Offline'}</span>
+              <div className="flex items-center gap-2 mt-1">
+                {isClosed ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-rose-50 text-rose-700 border border-rose-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Closed
+                  </span>
+                ) : isInactive ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Inactive
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
+                  </span>
+                )}
+                {isClosed && branch.closureRemark && (
+                  <span className="text-xs text-slate-400 italic truncate max-w-[160px]" title={branch.closureRemark}>
+                    ({branch.closureRemark})
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -169,17 +237,54 @@ export default function BranchesPage() {
       accessorKey: "details",
       header: "Details",
       cell: ({ row }) => {
-        const branch = row.original
+        const branch: Branch = row.original
         return (
           <div className="flex flex-col gap-1 text-sm text-slate-600">
             <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span className="truncate max-w-[200px]" title={branch.address}>{branch.address || 'No address'}</span>
             </div>
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-3.5 h-3.5 text-slate-400" />
-                <span>{branch.whatsAppNumber ? `${branch.whatsAppDialCode || ''} ${branch.whatsAppNumber}` : 'Not configured'}</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>{branch.whatsAppNumber ? `${branch.whatsAppDialCode || ''} ${branch.whatsAppNumber}` : 'Not configured'}</span>
+            </div>
+          </div>
+        )
+      }
+    },
+    {
+      id: "channels",
+      header: "Bot Channels",
+      cell: ({ row }) => {
+        const branch: Branch = row.original
+        const hasWhatsApp = isBranchWhatsAppConfigured(branch)
+        const hasTelegram = isBranchTelegramConfigured(branch)
+        return (
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-slate-500">WhatsApp:</span>
+              {hasWhatsApp ? (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[10px]">
+                  Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-semibold">
+                  Not Connected
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-slate-500">Telegram:</span>
+              {hasTelegram ? (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-sky-50 text-sky-700 border border-sky-200 font-semibold text-[10px]">
+                  Active
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-slate-100 text-slate-500 border border-slate-200 text-[10px]">
+                  Unconfigured
+                </span>
+              )}
+            </div>
           </div>
         )
       }
@@ -188,59 +293,58 @@ export default function BranchesPage() {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => {
-        const branch = row.original
+        const branch: Branch = row.original
         const isActiveContext = branch.id === currentBranchId
+        const isClosed = branch.status === 'Closed'
         return (
           <div className="flex items-center gap-2">
-            {!isActiveContext && (
+            {!isActiveContext && !isClosed && (
               <button
                 onClick={() => handleSwitchBranch(branch.id)}
                 className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1"
               >
-                <ArrowRight className="w-3 h-3" /> Switch Context
+                <ArrowRight className="w-3 h-3" /> Switch
               </button>
             )}
-            {can('Branches.Edit') && (
+            {can('Branches.Edit') && !isClosed && (
               <>
                 <button
                   onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
-                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors border border-transparent hover:border-indigo-100"
                   title="Edit Branch"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => { setWhatsappConfigBranch(branch) }}
-                  className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                  className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors border border-transparent hover:border-emerald-100"
                   title="WhatsApp Configuration"
                 >
                   <MessageSquare className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => { setTelegramConfigBranch(branch) }}
-                  className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-transparent hover:border-sky-100"
+                  className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-md transition-colors border border-transparent hover:border-sky-100"
                   title="Telegram Configuration"
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </>
             )}
-            {can('Branches.Delete') && (
+            {!isClosed && can('Branches.Edit') && (
               <button
-                onClick={() => {
-                  if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)
-                }}
-                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100"
-                title="Delete Branch"
+                onClick={() => setClosureBranch(branch)}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors border border-transparent hover:border-rose-100"
+                title="Close Branch Facility"
               >
-                <Trash2 className="w-4 h-4" />
+                <Lock className="w-4 h-4" />
               </button>
             )}
           </div>
         )
       }
     }
-  ], [currentBranchId, role])
+  ], [currentBranchId, role, can])
 
   const table = useReactTable({
     data: filteredBranches,
@@ -253,46 +357,153 @@ export default function BranchesPage() {
     onPaginationChange: setPagination,
   })
 
+  // Prevent grid disappearing if pageIndex is out of bounds
+  useEffect(() => {
+    if (pageIndex > 0 && pageIndex * pageSize >= filteredBranches.length) {
+      setPagination(prev => ({ ...prev, pageIndex: 0 }))
+    }
+  }, [filteredBranches.length, pageIndex, pageSize])
+
+  // Computed branches for grid view - fallback safely so branches never disappear
+  const displayBranches = useMemo(() => {
+    const rows = table.getRowModel().rows
+    if (rows.length > 0) {
+      return rows.map(r => r.original as Branch)
+    }
+    return filteredBranches.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize)
+  }, [table.getRowModel().rows, filteredBranches, pageIndex, pageSize])
+
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <div className="relative z-10 flex items-center gap-4 sm:gap-5">
-          <div className="p-3.5 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-transparent">
-            <Building2 className="w-7 h-7" />
+    <div className="animate-in fade-in duration-500 space-y-3.5 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 sm:p-3 rounded-lg text-indigo-600 flex items-center justify-center border-2 border-indigo-100 bg-white shadow-xs shrink-0">
+            <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight flex items-center gap-2">
               <span className="text-slate-900">Manage</span>
               <span className="text-indigo-600">Branch</span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">Manage physical locations and organizational units.</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Physical locations, bot communication channels & facility lifecycle.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <button
+            onClick={() => { setGuideChannel('all'); setIsGuideOpen(true); }}
+            className="btn-secondary h-9 px-3 text-xs flex items-center gap-1.5"
+            title="Open step-by-step Bot Setup & Testing Guide"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Bot Setup Guide</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Stats / Metric Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+        {/* Total Branches */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-indigo-600" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Facilities</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{stats.total}</h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium mt-0.5">Registered locations</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* Active Locations */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-600" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active & Online</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{stats.active}</h3>
+            <p className="text-[10px] sm:text-[11px] text-emerald-700/80 mt-0.5 font-medium">Accepting bookings</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Radio className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* WhatsApp Bot Active */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Bots</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">
+              {stats.waConnected} <span className="text-xs text-slate-400 font-normal">/ {stats.total}</span>
+            </h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 font-medium">Configured channels</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+          </div>
+        </div>
+
+        {/* Telegram Bot Active */}
+        <div className="bg-white border border-slate-200/90 rounded-lg p-3 sm:p-3.5 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-sky-500 to-blue-500" />
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Telegram Bots</p>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">
+              {stats.telegramConnected} <span className="text-xs text-slate-400 font-normal">/ {stats.total}</span>
+            </h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 font-medium">Live bot tokens</p>
+          </div>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
         </div>
       </div>
 
-      <div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center justify-between sm:justify-start gap-3 w-full lg:w-auto order-2 lg:order-1">
-            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
+      {/* Main SaaS Card with Toolbar and Content */}
+      <div className="saas-card overflow-hidden">
+        {/* Toolbar */}
+        <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 w-full md:w-auto order-2 md:order-1">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-white border border-slate-200 rounded-md p-0.5 shadow-xs shrink-0 h-9">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`h-full px-2.5 rounded-sm transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-xs' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`h-full px-2.5 rounded-sm transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-indigo-50 text-indigo-600 shadow-xs' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Table View"
               >
                 <List className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Status Filter Dropdown */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs transition-all"
+              title="Filter by status"
+            >
+              <option value="all">All Statuses ({stats.total})</option>
+              <option value="active">Active Only ({stats.active})</option>
+              <option value="inactive">Inactive Only ({stats.inactive})</option>
+              <option value="closed">Closed Only ({stats.closed})</option>
+            </select>
+
+            {/* Rows Per Page */}
             <select
               value={pageSize}
               onChange={(e) => setPagination({ pageIndex: 0, pageSize: Number(e.target.value) })}
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all w-full sm:w-auto"
+              className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs transition-all"
               title="Rows per page"
             >
               {[10, 20, 50, 100].map(size => (
@@ -300,44 +511,91 @@ export default function BranchesPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto order-1 lg:order-2">
-            <div className="relative flex-1 sm:w-64 lg:w-64 group">
+
+          {/* Search Input & Add Branch Button (Exact Same h-9 Height) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 w-full md:w-auto order-1 md:order-2">
+            <div className="relative flex-1 sm:w-64 md:w-64 lg:w-72 group">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
               <input
-                type="text"
-                placeholder="Search branches..."
+                type="search"
+                name="branch_search_query"
+                id="branch_search_query"
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-form-type="other"
+                placeholder="Search by name, address, or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="saas-input w-full" style={{ paddingLeft: "2.5rem" }}
+                className="saas-input h-9 w-full text-xs pr-8" style={{ paddingLeft: "2.5rem" }}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded transition-colors"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
+
             {can('Branches.Add') && (
               <button
-                onClick={() => { setEditingBranch(null); setIsDrawerOpen(true) }}
-                className="btn-primary shrink-0 px-3 sm:px-5"
+                onClick={() => { setEditingBranch(null); setLogoBase64(''); setIsDrawerOpen(true) }}
+                className="btn-primary h-9 px-3 sm:px-3.5 text-xs shrink-0 flex items-center gap-1.5"
               >
-                <PlusCircle className="w-4 h-4" /> <span className="hidden sm:inline">Add Branch</span>
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Add Branch</span>
+                <span className="sm:hidden">Add</span>
               </button>
             )}
           </div>
         </div>
-        <div className="p-4 sm:p-6 bg-slate-50/50 flex-1 overflow-auto">
-          {isLoading ? (
-            <PageLoader message="Loading branches..." minHeight="min-h-[20vh]" />
+
+        {/* Card or Table Content Area */}
+        <div className="p-3 sm:p-4 bg-slate-50/50">
+          {isError ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center bg-white rounded-lg border border-rose-200 p-8 shadow-xs">
+              <div className="w-12 h-12 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200 mb-3">
+                <AlertOctagon className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">Failed to Load Branches</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                {(error as any)?.response?.data?.message || (error as any)?.message || 'Unable to connect to the server. Please try again.'}
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="mt-4 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold text-xs rounded-md border border-indigo-200 transition-colors"
+              >
+                Retry Connection
+              </button>
+            </div>
+          ) : isLoading ? (
+            <PageLoader message="Loading branches..." minHeight="min-h-[25vh]" />
           ) : filteredBranches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-              <Building2 className="w-12 h-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-semibold text-slate-700">No Branches Found</h3>
-              <p className="text-sm text-slate-500 mt-1">Try adjusting your search or add a new facility.</p>
+            <div className="flex flex-col items-center justify-center h-64 text-center bg-white rounded-lg border border-dashed border-slate-200 p-8 shadow-xs">
+              <div className="w-12 h-12 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 mb-3">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">No Branches Found</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                {searchQuery || statusFilter !== 'all'
+                  ? "No facilities match your search query or filter criteria. Try adjusting filters."
+                  : "No clinic branch locations have been registered yet."}
+              </p>
             </div>
           ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto bg-white sm:rounded-b-xl sm:border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto overflow-y-hidden bg-white rounded-lg border border-slate-200 shadow-xs">
               <table className="w-full text-left border-collapse">
                 <thead>
                   {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id} className="bg-slate-50 border-b border-slate-200">
                       {headerGroup.headers.map(header => (
-                        <th key={header.id} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                        <th key={header.id} className="px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                           {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                         </th>
                       ))}
@@ -358,94 +616,245 @@ export default function BranchesPage() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-5">
-              {table.getRowModel().rows.map((row) => {
-                const branch = row.original
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
+              {displayBranches.map((branch) => {
                 const isActiveContext = branch.id === currentBranchId
+                const isClosed = branch.status === 'Closed'
+                const isInactive = branch.status === 'Inactive'
+                const hasWhatsApp = isBranchWhatsAppConfigured(branch)
+                const hasTelegram = isBranchTelegramConfigured(branch)
+
                 return (
-                  <div key={branch.id} className={`bg-white rounded-xl border ${isActiveContext ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-lg shadow-indigo-500/10' : 'border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-900/5 hover:-translate-y-1'} p-5 transition-all duration-300 group relative overflow-hidden flex flex-col`}>
-                    <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 opacity-50 transition-opacity ${isActiveContext ? 'bg-indigo-400' : 'bg-slate-200 group-hover:bg-indigo-200'}`}></div>
-                    {isActiveContext && (
-                      <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-bold uppercase tracking-wider px-4 py-1.5 rounded-bl-xl shadow-sm z-10">
-                        Active Context
+                  <div
+                    key={branch.id}
+                    className={`bg-white rounded-lg border transition-all duration-300 flex flex-col group relative overflow-hidden ${
+                      isActiveContext
+                        ? 'border-slate-200/90 shadow-none'
+                        : 'border-slate-200/90 shadow-2xs hover:shadow-lg hover:border-indigo-200/90 hover:-translate-y-0.5'
+                    }`}
+                  >
+                    {/* Top Accent Line */}
+                    <div className={`h-1 w-full transition-all duration-300 ${
+                      isActiveContext
+                        ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-400'
+                        : 'bg-slate-100 group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-indigo-500'
+                    }`} />
+
+                    {/* Card Header Section */}
+                    <div className="p-3 sm:p-3.5 border-b border-slate-100 bg-gradient-to-b from-slate-50/70 to-white">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+                          {/* Branch Logo or Building Icon */}
+                          <div className="relative shrink-0">
+                            {branch.logoBase64 ? (
+                              <img
+                                src={branch.logoBase64}
+                                alt={branch.name}
+                                className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-contain bg-white border border-slate-200/90 shadow-xs p-1"
+                              />
+                            ) : (
+                              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center border shadow-xs transition-transform duration-300 group-hover:scale-105 ${
+                                isActiveContext
+                                  ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 border-indigo-600 text-white shadow-sm shadow-indigo-500/25'
+                                  : isClosed
+                                    ? 'bg-slate-100 border-slate-200 text-slate-400'
+                                    : 'bg-gradient-to-br from-indigo-50 via-indigo-100/70 to-white border-indigo-100 text-indigo-600'
+                              }`}>
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Title & Status Badges */}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-extrabold text-slate-900 text-base leading-snug group-hover:text-indigo-600 transition-colors break-words" title={branch.name}>
+                              {branch.name}
+                            </h3>
+
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              {/* Operational Status */}
+                              {isClosed ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Closed
+                                </span>
+                              ) : isInactive ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Inactive
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active
+                                </span>
+                              )}
+
+                              {/* Timezone Badge */}
+                              {branch.timezone && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-white border border-slate-200/80 px-2 py-0.5 rounded-full shadow-2xs">
+                                  <Globe className="w-3 h-3 text-slate-400" /> {branch.timezone}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Closure Remark Note */}
+                            {isClosed && branch.closureRemark && (
+                              <p className="text-[11px] text-rose-600/90 italic font-medium mt-1 break-words" title={branch.closureRemark}>
+                                Reason: "{branch.closureRemark}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Active Context Indicator */}
+                        {isActiveContext && (
+                          <div className="self-start shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/90 shadow-2xs">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-600"></span>
+                            </span>
+                            <span>Current</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="flex items-start gap-4 mb-5 relative z-10">
-                      <div className={`w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 border transition-transform duration-300 group-hover:scale-105 ${isActiveContext ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-transparent text-white shadow-md shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 text-slate-600 group-hover:border-indigo-200 group-hover:text-indigo-600'}`}>
-                        <Building2 className="w-7 h-7" />
+                    </div>
+
+                    {/* Card Body: Details Grid */}
+                    <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between space-y-2.5 bg-white">
+                      {/* Physical Address */}
+                      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-slate-50/80 border border-slate-100 group-hover:border-slate-200/80 transition-colors">
+                        <div className="w-5 h-5 rounded-md bg-rose-50 border border-rose-100/60 text-rose-500 flex items-center justify-center shrink-0 shadow-2xs">
+                          <MapPin className="w-3 h-3" />
+                        </div>
+                        <span className="text-xs text-slate-600 font-medium truncate" title={branch.address}>
+                          {branch.address || 'No physical address configured'}
+                        </span>
                       </div>
-                      <div className="pt-1">
-                        <h3 className="text-lg font-bold text-slate-900 leading-tight">{branch.name}</h3>
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <span className="relative flex h-2.5 w-2.5">
-                            {branch.isActive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${branch.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+
+                      {/* Communication Channels Overview - Stacked Full Width for Zero Truncation */}
+                      <div className="flex flex-col gap-2 pt-0.5">
+                        {/* WhatsApp Row */}
+                        <div
+                          onClick={() => can('Branches.Edit') && !isClosed && setWhatsappConfigBranch(branch)}
+                          className={`flex items-center justify-between gap-3 p-2 sm:p-2.5 rounded-lg border transition-all cursor-pointer group/wa ${
+                            hasWhatsApp
+                              ? 'bg-gradient-to-r from-emerald-50/50 to-white border-emerald-200/90 hover:border-emerald-300 hover:shadow-xs'
+                              : 'bg-slate-50/70 border-slate-200/90 hover:border-emerald-200 hover:bg-emerald-50/20'
+                          }`}
+                          title="Click to configure WhatsApp bot"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover/wa:scale-105 ${
+                              hasWhatsApp ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                              <Smartphone className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold text-slate-800">WhatsApp</span>
+                              <p className="text-[11px] font-semibold text-slate-500 truncate mt-0.5">
+                                {hasWhatsApp
+                                  ? formatWhatsAppDisplay(branch.whatsAppDialCode, branch.whatsAppNumber)
+                                  : (branch.whatsAppNumber ? formatWhatsAppDisplay(branch.whatsAppDialCode, branch.whatsAppNumber) : 'Not configured')}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                            hasWhatsApp
+                              ? 'bg-emerald-100/90 text-emerald-800 border-emerald-300'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {hasWhatsApp ? 'Active' : 'Setup →'}
                           </span>
-                          <span className={`text-xs font-semibold ${branch.isActive ? 'text-emerald-600' : 'text-rose-600'}`}>{branch.isActive ? 'Online & Booking' : 'Offline'}</span>
+                        </div>
+
+                        {/* Telegram Row */}
+                        <div
+                          onClick={() => can('Branches.Edit') && !isClosed && setTelegramConfigBranch(branch)}
+                          className={`flex items-center justify-between gap-3 p-2 sm:p-2.5 rounded-lg border transition-all cursor-pointer group/tg ${
+                            hasTelegram
+                              ? 'bg-gradient-to-r from-sky-50/50 to-white border-sky-200/90 hover:border-sky-300 hover:shadow-xs'
+                              : 'bg-slate-50/70 border-slate-200/90 hover:border-sky-200 hover:bg-sky-50/20'
+                          }`}
+                          title="Click to configure Telegram bot"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover/tg:scale-105 ${
+                              hasTelegram ? 'bg-sky-500 text-white shadow-sky-500/20' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                              <Send className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold text-slate-800">Telegram</span>
+                              <p className="text-[11px] font-semibold text-slate-500 truncate mt-0.5">
+                                {hasTelegram
+                                  ? (branch.telegramBotUsername ? `@${branch.telegramBotUsername}` : 'Bot Active')
+                                  : 'Not configured'}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                            hasTelegram
+                              ? 'bg-sky-100/90 text-sky-800 border-sky-300'
+                              : 'bg-slate-200/70 text-slate-600 border-slate-300'
+                          }`}>
+                            {hasTelegram ? 'Active' : 'Setup →'}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-4 mb-6 flex-1 relative z-10 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-start gap-3 text-sm text-slate-700">
-                        <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-indigo-500 shrink-0">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <span className="line-clamp-2 mt-1 font-medium">{branch.address || 'No address provided'}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-slate-700">
-                        <div className="p-1.5 bg-white rounded-lg shadow-sm border border-slate-200 text-green-500 shrink-0">
-                          <Smartphone className="w-4 h-4" />
-                        </div>
-                        <span className="font-medium">{branch.whatsAppNumber ? `${branch.whatsAppDialCode || ''} ${branch.whatsAppNumber}` : 'Not configured'}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 pt-4 border-t border-slate-100 relative z-10">
-                      {!isActiveContext ? (
+
+                    {/* Card Footer Actions */}
+                    <div className="px-3 sm:px-3.5 py-2 sm:py-2.5 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                      {!isActiveContext && !isClosed ? (
                         <button
                           onClick={() => handleSwitchBranch(branch.id)}
-                          className="flex-1 bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                          className="btn-primary py-1 px-3 text-xs flex items-center gap-1.5 shadow-xs hover:shadow transition-all active:translate-y-0 shrink-0"
                         >
-                          <ArrowRight className="w-4 h-4" /> Switch
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                          <span>Switch to Branch</span>
                         </button>
-                  ) : (
-                        <div className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-2 rounded-lg text-sm font-bold cursor-default">
-                          <Activity className="w-4 h-4" /> Managing Now
+                      ) : isActiveContext ? (
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/90 px-2.5 py-1 rounded-md shadow-2xs shrink-0">
+                          <Activity className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                          <span>Active Workplace</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-md shrink-0">
+                          <Lock className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Permanently Closed</span>
                         </div>
                       )}
-                      {can('Branches.Edit') && (
-                        <>
+
+                      {/* Action Buttons */}
+                      {can('Branches.Edit') && !isClosed && (
+                        <div className="flex items-center gap-1 ml-auto shrink-0">
                           <button
                             onClick={() => { setEditingBranch(branch); setLogoBase64(branch.logoBase64 || ''); setIsDrawerOpen(true); }}
-                            className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 bg-slate-50 hover:shadow-sm"
-                            title="Edit Branch"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-indigo-600 bg-white hover:bg-indigo-50 border border-slate-200/90 hover:border-indigo-200 shadow-2xs hover:shadow-xs transition-all"
+                            title="Edit Facility Details"
                           >
-                            <Edit className="w-4.5 h-4.5" />
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => { setWhatsappConfigBranch(branch) }}
-                            className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100 bg-slate-50 hover:shadow-sm"
-                            title="WhatsApp Configuration"
+                            onClick={() => setWhatsappConfigBranch(branch)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 border border-slate-200/90 hover:border-emerald-200 shadow-2xs hover:shadow-xs transition-all"
+                            title="WhatsApp Bot Configuration"
                           >
-                            <MessageSquare className="w-4.5 h-4.5" />
+                            <MessageSquare className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => { setTelegramConfigBranch(branch) }}
-                            className="p-2.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors border border-transparent hover:border-sky-100 bg-slate-50 hover:shadow-sm"
-                            title="Telegram Configuration"
+                            onClick={() => setTelegramConfigBranch(branch)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-500 hover:text-sky-600 bg-white hover:bg-sky-50 border border-slate-200/90 hover:border-sky-200 shadow-2xs hover:shadow-xs transition-all"
+                            title="Telegram Bot Configuration"
                           >
-                            <Send className="w-4.5 h-4.5" />
+                            <Send className="w-3.5 h-3.5" />
                           </button>
-                        </>
-                      )}
-                      {can('Branches.Delete') && (
-                        <button
-                          onClick={() => {
-                            if (confirm('Delete this facility?')) deleteMutation.mutate(branch.id)
-                          }}
-                          className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100 bg-slate-50 hover:shadow-sm"
-                        >
-                          <Trash2 className="w-4.5 h-4.5" />
-                        </button>
+                          <button
+                            onClick={() => setClosureBranch(branch)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200/90 hover:border-rose-200 shadow-2xs hover:shadow-xs transition-all"
+                            title="Close Branch Facility (Audit Dependencies)"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -454,30 +863,8 @@ export default function BranchesPage() {
             </div>
           )}
         </div>
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500 bg-slate-50">
-          <div className="font-medium">
-            Showing {table.getRowModel().rows.length > 0 ? pageIndex * pageSize + 1 : 0} to {Math.min((pageIndex + 1) * pageSize, filteredBranches.length)} of {filteredBranches.length} entries
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-1 rounded-md hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <span className="sr-only">Previous</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            </button>
-            <span className="px-2 font-medium">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-1 rounded-md hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <span className="sr-only">Next</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </button>
-          </div>
-        </div>
+        {/* Standardized Pagination Footer */}
+        <DataTablePagination table={table} totalCount={filteredBranches.length} />
       </div>
 
       <AnimatePresence>
@@ -522,7 +909,7 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Building2 className="w-4 h-4 text-indigo-500" /> Branch Name <span className="text-red-500">*</span>
                     </label>
-                    <input required autoComplete="off" name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input required autoComplete="off" name="name" defaultValue={editingBranch?.name} placeholder="e.g. South Extension Clinic" className="w-full px-3 py-2 border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm transition-all" />
                     <FieldError errors={validationErrors} field="Name" />
                   </div>
                   <div>
@@ -531,7 +918,7 @@ export default function BranchesPage() {
                     </label>
                     <div className="flex items-center gap-4">
                       {logoBase64 && (
-                        <img src={logoBase64} alt="Logo" className="w-12 h-12 rounded object-contain bg-slate-100 border" />
+                        <img src={logoBase64} alt="Logo" className="w-12 h-12 rounded-md object-contain bg-slate-100 border p-1" />
                       )}
                       <input
                         required={!editingBranch && !logoBase64}
@@ -547,7 +934,7 @@ export default function BranchesPage() {
                             setLogoBase64('');
                           }
                         }}
-                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 outline-none"
+                        className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3.5 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 outline-none cursor-pointer"
                       />
                     </div>
                     <FieldError errors={validationErrors} field="LogoBase64" />
@@ -556,7 +943,7 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <MapPin className="w-4 h-4 text-rose-500" /> Physical Address <span className="text-red-500">*</span>
                     </label>
-                    <textarea required autoComplete="off" rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full address" className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none" />
+                    <textarea required autoComplete="off" rows={3} name="address" defaultValue={editingBranch?.address} placeholder="Enter full physical address" className="w-full px-3 py-2 border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none text-sm transition-all" />
                     <FieldError errors={validationErrors} field="Address" />
                   </div>
                   <div>
@@ -577,7 +964,7 @@ export default function BranchesPage() {
                     <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
                       <Activity className="w-4 h-4 text-cyan-500" /> Timezone
                     </label>
-                    <select name="timezone" defaultValue={editingBranch?.timezone || "Asia/Kolkata"} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <select name="timezone" defaultValue={editingBranch?.timezone || "Asia/Kolkata"} className="w-full px-3 py-2 border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm transition-all">
                       <option value="Asia/Kolkata">India Standard Time (IST)</option>
                       <option value="UTC">UTC (Universal Time)</option>
                       <option value="America/New_York">Eastern Standard Time (EST)</option>
@@ -589,13 +976,21 @@ export default function BranchesPage() {
                     <p className="text-xs text-slate-500 mt-1">Used for accurate queue resets and WhatsApp reminder scheduling.</p>
                   </div>
                   {editingBranch && (
-                    <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
-                      <input autoComplete="off" type="checkbox" name="isActive" defaultChecked={editingBranch?.isActive} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                      <div className="flex-1">
-                        <span className="block text-sm font-medium text-zinc-900">Active Status</span>
-                        <span className="block text-xs text-slate-500">Allow new bookings for this location</span>
-                      </div>
-                    </label>
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-zinc-700 mb-1">
+                        <Activity className="w-4 h-4 text-indigo-500" /> Operational Status
+                      </label>
+                      <select
+                        name="status"
+                        defaultValue={editingBranch?.status || (editingBranch?.isActive ? "Active" : "Inactive")}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-md focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none text-sm transition-all"
+                      >
+                        <option value="Active">Active (Operational & Accepting Bookings)</option>
+                        <option value="Inactive">Inactive (Temporarily Paused / Offline)</option>
+                      </select>
+                      <p className="text-xs text-slate-500 mt-1">To permanently close this branch facility, use the Branch Closure workflow.</p>
+                      <FieldError errors={validationErrors} field="Status" />
+                    </div>
                   )}
                 </form>
               </div>
@@ -627,6 +1022,24 @@ export default function BranchesPage() {
           onClose={() => setTelegramConfigBranch(null)}
         />
       )}
+
+      {/* Branch Closure Modal */}
+      {closureBranch && (
+        <BranchClosureModal
+          branch={closureBranch}
+          onClose={() => setClosureBranch(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['branches'] })
+          }}
+        />
+      )}
+
+      {/* Bot Configuration & Testing Guide Modal */}
+      <BranchConfigGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        channel={guideChannel}
+      />
     </div>
   )
 }

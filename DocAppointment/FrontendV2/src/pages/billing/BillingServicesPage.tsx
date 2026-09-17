@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { billingService, type ServiceItem } from '@/services/billingService';
 import { PageLoader } from '@/components/ui/PageLoader';
-import { PlusCircle, SquarePen, Trash2, X, Save, Activity, LayoutGrid, Search, Download, ChevronLeft, ChevronRight , FileText, Tag, IndianRupee, AlertCircle } from 'lucide-react';
+import { PlusCircle, SquarePen, Trash2, X, Save, Activity, LayoutGrid, Search, Download, FileText, Tag, IndianRupee, AlertCircle } from 'lucide-react';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
@@ -267,43 +268,16 @@ export default function BillingServicesPage() {
           </div>
         </div>
 
-        {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-slate-200 bg-slate-50 mt-auto gap-4">
-          <div className="text-sm font-medium text-slate-500">
-            Showing <span className="font-bold text-slate-900">{(page - 1) * pageSize + 1}</span> to{' '}
-            <span className="font-bold text-slate-900">{Math.min(page * pageSize, totalCount)}</span> of{' '}
-            <span className="font-bold text-slate-900">{totalCount}</span> results
-          </div>
-          <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg shadow-sm p-1">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-colors ${
-                  page === p 
-                    ? 'bg-indigo-50 text-indigo-600' 
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages || totalPages === 0}
-              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-transparent"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        {/* Standardized Pagination */}
+        <DataTablePagination
+          pageIndex={page - 1}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          pageCount={totalPages}
+          canPreviousPage={page > 1}
+          canNextPage={page < totalPages}
+          onPageChange={(newIdx) => setPage(newIdx + 1)}
+        />
       </div>
 
       <AnimatePresence>

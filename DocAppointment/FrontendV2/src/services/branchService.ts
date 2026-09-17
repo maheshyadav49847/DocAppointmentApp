@@ -2,10 +2,36 @@ import { api } from "@/lib/axios"
 
 export interface Branch {
   id: string
+  organizationId: string
   name: string
   address: string
+  whatsAppDialCode?: string
   whatsAppNumber: string | null
+  timezone?: string
+  logoBase64?: string
+  telegramBotToken?: string
+  telegramBotUsername?: string
+  whatsAppProvider?: string
+  metaWabaId?: string
+  metaPhoneNumberId?: string
+  status: 'Active' | 'Inactive' | 'Closed'
+  closureRemark?: string
+  closedAt?: string
+  closedBy?: string
   isActive: boolean
+  isWhatsAppConfigured?: boolean
+  isTelegramConfigured?: boolean
+}
+
+export interface BranchDependencySummary {
+  canClose: boolean
+  activeDoctorsCount: number
+  activeSessionsCount: number
+  activeStaffCount: number
+  branchAdminsCount: number
+  activeQueueTokensCount: number
+  unsettledInvoicesCount: number
+  dependencies: string[]
 }
 
 export const branchService = {
@@ -28,16 +54,20 @@ export const branchService = {
     const response = await api.put(`/branches/${id}`, data)
     return response.data
   },
+  getBranchDependencies: async (id: string): Promise<BranchDependencySummary> => {
+    const response = await api.get(`/branches/${id}/dependencies`)
+    return response.data
+  },
+  closeBranch: async (id: string, closureRemark: string) => {
+    const response = await api.post(`/branches/${id}/close`, { closureRemark })
+    return response.data
+  },
   testTelegramConnection: async (token: string) => {
     const response = await api.post('/branches/telegram/test', { token })
     return response.data
   },
   setTelegramWebhook: async (token: string, webhookUrl: string) => {
     const response = await api.post('/branches/telegram/set-webhook', { token, webhookUrl })
-    return response.data
-  },
-  deleteBranch: async (id: string) => {
-    const response = await api.delete(`/branches/${id}`)
     return response.data
   }
 }

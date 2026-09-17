@@ -21,6 +21,12 @@ namespace CodeX.Domain.Entities
         public string? LogoBase64 { get; set; }
 
         public string? TelegramBotToken { get; set; }
+        
+        // Generic Lifecycle Status ("Active", "Inactive", "Closed")
+        public string Status { get; set; } = "Active";
+        public string? ClosureRemark { get; set; }
+        public DateTime? ClosedAt { get; set; }
+        public Guid? ClosedBy { get; set; }
 
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public bool IsTelegramConfigured => !string.IsNullOrWhiteSpace(TelegramBotToken);

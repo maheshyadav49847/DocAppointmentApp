@@ -33,14 +33,100 @@ To ensure a sleek, clean, modern enterprise SaaS aesthetic (similar to Linear, m
 
 ---
 
+## 0.1 Universal Device Compatibility & Zero-Truncation Standards (MANDATORY INVARIANT)
+
+Whenever designing, refactoring, or modifying any frontend component, page, modal, or layout, **it must be 100% device-compatible from small mobile screens (320px) to ultra-wide displays (1920px+)**.
+
+### 1. Zero Information Loss & Zero Truncation Rule
+- **No Ellipsis on Essential Data**: Never use `truncate` on vital labels, names, phone numbers, addresses, or status badges (e.g. preventing `"W..."`, `"T..."`, `"+91 87796597..."`, `"City Car..."`).
+- **Use Wrap & Clamp**: Always use `break-words`, `leading-snug`, and `line-clamp-2` or natural flex wrapping for long text strings so that content is completely readable across all screen sizes.
+- **Stacked Layouts over Cramped Columns**: Inside grid cards or narrow parent containers, NEVER split the card into multiple narrow columns (`grid-cols-2`) if each column gets `< 200px`. Use **clean full-width stacked rows** (`flex flex-col gap-2`) so icons, text, and action badges have generous breathing room.
+
+### 2. Single-Scrollbar & No Trapped Scrolling Invariant
+- **Strictly No 2 Scrollbars**: There must NEVER be two vertical scrollbars visible on screen at once.
+  - Sidebars and hidden panels must suppress browser scrollbars: `[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`.
+  - Main app content uses the sleek 6px custom scrollbar (`::-webkit-scrollbar { width: 6px; }`).
+- **No Trapped Viewport Flex Boxes**: Never wrap cards or content in `h-full min-h-0 flex-1 overflow-auto` that locks content to the remaining viewport height and forces ugly inner scrollbars. Let pages expand to their natural height so the master `<main>` container handles scrolling smoothly.
+
+### 3. Compact SaaS Ergonomics (Laptop & Desktop Friendly)
+- Keep vertical heights lean and compact:
+  - **Headers**: `text-xl sm:text-2xl lg:text-3xl`, icon `w-6 h-6`, padding `p-2.5 sm:p-3`.
+  - **Metric Strips**: Compact padding `p-3 sm:p-3.5`, icon `w-9 h-9`, number `text-xl sm:text-2xl`.
+  - **Toolbars**: `p-2.5 sm:p-3`, input `text-xs sm:text-sm`.
+  - **Cards**: Card header `p-3 sm:p-3.5`, card body `p-3 sm:p-3.5 space-y-2.5`, card footer `px-3.5 py-2.5`.
+- This ensures that on common laptop displays (1366x768 or 1080p with 125%/150% scaling), primary content and action buttons are immediately visible without the bottom of the card being sliced off.
+
+### 4. Resilient Button & Action Wrapping
+- All button containers, toolbars, and card footers must use `flex-wrap items-center gap-2` with `shrink-0` on buttons so controls never overflow, overlap, or collide on narrow screens.
+
+---
+
+## 0.2 Uniform Form Control & Button Heights Invariant (CRITICAL INVARIANT - ZERO HEIGHT MISMATCH)
+
+Whenever form controls (inputs, textboxes, selects, dropdowns, date pickers) and buttons appear in the same row, toolbar, filter bar, card, modal, or component, **THEY MUST SHARE THE EXACT SAME HEIGHT**. No control or button may ever be taller or shorter than adjacent sibling controls.
+
+### 1. The Core Rule: Zero Height Discrepancy
+- **Text Box & Button Pairing (Crucial)**: In any search row or input-with-action layout (e.g. search input next to `+ Add` button), the button **MUST NOT be taller or shorter than the text box**. Both elements must use the exact same fixed height token (e.g. both `h-9`).
+- **Multiple Buttons Height Equality**: Whenever multiple buttons are displayed side-by-side or within the same component (e.g. `Cancel` + `Save` in a modal footer, or View Mode toggles + filters + Add button in a toolbar), all buttons **MUST have identical height**.
+- **Select Dropdowns & Inputs Equality**: When a filter dropdown (`select`) sits beside a text input or search bar, both must share the exact same height class (`h-9`).
+
+### 2. Standard Height Token Hierarchy:
+
+| Context / Location | Target Height | Utility Class | Elements Covered |
+| :--- | :--- | :--- | :--- |
+| **Toolbar & Filter Row** | **36px** | `h-9` | Search inputs (`saas-input h-9`), Select dropdowns (`h-9`), View toggles (`h-9`), Primary Add buttons (`btn-primary h-9`), Filter buttons (`btn-secondary h-9`) |
+| **Forms & Modal Actions** | **40px** | `h-10` | Form inputs (`saas-input h-10`), Form selects (`h-10`), Modal footer buttons (`btn-cancel h-10`, `btn-primary h-10`) |
+| **Table Rows & Card Actions** | **32px** or **28px** | `h-8 w-8` or `h-7 w-7` | Action icon buttons (Edit, Delete, Feedback, Reset Password) inside data tables and card footers |
+
+### 3. ⛔ Strict Prohibitions:
+- **NO Mismatched Heights in Same Row**: Never pair an input with an adjacent button where one is 38px and the other is 42px or 34px.
+- **NO Arbitrary Padding Mixes**: Never rely on random vertical padding combinations (e.g. mixing `py-1.5`, `py-2`, `py-2.5` on sibling controls) without an explicit fixed height utility (`h-9` or `h-10`).
+- **NO Taller/Shorter Action Buttons**: In modal footers or card action bars, never make the "Cancel" button shorter or taller than the "Save / Submit" button.
+
+---
+
+## 0.3 Standardized Data Table Pagination Invariant (CRITICAL INVARIANT - ZERO PAGINATION INCONSISTENCY)
+
+Every page displaying data in tables or grid lists with pagination **MUST** use the centralized `<DataTablePagination />` component (`@/components/ui/DataTablePagination`).
+
+### 1. Mandatory Component Usage
+- **NO Ad-hoc / Inconsistent Markup**: Never code custom inline pagination divs, raw `<svg>` icons, or arbitrary text styles across pages.
+- **Identical Look & Feel Everywhere**:
+  - Compact, ergonomic container: `p-2.5 sm:p-3 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500`.
+  - Left Summary: `Showing <span className="font-bold text-slate-900">{start}</span> to <span className="font-bold text-slate-900">{end}</span> of <span className="font-bold text-slate-900">{total}</span> entries`.
+  - Buttons: Exactly `h-8 w-8 rounded-md bg-white border border-slate-200/90 shadow-2xs hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:pointer-events-none` with Lucide icons.
+  - Page Badge: `px-2.5 py-1 rounded-md bg-white border border-slate-200/90 text-xs font-semibold text-slate-700 shadow-2xs` with highlighted page number (`text-indigo-600 font-extrabold`).
+
+### 2. Standard Usage:
+```tsx
+import { DataTablePagination } from "@/components/ui/DataTablePagination";
+
+// Client-side TanStack Table:
+<DataTablePagination table={table} />
+
+// Server-side Paginated Table:
+<DataTablePagination
+  pageIndex={pageIndex}
+  pageSize={pageSize}
+  totalCount={totalCount}
+  pageCount={pageCount}
+  canPreviousPage={pageIndex > 0}
+  canNextPage={pageIndex < pageCount - 1}
+  onPreviousPage={() => setPageIndex(p => p - 1)}
+  onNextPage={() => setPageIndex(p => p + 1)}
+/>
+```
+
+---
+
 ## 1. Page Layout & Wrapper Architecture
 
-Every page must use this top-level container structure:
+Every page must use this natural-height top-level container structure:
 
 ```tsx
 export default function MyNewPage() {
   return (
-    <div className="animate-in fade-in duration-500 flex-1 flex flex-col h-full min-h-0 space-y-6">
+    <div className="animate-in fade-in duration-500 space-y-4 sm:space-y-5 pb-6">
       {/* 1. Page Header */}
       {/* 2. Stat / Metrics Cards (Optional) */}
       {/* 3. Main Card (Toolbar + Table or Content) */}
@@ -121,43 +207,49 @@ When presenting KPIs, statistics, or overview counts, use a responsive grid:
 All data listings and tables live inside a `.saas-card` container with a top toolbar and bottom pagination.
 
 ### Toolbar Anatomy:
-- **Left**: View toggles (Grid/Table), Page size selector (`Show 10, 20, 50`).
-- **Right**: Filter dropdowns (Status, Branch, Doctor), Date Range selector, and Search Input.
+- **Left**: View toggles (Grid/Table), Status Filter dropdown, Page size selector (`Show 10, 20, 50`).
+- **Right**: Search Input with Clear Button (`X`) AND the primary `+ Add New ...` action button (`.btn-primary`). Placing the Add button directly to the right of the search box in the toolbar avoids unnecessary vertical scrolling from bloated headers and unifies creation with search workflows.
 
 ```tsx
-<div className="saas-card overflow-hidden flex flex-col flex-1 min-h-0">
+<div className="saas-card overflow-hidden">
   {/* Toolbar */}
-  <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-    {/* Left: Row Count */}
-    <div className="flex items-center gap-3">
-      <select
-        value={pageSize}
-        onChange={(e) => setPageSize(Number(e.target.value))}
-        className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 shadow-sm"
-      >
-        <option value={10}>Show 10</option>
-        <option value={20}>Show 20</option>
-        <option value={50}>Show 50</option>
+  <div className="p-2.5 sm:p-3 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3">
+    {/* Left: View Mode, Filters & Page Size (All Controls Uniform h-9) */}
+    <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 w-full md:w-auto order-2 md:order-1">
+      <div className="flex items-center bg-white border border-slate-200 rounded-md p-0.5 shadow-xs shrink-0 h-9">
+        <button className="h-full px-2.5 rounded-sm bg-indigo-50 text-indigo-600 shadow-xs"><LayoutGrid className="w-4 h-4" /></button>
+        <button className="h-full px-2.5 rounded-sm text-slate-400 hover:text-slate-600"><List className="w-4 h-4" /></button>
+      </div>
+
+      <select className="h-9 bg-white border border-slate-200 rounded-md px-3 text-xs font-semibold text-slate-700 outline-none focus:border-indigo-500 shadow-xs">
+        <option>All Statuses</option>
       </select>
     </div>
 
-    {/* Right: Search & Filters */}
-    <div className="flex items-center gap-3 flex-1 lg:flex-none justify-end">
-      <div className="relative w-full sm:w-64">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+    {/* Right: Search & Primary Add Button (Exact Same h-9 Height) */}
+    <div className="flex items-center gap-2 sm:gap-2.5 w-full md:w-auto order-1 md:order-2">
+      <div className="relative flex-1 sm:w-64 md:w-64 lg:w-72 group">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
         <input
-          type="text"
+          type="search"
           placeholder="Search..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 shadow-sm transition-all"
+          className="saas-input h-9 w-full text-xs" style={{ paddingLeft: "2.5rem" }}
         />
       </div>
+
+      {/* Button matches search input height exactly (h-9) */}
+      <button onClick={openAddModal} className="btn-primary h-9 px-3 sm:px-3.5 text-xs shrink-0 flex items-center gap-1.5">
+        <PlusCircle className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Add Record</span>
+        <span className="sm:hidden">Add</span>
+      </button>
     </div>
   </div>
 
-  {/* Table Container */}
-  <div className="overflow-auto flex-1 bg-white">
+  {/* Table Container (Responsive Horizontal Scroll, Never Trapped Vertically) */}
+  <div className="overflow-x-auto bg-white">
     <table className="w-full text-left border-collapse">
       <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 sticky top-0 z-10">
         <tr>
@@ -191,14 +283,8 @@ All data listings and tables live inside a `.saas-card` container with a top too
     </table>
   </div>
 
-  {/* Pagination Footer */}
-  <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-sm text-slate-600">
-    <p>Showing <span className="font-semibold text-slate-900">1</span> to <span className="font-semibold text-slate-900">10</span> of <span className="font-semibold text-slate-900">100</span> entries</p>
-    <div className="flex items-center gap-2">
-      <button disabled={page === 1} className="btn-secondary px-3 py-1.5 text-xs">Previous</button>
-      <button disabled={page === totalPages} className="btn-secondary px-3 py-1.5 text-xs">Next</button>
-    </div>
-  </div>
+  {/* Standardized Pagination Footer (Consistent across ALL pages) */}
+  <DataTablePagination table={table} />
 </div>
 ```
 

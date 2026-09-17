@@ -15,6 +15,7 @@ export interface Doctor {
   organizationId: string
   branchIds?: string[]
   password?: string
+  isActive?: boolean
 }
 
 export const doctorService = {

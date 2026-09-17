@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
-import { ClipboardList, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import { ClipboardList, Search } from "lucide-react"
 import { auditLogService, type AuditLog } from "@/services/auditLogService"
-
 import { PageLoader } from "@/components/ui/PageLoader"
+import { DataTablePagination } from "@/components/ui/DataTablePagination"
 import { cn } from "@/lib/utils"
 
 export default function AuditLogsPage() {
@@ -162,29 +162,17 @@ export default function AuditLogsPage() {
           </div>
         </div>
 
-        {/* Pagination */}
+        {/* Standardized Pagination */}
         {!loading && logs.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-            <span className="text-sm text-slate-500">
-              Page <span className="font-medium text-slate-900">{page}</span> of <span className="font-medium text-slate-900">{totalPages || 1}</span>
-            </span>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-1.5 rounded-b-lg border border-slate-200 text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="p-1.5 rounded-b-lg border border-slate-200 text-slate-600 hover:bg-white hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <DataTablePagination
+            pageIndex={page - 1}
+            pageSize={20}
+            totalCount={totalPages * 20}
+            pageCount={totalPages}
+            canPreviousPage={page > 1}
+            canNextPage={page < totalPages}
+            onPageChange={(newIdx) => setPage(newIdx + 1)}
+          />
         )}
       </div>
     </div>

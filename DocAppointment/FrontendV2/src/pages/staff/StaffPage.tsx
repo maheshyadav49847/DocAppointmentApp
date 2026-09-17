@@ -23,6 +23,7 @@ import { ApiErrorAlert } from "@/components/ui/ApiErrorAlert"
 import { FieldError } from "@/components/ui/FieldError"
 import { handleApiError } from "@/lib/utils"
 import { usePermissions } from "@/hooks/usePermissions"
+import { DataTablePagination } from "@/components/ui/DataTablePagination"
 
 export default function StaffPage() {
   const { user, activeBranchId } = useAuthStore()
@@ -535,31 +536,8 @@ export default function StaffPage() {
             </div>
           )}
         </div>
-        {/* Pagination */}
-        <div className="p-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-500 bg-slate-50">
-          <div className="font-medium">
-            Showing {table.getRowModel().rows.length > 0 ? pageIndex * pageSize + 1 : 0} to {Math.min((pageIndex + 1) * pageSize, filteredStaff.length)} of {filteredStaff.length} entries
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="p-1 rounded-md hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <span className="sr-only">Previous</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            </button>
-            <span className="px-2 font-medium">Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}</span>
-            <button
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="p-1 rounded-md hover:bg-slate-200 text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <span className="sr-only">Next</span>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </button>
-          </div>
-        </div>
+        {/* Standardized Pagination Footer */}
+        <DataTablePagination table={table} totalCount={filteredStaff.length} />
       </div>
 
       {/* Slide-over Drawer for Add/Edit */}

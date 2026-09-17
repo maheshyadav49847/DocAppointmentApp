@@ -139,7 +139,7 @@ export default function PhoneInput({
   };
 
   return (
-    <div className={`flex items-center w-full bg-slate-50 border border-slate-200 rounded-xl focus-within:bg-white focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className}`}>
+    <div className={`flex items-center w-full bg-white border border-slate-200 rounded-md focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all shadow-xs ${disabled ? 'opacity-50 pointer-events-none' : ''} ${className}`}>
       {/* Icon */}
       <div className="pl-3.5 pr-2 text-slate-400 group-focus-within:text-indigo-500 transition-colors flex items-center justify-center shrink-0">
         <Phone className="w-4 h-4" />
@@ -150,7 +150,7 @@ export default function PhoneInput({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between pl-1 pr-2 h-10 min-w-[70px] text-sm text-slate-700 font-medium hover:bg-slate-100/50 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="flex items-center justify-between pl-1 pr-2 h-9 min-w-[70px] text-sm text-slate-700 font-medium hover:bg-slate-50 rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <span>{dialCode || '+91'}</span>
           <svg className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

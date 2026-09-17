@@ -73,12 +73,50 @@
     @apply border-border;
   }
   
-  html {
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     font-family: 'Inter', sans-serif;
   }
 
   body {
-    @apply bg-[#f8fafc] text-slate-900 min-h-screen antialiased;
+    @apply bg-[#f8fafc] text-slate-900 antialiased;
+  }
+
+  /* Sleek, modern scrollbars for webkit and firefox */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  /* Hide scrollbars completely for panels, drawers & sidebars */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 }
 
@@ -88,23 +126,23 @@
   }
 
   .saas-input {
-    @apply w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 transition-all shadow-inner;
+    @apply w-full h-10 rounded-md border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-xs;
   }
 
   .btn-primary {
-    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-md shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-10 flex items-center justify-center gap-2 px-5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-md shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-slate-700 border border-slate-200 text-sm font-bold rounded-md shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-slate-200 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-10 flex items-center justify-center gap-2 px-5 bg-white text-slate-700 border border-slate-200 text-sm font-bold rounded-md shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-slate-200 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-cancel {
-    @apply flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-200/80 hover:border-rose-300 text-xs sm:text-sm font-bold rounded-md shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-rose-200 active:scale-98 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-10 flex items-center justify-center gap-1.5 px-4 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 border border-rose-200/80 hover:border-rose-300 text-xs sm:text-sm font-bold rounded-md shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-rose-200 active:scale-98 disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-danger {
-    @apply flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-md shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-10 flex items-center justify-center gap-2 px-5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-md shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500/50 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none;
   }
 }
 
