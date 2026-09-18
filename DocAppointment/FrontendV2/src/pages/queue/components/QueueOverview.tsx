@@ -3,10 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Users, CheckCircle2, Clock, Search, Stethoscope, Play, Settings, Activity,
   LayoutDashboard, MonitorPlay, Building2, Calendar, Sparkles, ChevronRight,
-  Pause, Loader2, ArrowRight
+  Pause, Loader2, ArrowRight, AlertCircle
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { queueService } from "@/services/queueService"
+import { leaveService } from "@/services/leaveService"
 import { motion, AnimatePresence } from "framer-motion"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -89,6 +90,21 @@ export default function QueueOverview({ selectedBranchId, onManage }: any) {
     enabled: !!selectedBranchId && selectedBranchId !== 'org',
     refetchInterval: 15000
   })
+
+  const todayDateOnlyStr = new Date().toISOString().split('T')[0]
+  const { data: rawTodayLeaves = [] } = useQuery({
+    queryKey: ['today-branch-leaves', selectedBranchId, todayDateOnlyStr],
+    queryFn: () => leaveService.getLeaves({
+      branchId: selectedBranchId !== 'org' ? selectedBranchId : undefined,
+      startDate: todayDateOnlyStr,
+      endDate: todayDateOnlyStr
+    }),
+    enabled: !!selectedBranchId && selectedBranchId !== 'org',
+    staleTime: 30000
+  })
+  const todayLeaves = Array.isArray(rawTodayLeaves)
+    ? rawTodayLeaves.filter((l: any) => l.status === 1 || (l.status === 0 && l.leaveType === 1))
+    : []
 
   const currentBranch = branches?.find((b: any) => b.id === selectedBranchId)
   const currentBranchName = currentBranch?.name || 'Main Clinic'
@@ -250,6 +266,59 @@ export default function QueueOverview({ selectedBranchId, onManage }: any) {
         </motion.div>
       ) : (
         <div className="flex-1 flex flex-col min-h-0 space-y-6">
+          {/* Daily Attendance & Leave Summary Banner */}
+          {todayLeaves.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-3 sm:p-3.5 shadow-2xs"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-amber-200/60 text-xs">
+                <div className="flex items-center gap-2 text-amber-900 font-bold">
+                  <div className="w-5 h-5 rounded-md bg-amber-500 text-white flex items-center justify-center text-[10px] font-extrabold shadow-2xs">
+                    {todayLeaves.length}
+                  </div>
+                  <span>Branch Duty & Attendance Alert — {todayLeaves.length} {todayLeaves.length === 1 ? 'member is' : 'members are'} on leave today</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/leaves')}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 hover:text-amber-950 transition-colors self-start sm:self-auto cursor-pointer"
+                >
+                  <span>Open Leave Desk</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-2.5">
+                {todayLeaves.map((l: any) => {
+                  const personName = l.doctorName || l.staffName || 'Staff Member'
+                  const isDoctor = !!l.doctorId
+                  const shiftScope = l.sessionName || 'Full Day'
+                  return (
+                    <div
+                      key={l.id}
+                      className="bg-white/90 border border-amber-200/70 rounded-md px-2.5 py-1.5 flex items-center justify-between gap-2 shadow-2xs text-xs"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-sm flex items-center justify-center text-[11px] font-bold shrink-0 ${isDoctor ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}`}>
+                          {isDoctor ? 'Dr' : 'St'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 truncate leading-snug">{personName}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{isDoctor ? (l.doctorSpecialization || 'Doctor') : 'Staff'} • {shiftScope}</p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        {l.leaveType === 1 ? 'Unplanned' : 'On Leave'}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
           {/* 2. Key Metrics Stat Cards */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 shrink-0">
             {statCards.map((stat, idx) => (
@@ -567,12 +636,24 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
   const isLive = !!(activeQueue && activeQueue.id)
   const displayQueueId = activeQueue?.id
 
+  const todayDateStr = new Date().toISOString().split('T')[0]
+  const { data: leaveInfo } = useQuery({
+    queryKey: ['doctor-session-leave', doctor.id, session.id, todayDateStr],
+    queryFn: () => leaveService.checkDoctorAvailability(doctor.id, todayDateStr, session.id, session.branchId),
+    enabled: !!doctor.id && !isLive,
+    staleTime: 30000
+  })
+
+  const isOnLeave = !isLive && !!leaveInfo?.onLeave
+
   const durationStr = calculateDuration(session.startTime, session.endTime)
 
   return (
     <div className={`p-4 rounded-md border transition-all ${
       isLive
         ? 'border-indigo-200 bg-white shadow-xs'
+        : isOnLeave
+        ? 'border-rose-200 bg-rose-50/20 shadow-2xs'
         : 'border-slate-200/80 bg-white hover:border-slate-300'
     }`}>
       <div className="space-y-3">
@@ -581,7 +662,7 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Clock className={`w-3.5 h-3.5 shrink-0 ${isLive ? 'text-indigo-600' : 'text-slate-400'}`} />
+              <Clock className={`w-3.5 h-3.5 shrink-0 ${isLive ? 'text-indigo-600' : isOnLeave ? 'text-rose-500' : 'text-slate-400'}`} />
               <h5 className="text-xs sm:text-sm font-extrabold text-slate-800 truncate">
                 {session.sessionName}
               </h5>
@@ -617,6 +698,11 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
                 Arrival Pending
               </span>
             )
+          ) : isOnLeave ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+              <AlertCircle className="w-3 h-3 text-rose-600" />
+              On Leave
+            </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
               Scheduled
@@ -666,6 +752,25 @@ function SessionItem({ doctor, session, processingSessions, onStart, onManage }:
               <ChevronRight className="w-3.5 h-3.5 opacity-70" />
             </button>
           )
+        ) : isOnLeave ? (
+          <div className="w-full rounded-md border border-rose-200/90 bg-rose-50/70 p-2.5 text-xs space-y-1.5 animate-in fade-in">
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                <span>Doctor is on Leave</span>
+              </div>
+              <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-sm bg-rose-100 text-rose-800 uppercase tracking-wider">
+                {leaveInfo?.leaveType || 'Leave'}
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-800 font-medium leading-tight">
+              {leaveInfo?.publicNotice || leaveInfo?.reason || 'Doctor unavailable for this session'}
+            </p>
+            <div className="text-[10px] font-semibold text-rose-600 flex items-center gap-1 pt-1 border-t border-rose-200/60">
+              <Calendar className="w-3 h-3 shrink-0" />
+              <span>{leaveInfo?.startDate} — {leaveInfo?.endDate}</span>
+            </div>
+          </div>
         ) : (
           can('Queue.View') && (
             <button

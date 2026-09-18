@@ -644,6 +644,36 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var doctors = await GetAvailableDoctors(session.BranchId, ct);
             if (!doctors.Any())
             {
+                if (session.BranchId.HasValue)
+                {
+                    var tzBranch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == session.BranchId.Value, ct);
+                    var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
+                    var todayStartUtc = DateTime.SpecifyKind(today.Date, DateTimeKind.Utc);
+                    var todayEndUtc = DateTime.SpecifyKind(today.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                    var anyScheduled = await _context.Sessions
+                        .AnyAsync(s => !s.IsDeleted && s.BranchId == session.BranchId.Value && s.IsActive &&
+                                      (s.IsDaily || s.DayOfWeek == (int)today.DayOfWeek), ct);
+                    var activeBranchLeaves = await _context.LeaveRecords
+                        .IgnoreQueryFilters()
+                        .Where(l => !l.IsDeleted &&
+                            (l.BranchId == null || l.BranchId == session.BranchId.Value) &&
+                            (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                            l.StartDate <= todayEndUtc &&
+                            l.EndDate >= todayStartUtc)
+                        .ToListAsync(ct);
+
+                    if (anyScheduled && activeBranchLeaves.Any())
+                    {
+                        var notice = activeBranchLeaves.FirstOrDefault(l => !string.IsNullOrWhiteSpace(l.PublicNotice))?.PublicNotice 
+                                     ?? "Doctor(s) are on approved leave today.";
+                        if (session.Language == "1")
+                            return $"🏥 *क्लिनिक सूचना / Clinic Notice*\n\n⚠️ डॉक्टर छुट्टी पर हैं। आज क्लिनिक OPD परामर्श के लिए *अस्थायी रूप से बंद है (Temporarily Closed for OPD)*।\n\n📌 विवरण: {notice}\n\nअगले निर्धारित कार्यदिवस पर सेवाएं सामान्य रूप से शुरू होंगी।";
+                        else if (session.Language == "2")
+                            return $"🏥 *दवाखाना सूचना / Clinic Notice*\n\n⚠️ डॉक्टर सुट्टीवर आहेत. आज दवाखाना OPD तपासणीसाठी *तात्पुरता बंद आहे (Temporarily Closed for OPD)*।\n\n📌 तपशील: {notice}\n\nपुढील नियोजित दिवशी सेवा पूर्ववत सुरू होईल.";
+                        else
+                            return $"🏥 *Clinic Notice*\n\n⚠️ The clinic is *Temporarily Closed for OPD* today as doctor(s) are on leave.\n\n📌 Details: {notice}\n\nNormal OPD consultations will resume on the next scheduled clinic day.";
+                    }
+                }
                 return WhatsAppTranslationHelper.Get(session.Language, "NO_DOCTORS");
             }
 
@@ -906,6 +936,8 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
 
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
+            var todayStartUtc = DateTime.SpecifyKind(today.Date, DateTimeKind.Utc);
+            var todayEndUtc = DateTime.SpecifyKind(today.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
             var activeSessions = await _context.Sessions
@@ -917,13 +949,24 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
                 .ToListAsync(ct);
 
             var todayQueues = await _context.DailyQueues
-                
                 .Where(q => !q.IsDeleted && q.BranchId == branchId.Value && q.QueueDate >= today && q.QueueDate < tomorrow)
+                .ToListAsync(ct);
+
+            var activeLeaves = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .Where(l => !l.IsDeleted &&
+                    (l.BranchId == null || l.BranchId == branchId.Value) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= todayEndUtc &&
+                    l.EndDate >= todayStartUtc)
                 .ToListAsync(ct);
 
             var availableDoctors = new List<Doctor>();
             foreach (var session in activeSessions)
             {
+                var isDocOnLeave = activeLeaves.Any(l => l.DoctorId == session.DoctorId && (l.SessionId == null || l.SessionId == session.Id));
+                if (isDocOnLeave) continue;
+
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
 
                 // Only include doctors whose session has been explicitly started (q != null)
@@ -947,23 +990,36 @@ namespace CodeX.Application.Features.WhatsApp.Commands.ProcessIncomingMessage
             var tzBranch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId.Value, ct);
             var today = TimeHelper.GetBranchLocalToday(tzBranch?.Timezone);
             var tomorrow = today.AddDays(1);
+            var todayStartUtc = DateTime.SpecifyKind(today.Date, DateTimeKind.Utc);
+            var todayEndUtc = DateTime.SpecifyKind(today.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
             int currentDayOfWeek = (int)today.DayOfWeek;
 
             // IgnoreQueryFilters: webhook is anonymous (no OrgId in context), so global filter must be bypassed
             var activeSessions = await _context.Sessions
-                
                 .Where(s => !s.IsDeleted && s.BranchId == branchId.Value && s.DoctorId == doctorId && s.IsActive &&
                             (s.IsDaily || s.DayOfWeek == currentDayOfWeek))
                 .ToListAsync(ct);
 
             var todayQueues = await _context.DailyQueues
-                
                 .Where(q => !q.IsDeleted && q.BranchId == branchId.Value && q.DoctorId == doctorId && q.QueueDate >= today && q.QueueDate < tomorrow)
+                .ToListAsync(ct);
+
+            var activeLeaves = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .Where(l => !l.IsDeleted &&
+                    l.DoctorId == doctorId &&
+                    (l.BranchId == null || l.BranchId == branchId.Value) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= todayEndUtc &&
+                    l.EndDate >= todayStartUtc)
                 .ToListAsync(ct);
 
             var availableSessions = new List<Session>();
             foreach (var session in activeSessions)
             {
+                var isSessionOnLeave = activeLeaves.Any(l => l.SessionId == null || l.SessionId == session.Id);
+                if (isSessionOnLeave) continue;
+
                 var q = todayQueues.FirstOrDefault(x => x.SessionId == session.Id);
 
                 // Only include sessions that have been explicitly started (q != null)

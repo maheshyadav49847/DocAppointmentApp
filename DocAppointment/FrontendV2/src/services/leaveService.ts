@@ -98,8 +98,10 @@ export const leaveService = {
     return response.data
   },
 
-  cancelLeave: async (id: string): Promise<{ message: string }> => {
-    const response = await api.delete(`/leaves/${id}`)
+  cancelLeave: async (id: string, reopenTodayQueue?: boolean): Promise<{ message: string; reopenedQueues?: number }> => {
+    const response = await api.delete(`/leaves/${id}`, {
+      params: reopenTodayQueue ? { reopenTodayQueue: true } : undefined
+    })
     return response.data
   },
 

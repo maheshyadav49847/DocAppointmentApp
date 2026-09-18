@@ -91,6 +91,26 @@ namespace CodeX.Application.Features.Tokens.Commands.CreateToken
                 throw new Exception("This branch is currently offline and not accepting bookings.");
             }
 
+            var queueDateStartUtc = DateTime.SpecifyKind(queue.QueueDate.Date, DateTimeKind.Utc);
+            var queueDateEndUtc = DateTime.SpecifyKind(queue.QueueDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+            var activeLeave = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .Include(l => l.Doctor)
+                .FirstOrDefaultAsync(l => !l.IsDeleted &&
+                    l.DoctorId == queue.DoctorId &&
+                    (l.BranchId == null || l.BranchId == queue.BranchId) &&
+                    (l.SessionId == null || l.SessionId == queue.SessionId) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= queueDateEndUtc &&
+                    l.EndDate >= queueDateStartUtc, cancellationToken);
+
+            if (activeLeave != null)
+            {
+                var docName = activeLeave.Doctor?.Name ?? "Doctor";
+                var notice = !string.IsNullOrWhiteSpace(activeLeave.PublicNotice) ? activeLeave.PublicNotice : activeLeave.Reason;
+                throw new InvalidOperationException($"Cannot book appointment: Dr. {docName} is on leave today ({activeLeave.LeaveType} Leave: {notice}).");
+            }
+
             var tokenCount = await _context.Tokens
                 .IgnoreQueryFilters()
                 .CountAsync(t => !t.IsDeleted && t.QueueId == queue.Id, cancellationToken);

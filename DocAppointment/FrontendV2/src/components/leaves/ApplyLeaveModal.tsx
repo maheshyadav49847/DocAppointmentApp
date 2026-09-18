@@ -127,6 +127,12 @@ export default function ApplyLeaveModal({
     enabled: isOpen && targetType === 'doctor' && !!selectedDoctorId
   })
 
+  const doctorBranches = useMemo(() => {
+    if (!selectedDoctorId || !sessions || sessions.length === 0) return []
+    const branchIds = new Set(sessions.map((s: any) => s.branchId).filter(Boolean))
+    return branches.filter((b: any) => branchIds.has(b.id))
+  }, [selectedDoctorId, sessions, branches])
+
   const isEditMode = !!leaveToEdit
 
   // Reset or initialize on open
@@ -549,6 +555,32 @@ export default function ApplyLeaveModal({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Multi-Branch Scope Preview (Point 11) */}
+          {targetType === 'doctor' && selectedDoctorId && !selectedBranchId && doctorBranches.length > 1 && (
+            <div className="p-3 bg-indigo-50/60 rounded-md border border-indigo-200/80 text-xs space-y-1.5 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 font-bold text-indigo-900">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span>Multi-Branch OPD Scope Preview</span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-sm bg-indigo-100 text-indigo-800">
+                  {doctorBranches.length} Branches Linked
+                </span>
+              </div>
+              <p className="text-[11px] text-indigo-800 leading-snug">
+                "All Branches" is selected. This leave will simultaneously suspend OPD consultation shifts across all {doctorBranches.length} practice locations:
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {doctorBranches.map((b: any) => (
+                  <span key={b.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-white border border-indigo-200 text-indigo-700 font-semibold text-[11px] shadow-2xs">
+                    <Building2 className="w-3 h-3 text-indigo-400" />
+                    {b.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 

@@ -19,7 +19,9 @@ import {
   CalendarDays,
   X,
   AlertOctagon,
-  Pencil
+  Pencil,
+  Play,
+  Loader2
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { leaveService, type LeaveRecordDto, type LeaveType, type LeaveStatus } from "@/services/leaveService"
@@ -54,6 +56,7 @@ export default function LeavesPage() {
   const [calendarApplyDate, setCalendarApplyDate] = useState<string | undefined>(undefined)
   const [approvingLeave, setApprovingLeave] = useState<LeaveRecordDto | null>(null)
   const [rejectingLeave, setRejectingLeave] = useState<LeaveRecordDto | null>(null)
+  const [cancellingLeave, setCancellingLeave] = useState<LeaveRecordDto | null>(null)
 
   // Filters
   const [search, setSearch] = useState("")
@@ -152,16 +155,28 @@ export default function LeavesPage() {
 
   // Cancel leave mutation
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => leaveService.cancelLeave(id),
-    onSuccess: () => {
+    mutationFn: ({ id, reopenTodayQueue }: { id: string; reopenTodayQueue?: boolean }) => 
+      leaveService.cancelLeave(id, reopenTodayQueue),
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['leaves'] })
       queryClient.invalidateQueries({ queryKey: ['queues'] })
-      toast.success("Leave cancelled successfully.")
+      queryClient.invalidateQueries({ queryKey: ['queueStats'] })
+      queryClient.invalidateQueries({ queryKey: ['queue-doctors'] })
+      queryClient.invalidateQueries({ queryKey: ['activeQueue'] })
+      queryClient.invalidateQueries({ queryKey: ['doctor-session-leave'] })
+      toast.success(data?.message || "Leave cancelled successfully.")
+      setCancellingLeave(null)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || "Failed to cancel leave.")
     }
   })
+
+  const isCancellingTodayDoctorLeave = useMemo(() => {
+    if (!cancellingLeave || !cancellingLeave.doctorId) return false
+    const todayStr = new Date().toISOString().split('T')[0]
+    return cancellingLeave.startDate <= todayStr && cancellingLeave.endDate >= todayStr
+  }, [cancellingLeave])
 
   // Quick stats
   const stats = useMemo(() => {
@@ -545,7 +560,10 @@ export default function LeavesPage() {
               }}
               onApproveLeave={(leave) => setApprovingLeave(leave)}
               onRejectLeave={(leave) => setRejectingLeave(leave)}
-              onCancelLeave={(id) => cancelMutation.mutate(id)}
+              onCancelLeave={(id) => {
+                const target = leaves.find(l => l.id === id)
+                if (target) setCancellingLeave(target)
+              }}
               isAdmin={isAdmin}
               currentUserDoctorId={user?.doctorId}
               currentUserEmail={user?.email}
@@ -682,11 +700,7 @@ export default function LeavesPage() {
 
                             {canCancel && (
                               <button
-                                onClick={() => {
-                                  if (window.confirm("Are you sure you want to cancel this leave?")) {
-                                    cancelMutation.mutate(leave.id)
-                                  }
-                                }}
+                                onClick={() => setCancellingLeave(leave)}
                                 disabled={cancelMutation.isPending}
                                 title="Cancel Leave"
                                 className="h-8 px-2.5 rounded-md text-xs font-semibold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 shadow-2xs flex items-center gap-1 transition-colors"
@@ -866,11 +880,7 @@ export default function LeavesPage() {
 
                           {canCancel && (
                             <button
-                              onClick={() => {
-                                if (window.confirm("Are you sure you want to cancel this leave?")) {
-                                  cancelMutation.mutate(leave.id)
-                                }
-                              }}
+                              onClick={() => setCancellingLeave(leave)}
                               disabled={cancelMutation.isPending}
                               className="h-8 px-2.5 rounded-md text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center gap-1 transition-colors"
                             >
@@ -938,6 +948,111 @@ export default function LeavesPage() {
           queryClient.invalidateQueries({ queryKey: ['leaves'] })
         }}
       />
+
+      {/* Cancel Leave Confirmation Modal with Point 8 Prompt */}
+      {cancellingLeave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-md bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
+                  <RotateCcw className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Cancel Leave Record</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {cancellingLeave.doctorName ? `Dr. ${cancellingLeave.doctorName}` : cancellingLeave.staffName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCancellingLeave(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-slate-600">
+                Are you sure you want to cancel this leave application?
+              </p>
+
+              {isCancellingTodayDoctorLeave ? (
+                <div className="p-3 bg-amber-50/70 rounded-md border border-amber-200/80 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Reopen today's OPD session and accept bookings?</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    This doctor has an active leave scheduled for today. Would you like to resume today's OPD session so staff can begin consultations and accept new token appointments?
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 rounded-md border border-slate-200 text-[11px] text-slate-500 space-y-1">
+                  <div><strong>Date Range:</strong> {cancellingLeave.startDate} to {cancellingLeave.endDate}</div>
+                  <div><strong>Reason:</strong> {cancellingLeave.reason}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3.5 bg-slate-50/70 border-t border-slate-100 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCancellingLeave(null)}
+                disabled={cancelMutation.isPending}
+                className="btn-cancel h-10 px-3 text-xs"
+              >
+                <X className="w-3.5 h-3.5 mr-1" />
+                Dismiss
+              </button>
+
+              {isCancellingTodayDoctorLeave ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => cancelMutation.mutate({ id: cancellingLeave.id, reopenTodayQueue: false })}
+                    disabled={cancelMutation.isPending}
+                    className="btn-secondary h-10 px-3 text-xs font-semibold"
+                  >
+                    Cancel Leave Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => cancelMutation.mutate({ id: cancellingLeave.id, reopenTodayQueue: true })}
+                    disabled={cancelMutation.isPending}
+                    className="btn-primary h-10 px-4 text-xs font-bold flex items-center gap-1.5"
+                  >
+                    {cancelMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5" />
+                    )}
+                    <span>Reopen OPD & Accept Bookings</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => cancelMutation.mutate({ id: cancellingLeave.id, reopenTodayQueue: false })}
+                  disabled={cancelMutation.isPending}
+                  className="btn-primary h-10 px-4 text-xs font-bold flex items-center gap-1.5"
+                >
+                  {cancelMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Confirm Cancellation</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

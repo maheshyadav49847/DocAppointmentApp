@@ -1,6 +1,7 @@
 using CodeX.Application.Common.Interfaces;
 using CodeX.Application.Features.Queue.Commands.EndQueue;
 using CodeX.Domain.Entities;
+using CodeX.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,6 +42,26 @@ namespace CodeX.Application.Features.Queue.Commands.CreateDailyQueue
 
             var today = CodeX.Application.Common.Helpers.TimeHelper.GetBranchLocalToday(session.Branch?.Timezone);
             var tomorrow = today.AddDays(1);
+            var todayStartUtc = DateTime.SpecifyKind(today.Date, DateTimeKind.Utc);
+            var todayEndUtc = DateTime.SpecifyKind(today.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+
+            // Security Check: Block session creation if doctor is on active leave today
+            var activeLeave = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(l => !l.IsDeleted &&
+                    l.DoctorId == request.DoctorId &&
+                    (l.BranchId == null || l.BranchId == session.BranchId) &&
+                    (l.SessionId == null || l.SessionId == request.SessionId) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= todayEndUtc &&
+                    l.EndDate >= todayStartUtc, cancellationToken);
+
+            if (activeLeave != null)
+            {
+                var docName = session.Doctor?.Name ?? "Doctor";
+                var reasonText = !string.IsNullOrWhiteSpace(activeLeave.PublicNotice) ? activeLeave.PublicNotice : activeLeave.Reason;
+                throw new InvalidOperationException($"Cannot start session: Dr. {docName} is on leave today ({activeLeave.LeaveType} Leave: {reasonText}).");
+            }
 
             // Auto-end any open queues from previous days to ensure patients get notified
             var oldOpenQueues = await _context.DailyQueues

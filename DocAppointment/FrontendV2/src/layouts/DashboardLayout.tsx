@@ -15,6 +15,7 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { useQuery } from "@tanstack/react-query"
 import { branchService } from "@/services/branchService"
 import { queueService } from "@/services/queueService"
+import { leaveService } from "@/services/leaveService"
 
 const getNavigation = (role: string, isDoctor: boolean) => {
   let nav = [
@@ -69,6 +70,24 @@ export default function DashboardLayout() {
     queryKey: ['doctorActiveQueue', user?.doctorId],
     queryFn: () => queueService.getActiveQueue(user!.doctorId!),
     enabled: !!token && !!user?.doctorId && role === 'doctor'
+  });
+
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const { data: myLeaveToday } = useQuery({
+    queryKey: ['my-active-leave-today', user?.id, user?.doctorId, todayDateStr],
+    queryFn: async () => {
+      if (!user?.id && !user?.doctorId) return null;
+      const res = await leaveService.getLeaves({
+        staffId: user?.id,
+        doctorId: user?.doctorId || undefined,
+        status: 1,
+        startDate: todayDateStr,
+        endDate: todayDateStr
+      });
+      return res?.[0] || null;
+    },
+    enabled: !!token && (!!user?.id || !!user?.doctorId),
+    staleTime: 60000
   });
 
   const isSessionActive = !!activeQueue;
@@ -388,6 +407,28 @@ export default function DashboardLayout() {
 
         {/* Page Content Area (Fallback scroll if pages demand minimum height) */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col min-h-0 overflow-y-auto">
+          {myLeaveToday && (
+            <div className="mb-4 p-3 sm:p-3.5 bg-amber-50 border border-amber-200 rounded-lg shadow-2xs flex items-center justify-between gap-3 text-xs animate-in fade-in shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
+                  <CalendarOff className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-amber-900">Attendance Notice: </span>
+                  <span className="text-amber-800">
+                    You are marked on <strong>{myLeaveToday.leaveType === 1 ? 'Emergency / Unplanned' : 'Approved'} Leave</strong> today ({myLeaveToday.startDate} to {myLeaveToday.endDate}).
+                  </span>
+                </div>
+              </div>
+              <Link
+                to="/leaves"
+                className="px-2.5 py-1 rounded-md bg-white hover:bg-amber-100/80 text-amber-800 font-bold border border-amber-200 text-[11px] shrink-0 transition-colors shadow-2xs"
+              >
+                View Leaves
+              </Link>
+            </div>
+          )}
+
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 10 }}

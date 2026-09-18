@@ -5,6 +5,7 @@ using CodeX.Application.Common.Interfaces;
 using CodeX.Domain.Entities;
 using CodeX.Domain.Enums;
 using CodeX.Domain.Constants;
+using CodeX.Application.Common.Helpers;
 using System.ComponentModel.DataAnnotations;
 
 namespace CodeX.Api.Controllers
@@ -441,7 +442,7 @@ namespace CodeX.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> CancelLeave(Guid id)
+        public async Task<IActionResult> CancelLeave(Guid id, [FromQuery] bool reopenTodayQueue = false)
         {
             var orgId = _currentUserService.OrgId;
             var leave = await _context.LeaveRecords
@@ -454,9 +455,36 @@ namespace CodeX.Api.Controllers
             leave.Status = LeaveStatus.Cancelled;
             leave.IsDeleted = false; // Retain in audit history & UI listings with Cancelled status
 
+            int reopenedQueuesCount = 0;
+            if (reopenTodayQueue && leave.DoctorId.HasValue)
+            {
+                var todayUtc = DateTime.UtcNow.Date;
+                if (leave.StartDate.Date <= todayUtc && leave.EndDate.Date >= todayUtc)
+                {
+                    var queuesToReopen = await _context.DailyQueues
+                        .Where(q => !q.IsDeleted && q.DoctorId == leave.DoctorId.Value && q.QueueDate.Date == todayUtc && q.Status == QueueStatus.Cancelled)
+                        .Where(q => !leave.BranchId.HasValue || q.BranchId == leave.BranchId.Value)
+                        .Where(q => !leave.SessionId.HasValue || q.SessionId == leave.SessionId.Value)
+                        .ToListAsync();
+
+                    foreach (var q in queuesToReopen)
+                    {
+                        q.Status = QueueStatus.Open;
+                        q.PauseReason = null;
+                        reopenedQueuesCount++;
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync(CancellationToken.None);
 
-            return Ok(new { message = "Leave cancelled successfully." });
+            return Ok(new
+            {
+                message = reopenedQueuesCount > 0
+                    ? $"Leave cancelled and {reopenedQueuesCount} OPD session(s) reopened successfully."
+                    : "Leave cancelled successfully.",
+                reopenedQueues = reopenedQueuesCount
+            });
         }
 
         [AllowAnonymous]
@@ -472,14 +500,15 @@ namespace CodeX.Api.Controllers
                 return BadRequest("Invalid doctorId or date parameter (format: yyyy-MM-dd).");
             }
 
-            var targetUtc = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+            var targetDateStartUtc = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+            var targetDateEndUtc = DateTime.SpecifyKind(parsedDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
             var activeLeave = await _context.LeaveRecords
                 .IgnoreQueryFilters()
                 .Include(l => l.Doctor)
-                .Where(l => !l.IsDeleted && l.Status == LeaveStatus.Approved)
+                .Where(l => !l.IsDeleted && (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)))
                 .Where(l => l.DoctorId == doctorId)
-                .Where(l => l.StartDate <= targetUtc && l.EndDate >= targetUtc)
+                .Where(l => l.StartDate <= targetDateEndUtc && l.EndDate >= targetDateStartUtc)
                 .Where(l => !branchId.HasValue || l.BranchId == null || l.BranchId == branchId.Value)
                 .Where(l => !sessionId.HasValue || l.SessionId == null || l.SessionId == sessionId.Value)
                 .FirstOrDefaultAsync();
@@ -504,6 +533,59 @@ namespace CodeX.Api.Controllers
                 isAvailable = true,
                 onLeave = false
             });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("branch-status")]
+        public async Task<IActionResult> GetBranchLeaveStatus([FromQuery] Guid branchId)
+        {
+            if (branchId == Guid.Empty) return BadRequest("Invalid branchId.");
+
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.Id == branchId);
+            if (branch == null) return NotFound("Branch not found.");
+
+            var today = TimeHelper.GetBranchLocalToday(branch.Timezone);
+            var todayStartUtc = DateTime.SpecifyKind(today.Date, DateTimeKind.Utc);
+            var todayEndUtc = DateTime.SpecifyKind(today.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+            int currentDayOfWeek = (int)today.DayOfWeek;
+
+            var scheduledDoctorIds = await _context.Sessions
+                .Where(s => !s.IsDeleted && s.BranchId == branchId && s.IsActive &&
+                            (s.IsDaily || s.DayOfWeek == currentDayOfWeek))
+                .Select(s => s.DoctorId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!scheduledDoctorIds.Any())
+            {
+                return Ok(new { isClosedForOpd = false, reason = "No sessions scheduled today" });
+            }
+
+            var activeLeaves = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .Where(l => !l.IsDeleted &&
+                    (l.BranchId == null || l.BranchId == branchId) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= todayEndUtc &&
+                    l.EndDate >= todayStartUtc)
+                .ToListAsync();
+
+            // If all scheduled doctors have leave covering all their shifts today:
+            bool allOnLeave = scheduledDoctorIds.All(docId => activeLeaves.Any(l => l.DoctorId == docId && l.SessionId == null));
+
+            if (allOnLeave)
+            {
+                var notice = activeLeaves.FirstOrDefault(l => !string.IsNullOrWhiteSpace(l.PublicNotice))?.PublicNotice
+                             ?? "Doctor(s) are on approved leave today. OPD consultations are suspended.";
+                return Ok(new
+                {
+                    isClosedForOpd = true,
+                    reason = "All doctors on approved leave today",
+                    notice = notice
+                });
+            }
+
+            return Ok(new { isClosedForOpd = false });
         }
 
         private async Task ProcessDoctorLeaveImpactAsync(LeaveRecord leave, DateTime startUtc, DateTime endUtc, bool notifyPatients)

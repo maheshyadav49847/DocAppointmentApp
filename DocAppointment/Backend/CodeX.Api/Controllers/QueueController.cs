@@ -57,7 +57,14 @@ namespace CodeX.Api.Controllers
                 }
             }
 
-            return await Mediator.Send(command);
+            try
+            {
+                return await Mediator.Send(command);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message, doctorOnLeave = true });
+            }
         }
 
         [HttpGet("search-patients")]
@@ -136,7 +143,14 @@ namespace CodeX.Api.Controllers
                 return Forbid();
             }
 
-            return await Mediator.Send(new DoctorArrivedCommand(queueId));
+            try
+            {
+                return await Mediator.Send(new DoctorArrivedCommand(queueId));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("{queueId}/skip")]

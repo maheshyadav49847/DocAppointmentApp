@@ -32,6 +32,26 @@ namespace CodeX.Application.Features.Queue.Commands.DoctorArrived
 
             if (queue == null) throw new Exception("Queue not found");
 
+            // Security Check: Validate doctor is not on leave before broadcasting arrival
+            var queueDateStartUtc = DateTime.SpecifyKind(queue.QueueDate.Date, DateTimeKind.Utc);
+            var queueDateEndUtc = DateTime.SpecifyKind(queue.QueueDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+            var activeLeave = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(l => !l.IsDeleted &&
+                    l.DoctorId == queue.DoctorId &&
+                    (l.BranchId == null || l.BranchId == queue.BranchId) &&
+                    (l.SessionId == null || l.SessionId == queue.SessionId) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate <= queueDateEndUtc &&
+                    l.EndDate >= queueDateStartUtc, cancellationToken);
+
+            if (activeLeave != null)
+            {
+                var docName = queue.Doctor?.Name ?? "Doctor";
+                var reason = !string.IsNullOrWhiteSpace(activeLeave.PublicNotice) ? activeLeave.PublicNotice : activeLeave.Reason;
+                throw new InvalidOperationException($"Cannot mark arrival: Dr. {docName} is on leave today ({activeLeave.LeaveType} Leave: {reason}).");
+            }
+
             queue.Status = QueueStatus.Active;
             queue.ActualStartAt = DateTime.UtcNow;
 

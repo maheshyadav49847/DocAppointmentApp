@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import { motion, AnimatePresence } from "framer-motion"
-import { Activity, Stethoscope, Pause } from "lucide-react"
+import { Activity, Stethoscope, Pause, CalendarOff } from "lucide-react"
 import { BrandLogo } from "@/components/BrandLogo"
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api/v1.0"
@@ -20,6 +20,17 @@ export default function TvDisplayPage() {
     },
     enabled: !!branchId,
     refetchInterval: 15000
+  })
+
+  const { data: branchStatus } = useQuery({
+    queryKey: ['tvBranchStatus', branchId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/leaves/branch-status?branchId=${branchId}`)
+      if (!res.ok) return null
+      return res.json()
+    },
+    enabled: !!branchId,
+    refetchInterval: 30000
   })
 
   const connection = useQueueHub(branchId || "org")
@@ -84,19 +95,45 @@ export default function TvDisplayPage() {
       <main className="flex-1 overflow-hidden px-8 pb-8 flex flex-col">
         <AnimatePresence mode="popLayout">
           {isEmpty ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="h-full flex flex-col items-center justify-center bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-indigo-100/40"
-            >
-              <div className="w-40 h-40 rounded-full bg-slate-50 border-4 border-slate-100 flex items-center justify-center mb-8 shadow-inner">
-                <Stethoscope className="w-20 h-20 text-slate-300" />
-              </div>
-              <h2 className="text-5xl font-black text-slate-300 mb-4 tracking-tight">No Active Queues</h2>
-              <p className="text-slate-400 text-2xl font-medium">Consultation will begin shortly</p>
-            </motion.div>
+            branchStatus?.isClosedForOpd ? (
+              <motion.div
+                key="closed"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-rose-200 shadow-2xl shadow-rose-100/40 p-10 text-center"
+              >
+                <div className="w-36 h-36 rounded-full bg-rose-50 border-4 border-rose-200 flex items-center justify-center mb-6 shadow-inner text-rose-500">
+                  <CalendarOff className="w-20 h-20 text-rose-500" />
+                </div>
+                <span className="px-5 py-1.5 rounded-full bg-rose-100 text-rose-800 font-black text-base uppercase tracking-wider mb-4 border border-rose-300">
+                  Clinic OPD Notice
+                </span>
+                <h2 className="text-4xl md:text-5xl font-black text-slate-900 mb-3 tracking-tight">
+                  Temporarily Closed for OPD
+                </h2>
+                <p className="text-rose-700 text-xl md:text-2xl font-bold max-w-2xl leading-relaxed mb-2">
+                  {branchStatus.notice || "Doctor(s) are on approved leave today. OPD consultations are suspended."}
+                </p>
+                <p className="text-slate-400 text-base font-medium mt-4">
+                  Normal OPD consultations will resume on the next scheduled clinic day.
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full flex flex-col items-center justify-center bg-white rounded-[3rem] border border-slate-100 shadow-2xl shadow-indigo-100/40"
+              >
+                <div className="w-40 h-40 rounded-full bg-slate-50 border-4 border-slate-100 flex items-center justify-center mb-8 shadow-inner">
+                  <Stethoscope className="w-20 h-20 text-slate-300" />
+                </div>
+                <h2 className="text-5xl font-black text-slate-300 mb-4 tracking-tight">No Active Queues</h2>
+                <p className="text-slate-400 text-2xl font-medium">Consultation will begin shortly</p>
+              </motion.div>
+            )
           ) : isSingle ? (
             <SingleDoctorView queue={activeQueues[0]} key="single" />
           ) : (

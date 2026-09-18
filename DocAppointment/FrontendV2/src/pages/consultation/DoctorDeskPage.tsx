@@ -10,6 +10,7 @@ import { useAuthStore } from "@/store/authStore"
 import { usePermissions } from "@/hooks/usePermissions"
 import { queueService } from "@/services/queueService"
 import { sessionService } from "@/services/sessionService"
+import { leaveService } from "@/services/leaveService"
 import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
@@ -87,6 +88,59 @@ export default function DoctorDeskPage() {
     queryFn: () => queueService.getActiveQueue(effectiveDoctorId),
     enabled: !!effectiveDoctorId
   })
+
+  const todayDateStr = new Date().toISOString().split('T')[0]
+  const { data: doctorLeaveCheck } = useQuery({
+    queryKey: ['doctor-desk-leave-check', effectiveDoctorId, todayDateStr],
+    queryFn: () => leaveService.checkDoctorAvailability(effectiveDoctorId, todayDateStr),
+    enabled: !!effectiveDoctorId,
+    staleTime: 15000
+  })
+
+  const isDoctorOnLeave = !isQueueLoading && !!doctorLeaveCheck?.onLeave
+
+  const renderDoctorLeaveBanner = () => {
+    if (!isDoctorOnLeave) return null
+
+    return (
+      <div className="rounded-lg border-2 border-rose-300 bg-gradient-to-r from-rose-50 via-white to-rose-50 p-4 sm:p-5 shadow-xs space-y-3 animate-in fade-in shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-md bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 shrink-0">
+              <CalendarOff className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="px-2 py-0.5 rounded-sm bg-rose-600 text-white font-black text-[10px] uppercase tracking-wider">
+                  On Leave Today
+                </span>
+                <h3 className="text-sm sm:text-base font-extrabold text-rose-950 truncate">
+                  You are marked ON LEAVE today
+                </h3>
+              </div>
+              <p className="text-xs text-rose-800 font-medium mt-0.5 line-clamp-2">
+                {doctorLeaveCheck?.publicNotice || doctorLeaveCheck?.reason || 'Doctor unavailable due to scheduled leave'} (Window: {doctorLeaveCheck?.startDate} to {doctorLeaveCheck?.endDate})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => navigate('/leaves')}
+              className="btn-primary h-9 px-4 text-xs font-bold bg-rose-600 hover:bg-rose-700 border-none shadow-xs flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Resume Duty / Cancel Leave</span>
+            </button>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-rose-700/80 bg-rose-100/50 p-2 rounded-md border border-rose-200/60 leading-snug">
+          ⚠️ Consultations and token bookings are suspended while on leave. To start consultations or call patients, please click <strong>Resume Duty / Cancel Leave</strong>.
+        </p>
+      </div>
+    )
+  }
 
   const { data: branches } = useQuery({
     queryKey: ['doctordesk-branches', user?.orgId],
@@ -339,6 +393,9 @@ export default function DoctorDeskPage() {
           </div>
         </div>
 
+        {/* Doctor On Leave Notice Banner */}
+        {renderDoctorLeaveBanner()}
+
         {/* 2. Doctor Workstation Welcome Hero Banner */}
         <div className="saas-card p-4 sm:p-5 rounded-lg relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/25 to-white border-slate-200/90 shadow-xs shrink-0">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
@@ -352,10 +409,17 @@ export default function DoctorDeskPage() {
                   <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
                     Welcome back, {doctorDisplayName}
                   </h2>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Ready for OPD
-                  </span>
+                  {isDoctorOnLeave ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                      <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                      On Leave Today
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Ready for OPD
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2.5 mt-1.5 flex-wrap text-xs font-semibold">
                   {currentDoctor?.specialization && (
@@ -481,25 +545,32 @@ export default function DoctorDeskPage() {
                         </div>
                       </div>
 
-                      {/* Start Session Button */}
-                      <button
-                        onClick={() => initializeQueueMutation.mutate(session.id)}
-                        disabled={initializeQueueMutation.isPending}
-                        className="btn-primary w-full py-2.5 rounded font-bold flex items-center justify-center gap-2 shadow-sm group-hover:shadow-md transition-all text-sm mt-1"
-                      >
-                        {initializeQueueMutation.isPending && initializeQueueMutation.variables === session.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Initializing Queue...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 fill-white" />
-                            <span>Start OPD Session</span>
-                            <ArrowRight className="w-4 h-4 ml-0.5 opacity-70 group-hover:translate-x-1 transition-transform" />
-                          </>
-                        )}
-                      </button>
+                      {/* Start Session Button / On Leave Notice */}
+                      {isDoctorOnLeave ? (
+                        <div className="w-full py-2.5 px-3 rounded-md border border-rose-200 bg-rose-50 text-center text-xs font-bold text-rose-700 flex items-center justify-center gap-1.5 mt-1">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>Doctor on Leave — Session Blocked</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => initializeQueueMutation.mutate(session.id)}
+                          disabled={initializeQueueMutation.isPending}
+                          className="btn-primary w-full py-2.5 rounded font-bold flex items-center justify-center gap-2 shadow-sm group-hover:shadow-md transition-all text-sm mt-1"
+                        >
+                          {initializeQueueMutation.isPending && initializeQueueMutation.variables === session.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Initializing Queue...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-white" />
+                              <span>Start OPD Session</span>
+                              <ArrowRight className="w-4 h-4 ml-0.5 opacity-70 group-hover:translate-x-1 transition-transform" />
+                            </>
+                          )}
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}
@@ -678,6 +749,9 @@ export default function DoctorDeskPage() {
           </div>
         </div>
       </div>
+
+      {/* Doctor On Leave Notice Banner */}
+      {renderDoctorLeaveBanner()}
 
       {/* Main Card */}
       <div className="saas-card overflow-hidden flex-1 flex flex-col min-h-[520px]">
