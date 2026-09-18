@@ -18,6 +18,75 @@ export interface BranchAnalytics {
   recentFeedback: { patientName: string; score: number; comment: string | null; date: string }[];
 }
 
+export interface DoctorAvailabilityRow {
+  doctorId: string;
+  doctorName: string;
+  specialization: string;
+  branchName: string;
+  totalScheduledSessions: number;
+  sessionsAttended: number;
+  sessionsSuspended: number;
+  plannedLeavesCount: number;
+  emergencyLeavesCount: number;
+  totalLeaveDays: number;
+  cancelledTokensCount: number;
+  reliabilityRate: number;
+}
+
+export interface DoctorAvailabilityReport {
+  totalDoctorsCount: number;
+  overallOPDAttendanceRate: number;
+  totalScheduledSessions: number;
+  totalSessionsAttended: number;
+  totalSessionsSuspended: number;
+  totalLeaveDaysTaken: number;
+  totalPlannedLeaves: number;
+  totalEmergencyLeaves: number;
+  totalAppointmentsCancelledDueToLeave: number;
+  detailedRows: DoctorAvailabilityRow[];
+}
+
+export interface LeaveSummaryRow {
+  id: string;
+  personName: string;
+  personEmail: string;
+  role: string;
+  specializationOrRole: string;
+  branchName: string;
+  leaveType: string;
+  startDate: string;
+  endDate: string;
+  daysCount: number;
+  sessionName: string;
+  reason: string;
+  publicNotice?: string;
+  status: number;
+  statusName: string;
+  affectedTokensCount: number;
+  createdAt: string;
+}
+
+export interface LeaveSummaryReport {
+  totalApplications: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  cancelledCount: number;
+  emergencyCount: number;
+  totalDaysLost: number;
+  detailedRows: LeaveSummaryRow[];
+}
+
+export interface StaffProductivityRow {
+  staffName: string;
+  tokensGenerated: number;
+  appointmentsCompleted: number;
+  appointmentsCancelled: number;
+  leavesTakenCount?: number;
+  activeWorkingDays?: number;
+  tokensPerWorkingDay?: number;
+}
+
 export const reportService = {
   getBranches: async () => {
     const response = await api.get('/reports/branches')
@@ -144,4 +213,31 @@ export const reportService = {
     const response = await api.get('/reports/operational/patient-lifecycle', { params: cleanParams });
     return response.data;
   },
+
+  getDoctorAvailabilityReport: async (params: {
+    startDate: string;
+    endDate: string;
+    branchId?: string;
+    doctorId?: string;
+  }) => {
+    const cleanParams: any = { ...params };
+    if (cleanParams.branchId === 'all' || cleanParams.branchId === 'org') delete cleanParams.branchId;
+    if (cleanParams.doctorId === 'all') delete cleanParams.doctorId;
+    const response = await api.get('/reports/operational/doctor-availability', { params: cleanParams });
+    return response.data;
+  },
+
+  getLeaveSummaryReport: async (params: {
+    startDate: string;
+    endDate: string;
+    branchId?: string;
+    doctorId?: string;
+  }) => {
+    const cleanParams: any = { ...params };
+    if (cleanParams.branchId === 'all' || cleanParams.branchId === 'org') delete cleanParams.branchId;
+    if (cleanParams.doctorId === 'all') delete cleanParams.doctorId;
+    const response = await api.get('/reports/operational/leave-summary', { params: cleanParams });
+    return response.data;
+  },
 }
+

@@ -17,6 +17,8 @@ using CodeX.Application.Features.Reports.Queries.GetDiagnosisSummaryReport;
 using CodeX.Application.Features.Reports.Queries.GetPatientDemographicsReport;
 using CodeX.Application.Features.Reports.Queries.GetNewVsReturningReport;
 using CodeX.Application.Features.Reports.Queries.GetReferralTrackingReport;
+using CodeX.Application.Features.Reports.Queries.GetDoctorAvailabilityReport;
+using CodeX.Application.Features.Reports.Queries.GetLeaveSummaryReport;
 
 
 
@@ -250,6 +252,52 @@ namespace CodeX.Api.Controllers
             {
                 OrganizationId = orgId,
                 BranchId = effectiveBranchId,
+                StartDate = start,
+                EndDate = end
+            });
+        }
+
+        [HttpGet("operational/doctor-availability")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<DoctorAvailabilityReportDto>> GetDoctorAvailabilityReport(
+            [FromQuery] Guid? branchId,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            var orgId = _currentUserService.OrgId;
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            return await Mediator.Send(new GetDoctorAvailabilityReportQuery
+            {
+                OrganizationId = orgId,
+                BranchId = effectiveBranchId,
+                DoctorId = doctorId,
+                StartDate = start,
+                EndDate = end
+            });
+        }
+
+        [HttpGet("operational/leave-summary")]
+        [HasPermission(SystemPermissions.Analytics.View)]
+        public async Task<ActionResult<LeaveSummaryReportDto>> GetLeaveSummaryReport(
+            [FromQuery] Guid? branchId,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate)
+        {
+            var orgId = _currentUserService.OrgId;
+            var start = startDate ?? DateTime.UtcNow.Date.AddDays(-30);
+            var end = endDate ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+            var effectiveBranchId = _currentUserService.BranchId ?? branchId;
+
+            return await Mediator.Send(new GetLeaveSummaryReportQuery
+            {
+                OrganizationId = orgId,
+                BranchId = effectiveBranchId,
+                DoctorId = doctorId,
                 StartDate = start,
                 EndDate = end
             });

@@ -15,12 +15,20 @@ import {
   FileText,
   TrendingUp,
   CreditCard,
-  Building
-, Clock, CheckCircle, XCircle, CalendarDays} from 'lucide-react';
+  Building,
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  CalendarDays,
+  Search,
+  Filter,
+  AlertTriangle
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { reportService } from '@/services/reportService';
 import { doctorService } from '@/services/doctorService';
 import { useAuthStore } from '@/store/authStore';
+import { DataTablePagination } from '@/components/ui/DataTablePagination';
 
 export default function ReportsDashboardPage() {
   const [activeCategory, setActiveCategory] = useState('financial');
@@ -33,6 +41,16 @@ export default function ReportsDashboardPage() {
   const [selectedDoctor, setSelectedDoctor] = useState('all');
   const [customStart, setCustomStart] = useState<Date>(() => { const d = new Date(); d.setDate(d.getDate() - 7); return d; });
   const [customEnd, setCustomEnd] = useState<Date>(() => new Date());
+
+  // Doctor Availability filters & pagination
+  const [docSearch, setDocSearch] = useState('');
+  const [docPageIndex, setDocPageIndex] = useState(0);
+
+  // Leave Summary filters & pagination
+  const [leaveSearch, setLeaveSearch] = useState('');
+  const [leaveRoleFilter, setLeaveRoleFilter] = useState('all');
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState('all');
+  const [leavePageIndex, setLeavePageIndex] = useState(0);
 
   const categories = [
     { id: 'financial', label: 'Financial & Revenue', icon: Wallet },
@@ -47,6 +65,8 @@ export default function ReportsDashboardPage() {
     { id: 'appointment_summary', label: 'Appointment Summary' },
     { id: 'queue_performance', label: 'Queue & Wait Time' },
     { id: 'staff_productivity', label: 'Staff Productivity' },
+    { id: 'doctor_availability', label: 'Doctor Availability & OPD Reliability' },
+    { id: 'leave_summary', label: 'Staff & Doctor Leave Summary' },
   ];
 
   const clinicalReports = [
@@ -139,6 +159,18 @@ export default function ReportsDashboardPage() {
     enabled: activeCategory === 'operational' && activeReport === 'staff_productivity'
   });
 
+  const { data: docAvailabilityData, isLoading: docAvailabilityLoading } = useQuery({
+    queryKey: ['report', 'doctor_availability', startDate, endDate, selectedBranch, selectedDoctor],
+    queryFn: () => reportService.getDoctorAvailabilityReport({ startDate, endDate, branchId: selectedBranch, doctorId: selectedDoctor }),
+    enabled: activeCategory === 'operational' && activeReport === 'doctor_availability'
+  });
+
+  const { data: leaveSummaryData, isLoading: leaveSummaryLoading } = useQuery({
+    queryKey: ['report', 'leave_summary', startDate, endDate, selectedBranch, selectedDoctor],
+    queryFn: () => reportService.getLeaveSummaryReport({ startDate, endDate, branchId: selectedBranch, doctorId: selectedDoctor }),
+    enabled: activeCategory === 'operational' && activeReport === 'leave_summary'
+  });
+
   // Clinical Queries
   const { data: diagData, isLoading: diagLoading } = useQuery({
     queryKey: ['report', 'diagnosis_summary', startDate, endDate, selectedBranch, selectedDoctor],
@@ -172,6 +204,12 @@ export default function ReportsDashboardPage() {
     else if (activeReport === 'doctor_revenue' && docData?.detailedRows) dataToExport = docData.detailedRows;
     else if (activeReport === 'service_revenue' && svcData?.detailedRows) dataToExport = svcData.detailedRows;
     else if (activeReport === 'outstanding' && duesData?.detailedRows) dataToExport = duesData.detailedRows;
+    else if (activeReport === 'doctor_availability' && docAvailabilityData?.detailedRows) dataToExport = docAvailabilityData.detailedRows;
+    else if (activeReport === 'leave_summary' && leaveSummaryData?.detailedRows) dataToExport = leaveSummaryData.detailedRows;
+    else if (activeReport === 'staff_productivity' && staffData?.detailedRows) dataToExport = staffData.detailedRows;
+    else if (activeReport === 'footfall' && footfallData?.detailedRows) dataToExport = footfallData.detailedRows;
+    else if (activeReport === 'appointment_summary' && apptData?.detailedRows) dataToExport = apptData.detailedRows;
+    else if (activeReport === 'queue_performance' && waitData?.detailedRows) dataToExport = waitData.detailedRows;
     
     if (dataToExport.length === 0) return;
     
@@ -790,23 +828,406 @@ export default function ReportsDashboardPage() {
                               <th className="px-4 py-2.5 text-right">Tokens Handled</th>
                               <th className="px-4 py-2.5 text-right">Completed</th>
                               <th className="px-4 py-2.5 text-right">Cancelled</th>
+                              <th className="px-4 py-2.5 text-right">Approved Leaves</th>
+                              <th className="px-4 py-2.5 text-right">Working Days</th>
+                              <th className="px-4 py-2.5 text-right">Tokens / Work Day</th>
                             </tr>
                           </thead>
                           <tbody>
                             {staffData?.detailedRows?.map((row: any, i: number) => (
-                              <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                              <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
                                 <td className="px-4 py-3 font-bold text-slate-800">{row.staffName}</td>
                                 <td className="px-4 py-3 text-right font-medium text-indigo-600">{row.tokensGenerated}</td>
                                 <td className="px-4 py-3 text-right font-medium text-green-600">{row.appointmentsCompleted}</td>
                                 <td className="px-4 py-3 text-right font-medium text-red-600">{row.appointmentsCancelled}</td>
+                                <td className="px-4 py-3 text-right font-medium text-amber-600">{row.leavesTakenCount || 0} d</td>
+                                <td className="px-4 py-3 text-right font-medium text-slate-700">{row.activeWorkingDays || 0} d</td>
+                                <td className="px-4 py-3 text-right font-bold text-slate-900">
+                                  {(row.tokensPerWorkingDay || 0).toFixed(1)}
+                                </td>
                               </tr>
                             ))}
                             {(!staffData?.detailedRows || staffData.detailedRows.length === 0) && (
-                              <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
+                              <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No records found.</td></tr>
                             )}
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  </>
+                )}
+             </div>
+           )}
+
+           {activeReport === 'doctor_availability' && (
+             <div className="space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Doctor Availability & OPD Reliability</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Audit doctor shift adherence, planned vs emergency leaves, session suspensions, and token disruptions.</p>
+                </div>
+
+                {docAvailabilityLoading ? (
+                  <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg shrink-0"><CheckCircle className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Overall Attendance Rate</p>
+                          <h3 className="text-2xl font-bold text-slate-900">{(docAvailabilityData?.overallOPDAttendanceRate ?? 100).toFixed(1)}%</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{docAvailabilityData?.totalSessionsAttended || 0} of {docAvailabilityData?.totalScheduledSessions || 0} sessions attended</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-lg shrink-0"><CalendarDays className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Total Leave Days</p>
+                          <h3 className="text-2xl font-bold text-slate-900">{docAvailabilityData?.totalLeaveDaysTaken || 0} Days</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{docAvailabilityData?.totalPlannedLeaves || 0} planned, {docAvailabilityData?.totalEmergencyLeaves || 0} emergency</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-orange-50 text-orange-600 rounded-lg shrink-0"><AlertTriangle className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Sessions Suspended</p>
+                          <h3 className="text-2xl font-bold text-amber-600">{docAvailabilityData?.totalSessionsSuspended || 0}</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Cancelled or paused OPD sessions</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-rose-50 text-rose-600 rounded-lg shrink-0"><XCircle className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Tokens Disrupted</p>
+                          <h3 className="text-2xl font-bold text-rose-600">{docAvailabilityData?.totalAppointmentsCancelledDueToLeave || 0}</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Appointments cancelled due to leave</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <h3 className="font-bold text-slate-800">Doctor Reliability & Attendance Breakdown</h3>
+                        <div className="relative w-full sm:w-64">
+                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={docSearch}
+                            onChange={(e) => { setDocSearch(e.target.value); setDocPageIndex(0); }}
+                            placeholder="Search doctor or specialization..."
+                            className="saas-input h-9 pl-8 pr-2.5 text-xs w-full"
+                          />
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const filtered = (docAvailabilityData?.detailedRows || []).filter((r: any) => {
+                          if (!docSearch.trim()) return true;
+                          const q = docSearch.toLowerCase();
+                          return r.doctorName.toLowerCase().includes(q) ||
+                                 (r.specialization && r.specialization.toLowerCase().includes(q)) ||
+                                 (r.branchName && r.branchName.toLowerCase().includes(q));
+                        });
+                        const pageSize = 10;
+                        const pageCount = Math.ceil(filtered.length / pageSize) || 1;
+                        const pagedRows = filtered.slice(docPageIndex * pageSize, (docPageIndex + 1) * pageSize);
+
+                        return (
+                          <>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm text-left">
+                                <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
+                                  <tr>
+                                    <th className="px-4 py-2.5">Doctor</th>
+                                    <th className="px-4 py-2.5">Branch</th>
+                                    <th className="px-4 py-2.5 text-right">Scheduled</th>
+                                    <th className="px-4 py-2.5 text-right">Attended</th>
+                                    <th className="px-4 py-2.5 text-right">Suspended</th>
+                                    <th className="px-4 py-2.5 text-right">Planned Leaves</th>
+                                    <th className="px-4 py-2.5 text-right">Emergency</th>
+                                    <th className="px-4 py-2.5 text-right">Total Days</th>
+                                    <th className="px-4 py-2.5 text-right">Cancelled Tokens</th>
+                                    <th className="px-4 py-2.5 text-center">Reliability</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {pagedRows.map((row: any, i: number) => {
+                                    const rate = row.reliabilityRate ?? 100;
+                                    const badgeClass = rate >= 90 
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                      : rate >= 75 
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                      : 'bg-rose-50 text-rose-700 border border-rose-200';
+
+                                    return (
+                                      <tr key={row.doctorId || i} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-4 py-3">
+                                          <div className="font-bold text-slate-800">{row.doctorName}</div>
+                                          <div className="text-xs text-slate-400 font-medium">{row.specialization || 'General'}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-600 font-medium">{row.branchName || 'All Branches'}</td>
+                                        <td className="px-4 py-3 text-right font-medium text-slate-700">{row.totalScheduledSessions}</td>
+                                        <td className="px-4 py-3 text-right font-bold text-emerald-600">{row.sessionsAttended}</td>
+                                        <td className="px-4 py-3 text-right font-medium text-amber-600">{row.sessionsSuspended}</td>
+                                        <td className="px-4 py-3 text-right font-medium text-slate-600">{row.plannedLeavesCount}</td>
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          {row.emergencyLeavesCount > 0 ? (
+                                            <span className="text-rose-600 font-semibold">{row.emergencyLeavesCount}</span>
+                                          ) : (
+                                            <span className="text-slate-400">0</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-slate-700">{row.totalLeaveDays} d</td>
+                                        <td className="px-4 py-3 text-right font-medium">
+                                          {row.cancelledTokensCount > 0 ? (
+                                            <span className="text-rose-600 font-semibold">{row.cancelledTokensCount}</span>
+                                          ) : (
+                                            <span className="text-slate-400">0</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold ${badgeClass}`}>
+                                            {rate.toFixed(1)}%
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {pagedRows.length === 0 && (
+                                    <tr>
+                                      <td colSpan={10} className="px-6 py-8 text-center text-slate-500">
+                                        No doctor availability records found.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            {filtered.length > 0 && (
+                              <DataTablePagination
+                                pageIndex={docPageIndex}
+                                pageSize={pageSize}
+                                totalCount={filtered.length}
+                                pageCount={pageCount}
+                                onPageChange={setDocPageIndex}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </>
+                )}
+             </div>
+           )}
+
+           {activeReport === 'leave_summary' && (
+             <div className="space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">Staff & Doctor Leave Summary</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Comprehensive audit log of leave applications, approval lifecycle, and operational coverage impacts.</p>
+                </div>
+
+                {leaveSummaryLoading ? (
+                  <div className="flex justify-center p-12"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg shrink-0"><FileText className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Total Applications</p>
+                          <h3 className="text-2xl font-bold text-slate-900">{leaveSummaryData?.totalApplications || 0}</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Doctors & staff combined</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg shrink-0"><CheckCircle className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Approved Leaves</p>
+                          <h3 className="text-2xl font-bold text-emerald-600">{leaveSummaryData?.approvedCount || 0}</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Fully authorized</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-lg shrink-0"><Clock className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Pending Approvals</p>
+                          <h3 className="text-2xl font-bold text-amber-600">{leaveSummaryData?.pendingCount || 0}</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Awaiting admin review</p>
+                        </div>
+                      </div>
+
+                      <div className="saas-card p-3 sm:p-3.5 relative overflow-hidden group border-slate-200/90 shadow-2xs bg-white flex items-center gap-3.5">
+                        <div className="p-3 bg-rose-50 text-rose-600 rounded-lg shrink-0"><CalendarDays className="w-6 h-6" /></div>
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Total Days Lost</p>
+                          <h3 className="text-2xl font-bold text-rose-600">{leaveSummaryData?.totalDaysLost || 0} Days</h3>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{leaveSummaryData?.emergencyCount || 0} emergency requests</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="saas-card overflow-hidden border border-slate-200/90 shadow-2xs bg-white">
+                      <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-50/70 flex flex-col md:flex-row justify-between md:items-center gap-2.5">
+                        <h3 className="font-bold text-slate-800">Leave Audit Roster</h3>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="relative w-full sm:w-56">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={leaveSearch}
+                              onChange={(e) => { setLeaveSearch(e.target.value); setLeavePageIndex(0); }}
+                              placeholder="Search name, reason, role..."
+                              className="saas-input h-9 pl-8 pr-2.5 text-xs w-full"
+                            />
+                          </div>
+
+                          <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2 shadow-2xs">
+                            <Filter className="w-3.5 h-3.5 text-slate-400 mr-1.5 shrink-0" />
+                            <select
+                              value={leaveRoleFilter}
+                              onChange={(e) => { setLeaveRoleFilter(e.target.value); setLeavePageIndex(0); }}
+                              className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                            >
+                              <option value="all">All Roles</option>
+                              <option value="Doctor">Doctors Only</option>
+                              <option value="Staff">Staff Only</option>
+                            </select>
+                          </div>
+
+                          <div className="h-9 flex items-center bg-white border border-slate-200/90 rounded-md px-2 shadow-2xs">
+                            <select
+                              value={leaveStatusFilter}
+                              onChange={(e) => { setLeaveStatusFilter(e.target.value); setLeavePageIndex(0); }}
+                              className="bg-transparent text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                            >
+                              <option value="all">All Statuses</option>
+                              <option value="Approved">Approved</option>
+                              <option value="Pending">Pending</option>
+                              <option value="Rejected">Rejected</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const filtered = (leaveSummaryData?.detailedRows || []).filter((r: any) => {
+                          if (leaveRoleFilter !== 'all' && r.role !== leaveRoleFilter) return false;
+                          if (leaveStatusFilter !== 'all' && r.statusName !== leaveStatusFilter) return false;
+                          if (!leaveSearch.trim()) return true;
+                          const q = leaveSearch.toLowerCase();
+                          return r.personName.toLowerCase().includes(q) ||
+                                 r.personEmail.toLowerCase().includes(q) ||
+                                 (r.specializationOrRole && r.specializationOrRole.toLowerCase().includes(q)) ||
+                                 (r.reason && r.reason.toLowerCase().includes(q)) ||
+                                 (r.branchName && r.branchName.toLowerCase().includes(q));
+                        });
+                        const pageSize = 10;
+                        const pageCount = Math.ceil(filtered.length / pageSize) || 1;
+                        const pagedRows = filtered.slice(leavePageIndex * pageSize, (leavePageIndex + 1) * pageSize);
+
+                        return (
+                          <>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm text-left">
+                                <thead className="text-[11px] font-bold text-slate-500 bg-slate-50 uppercase border-b border-slate-200 tracking-wider">
+                                  <tr>
+                                    <th className="px-4 py-2.5">Applicant</th>
+                                    <th className="px-4 py-2.5">Designation</th>
+                                    <th className="px-4 py-2.5">Branch</th>
+                                    <th className="px-4 py-2.5">Type</th>
+                                    <th className="px-4 py-2.5">Duration</th>
+                                    <th className="px-4 py-2.5">Session</th>
+                                    <th className="px-4 py-2.5">Reason</th>
+                                    <th className="px-4 py-2.5 text-right">Tokens Impacted</th>
+                                    <th className="px-4 py-2.5 text-center">Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {pagedRows.map((row: any) => {
+                                    const isDoctor = row.role === 'Doctor';
+                                    const isEmergency = row.leaveType === 'Emergency';
+                                    let statusBadge = 'bg-amber-50 text-amber-700 border border-amber-200';
+                                    if (row.statusName === 'Approved') statusBadge = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                                    else if (row.statusName === 'Rejected') statusBadge = 'bg-rose-50 text-rose-700 border border-rose-200';
+                                    else if (row.statusName === 'Cancelled') statusBadge = 'bg-slate-100 text-slate-600 border border-slate-200';
+
+                                    return (
+                                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-4 py-3">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="font-bold text-slate-800">{row.personName}</span>
+                                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-extrabold ${isDoctor ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                                              {row.role}
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-slate-400">{row.personEmail}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-700 font-medium">{row.specializationOrRole || '-'}</td>
+                                        <td className="px-4 py-3 text-slate-600 font-medium">{row.branchName}</td>
+                                        <td className="px-4 py-3">
+                                          <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${isEmergency ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                                            {row.leaveType}
+                                          </span>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                          <div className="font-semibold text-slate-800">{row.startDate} {row.startDate !== row.endDate ? `to ${row.endDate}` : ''}</div>
+                                          <div className="text-xs text-slate-400 font-medium">{row.daysCount} day{row.daysCount > 1 ? 's' : ''}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-600 text-xs">{row.sessionName || 'Full Day'}</td>
+                                        <td className="px-4 py-3 max-w-[220px]">
+                                          <div className="text-slate-800 font-medium truncate" title={row.reason}>{row.reason}</div>
+                                          {row.publicNotice && (
+                                            <div className="text-[11px] text-slate-400 italic truncate" title={row.publicNotice}>
+                                              Notice: {row.publicNotice}
+                                            </div>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                          {row.affectedTokensCount > 0 ? (
+                                            <span className="font-bold text-rose-600">{row.affectedTokensCount}</span>
+                                          ) : (
+                                            <span className="text-slate-400 font-medium">0</span>
+                                          )}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold ${statusBadge}`}>
+                                            {row.statusName}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {pagedRows.length === 0 && (
+                                    <tr>
+                                      <td colSpan={9} className="px-6 py-8 text-center text-slate-500">
+                                        No leave records match the selected filters.
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                            {filtered.length > 0 && (
+                              <DataTablePagination
+                                pageIndex={leavePageIndex}
+                                pageSize={pageSize}
+                                totalCount={filtered.length}
+                                pageCount={pageCount}
+                                onPageChange={setLeavePageIndex}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </>
                 )}
@@ -1017,8 +1438,7 @@ export default function ReportsDashboardPage() {
            )}
 
 
-
-           {!['dcr', 'doctor_revenue', 'service_revenue', 'outstanding', 'footfall', 'appointment_summary', 'queue_performance', 'staff_productivity', 'diagnosis_summary', 'patient_demographics', 'new_vs_returning', 'referral_tracking'].includes(activeReport) && (
+           {!['dcr', 'doctor_revenue', 'service_revenue', 'outstanding', 'footfall', 'appointment_summary', 'queue_performance', 'staff_productivity', 'doctor_availability', 'leave_summary', 'diagnosis_summary', 'patient_demographics', 'new_vs_returning', 'referral_tracking'].includes(activeReport) && (
              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 flex flex-col items-center justify-center text-center">
                 <BarChart3 className="w-16 h-16 text-slate-200 mb-4" />
                 <h2 className="text-xl font-bold text-slate-700">Report Under Construction</h2>

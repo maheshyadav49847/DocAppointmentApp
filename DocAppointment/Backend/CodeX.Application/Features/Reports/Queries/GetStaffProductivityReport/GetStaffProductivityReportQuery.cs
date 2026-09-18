@@ -10,6 +10,9 @@ namespace CodeX.Application.Features.Reports.Queries.GetStaffProductivityReport
         public int TokensGenerated { get; set; }
         public int AppointmentsCompleted { get; set; }
         public int AppointmentsCancelled { get; set; }
+        public int LeavesTakenCount { get; set; }
+        public int ActiveWorkingDays { get; set; }
+        public double TokensPerWorkingDay { get; set; }
     }
 
     public class StaffProductivityReportDto
@@ -60,14 +63,48 @@ namespace CodeX.Application.Features.Reports.Queries.GetStaffProductivityReport
                 .Where(s => staffIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id, s => s.FirstName + " " + s.LastName, cancellationToken);
 
+            var startUtc = DateTime.SpecifyKind(request.StartDate.Date, DateTimeKind.Utc);
+            var endUtc = DateTime.SpecifyKind(request.EndDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+
+            var staffLeaves = await _context.LeaveRecords
+                .Where(l => l.OrganizationId == request.OrganizationId
+                            && !l.IsDeleted
+                            && l.StaffId.HasValue
+                            && staffIds.Contains(l.StaffId.Value)
+                            && l.Status == Domain.Enums.LeaveStatus.Approved
+                            && l.StartDate <= endUtc
+                            && l.EndDate >= startUtc)
+                .Select(l => new {
+                    StaffId = l.StaffId!.Value,
+                    l.StartDate,
+                    l.EndDate
+                })
+                .ToListAsync(cancellationToken);
+
+            int totalDaysInRange = Math.Max(1, (int)(request.EndDate.Date - request.StartDate.Date).TotalDays + 1);
+
             var grouped = tokens
                 .GroupBy(t => t.StaffId)
-                .Select(g => new StaffProductivityReportRowDto
-                {
-                    StaffName = staffList.ContainsKey(g.Key!.Value) ? staffList[g.Key!.Value] : "Unknown Staff",
-                    TokensGenerated = g.Count(),
-                    AppointmentsCompleted = g.Count(x => x.Status == Domain.Enums.TokenStatus.Completed),
-                    AppointmentsCancelled = g.Count(x => x.Status == Domain.Enums.TokenStatus.Cancelled)
+                .Select(g => {
+                    var staffId = g.Key!.Value;
+                    int leavesDays = staffLeaves.Where(l => l.StaffId == staffId).Sum(l => {
+                        var ls = l.StartDate.Date < request.StartDate.Date ? request.StartDate.Date : l.StartDate.Date;
+                        var le = l.EndDate.Date > request.EndDate.Date ? request.EndDate.Date : l.EndDate.Date;
+                        return Math.Max(1, (int)(le - ls).TotalDays + 1);
+                    });
+                    int activeWorkingDays = Math.Max(1, totalDaysInRange - leavesDays);
+                    int tokensCount = g.Count();
+
+                    return new StaffProductivityReportRowDto
+                    {
+                        StaffName = staffList.ContainsKey(staffId) ? staffList[staffId] : "Unknown Staff",
+                        TokensGenerated = tokensCount,
+                        AppointmentsCompleted = g.Count(x => x.Status == Domain.Enums.TokenStatus.Completed),
+                        AppointmentsCancelled = g.Count(x => x.Status == Domain.Enums.TokenStatus.Cancelled),
+                        LeavesTakenCount = leavesDays,
+                        ActiveWorkingDays = activeWorkingDays,
+                        TokensPerWorkingDay = Math.Round((double)tokensCount / activeWorkingDays, 1)
+                    };
                 })
                 .OrderByDescending(r => r.TokensGenerated)
                 .ToList();
