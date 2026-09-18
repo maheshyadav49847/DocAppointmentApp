@@ -19,6 +19,7 @@ namespace CodeX.Domain.Constants
             public const string Reports = "Reports";
             public const string Outbox = "Outbox";
             public const string AuditLogs = "AuditLogs";
+            public const string Leaves = "Leaves";
         }
 
         public static class Queue
@@ -146,6 +147,14 @@ namespace CodeX.Domain.Constants
             public const string View = "Settings.View";
             public const string ManageRoles = "Settings.ManageRoles";
             public const string ManageWhatsapp = "Settings.ManageWhatsapp";
+        }
+
+        public static class Leaves
+        {
+            public const string View = "Leaves.View";
+            public const string Apply = "Leaves.Apply";
+            public const string Approve = "Leaves.Approve";
+            public const string Cancel = "Leaves.Cancel";
         }
 
         public static IEnumerable<string> GetAll()

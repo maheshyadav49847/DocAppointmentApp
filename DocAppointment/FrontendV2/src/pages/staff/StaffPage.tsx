@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import { Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
@@ -14,7 +15,7 @@ import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   UserCog, Search, PlusCircle, Edit, Trash2,
   X, Save, Activity, ShieldCheck, Mail, Phone, Hash, Calendar, LayoutGrid, List, User, Key, CheckCircle, LockKeyholeOpen, Lock,
-  Users, Radio
+  Users, Radio, CalendarOff
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -477,6 +478,16 @@ export default function StaffPage() {
                 </button>
               )}
             </div>
+
+            <Link
+              to="/leaves"
+              className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-2xs"
+              title="Manage Staff Leaves & Approvals"
+            >
+              <CalendarOff className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">Staff Leaves</span>
+              <span className="sm:hidden">Leaves</span>
+            </Link>
 
             {can('Staff.Add') && (
               <button

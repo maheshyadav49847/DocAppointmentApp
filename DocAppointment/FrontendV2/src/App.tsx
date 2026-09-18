@@ -25,6 +25,7 @@ import BillingDashboardPage from "./pages/billing/BillingDashboardPage"
 import ReportsDashboardPage from "./pages/reports/ReportsDashboardPage"
 import PatientLifecyclePage from "./pages/lifecycle/PatientLifecyclePage"
 import OutboxDashboardPage from "./pages/outbox/OutboxDashboardPage"
+import LeavesPage from "./pages/leaves/LeavesPage"
 import { useAuthStore } from "./store/authStore"
 import TelegramBookingForm from "./pages/telegram/TelegramBookingForm"
 import { usePermissions } from "./hooks/usePermissions"
@@ -93,6 +94,7 @@ function App() {
           <Route path="/sessions" element={<PermissionRoute permissions={["Sessions.View"]}><SessionsPage /></PermissionRoute>} />
           <Route path="/branches" element={<PermissionRoute permissions={["Branches.View"]}><BranchesPage /></PermissionRoute>} />
           <Route path="/staff" element={<PermissionRoute permissions={["Staff.View"]}><StaffPage /></PermissionRoute>} />
+          <Route path="/leaves" element={<PermissionRoute permissions={["Leaves.View", "Queue.View", "DoctorDesk.View", "Staff.View"]}><LeavesPage /></PermissionRoute>} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/settings/roles" element={<PermissionRoute permissions={["Settings.ManageRoles"]}><RolesPermissionsPage /></PermissionRoute>} />
           <Route path="/pharmacy" element={<PermissionRoute permissions={["Pharmacy.View"]}><PharmacyPage /></PermissionRoute>} />

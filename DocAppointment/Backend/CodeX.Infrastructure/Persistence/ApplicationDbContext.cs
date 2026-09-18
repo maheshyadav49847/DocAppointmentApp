@@ -56,6 +56,7 @@ namespace CodeX.Infrastructure.Persistence
         public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
         public DbSet<Payment> Payments => Set<Payment>();
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+        public DbSet<LeaveRecord> LeaveRecords => Set<LeaveRecord>();
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
@@ -194,6 +195,14 @@ namespace CodeX.Infrastructure.Persistence
 
             modelBuilder.Entity<Rating>().HasQueryFilter(x => 
                 (_currentUserService.OrgId == Guid.Empty || (x.Token != null && x.Token.OrganizationId == _currentUserService.OrgId)) && !x.IsDeleted);
+
+            modelBuilder.Entity<LeaveRecord>()
+                .HasIndex(x => new { x.OrganizationId, x.DoctorId, x.StartDate, x.EndDate, x.Status })
+                .HasDatabaseName("IX_LeaveRecords_Doctor_Dates_Status");
+
+            modelBuilder.Entity<LeaveRecord>()
+                .HasIndex(x => new { x.OrganizationId, x.StaffId, x.StartDate, x.EndDate, x.Status })
+                .HasDatabaseName("IX_LeaveRecords_Staff_Dates_Status");
         }
 
         private bool IsDoctorRole => _currentUserService.IsInRole("Doctor");

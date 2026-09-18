@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, CheckCircle, Save, ReceiptIndianRupee, BarChart3, MapPin, Route, Inbox } from "lucide-react"
+import { LayoutDashboard, Users, Stethoscope, Pill, Clock, Settings, Menu, LogOut, Bell, Activity, X, Building2, UserCog, Key, ChevronRight, Home, FileText, MonitorPlay, CheckCircle, Save, ReceiptIndianRupee, BarChart3, MapPin, Route, Inbox, CalendarOff } from "lucide-react"
 import toast from "react-hot-toast"
 import { Input } from "@/components/ui/input"
 
@@ -28,6 +28,7 @@ const getNavigation = (role: string, isDoctor: boolean) => {
     { name: "Patients", href: "/patients", icon: Users, requiredAny: ["Patients.View"] },
     { name: "Sessions", href: "/sessions", icon: Clock, requiredAny: ["Sessions.View"] },
     { name: "Staff", href: "/staff", icon: UserCog, requiredAny: ["Staff.View"] },
+    { name: "Leaves", href: "/leaves", icon: CalendarOff, requiredAny: ["Leaves.View", "Queue.View", "DoctorDesk.View", "Staff.View"] },
     { name: "Pharmacy", href: "/pharmacy", icon: Pill, requiredAny: ["Pharmacy.View"] },
     { name: "Billing & Invoices", href: "/billing", icon: FileText, requiredAny: ["Billing.View"] },
     { name: "Rate List", href: "/billing/services", icon: ReceiptIndianRupee, requiredAny: ["Billing.ManageRateList", "Billing.View"] },

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import { Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import PhoneInput from "@/components/PhoneInput"
@@ -12,7 +13,7 @@ import {
 import type { ColumnDef, PaginationState } from "@tanstack/react-table"
 import {
   Stethoscope, PlusCircle, Search, Edit, Trash2, AlertCircle, X, Save, Activity,
-  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key, CheckCircle, Radio
+  LayoutGrid, List, User, Users, GraduationCap, Clock, ShieldCheck, Phone, Mail, Building2, Star, Key, CheckCircle, Radio, CalendarOff
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -521,6 +522,16 @@ export default function DoctorsPage() {
                 </button>
               )}
             </div>
+
+            <Link
+              to="/leaves"
+              className="btn-secondary h-9 px-3 text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-2xs"
+              title="Manage Doctor Leaves & OPD Suspensions"
+            >
+              <CalendarOff className="w-3.5 h-3.5 text-indigo-600" />
+              <span className="hidden sm:inline">Leaves & Suspensions</span>
+              <span className="sm:hidden">Leaves</span>
+            </Link>
 
             {can('Doctors.Add') && (
               <button

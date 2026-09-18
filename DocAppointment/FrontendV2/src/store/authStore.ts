@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 interface AuthUser {
+  id?: string
   name?: string
   email: string
   role: string
@@ -33,17 +34,21 @@ export const useAuthStore = create<AuthState>()(
       activeBranchId: null,
       setAuth: (user, token) => {
         let permissions: string[] = [];
+        let userId: string | undefined = user.id;
         try {
           const payloadStr = atob(token.split('.')[1]);
           const payload = JSON.parse(payloadStr);
           if (payload.permissions) {
             permissions = payload.permissions.split(',');
           }
+          if (payload.sub) {
+            userId = payload.sub;
+          }
         } catch (e) {
           console.error("Failed to decode token permissions", e);
         }
         
-        const finalUser = { ...user, permissions };
+        const finalUser = { ...user, id: userId, permissions };
         set({ user: finalUser, token, isAuthenticated: true, activeBranchId: finalUser.branchId || null });
       },
       clearAuth: () => set({ user: null, token: null, isAuthenticated: false, activeBranchId: null }),

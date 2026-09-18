@@ -179,6 +179,8 @@ interface QueueItem {
   branchPhone?: string;
   branchLogo?: string | null;
   orgName?: string | null;
+  isOnLeave?: boolean;
+  leaveNotice?: string | null;
 }
 
 interface DoctorGroup {
@@ -1439,40 +1441,90 @@ const TelegramBookingForm = () => {
                   {/* Sessions under this Doctor (with Radio Buttons) */}
                   <div style={styles.sessionList}>
                     {group.queues.map(sessionQueue => {
-                      const isSessionSelected = selectedQueue === sessionQueue.id;
+                      const isOnLeave = !!sessionQueue.isOnLeave;
+                      const isSessionSelected = !isOnLeave && selectedQueue === sessionQueue.id;
                       return (
                         <div
                           key={sessionQueue.id}
-                          onClick={() => setSelectedQueue(sessionQueue.id)}
-                          style={styles.sessionRow(isSessionSelected)}
+                          onClick={isOnLeave ? undefined : () => setSelectedQueue(sessionQueue.id)}
+                          style={{
+                            ...styles.sessionRow(isSessionSelected),
+                            opacity: isOnLeave ? 0.75 : 1,
+                            cursor: isOnLeave ? 'not-allowed' : 'pointer',
+                            backgroundColor: isOnLeave ? '#fff5f5' : (isSessionSelected ? '#eef2ff' : '#f8fafc'),
+                            borderColor: isOnLeave ? '#fecdd3' : (isSessionSelected ? '#6366f1' : '#e2e8f0'),
+                            flexDirection: 'column',
+                            alignItems: 'stretch'
+                          }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                            {/* Radio Button Indicator */}
-                            <div style={styles.radioOuter(isSessionSelected)} />
-
-                            <div style={styles.sessionInfo}>
-                              <span style={styles.sessionNameText}>
-                                {sessionQueue.sessionName || `${t.session}`}
-                              </span>
-                              {sessionQueue.sessionStart && sessionQueue.sessionEnd && (
-                                <span style={styles.sessionTiming}>
-                                  🕒 {sessionQueue.sessionStart} - {sessionQueue.sessionEnd}
-                                </span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                              {/* Radio Button Indicator or Leave Alert Icon */}
+                              {isOnLeave ? (
+                                <span style={{ marginRight: '10px', fontSize: '16px' }}>🛑</span>
+                              ) : (
+                                <div style={styles.radioOuter(isSessionSelected)} />
                               )}
+
+                              <div style={styles.sessionInfo}>
+                                <span style={{
+                                  ...styles.sessionNameText,
+                                  color: isOnLeave ? '#991b1b' : '#1e293b'
+                                }}>
+                                  {sessionQueue.sessionName || `${t.session}`}
+                                  {isOnLeave && (
+                                    <span style={{
+                                      marginLeft: '6px',
+                                      fontSize: '10px',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      backgroundColor: '#ffe4e6',
+                                      color: '#be123c',
+                                      fontWeight: 800
+                                    }}>
+                                      LEAVE / अवकाश
+                                    </span>
+                                  )}
+                                </span>
+                                {sessionQueue.sessionStart && sessionQueue.sessionEnd && (
+                                  <span style={styles.sessionTiming}>
+                                    🕒 {sessionQueue.sessionStart} - {sessionQueue.sessionEnd}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+
+                            {/* Session Live Queue Status */}
+                            {!isOnLeave && (
+                              <div style={styles.sessionStats}>
+                                <div style={styles.statPill} title={t.currentToken}>
+                                  <span>🎫</span>
+                                  <strong>#{sessionQueue.currentTokenNumber || 0}</strong>
+                                </div>
+                                <div style={styles.statPill} title={t.waiting}>
+                                  <span>⏳</span>
+                                  <span>{sessionQueue.waitingCount || 0}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Session Live Queue Status */}
-                          <div style={styles.sessionStats}>
-                            <div style={styles.statPill} title={t.currentToken}>
-                              <span>🎫</span>
-                              <strong>#{sessionQueue.currentTokenNumber || 0}</strong>
+                          {/* Public Notice Banner if on Leave */}
+                          {isOnLeave && (
+                            <div style={{
+                              marginTop: '6px',
+                              padding: '6px 10px',
+                              backgroundColor: '#ffffff',
+                              border: '1px solid #fecdd3',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              color: '#991b1b',
+                              fontWeight: 600,
+                              lineHeight: 1.4
+                            }}>
+                              📢 {sessionQueue.leaveNotice || "Doctor is on leave. Bookings are temporarily paused."}
                             </div>
-                            <div style={styles.statPill} title={t.waiting}>
-                              <span>⏳</span>
-                              <span>{sessionQueue.waitingCount || 0}</span>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

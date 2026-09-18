@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   Users, Activity, CheckCircle2,
   Loader2, Bell, Play, Pause, MonitorPlay, Power, RotateCcw, AlertCircle, X, Building2, Stethoscope, Clock, Smartphone, Send, Phone,
-  Calendar, Sparkles, ArrowRight, ChevronRight, Coffee, Star
+  Calendar, Sparkles, ArrowRight, ChevronRight, Coffee, Star, CalendarOff
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { useAuthStore } from "@/store/authStore"
@@ -14,6 +14,7 @@ import { useQueueHub } from "@/hooks/useQueueHub"
 import ConsultationPage from "./ConsultationPage"
 import EndSessionModal from "../queue/components/EndSessionModal"
 import PauseSessionModal from "../queue/components/PauseSessionModal"
+import ApplyLeaveModal from "@/components/leaves/ApplyLeaveModal"
 import { motion, AnimatePresence } from "framer-motion"
 import { PageLoader } from "@/components/ui/PageLoader"
 import { useNavigate } from "react-router-dom"
@@ -212,6 +213,7 @@ export default function DoctorDeskPage() {
   })
 
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false)
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false)
 
   const pauseMutation = useMutation({
     mutationFn: ({ duration, reason }: { duration: number; reason: string }) =>
@@ -795,6 +797,16 @@ export default function DoctorDeskPage() {
                 <MonitorPlay className="w-3.5 h-3.5 text-indigo-500" />
                 <span className="hidden sm:inline">TV View</span>
               </a>
+
+              {/* Apply Leave / OPD Suspension */}
+              <button
+                onClick={() => setIsLeaveModalOpen(true)}
+                className="btn-secondary h-9 px-3 text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-2xs text-rose-700 bg-rose-50/60 hover:bg-rose-100 border-rose-200"
+                title="Apply emergency OPD suspension or planned leave"
+              >
+                <CalendarOff className="w-3.5 h-3.5 text-rose-600" />
+                <span className="hidden sm:inline">Apply Leave</span>
+              </button>
 
               {/* End Session */}
               {can('DoctorDesk.EndSession') && (
@@ -1436,6 +1448,17 @@ export default function DoctorDeskPage() {
           doctorName={activeQueue.doctorName}
         />
       )}
+
+      {/* Apply Leave Modal */}
+      <ApplyLeaveModal
+        isOpen={isLeaveModalOpen}
+        onClose={() => setIsLeaveModalOpen(false)}
+        initialDoctorId={effectiveDoctorId}
+        initialBranchId={branchId}
+        onSuccess={() => {
+          refetchQueue()
+        }}
+      />
     </div>
   )
 }

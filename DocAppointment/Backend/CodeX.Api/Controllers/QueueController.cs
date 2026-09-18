@@ -523,6 +523,17 @@ namespace CodeX.Api.Controllers
                 .Where(d => doctorIds.Contains(d.Id) && !d.IsDeleted)
                 .ToDictionaryAsync(d => d.Id);
 
+            var activeLeaves = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .Where(l => (l.BranchId == null || l.BranchId == branchId) &&
+                            l.DoctorId != null &&
+                            doctorIds.Contains(l.DoctorId.Value) &&
+                            (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                            l.StartDate.Date <= today.Date &&
+                            l.EndDate.Date >= today.Date &&
+                            !l.IsDeleted)
+                .ToListAsync();
+
             var tokens = await _context.Tokens
                 .IgnoreQueryFilters()
                 .Include(t => t.Patient)
@@ -534,6 +545,11 @@ namespace CodeX.Api.Controllers
             var result = queues.Select(q => {
                 var qTokens = tokensByQueue.GetValueOrDefault(q.Id) ?? new List<Domain.Entities.Token>();
                 doctors.TryGetValue(q.DoctorId, out var doctor);
+
+                var activeLeave = activeLeaves.FirstOrDefault(l => l.DoctorId == q.DoctorId && (l.SessionId == null || l.SessionId == q.SessionId));
+                var isOnLeave = activeLeave != null;
+                var leaveNotice = activeLeave?.PublicNotice ?? (activeLeave != null ? "Doctor is currently on leave." : null);
+                var leaveType = activeLeave?.LeaveType.ToString();
 
                 var currentToken = qTokens
                     .Where(t => t.TokenNumber == q.CurrentTokenNumber && t.Status == TokenStatus.Called)
@@ -568,6 +584,9 @@ namespace CodeX.Api.Controllers
                     currentTokenCalledAt = currentToken?.CalledAt,
                     pausedUntil = q.PausedUntil,
                     pauseReason = q.PauseReason,
+                    isOnLeave = isOnLeave,
+                    leaveNotice = leaveNotice,
+                    leaveType = leaveType,
                     branchName = branch.Name,
                     branchAddress = branch.Address,
                     branchPhone = branch.WhatsAppNumber,
@@ -734,6 +753,28 @@ namespace CodeX.Api.Controllers
                 .FirstOrDefaultAsync(q => q.Id == queueId && !q.IsDeleted);
 
             if (queue == null) return NotFound("Queue not found.");
+
+            // Check if doctor is on active leave for this queue's date and session
+            var activeLeave = await _context.LeaveRecords
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(l => l.DoctorId == queue.DoctorId &&
+                    (l.BranchId == null || l.BranchId == queue.BranchId) &&
+                    (l.SessionId == null || l.SessionId == queue.SessionId) &&
+                    (l.Status == LeaveStatus.Approved || (l.Status == LeaveStatus.Pending && l.LeaveType == LeaveType.Unplanned)) &&
+                    l.StartDate.Date <= queue.QueueDate.Date &&
+                    l.EndDate.Date >= queue.QueueDate.Date &&
+                    !l.IsDeleted);
+
+            if (activeLeave != null)
+            {
+                var docName = queue.Doctor?.Name ?? "डॉक्टर";
+                var notice = !string.IsNullOrWhiteSpace(activeLeave.PublicNotice) ? activeLeave.PublicNotice : $"{docName} अवकाश पर हैं ({activeLeave.LeaveType} Leave).";
+                return BadRequest(new { 
+                    message = $"डॉक्टर अवकाश पर हैं: {notice}",
+                    doctorOnLeave = true,
+                    leaveNotice = notice
+                });
+            }
 
             // Check for duplicate booking or consumed form if chatId is provided
             Guid? patientId = null;

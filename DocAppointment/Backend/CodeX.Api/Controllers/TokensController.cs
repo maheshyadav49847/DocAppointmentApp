@@ -31,6 +31,21 @@ namespace CodeX.Api.Controllers
                 CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureOrgOwnership(_currentUserService, queue.Branch.OrganizationId);
                 CodeX.Application.Common.Authorization.ResourceAuthorization.EnsureBranchOwnership(_currentUserService, queue.BranchId);
 
+                var activeLeave = await _context.LeaveRecords
+                    .FirstOrDefaultAsync(l => l.DoctorId == queue.DoctorId &&
+                        (l.BranchId == null || l.BranchId == queue.BranchId) &&
+                        (l.SessionId == null || l.SessionId == queue.SessionId) &&
+                        (l.Status == CodeX.Domain.Enums.LeaveStatus.Approved || (l.Status == CodeX.Domain.Enums.LeaveStatus.Pending && l.LeaveType == CodeX.Domain.Enums.LeaveType.Unplanned)) &&
+                        l.StartDate.Date <= queue.QueueDate.Date &&
+                        l.EndDate.Date >= queue.QueueDate.Date &&
+                        !l.IsDeleted);
+
+                if (activeLeave != null)
+                {
+                    var notice = !string.IsNullOrWhiteSpace(activeLeave.PublicNotice) ? activeLeave.PublicNotice : "Doctor is on leave.";
+                    return BadRequest(new { message = $"Cannot issue token: Doctor is on leave ({activeLeave.LeaveType} Leave). {notice}" });
+                }
+
                 return await Mediator.Send(command);
             }
             catch (System.Exception ex)
